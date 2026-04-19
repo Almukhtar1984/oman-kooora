@@ -1,0 +1,276 @@
+import {Box, Button, Col, FileInput, Grid, Group, Select, Switch, Text,} from "@mantine/core";
+import {Calendar, Check, ChevronDown, X} from "tabler-icons-react";
+import React, {useEffect, useRef, useState} from "react";
+import TextInput from "../Input/TextInput";
+import Modal, { Props as ModalProps } from "./Modal";
+import {AllTechnicals, useUpdateTechnical, useTechnical} from "../../graphql";
+import useStore from "../../store/useStore";
+import {DateInput,} from "@mantine/dates";
+import { useForm } from '@mantine/form';
+import dayjs from "dayjs";
+import {Dropzone} from "@mantine/dropzone";
+
+type Props = {
+    id: string;
+} & ModalProps;
+
+const init = {
+    occupation: "",
+    classification: "",
+    membership_date: new Date(),
+    membership_date_end: new Date(),
+    paid: false,
+    person: {
+        first_name: "",
+        second_name: "",
+        third_name: "",
+        tribe: "",
+        phone: "",
+        card_number: "",
+        date_birth: new Date(),
+    }
+}
+
+export const UpdateTechnicalModal = ({id, opened, ...props}: Props) => {
+    const userData = useStore((state: any) => state.userData);
+    const form = useForm({
+        initialValues: init
+    });
+    const [idPerson, setIdPerson] = useState("");
+    const [file, setFile] = useState<File[] | null>(null);
+    const openRef = useRef<() => void>(null);
+    const [updateTechnical] = useUpdateTechnical();
+
+    const [getTechnical, { loading, error, data: dataTechnical }] = useTechnical();
+
+    useEffect(() => {
+        if (id && id !== "") {
+            getTechnical({
+                variables: {id},
+                fetchPolicy: "network-only"
+            })
+        }
+    }, [id, opened])
+
+    useEffect(() => {
+        if (dataTechnical && "technicalApparatus" in dataTechnical) {
+            form.setValues({
+                classification: dataTechnical?.technicalApparatus?.classification,
+                membership_date: new Date(dataTechnical?.technicalApparatus?.membership_date),
+
+                membership_date_end: new Date(dataTechnical?.technicalApparatus?.membership_date_end),
+                paid: dataTechnical?.technicalApparatus?.paid,
+
+                occupation: dataTechnical?.technicalApparatus?.occupation,
+                person: {
+                    first_name: dataTechnical?.technicalApparatus?.person?.first_name,
+                    second_name: dataTechnical?.technicalApparatus?.person?.second_name,
+                    third_name: dataTechnical?.technicalApparatus?.person?.third_name,
+                    tribe: dataTechnical?.technicalApparatus?.person?.tribe,
+                    card_number: dataTechnical?.technicalApparatus?.person?.card_number,
+                    date_birth: new Date(dataTechnical?.technicalApparatus?.person?.date_birth),
+                    phone: dataTechnical?.technicalApparatus?.person?.phone
+                }
+            })
+            setIdPerson(dataTechnical?.technicalApparatus?.person?.id)
+        }
+    }, [dataTechnical])
+
+    const onSubmit = (data: any) => {
+        const {occupation, classification, membership_date, membership_date_end, paid, person } = data
+
+        updateTechnical({
+            variables: {
+                id,
+                idPerson: idPerson,
+                content: {
+                    occupation,
+                    classification,
+                    membership_date: dayjs(membership_date).format("YYYY-MM-DD"),
+                    membership_date_end: dayjs(membership_date_end).format("YYYY-MM-DD"),
+                    paid,
+                    testimony_experience: file?.[0],
+                    person: {
+                        ...person,
+                        date_birth: dayjs(person?.date_birth).format("YYYY-MM-DD")
+                    }
+                }
+            },
+            refetchQueries: [AllTechnicals]
+        })
+        .then(() => {
+            closeModal();
+        })
+        .catch(reason => {
+            console.log(reason)
+        })
+    };
+
+    const closeModal = () => {
+        props.onClose();
+        form.reset();
+    };
+
+    return (
+        <Modal
+            {...props}
+            opened={opened}
+            onClose={closeModal}
+            footer={
+                <Box py={16} px={20} bg="slate.0">
+                    <Group position={"right"} spacing={"xs"}>
+                        <Button variant="outline" rightIcon={<X size={15} />} bg="white" onClick={closeModal}>إلغاء</Button>
+                        <Button rightIcon={<Check size={15} />} type="submit" form="submit_form">تأكيد</Button>
+                    </Group>
+                </Box>
+            }
+        >
+            <Box sx={({ colors }) => ({padding: 20})}>
+                <form onSubmit={form.onSubmit(onSubmit)} id="submit_form">
+                    <Grid gutter={20}>
+                        <Col span={6}>
+                            <TextInput
+                                label="الاسم الاول"
+                                placeholder="الاسم الاول"
+                                withAsterisk
+                                {...form.getInputProps("person.first_name")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="الاسم الثاني"
+                                placeholder="الاسم الثاني"
+                                withAsterisk
+                                {...form.getInputProps("person.second_name")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="الاسم الثالث"
+                                placeholder="الاسم الثالث"
+                                withAsterisk
+                                {...form.getInputProps("person.third_name")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="القبيلة"
+                                placeholder="القبيلة"
+                                withAsterisk
+                                {...form.getInputProps("person.tribe")}
+                            />
+                        </Col>
+
+                        <Col span={6}>
+                            <TextInput
+                                label="رقم الهاتف"
+                                placeholder="رقم الهاتف"
+                                withAsterisk
+                                {...form.getInputProps("person.phone")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="الرقم المدني"
+                                placeholder="الرقم المدني"
+                                withAsterisk
+                                {...form.getInputProps("person.card_number")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <DateInput
+                                label="تاريخ الميلاد"
+                                placeholder="تاريخ الميلاد"
+                                withAsterisk
+                                valueFormat="MM/DD/YYYY"
+                                icon={<Calendar size={16} />}
+                                {...form.getInputProps("person.date_birth")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="الوظيفه"
+                                placeholder="الوظيفه"
+                                withAsterisk
+                                {...form.getInputProps("occupation")}
+                            />
+                        </Col>
+
+                        <Col span={6}>
+                            <Select
+                                label="التصنيف"
+                                placeholder="التصنيف"
+                                withAsterisk
+                                rightSection={<ChevronDown size={14} />}
+                                rightSectionWidth={30}
+                                styles={{ rightSection: { pointerEvents: 'none' } }}
+                                data={['مدرب', 'مساعد مدرب', 'مدير الفريق', 'مدرب اللياقة', "طبي", "اعلامي"]}
+                                {...form.getInputProps("classification")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <DateInput
+                                label="تاريخ العقد"
+                                placeholder="تاريخ العقد"
+                                withAsterisk
+                                valueFormat="MM/DD/YYYY"
+                                icon={<Calendar size={16} />}
+                                {...form.getInputProps("membership_date")}
+                            />
+                        </Col>
+
+                        <Col span={6}>
+                            <DateInput
+                                label="تاريخ  نهاية العقد"
+                                placeholder="تاريخ نهاية العقد"
+                                withAsterisk
+                                valueFormat="MM/DD/YYYY"
+                                icon={<Calendar size={16} />}
+                                {...form.getInputProps("membership_date_end")}
+                            />
+                        </Col>
+
+                        <Col span={6}>
+                            <Switch
+                                labelPosition="left"
+                                label="هل تم الدفع؟"
+                                {...form.getInputProps("paid")}
+                                styles={()=>({
+                                    root: {
+                                        marginTop: 22,
+                                        border: "1px solid #9ca3af",
+                                        borderRadius: 3,
+                                        padding: "7px 10px"
+                                    },
+                                    body: {
+                                        justifyContent: "space-between"
+                                    }
+                                })}
+                            />
+                        </Col>
+
+                        <Col span={12} >
+                            <Text size={"sm"} mb={10} >شهاده الخبره تدريب (PDF)</Text>
+                            <Dropzone
+                                placeholder={"شهاده الخبره تدريب"}
+                                openRef={openRef}
+                                activateOnClick={false}
+                                multiple={false}
+                                onDrop={(file) => setFile(file)}
+                                styles={{ inner: { pointerEvents: 'all' } }}
+                                accept={{'application/pdf': ['.pdf'],}}
+                            >
+                                <Group position="center">
+                                    <Button onClick={() => {
+                                        // @ts-ignore
+                                        return openRef ? openRef?.current() : undefined
+                                    }}>اختار ملف / اسحب ملف الى هنا</Button>
+                                </Group>
+                            </Dropzone>
+                        </Col>
+                    </Grid>
+                </form>
+            </Box>
+        </Modal>
+    );
+};

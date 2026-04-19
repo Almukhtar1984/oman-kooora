@@ -1,0 +1,23 @@
+.DS_Store
+.idea/
+
+# Dependency directories
+node_modules/
+
+# Build output
+build/
+dist/
+.next/
+out/
+
+# Local runtime files
+logs/
+*.log
+
+# Local environments and secrets
+.env
+.env.*
+!.env.example
+
+# Local backup of nested git metadata
+.git-history-backups/

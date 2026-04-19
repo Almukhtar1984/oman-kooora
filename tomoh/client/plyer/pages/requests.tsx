@@ -1,0 +1,104 @@
+import { useTheme } from "@emotion/react";
+import {Box, Button, Col, Container, Group, MantineTheme, TextInput} from "@mantine/core";
+import {Plus, Search,} from "tabler-icons-react";
+import Head from "next/head";
+import React, { useEffect } from "react";
+import { useState } from "react";
+import {searchSortedData, sortedData} from "../lib/helpers/sort";
+import {useAllRequests} from "../graphql";
+import useStore from "../store/useStore";
+import {RequestsTable} from "../components/Tables";
+import {
+    AddProposalModal,
+    AddRequestModal,
+    DeleteProposalModal, DeleteRequestModal,
+    UpdateProposalModal,
+    UpdateRequestModal
+} from "../components/Modal";
+
+export default function Requests() {
+    const userData = useStore((state: any) => state.userData);
+    // states
+    const theme = useTheme() as MantineTheme;
+    const [openAddModal, setOpenAddModal] = useState<boolean>(false);
+    const [openEditModal, setOpenEditModal] = useState<boolean>(false);
+    const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
+    const [searchValue, setSearchValue] = useState<string>("");
+    const [selectedData, setSelectedData] = useState("");
+    const [allRequests, setAllRequests] = useState<object[]>([]);
+    const [allRequestsSorting, setAllRequestsSorting] = useState<object[]>([]);
+    const [newStatus, setNewStatus] = useState("");
+
+    const [getAllRequests, { loading, error, data: dataAllRequests }] = useAllRequests();
+
+    useEffect(() => {
+        if (userData?.person?.player?.id) {
+            const idPlayer = userData?.person?.player?.id;
+            getAllRequests({
+                variables: {idPlayer, type: "request"},
+                fetchPolicy: "network-only"
+            })
+        }
+    }, [userData])
+
+    useEffect(() => {
+        if (dataAllRequests && "allRequests" in dataAllRequests) {
+            setAllRequests([...dataAllRequests.allRequests])
+        }
+    }, [dataAllRequests])
+
+    useEffect(() => {
+        if (allRequests.length >= 0) {
+            const filterAllRequests = sortedData(allRequests)
+
+            setAllRequestsSorting([...filterAllRequests])
+        }
+    }, [allRequests])
+
+    useEffect(() => {
+        useStore.setState({ isLayoutDisabled: false });
+    }, []);
+
+    const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = event.currentTarget;
+        setSearchValue(value);
+
+        const filterAllRequests = searchSortedData(allRequests,['name'], value)
+        setAllRequestsSorting([...filterAllRequests])
+    };
+
+    return (
+        <Box>
+            <Head><title>طموح</title></Head>
+            <Container size={"xl"}>
+                <Box mb={20} mt={"20px"}>
+                    <Group position={"apart"}>
+                        <TextInput value={searchValue} icon={<Search color={theme.colors.gray[4]} size={16} />} placeholder="بحث" onChange={handleSearchChange}/>
+
+                        <Button
+                            rightIcon={<Plus size={16} strokeWidth="3" />}
+                            sx={{ fontWeight: 500 }}
+                            onClick={() => setOpenAddModal(true)}
+                            color={"primary"}
+                        >
+                            إضافة طلب
+                        </Button>
+                    </Group>
+                </Box>
+
+                <RequestsTable
+                    list={allRequestsSorting}
+                    search={searchValue}
+                    setOpenDeleteModal={setOpenDeleteModal}
+                    setOpenEditModal={setOpenEditModal}
+                    setSelectedRow={setSelectedData}
+                />
+            </Container>
+
+            {/* Portal Components */}
+            <AddRequestModal title="إضافة طلب" opened={openAddModal} onClose={() => setOpenAddModal(false)} />
+            <UpdateRequestModal title="تعديل الطلب" opened={openEditModal} data={selectedData} onClose={() => setOpenEditModal(false)} />
+            <DeleteRequestModal opened={openDeleteModal} id={selectedData} onClose={() => setOpenDeleteModal(false)} />
+        </Box>
+    );
+}
