@@ -7,6 +7,7 @@ import { v4 as UUID } from 'uuid';
 import logger from "../../Config/logger.mjs";
 
 import {Club, Team, Expense, Attachment, Comment} from '../../Models/index.mjs';
+import {assertCanAccessClub, assertCanAccessRecordScope, assertCanAccessTeam} from "../../Helpers/Authorization.mjs";
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 
@@ -20,8 +21,12 @@ export const resolvers = {
     Query: {
         expense: async (obj, {id}, context, info) =>  {
             try {
-                return await Expense.findByPk(id)
+                const expense = await Expense.findByPk(id)
+                await assertCanAccessRecordScope(context, expense);
+
+                return expense
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -29,12 +34,15 @@ export const resolvers = {
 
         allExpensesClub: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await Expense.findAll({
                     where: {
                         id_club: idClub
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -42,12 +50,15 @@ export const resolvers = {
 
         allExpensesTeam: async (obj, {idTeam}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, idTeam);
+
                 return await Expense.findAll({
                     where: {
                         id_team: idTeam
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -77,6 +88,8 @@ export const resolvers = {
     Mutation: {
         createExpense: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessRecordScope(context, content);
+
                 const attachment = await content.attachment
 
                 if (attachment) {
@@ -98,6 +111,7 @@ export const resolvers = {
                 
                 return await Expense.create(content)
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
@@ -106,6 +120,16 @@ export const resolvers = {
 
         updateExpense: async (obj, {id, content}, context, info) =>  {
             try {
+                const expense = await Expense.findByPk(id);
+                if (!expense) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, expense);
+                await assertCanAccessRecordScope(context, content);
+
                 const attachment = await content.attachment
 
                 if (attachment) {
@@ -135,6 +159,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -142,12 +167,22 @@ export const resolvers = {
 
         deleteExpense: async (obj, {id}, context, info) =>  {
             try {
+                const currentExpense = await Expense.findByPk(id);
+                if (!currentExpense) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, currentExpense);
+
                 const expense = await Expense.destroy({ where: { id } })
 
                 return {
                     status: expense === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

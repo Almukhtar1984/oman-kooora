@@ -3,17 +3,17 @@ import {gql} from "apollo-server-express";
 export const typeDefs = gql`
 
     extend type Query {
-        meeting(id: ID): Meeting #@auth(requires: user)
-        allMeetingsTeam(idTeam: ID): [Meeting!] #@auth(requires: user)
-        allMeetingsClub(idClub: ID): [Meeting!] #@auth(requires: user)
+        meeting(id: ID): Meeting @auth(requires: user)
+        allMeetingsTeam(idTeam: ID): [Meeting!] @auth(requires: user)
+        allMeetingsClub(idClub: ID): [Meeting!] @auth(requires: user)
     }
 
     extend type Mutation {
-        createMeeting(content: contentMeeting!): Meeting! #@auth(requires: user)
+        createMeeting(content: contentMeeting!): Meeting! @auth(requires: user)
 
-        updateMeeting (id: ID!, content: contentMeeting!): statusUpdate #@auth(requires: user)
+        updateMeeting (id: ID!, content: contentMeeting!): statusUpdate @auth(requires: user)
 
-        deleteMeeting ( id: ID! ): statusDelete #@auth(requires: user)
+        deleteMeeting ( id: ID! ): statusDelete @auth(requires: user)
     }
 
     type Meeting {

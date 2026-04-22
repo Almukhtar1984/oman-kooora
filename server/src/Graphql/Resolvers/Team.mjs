@@ -1,14 +1,12 @@
 import { ApolloError } from 'apollo-server-express';
 import sequelize from 'sequelize';
 import dotenv from 'dotenv'
-import path from "path";
-import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
 
 import {Club, Members, Person, Players, Team, User,TechnicalApparatus, Stadium} from '../../Models/index.mjs';
-import {createWriteStream} from "fs";
-import {__dirname} from "../../app.mjs";
+import {assertCanAccessClub, assertCanAccessTeam} from "../../Helpers/Authorization.mjs";
+import {saveImageUpload} from "../../Helpers/Upload.mjs";
 
 
 dotenv.config();
@@ -205,6 +203,8 @@ export const resolvers = {
     Mutation: {
         createTeam: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, content.id_club);
+
                 let team = await Team.create({
                     name:           content.name,
                     category:       content.category,
@@ -216,27 +216,13 @@ export const resolvers = {
                 })
 
                 if (team && content.logo) {
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const { createReadStream, filename, mimetype, encoding } = await content.logo;
-
-                    const imgType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    const isImage = listType.indexOf(imgType) !== -1
-
-                    if(!isImage) { return new ApolloError("This file is not image") }
-
-                    const imgUniqName = `${UUID()}.${imgType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${imgUniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    const imgUniqName = await saveImageUpload(content.logo);
                     await Team.update({logo: imgUniqName}, { where: { id: team.id } })
                 }
 
                 return team
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -244,26 +230,20 @@ export const resolvers = {
 
         updateTeam: async (obj, {id, content}, context, info) =>  {
             try {
+                const team = await Team.findByPk(id);
+                if (!team) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessTeam(context, id);
+                await assertCanAccessClub(context, content.id_club);
+
                 let result = await Team.update({...content}, { where: { id } })
 
-
                 if (content && "logo" in content && content.logo) {
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const { createReadStream, filename, mimetype, encoding } = await content.logo;
-
-                    const imgType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    const isImage = listType.indexOf(imgType) !== -1
-
-                    if(!isImage) { return new ApolloError("This file is not image") }
-
-                    const imgUniqName = `${UUID()}.${imgType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${imgUniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    const imgUniqName = await saveImageUpload(content.logo);
                     await Team.update({logo: imgUniqName}, { where: { id } })
                 }
 
@@ -271,6 +251,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -278,12 +259,15 @@ export const resolvers = {
 
         deleteTeam: async (obj, {id}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, id);
+
                 const team = await Team.destroy({ where: { id } })
 
                 return {
                     status: team === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

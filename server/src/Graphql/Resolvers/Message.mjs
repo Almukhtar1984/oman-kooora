@@ -7,6 +7,12 @@ import { v4 as UUID } from 'uuid';
 import logger from "../../Config/logger.mjs";
 
 import {Club, Team, Message, Attachment, Comment} from '../../Models/index.mjs';
+import {
+    assertCanAccessAnyScope,
+    assertCanAccessClub,
+    assertCanAccessRecordScope,
+    assertCanAccessTeam
+} from "../../Helpers/Authorization.mjs";
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 
@@ -20,8 +26,15 @@ export const resolvers = {
     Query: {
         message: async (obj, {id}, context, info) =>  {
             try {
-                return await Message.findByPk(id)
+                const message = await Message.findByPk(id)
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [message?.id_club_sender, message?.id_club_receiver],
+                    teamIds: [message?.id_team_sender, message?.id_team_receiver]
+                });
+
+                return message
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -29,12 +42,15 @@ export const resolvers = {
 
         allMessage: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await Message.findAll({
                     where: {
                         id_club: idClub
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -42,18 +58,23 @@ export const resolvers = {
 
         allMessageClubSender: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await Message.findAll({
                     where: {
                         id_club_sender: idClub
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
         },
         allMessageClubReceiver: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await Message.findAll({
                     where: {
                         [Op.and]: [
@@ -72,6 +93,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -79,18 +101,23 @@ export const resolvers = {
 
         allMessageTeamSender: async (obj, {idTeam}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, idTeam);
+
                 return await Message.findAll({
                     where: {
                         id_team_sender: idTeam
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
         },
         allMessageTeamReceiver: async (obj, {idTeam}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, idTeam);
+
                 const message = await Message.findAll({
                     where: {
                         [Op.or]: [
@@ -123,6 +150,7 @@ export const resolvers = {
 
                 return message
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -210,6 +238,11 @@ export const resolvers = {
     Mutation: {
         createMessage: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [content.id_club_sender],
+                    teamIds: [content.id_team_sender]
+                });
+
                 const logo = await content.logo;
                 const attachment = await content.attachment;
 
@@ -266,6 +299,7 @@ export const resolvers = {
 
                 return message
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
@@ -274,6 +308,22 @@ export const resolvers = {
 
         updateMessage: async (obj, {id, content}, context, info) =>  {
             try {
+                const currentMessage = await Message.findByPk(id);
+                if (!currentMessage) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [currentMessage.id_club_sender, currentMessage.id_club_receiver],
+                    teamIds: [currentMessage.id_team_sender, currentMessage.id_team_receiver]
+                });
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [content.id_club_sender, content.id_club_receiver],
+                    teamIds: [content.id_team_sender, content.id_team_receiver]
+                });
+
                 let result = await Message.update({
                     subject:            content.subject,
                     content:            content.content,
@@ -308,6 +358,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -315,12 +366,25 @@ export const resolvers = {
 
         deleteMessage: async (obj, {id}, context, info) =>  {
             try {
+                const currentMessage = await Message.findByPk(id);
+                if (!currentMessage) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [currentMessage.id_club_sender, currentMessage.id_club_receiver],
+                    teamIds: [currentMessage.id_team_sender, currentMessage.id_team_receiver]
+                });
+
                 const message = await Message.destroy({ where: { id } })
 
                 return {
                     status: message === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -329,10 +393,18 @@ export const resolvers = {
 
         createComment: async (obj, {content}, context, info) =>  {
             try {
+                const message = await Message.findByPk(content.id_message);
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [message?.id_club_sender, message?.id_club_receiver],
+                    teamIds: [message?.id_team_sender, message?.id_team_receiver]
+                });
+                await assertCanAccessRecordScope(context, content);
+
                 let comment = await Comment.create(content)
 
                 return comment
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
@@ -341,12 +413,23 @@ export const resolvers = {
 
         updateComment: async (obj, {id, content}, context, info) =>  {
             try {
+                const comment = await Comment.findByPk(id);
+                if (!comment) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, comment);
+                await assertCanAccessRecordScope(context, content);
+
                 let result = await Comment.update({...content}, { where: { id } })
 
                 return {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -354,12 +437,22 @@ export const resolvers = {
 
         deleteComment: async (obj, {id}, context, info) =>  {
             try {
+                const currentComment = await Comment.findByPk(id);
+                if (!currentComment) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, currentComment);
+
                 const comment = await Comment.destroy({ where: { id } })
 
                 return {
                     status: comment === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

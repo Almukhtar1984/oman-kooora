@@ -7,6 +7,7 @@ import { v4 as UUID } from 'uuid';
 import logger from "../../Config/logger.mjs";
 
 import {Transfer, Players, Team, Club} from '../../Models/index.mjs';
+import {assertCanAccessAnyScope, assertCanAccessClub, assertCanAccessPlayer, assertCanAccessTeam} from "../../Helpers/Authorization.mjs";
 
 
 dotenv.config();
@@ -18,8 +19,15 @@ export const resolvers = {
     Query: {
         transfer: async (obj, {id}, context, info) =>  {
             try {
-                return await Transfer.findByPk(id)
+                const transfer = await Transfer.findByPk(id)
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [transfer?.id_club_to],
+                    teamIds: [transfer?.id_team_from, transfer?.id_team_to]
+                });
+
+                return transfer
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -27,12 +35,15 @@ export const resolvers = {
 
         allTransfer: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await Transfer.findAll({
                     where: {
                         id_club: idClub
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -40,6 +51,8 @@ export const resolvers = {
 
         allTransferTeam: async (obj, {idTeam, transitionType}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, idTeam);
+
                 return await Transfer.findAll({
                     where: {
                         [Op.or]: [
@@ -52,6 +65,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -59,6 +73,8 @@ export const resolvers = {
 
         allTransferClub: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await Transfer.findAll({
                     where: {
                         [Op.or]: [
@@ -80,6 +96,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -124,6 +141,12 @@ export const resolvers = {
     Mutation: {
         createTransfer: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessPlayer(context, content.id_player);
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [content.id_club_to],
+                    teamIds: [content.id_team_from, content.id_team_to]
+                });
+
                 let transfer = await Transfer.create(content)
 
                 if (content.status === "accepted") {
@@ -134,6 +157,7 @@ export const resolvers = {
 
                 return transfer
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 // logger.error("")
                 throw new ApolloError(error)
             }
@@ -141,6 +165,23 @@ export const resolvers = {
 
         updateTransfer: async (obj, {id, content}, context, info) =>  {
             try {
+                const transfer = await Transfer.findByPk(id);
+                if (!transfer) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [transfer.id_club_to],
+                    teamIds: [transfer.id_team_from, transfer.id_team_to]
+                });
+                await assertCanAccessPlayer(context, content.id_player);
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [content.id_club_to],
+                    teamIds: [content.id_team_from, content.id_team_to]
+                });
+
                 let result = await Transfer.update({status: content.status}, { where: { id } })
 
 
@@ -158,6 +199,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 // logger.error("")
                 throw new ApolloError(error)
             }
@@ -165,12 +207,25 @@ export const resolvers = {
 
         deleteTransfer: async (obj, {id}, context, info) =>  {
             try {
+                const transfer = await Transfer.findByPk(id);
+                if (!transfer) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessAnyScope(context, {
+                    clubIds: [transfer.id_club_to],
+                    teamIds: [transfer.id_team_from, transfer.id_team_to]
+                });
+
                 const team = await Transfer.destroy({ where: { id } })
 
                 return {
                     status: team === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 // logger.error("")
                 throw new ApolloError(error)
             }

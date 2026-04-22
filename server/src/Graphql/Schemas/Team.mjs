@@ -11,7 +11,7 @@ export const typeDefs = gql`
     }
 
     extend type Mutation {
-        createTeam(content: contentTeam!): Team! #@auth(requires: user)
+        createTeam(content: contentTeam!): Team! @auth(requires: user)
 
         updateTeam (id: ID!, content: contentTeam!): statusUpdate @auth(requires: user)
 

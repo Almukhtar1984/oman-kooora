@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import logger from "../../Config/logger.mjs";
 
 import {Club, Team, Blog, AttachmentBlog} from '../../Models/index.mjs';
+import {assertCanAccessClub, assertCanAccessRecordScope, assertCanAccessTeam} from "../../Helpers/Authorization.mjs";
 import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
@@ -40,6 +41,8 @@ export const resolvers = {
 
         allBlogsClub: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 const blogsClub = await Blog.findAll({
                     where: {
                         id_club: idClub
@@ -62,6 +65,7 @@ export const resolvers = {
 
                 return [...blogsClub, ...blogsTeam]
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -69,12 +73,15 @@ export const resolvers = {
 
         allBlogsTeam: async (obj, {idTeam}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, idTeam);
+
                 return await Blog.findAll({
                     where: {
                         id_team: idTeam
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -116,6 +123,8 @@ export const resolvers = {
     Mutation: {
         createBlog: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessRecordScope(context, content);
+
                 const attachment = await content.attachment;
 
                 let blog = await Blog.create({...content})
@@ -144,6 +153,7 @@ export const resolvers = {
 
                 return blog
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
@@ -152,6 +162,16 @@ export const resolvers = {
 
         updateBlog: async (obj, {id, content}, context, info) =>  {
             try {
+                const blog = await Blog.findByPk(id);
+                if (!blog) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, blog);
+                await assertCanAccessRecordScope(context, content);
+
                 const attachment = await content.attachment;
 
                 let result = await Blog.update({...content}, { where: { id } })
@@ -184,6 +204,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -191,12 +212,22 @@ export const resolvers = {
 
         deleteBlog: async (obj, {id}, context, info) =>  {
             try {
+                const currentBlog = await Blog.findByPk(id);
+                if (!currentBlog) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, currentBlog);
+
                 const blog = await Blog.destroy({ where: { id } })
 
                 return {
                     status: blog === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

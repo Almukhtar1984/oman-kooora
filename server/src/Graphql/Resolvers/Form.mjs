@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import logger from "../../Config/logger.mjs";
 
 import {Club, Team, Form} from '../../Models/index.mjs';
+import {assertCanAccessClub, assertCanAccessRecordScope} from "../../Helpers/Authorization.mjs";
 import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
@@ -18,8 +19,12 @@ export const resolvers = {
     Query: {
         form: async (obj, {id}, context, info) =>  {
             try {
-                return await Form.findByPk(id)
+                const form = await Form.findByPk(id)
+                await assertCanAccessRecordScope(context, form);
+
+                return form
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -27,12 +32,15 @@ export const resolvers = {
 
         allForms: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await Form.findAll({
                     where: {
                         id_club: idClub
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -54,6 +62,8 @@ export const resolvers = {
     Mutation: {
         createForm: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessRecordScope(context, content);
+
                 const file = await content.file;
 
                 let form = await Form.create({...content, file: ""})
@@ -80,6 +90,7 @@ export const resolvers = {
 
                 return form
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
@@ -88,6 +99,16 @@ export const resolvers = {
 
         updateForm: async (obj, {id, content}, context, info) =>  {
             try {
+                const form = await Form.findByPk(id);
+                if (!form) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, form);
+                await assertCanAccessRecordScope(context, content);
+
                 const file = await content.file;
                 delete content.file
 
@@ -117,6 +138,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -124,12 +146,22 @@ export const resolvers = {
 
         deleteForm: async (obj, {id}, context, info) =>  {
             try {
+                const form = await Form.findByPk(id);
+                if (!form) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, form);
+
                 const meeting = await Form.destroy({ where: { id } })
 
                 return {
                     status: meeting === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

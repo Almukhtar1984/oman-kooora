@@ -31,6 +31,28 @@ export default (db, types) => {
         email_verify: {
             type: types.BOOLEAN,
             defaultValue: false
+        },
+        failed_login_attempts: {
+            type: types.INTEGER.UNSIGNED,
+            allowNull: false,
+            defaultValue: 0
+        },
+        locked_until: {
+            type: types.DATE,
+            allowNull: true
+        },
+        last_failed_login_at: {
+            type: types.DATE,
+            allowNull: true
+        },
+        refresh_token_version: {
+            type: types.INTEGER.UNSIGNED,
+            allowNull: false,
+            defaultValue: 0
+        },
+        refresh_token_id: {
+            type: types.STRING(100),
+            allowNull: true
         }
     },{
         timestamps: true,
@@ -40,4 +62,3 @@ export default (db, types) => {
         paranoid: true
     });
 };
-    

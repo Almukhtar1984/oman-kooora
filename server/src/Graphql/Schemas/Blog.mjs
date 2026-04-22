@@ -5,16 +5,16 @@ export const typeDefs = gql`
     extend type Query {
         blog(id: ID): Blog #@auth(requires: user)
         allBlogs: [Blog!] #@auth(requires: user)
-        allBlogsClub(idClub: ID): [Blog!] #@auth(requires: user)
-        allBlogsTeam(idTeam: ID): [Blog!] #@auth(requires: user)
+        allBlogsClub(idClub: ID): [Blog!] @auth(requires: user)
+        allBlogsTeam(idTeam: ID): [Blog!] @auth(requires: user)
     }
 
     extend type Mutation {
-        createBlog(content: contentBlog!): Blog! #@auth(requires: user)
+        createBlog(content: contentBlog!): Blog! @auth(requires: user)
 
-        updateBlog (id: ID!, content: contentBlog!): statusUpdate #@auth(requires: user)
+        updateBlog (id: ID!, content: contentBlog!): statusUpdate @auth(requires: user)
 
-        deleteBlog ( id: ID! ): statusDelete #@auth(requires: user)
+        deleteBlog ( id: ID! ): statusDelete @auth(requires: user)
     }
 
     type Blog {

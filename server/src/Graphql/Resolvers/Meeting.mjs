@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import logger from "../../Config/logger.mjs";
 
 import {Club, Team, Meeting, Attachment} from '../../Models/index.mjs';
+import {assertCanAccessClub, assertCanAccessRecordScope, assertCanAccessTeam} from "../../Helpers/Authorization.mjs";
 import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
@@ -18,8 +19,12 @@ export const resolvers = {
     Query: {
         meeting: async (obj, {id}, context, info) =>  {
             try {
-                return await Meeting.findByPk(id)
+                const meeting = await Meeting.findByPk(id)
+                await assertCanAccessRecordScope(context, meeting);
+
+                return meeting
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -27,12 +32,15 @@ export const resolvers = {
 
         allMeetingsClub: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await Meeting.findAll({
                     where: {
                         id_club: idClub
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -40,12 +48,15 @@ export const resolvers = {
 
         allMeetingsTeam: async (obj, {idTeam}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, idTeam);
+
                 return await Meeting.findAll({
                     where: {
                         id_team: idTeam
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -87,6 +98,8 @@ export const resolvers = {
     Mutation: {
         createMeeting: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessRecordScope(context, content);
+
                 const attachment = await content.attachment;
 
                 let meeting = await Meeting.create({...content})
@@ -115,6 +128,7 @@ export const resolvers = {
 
                 return meeting
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
@@ -123,6 +137,16 @@ export const resolvers = {
 
         updateMeeting: async (obj, {id, content}, context, info) =>  {
             try {
+                const meeting = await Meeting.findByPk(id);
+                if (!meeting) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, meeting);
+                await assertCanAccessRecordScope(context, content);
+
                 const attachment = await content.attachment;
 
                 let result = await Meeting.update({...content}, { where: { id } })
@@ -155,6 +179,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -162,12 +187,22 @@ export const resolvers = {
 
         deleteMeeting: async (obj, {id}, context, info) =>  {
             try {
+                const currentMeeting = await Meeting.findByPk(id);
+                if (!currentMeeting) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, currentMeeting);
+
                 const meeting = await Meeting.destroy({ where: { id } })
 
                 return {
                     status: meeting === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

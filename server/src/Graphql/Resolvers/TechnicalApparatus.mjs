@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import logger from "../../Config/logger.mjs";
 
 import {Members, Person, Players, Team, TechnicalApparatus} from '../../Models/index.mjs';
+import {assertCanAccessClub, assertCanAccessTeam} from "../../Helpers/Authorization.mjs";
 import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
@@ -18,8 +19,12 @@ export const resolvers = {
     Query: {
         technicalApparatus: async (obj, {id}, context, info) =>  {
             try {
-                return await TechnicalApparatus.findByPk(id)
+                const technicalApparatus = await TechnicalApparatus.findByPk(id)
+                await assertCanAccessTeam(context, technicalApparatus?.id_team);
+
+                return technicalApparatus
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -27,12 +32,15 @@ export const resolvers = {
 
         allTechnicalApparatus: async (obj, {idTeam}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, idTeam);
+
                 return await TechnicalApparatus.findAll({
                     where: {
                         id_team: idTeam
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -40,6 +48,8 @@ export const resolvers = {
 
         allTechnicalApparatusClub: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await TechnicalApparatus.findAll({
                     include: {
                         model: Team,
@@ -52,6 +62,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -72,6 +83,8 @@ export const resolvers = {
     Mutation: {
         createTechnicalApparatus: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, content.id_team);
+
                 const onePerson = await Person.findOne({ where: {card_number: content.person.card_number, phone: content.person.phone} })
                 if (onePerson) {
                     if (onePerson.card_number === content.person.card_number) {
@@ -110,6 +123,7 @@ export const resolvers = {
 
                 return result
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log({ error })
                 // logger.error("")
                 throw new ApolloError(error)
@@ -118,6 +132,16 @@ export const resolvers = {
 
         updateTechnicalApparatus: async (obj, {id, idPerson, content}, context, info) =>  {
             try {
+                const technicalApparatus = await TechnicalApparatus.findByPk(id);
+                if (!technicalApparatus) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessTeam(context, technicalApparatus.id_team);
+                await assertCanAccessTeam(context, content.id_team);
+
                 let person = null
                 if (content.person) {
                     person = await Person.update({...content.person}, { where: { id: idPerson } })
@@ -145,6 +169,7 @@ export const resolvers = {
                     status: result[0] === 1 || person[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -152,6 +177,14 @@ export const resolvers = {
 
         changeStatusTechnicalApparatus: async (obj, {id, status, note}, context, info) =>  {
             try {
+                const technicalApparatus = await TechnicalApparatus.findByPk(id);
+                if (!technicalApparatus) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessTeam(context, technicalApparatus.id_team);
 
                 let result = await TechnicalApparatus.update({status, note}, { where: { id } })
 
@@ -159,6 +192,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -167,6 +201,14 @@ export const resolvers = {
         deleteTechnicalApparatus: async (obj, {id}, context, info) =>  {
             try {
                 const technicalApparatus = await TechnicalApparatus.findByPk(id)
+                if (!technicalApparatus) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessTeam(context, technicalApparatus.id_team);
+
                 const result = await TechnicalApparatus.destroy({ where: { id }, force: true  })
 
                 if (result === 1) {
@@ -177,6 +219,7 @@ export const resolvers = {
                     status: result === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

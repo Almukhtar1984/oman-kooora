@@ -78,6 +78,22 @@ export default function Login() {
                 });
             },
             (err) => {
+                if (err?.graphQLErrors[0]?.extensions?.code == "AUTHENTICATION_FAILED") {
+                    setAlert({
+                        status: "red",
+                        msg: "بيانات الدخول غير صحيحة أو الحساب غير متاح.",
+                        code: ""
+                    });
+                }
+
+                if (err?.graphQLErrors[0]?.extensions?.code == "ACCOUNT_LOCKED") {
+                    setAlert({
+                        status: "red",
+                        msg: "تم قفل الحساب مؤقتا بسبب محاولات دخول كثيرة. حاول لاحقا.",
+                        code: ""
+                    });
+                }
+
                 if (err?.graphQLErrors[0]?.extensions?.code == "USER_NOT_EXIST") {
                     setAlert({
                         status: "red",
@@ -111,6 +127,22 @@ export default function Login() {
                 }
             }
         ).catch((err) => {
+            if (err?.graphQLErrors[0]?.extensions?.code == "AUTHENTICATION_FAILED") {
+                setAlert({
+                    status: "red",
+                    msg: "بيانات الدخول غير صحيحة أو الحساب غير متاح.",
+                    code: ""
+                });
+            }
+
+            if (err?.graphQLErrors[0]?.extensions?.code == "ACCOUNT_LOCKED") {
+                setAlert({
+                    status: "red",
+                    msg: "تم قفل الحساب مؤقتا بسبب محاولات دخول كثيرة. حاول لاحقا.",
+                    code: ""
+                });
+            }
+
             if (err?.graphQLErrors[0]?.extensions?.code == "USER_NOT_EXIST") {
                 setAlert({
                     status: "red",

@@ -1,14 +1,12 @@
 import { ApolloError } from 'apollo-server-express';
 import sequelize from 'sequelize';
 import dotenv from 'dotenv'
-import path from "path";
-import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
 
 import {Club, ClubManagement, Members, Person, Team, User,} from '../../Models/index.mjs';
-import {createWriteStream} from "fs";
-import {__dirname} from "../../app.mjs";
+import {assertSuperAdmin} from "../../Helpers/Authorization.mjs";
+import {saveImageUpload} from "../../Helpers/Upload.mjs";
 
 
 dotenv.config();
@@ -79,6 +77,8 @@ export const resolvers = {
     Mutation: {
         createClub: async (obj, {content}, context, info) =>  {
             try {
+                assertSuperAdmin(context);
+
                 let club = await Club.create({
                     name:           content.name,
                     governorate:    content.governorate,
@@ -87,22 +87,7 @@ export const resolvers = {
                 let imgUniqName = "";
 
                 if (club && content.logo) {
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const { createReadStream, filename, mimetype, encoding } = await content.logo;
-
-                    const imgType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    const isImage = listType.indexOf(imgType) !== -1
-
-                    if(!isImage) { return new ApolloError("This file is not image") }
-
-                    imgUniqName = `${UUID()}.${imgType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${imgUniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    imgUniqName = await saveImageUpload(content.logo);
                     await Club.update({logo: imgUniqName}, { where: { id: club.id } })
                 }
 
@@ -111,6 +96,7 @@ export const resolvers = {
                     logo: imgUniqName
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -118,6 +104,8 @@ export const resolvers = {
 
         updateClub: async (obj, {id, content}, context, info) =>  {
             try {
+                assertSuperAdmin(context);
+
                 let result = null;
 
                 if (content.account_status !== null && content.account_status !== undefined) {
@@ -136,22 +124,7 @@ export const resolvers = {
                 }
 
                 if (content && "logo" in content && content.logo) {
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const { createReadStream, filename, mimetype, encoding } = await content.logo;
-
-                    const imgType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    const isImage = listType.indexOf(imgType) !== -1
-
-                    if(!isImage) { return new ApolloError("This file is not image") }
-
-                    const imgUniqName = `${UUID()}.${imgType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${imgUniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    const imgUniqName = await saveImageUpload(content.logo);
                     await Club.update({logo: imgUniqName}, { where: { id } })
                 }
 
@@ -159,6 +132,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log(error)
                 logger.error("")
                 throw new ApolloError(error)
@@ -167,12 +141,15 @@ export const resolvers = {
 
         deleteClub: async (obj, {id}, context, info) =>  {
             try {
+                assertSuperAdmin(context);
+
                 const club = await Club.destroy({ where: { id } })
 
                 return {
                     status: club === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

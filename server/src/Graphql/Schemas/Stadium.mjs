@@ -4,17 +4,17 @@ export const typeDefs = gql`
 
     extend type Query {
         stadium(id: ID): Stadium #@auth(requires: user)
-        allStadiumsTeam(idTeam: ID): [Stadium!] #@auth(requires: user)
+        allStadiumsTeam(idTeam: ID): [Stadium!] @auth(requires: user)
         allStadiums: [Stadium!] #@auth(requires: user)
-        allReservations(idStadium: ID): [Reservations]
+        allReservations(idStadium: ID): [Reservations] @auth(requires: user)
     }
 
     extend type Mutation {
-        createStadium(content: contentStadium!): Stadium! #@auth(requires: user)
+        createStadium(content: contentStadium!): Stadium! @auth(requires: user)
 
-        updateStadium (id: ID!, content: contentStadium!): statusUpdate #@auth(requires: user)
+        updateStadium (id: ID!, content: contentStadium!): statusUpdate @auth(requires: user)
 
-        deleteStadium ( id: ID! ): statusDelete #@auth(requires: user)
+        deleteStadium ( id: ID! ): statusDelete @auth(requires: user)
 
 
         createReservations(content: contentReservations!): Reservations! #@auth(requires: user)

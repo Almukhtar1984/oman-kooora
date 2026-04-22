@@ -12,15 +12,15 @@ export const typeDefs = gql`
     extend type Mutation {
         createMember(content: contentMember!): Member! #@auth(requires: user)
         
-        createAdminMember(content: contentAdminMember!): Member! #@auth(requires: user)
+        createAdminMember(content: contentAdminMember!): Member! @auth(requires: user)
 
-        updateAdminMember(id: ID!, idPerson: ID!, content: contentAdminMember!): statusUpdate #@auth(requires: user)
+        updateAdminMember(id: ID!, idPerson: ID!, content: contentAdminMember!): statusUpdate @auth(requires: user)
 
-        updateMember (id: ID!, idPerson: ID!, content: contentMember!): statusUpdate #@auth(requires: user)
+        updateMember (id: ID!, idPerson: ID!, content: contentMember!): statusUpdate @auth(requires: user)
 
-        changeStatusMember (id: ID!, status: String!, note: String): statusUpdate #@auth(requires: user)
-        
-        deleteMember ( id: ID! ): statusDelete #@auth(requires: user)
+        changeStatusMember (id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
+
+        deleteMember ( id: ID! ): statusDelete @auth(requires: user)
     }
 
     type Member {

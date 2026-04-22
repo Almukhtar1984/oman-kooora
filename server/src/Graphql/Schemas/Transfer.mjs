@@ -3,19 +3,19 @@ import {gql} from "apollo-server-express";
 export const typeDefs = gql`
 
     extend type Query {
-        transfer(id: ID): Transfer #@auth(requires: user)
-        allTransfer(idClub: ID): [Transfer!] #@auth(requires: user)
-        allTransferTeam(idTeam: ID, transitionType: [String]): [Transfer!] #@auth(requires: user)
+        transfer(id: ID): Transfer @auth(requires: user)
+        allTransfer(idClub: ID): [Transfer!] @auth(requires: user)
+        allTransferTeam(idTeam: ID, transitionType: [String]): [Transfer!] @auth(requires: user)
         
-        allTransferClub(idClub: ID): [Transfer!] #@auth(requires: user)
+        allTransferClub(idClub: ID): [Transfer!] @auth(requires: user)
     }
 
     extend type Mutation {
-        createTransfer(content: contentTransfer!): Transfer! #@auth(requires: user)
+        createTransfer(content: contentTransfer!): Transfer! @auth(requires: user)
 
-        updateTransfer (id: ID!, content: contentTransfer!): statusUpdate #@auth(requires: user)
+        updateTransfer (id: ID!, content: contentTransfer!): statusUpdate @auth(requires: user)
 
-        deleteTransfer ( id: ID! ): statusDelete #@auth(requires: user)
+        deleteTransfer ( id: ID! ): statusDelete @auth(requires: user)
     }
 
     type Transfer {

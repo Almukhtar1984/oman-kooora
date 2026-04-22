@@ -40,10 +40,10 @@ export const serializeUser = (user) => pick(user, [
     'id_person'
 ]);
 
-export const RefreshToken = async (payload) => {
+export const RefreshToken = async (payload, expires = 7) => {
     let useragent = `${payload.useragent.browser}: ${payload.useragent.version}, ${payload.useragent.platform}: ${payload.useragent.os}, ${payload.useragent.source}`
 
     return await sign({...payload, useragent}, SECRET_JWT, {
-        expiresIn: 3600*24*7
+        expiresIn: 3600*24*expires
     });
 }

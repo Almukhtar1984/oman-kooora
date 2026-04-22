@@ -6,6 +6,7 @@ import logger from "../../Config/logger.mjs";
 
 import {Club, ClubManagement, Members, Person, User} from '../../Models/index.mjs';
 import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
+import {assertCanAccessClub, assertCanAccessRecordScope} from "../../Helpers/Authorization.mjs";
 
 dotenv.config();
 
@@ -15,8 +16,12 @@ export const resolvers = {
     Query: {
         clubManagement: async (obj, {id}, context, info) =>  {
             try {
-                return await ClubManagement.findByPk(id)
+                const clubManagement = await ClubManagement.findByPk(id)
+                await assertCanAccessRecordScope(context, clubManagement);
+
+                return clubManagement
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -24,12 +29,15 @@ export const resolvers = {
 
         allClubManagement: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await ClubManagement.findAll({
                     where: {
                         id_club: idClub
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -58,6 +66,8 @@ export const resolvers = {
     Mutation: {
         createClubManagement: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessRecordScope(context, content);
+
                 const onePerson = await Person.findOne({ where: {card_number: content.user.person.card_number} })
                 if (onePerson) {
                     return new ApolloError("card number already exists", "CARD_NUMBER_ALREADY_EXISTS")
@@ -89,6 +99,7 @@ export const resolvers = {
 
                 return result
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -96,6 +107,16 @@ export const resolvers = {
 
         updateClubManagement: async (obj, {id, idPerson, content}, context, info) =>  {
             try {
+                const clubManagement = await ClubManagement.findByPk(id);
+                if (!clubManagement) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, clubManagement);
+                await assertCanAccessRecordScope(context, content);
+
                 let person = null
                 if (content.user.person) {
                     person = await Person.update({...content.user.person}, { where: { id: idPerson } })
@@ -116,6 +137,7 @@ export const resolvers = {
                     status: result[0] === 1 || person[0] === 1 || user[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -123,12 +145,22 @@ export const resolvers = {
 
         deleteClubManagement: async (obj, {id}, context, info) =>  {
             try {
+                const clubManagement = await ClubManagement.findByPk(id);
+                if (!clubManagement) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessRecordScope(context, clubManagement);
+
                 const team = await ClubManagement.destroy({ where: { id } })
 
                 return {
                     status: team === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

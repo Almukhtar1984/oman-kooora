@@ -288,14 +288,18 @@ ScorerMatch.belongsTo(ParticipatingPlayers, { foreignKey: { name: 'id_participat
 
 
 
-// Tables are updated without being deleted
-DB.sync({ alter: true, force: false })
-.then(() => {
-    console.log('Tables are updated without being deleted.')
-})
-.catch ((error) => {
-    console.error('Unable to update Tables:', error);
-})
+const shouldSyncModels = process.env.DB_SYNC_ALTER === "true" && process.env.NODE_ENV !== "production";
+
+if (shouldSyncModels) {
+    // Development-only escape hatch. Database changes should normally be applied through migrations.
+    DB.sync({ alter: true, force: false })
+    .then(() => {
+        console.log('Tables are updated without being deleted.')
+    })
+    .catch ((error) => {
+        console.error('Unable to update Tables:', error);
+    })
+}
 
 
 export {

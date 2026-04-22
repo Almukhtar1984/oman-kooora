@@ -17,17 +17,17 @@ export const typeDefs = gql`
 
     extend type Mutation {
         createPlayer(content: contentPlayer!): Player! #@auth(requires: user)
-        createListPlayer(content: [contentPlayer!]): [Player!] #@auth(requires: user)
+        createListPlayer(content: [contentPlayer!]): [Player!] @auth(requires: user)
 
-        updatePlayer (id: ID!, idPerson: ID!, content: contentPlayer!): statusUpdate #@auth(requires: user)
+        updatePlayer (id: ID!, idPerson: ID!, content: contentPlayer!): statusUpdate @auth(requires: user)
 
-        changeStatusPlayer (id: ID!, status: String!, note: String): statusUpdate #@auth(requires: user)
+        changeStatusPlayer (id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
 
-        deletePlayer ( id: ID! ): statusDelete #@auth(requires: user)
+        deletePlayer ( id: ID! ): statusDelete @auth(requires: user)
 
-        addAttachmentPlayer (idPlayer: ID!, attachments: [Upload!]): [AttachmentPlayer] #@auth(requires: user)
-        updateAttachmentPlayer (idPlayer: ID!, attachments: [Upload!]): [AttachmentPlayer] #@auth(requires: user)
-        deleteAttachmentPlayer ( id: ID! ): statusDelete #@auth(requires: user)
+        addAttachmentPlayer (idPlayer: ID!, attachments: [Upload!]): [AttachmentPlayer] @auth(requires: user)
+        updateAttachmentPlayer (idPlayer: ID!, attachments: [Upload!]): [AttachmentPlayer] @auth(requires: user)
+        deleteAttachmentPlayer ( id: ID! ): statusDelete @auth(requires: user)
     }
 
     type Player {

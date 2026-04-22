@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import logger from "../../Config/logger.mjs";
 
 import {Club, Team, Stadium, Reservations} from '../../Models/index.mjs';
+import {assertCanAccessTeam} from "../../Helpers/Authorization.mjs";
 import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
@@ -27,12 +28,15 @@ export const resolvers = {
 
         allStadiumsTeam: async (obj, {idTeam}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, idTeam);
+
                 return await Stadium.findAll({
                     where: {
                         id_team: idTeam
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -49,12 +53,16 @@ export const resolvers = {
 
         allReservations: async (obj, {idStadium}, context, info) =>  {
             try {
+                const stadium = await Stadium.findByPk(idStadium);
+                await assertCanAccessTeam(context, stadium?.id_team);
+
                 return await Reservations.findAll({
                     where: {
                         id_stadium: idStadium
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -86,6 +94,8 @@ export const resolvers = {
     Mutation: {
         createStadium: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, content.id_team);
+
                 const images = await content.images;
                 delete content.images
 
@@ -118,6 +128,7 @@ export const resolvers = {
 
                 return stadium
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
@@ -126,6 +137,16 @@ export const resolvers = {
 
         updateStadium: async (obj, {id, content}, context, info) =>  {
             try {
+                const stadium = await Stadium.findByPk(id);
+                if (!stadium) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessTeam(context, stadium.id_team);
+                await assertCanAccessTeam(context, content.id_team);
+
                 const images = await content.images;
                 delete content.images
 
@@ -160,6 +181,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -167,12 +189,22 @@ export const resolvers = {
 
         deleteStadium: async (obj, {id}, context, info) =>  {
             try {
+                const stadium = await Stadium.findByPk(id);
+                if (!stadium) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessTeam(context, stadium.id_team);
+
                 const meeting = await Stadium.destroy({ where: { id } })
 
                 return {
                     status: meeting === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

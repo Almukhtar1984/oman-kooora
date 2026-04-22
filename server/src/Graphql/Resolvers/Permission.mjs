@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import logger from "../../Config/logger.mjs";
 
 import {Permission, User} from '../../Models/index.mjs';
+import {assertCanAccessClub, assertCanAccessTeam, assertCanAccessUserScope} from "../../Helpers/Authorization.mjs";
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 
@@ -18,8 +19,12 @@ export const resolvers = {
     Query: {
         permission: async (obj, {id}, context, info) =>  {
             try {
-                return await Permission.findByPk(id)
+                const permission = await Permission.findByPk(id)
+                await assertCanAccessUserScope(context, permission?.id_user);
+
+                return permission
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -27,12 +32,15 @@ export const resolvers = {
 
         allPermissionsClub: async (obj, {idClub}, context, info) =>  {
             try {
+                await assertCanAccessClub(context, idClub);
+
                 return await Permission.findAll({
                     where: {
                         id_club: idClub
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -40,12 +48,15 @@ export const resolvers = {
 
         allPermissionsTeam: async (obj, {idTeam}, context, info) =>  {
             try {
+                await assertCanAccessTeam(context, idTeam);
+
                 return await Permission.findAll({
                     where: {
                         id_team: idTeam
                     }
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -67,6 +78,8 @@ export const resolvers = {
     Mutation: {
         createPermission: async (obj, {content}, context, info) =>  {
             try {
+                await assertCanAccessUserScope(context, content.id_user);
+
                 return await Permission.create({
                     teams:      content.teams.join(','),
                     members:      content.members.join(','),
@@ -88,6 +101,7 @@ export const resolvers = {
                     id_user:   content.id_user
                 })
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
@@ -96,6 +110,16 @@ export const resolvers = {
 
         updatePermission: async (obj, {id, content}, context, info) =>  {
             try {
+                const permission = await Permission.findByPk(id);
+                if (!permission) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessUserScope(context, permission.id_user);
+                await assertCanAccessUserScope(context, content.id_user);
+
                 let result = await Permission.update({
                     teams:      content.teams.join(','),
                     members:      content.members.join(','),
@@ -119,6 +143,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -126,12 +151,22 @@ export const resolvers = {
 
         deletePermission: async (obj, {id}, context, info) =>  {
             try {
+                const permission = await Permission.findByPk(id);
+                if (!permission) {
+                    return {
+                        status: false
+                    }
+                }
+
+                await assertCanAccessUserScope(context, permission.id_user);
+
                 const expense = await Permission.destroy({ where: { id } })
 
                 return {
                     status: expense === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("")
                 throw new ApolloError(error)
             }

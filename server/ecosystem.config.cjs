@@ -2,9 +2,9 @@ module.exports = {
     apps : [
         {
             name: "DorrahApi",
-            script: "./app.mjs",
+            script: "./scripts/start-production.mjs",
             // node_args: "-r esm",
-            watch: true,
+            watch: false,
             env: {
                 "NODE_ENV": "development",
             },

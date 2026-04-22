@@ -3,16 +3,16 @@ import {gql} from "apollo-server-express";
 export const typeDefs = gql`
 
     extend type Query {
-        form(id: ID): Form #@auth(requires: user)
-        allForms(idClub: ID): [Form!] #@auth(requires: user)
+        form(id: ID): Form @auth(requires: user)
+        allForms(idClub: ID): [Form!] @auth(requires: user)
     }
 
     extend type Mutation {
-        createForm(content: contentForm!): Form! #@auth(requires: user)
+        createForm(content: contentForm!): Form! @auth(requires: user)
 
-        updateForm (id: ID!, content: contentForm!): statusUpdate #@auth(requires: user)
+        updateForm (id: ID!, content: contentForm!): statusUpdate @auth(requires: user)
 
-        deleteForm ( id: ID! ): statusDelete #@auth(requires: user)
+        deleteForm ( id: ID! ): statusDelete @auth(requires: user)
     }
 
     type Form {

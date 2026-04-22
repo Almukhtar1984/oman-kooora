@@ -1,9 +1,38 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MockedProvider } from '@apollo/client/testing';
+import { DirectionProvider, MantineProvider } from '@mantine/core';
+import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+beforeAll(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }),
+  });
+});
+
+test('renders login screen', () => {
+  render(
+    <MockedProvider>
+      <MemoryRouter>
+        <DirectionProvider initialDirection="rtl">
+          <MantineProvider>
+            <App />
+          </MantineProvider>
+        </DirectionProvider>
+      </MemoryRouter>
+    </MockedProvider>
+  );
+
+  expect(screen.getAllByText('تسجيل الدخول').length).toBeGreaterThan(0);
 });

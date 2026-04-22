@@ -40,6 +40,14 @@ const Login = () => {
                 })
             },
             onError: ({graphQLErrors}) => {
+                if (graphQLErrors[0]?.extensions?.code === "AUTHENTICATION_FAILED") {
+                    setAlert({ status: "red", msg: "بيانات الدخول غير صحيحة أو الحساب غير متاح.", code: "" });
+                }
+
+                if (graphQLErrors[0]?.extensions?.code === "ACCOUNT_LOCKED") {
+                    setAlert({ status: "red", msg: "تم قفل الحساب مؤقتا بسبب محاولات دخول كثيرة. حاول لاحقا.", code: "" });
+                }
+
                 if (graphQLErrors[0]?.extensions?.code === "USER_NOT_EXIST") {
                     setAlert({ status: "red", msg: "لا يوجد مستخدم بهاذا الإيميل", code: "" });
                 }

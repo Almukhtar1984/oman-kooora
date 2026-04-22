@@ -19,6 +19,7 @@ import graphqlUploadExpress from "graphql-upload/graphqlUploadExpress.mjs"
 import DB from './Config/DBContact.mjs';
 import Schema from "./Graphql/index.mjs"
 import {AuthMiddleware} from "./Middlewares/index.mjs"
+import {graphqlSensitiveRateLimit} from "./Middlewares/GraphqlRateLimit.mjs"
 import logger from "./Config/logger.mjs"
 import {socketServer} from "./Socket/index.mjs"
 
@@ -28,6 +29,11 @@ export const __dirname = path.dirname(__filename);
 dotenv.config();
 const app = express();
 const httpServer = createServer(app);
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (process.env.TRUST_PROXY === "true") {
+    app.set("trust proxy", 1);
+}
 
 let socket = null;
 
@@ -63,25 +69,26 @@ const defaultWhitelist = [
     app.use(expressUserAgent());
 
     app.use('/images', express.static(path.join(__dirname, '../uploads')))
-    app.use(express.urlencoded({ extended: true }));
-    app.use(express.json());
-    app.use(helmet({ contentSecurityPolicy: (process.env.NODE_ENV === 'production') ? undefined : false }));
+    app.use(express.urlencoded({ extended: true, limit: process.env.REQUEST_BODY_LIMIT || "1mb" }));
+    app.use(express.json({ limit: process.env.REQUEST_BODY_LIMIT || "1mb" }));
+    app.use(helmet({ contentSecurityPolicy: isProduction ? undefined : false }));
 
     app.use(AuthMiddleware)
+    app.use("/graphql", graphqlSensitiveRateLimit())
 
     const apolloServer = new ApolloServer({
         schema: Schema,
         tracing: false,
-        playground: true,
-        introspection: true,
-        debug: true,
+        playground: !isProduction,
+        introspection: !isProduction,
+        debug: !isProduction,
         csrfPrevention: true,
         allowBatchedHttpRequests: false,
         // validationRules: [
         //     depthLimit(5)
         // ],
         plugins: [
-            process.env.NODE_ENV === 'production'
+            isProduction
                 ? ApolloServerPluginLandingPageDisabled()
                 : ApolloServerPluginLandingPageGraphQLPlayground({ settings: { 'request.credentials': 'include' } }),
         ],
