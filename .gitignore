@@ -19,5 +19,8 @@ logs/
 .env.*
 !.env.example
 
+# Local-only planning and risk notes
+SECURITY_REVIEW_REPORT.md
+
 # Local backup of nested git metadata
 .git-history-backups/
