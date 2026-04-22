@@ -2,15 +2,23 @@ import SibApiV3Sdk from 'sib-api-v3-sdk';
 
 import logger from "../Config/logger.mjs";
 
+const getDashboardUrl = (role) => {
+    const dashboardUrls = {
+        admin: process.env.ADMIN_URL,
+        employee: process.env.EMPLOYEE_URL,
+        supervisor: process.env.SUPERVISOR_URL,
+        customer: process.env.CUSTOMER_URL
+    };
+    const baseUrl = dashboardUrls[role] || process.env.ADMIN_URL || "http://localhost:3000";
+    return baseUrl.replace(/\/$/, "");
+};
+
+const buildAuthUrl = (role, path, token) => {
+    return `${getDashboardUrl(role)}/login/${path}/${encodeURIComponent(token)}`;
+};
 
 const maileVerificationMail = (token, role) => {
-    const url = role === "admin"
-        ? `http://localhost:3000/login/verification/${token}`
-        : role === "employee"
-            ? `http://localhost:3000/login/verification/${token}`
-            : role === "supervisor"
-                ? `http://localhost:3000/login/verification/${token}`
-                : `http://localhost:3000/login/verification/${token}`
+    const url = buildAuthUrl(role, "verification", token);
 
     return `
         <body style="width: 90%;  text-align: center; background: #eee; padding: 80px 20px; font-family: 'Changa', sans-serif;">
@@ -25,13 +33,7 @@ const maileVerificationMail = (token, role) => {
 }
 
 const maileForgetPassword = (token, role) => {
-    const url = role === "admin"
-        ? `http://localhost:3000/login/verification/${token}`
-        : role === "employee"
-            ? `http://localhost:3000/login/verification/${token}`
-            : role === "supervisor"
-                ? `http://localhost:3000/login/verification/${token}`
-                : `http://localhost:3000/login/verification/${token}`
+    const url = buildAuthUrl(role, "changePassword", token);
 
     return `
         <body style="width: 90%;  text-align: center; background: #eee; padding: 80px 20px; font-family: 'Changa', sans-serif;">

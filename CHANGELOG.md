@@ -19,6 +19,29 @@
 
 ## 2026-04-22
 
+### 36. نقل روابط البريد إلى إعدادات البيئة
+
+- تم تعديل روابط البريد داخل:
+  - `server/src/Helpers/Mail.mjs`
+- أصبحت روابط التحقق واستعادة كلمة المرور تبنى من إعدادات البيئة:
+  - `ADMIN_URL`
+  - `EMPLOYEE_URL`
+  - `SUPERVISOR_URL`
+  - `CUSTOMER_URL`
+- تم إزالة روابط `localhost:3000` المباشرة من قوالب البريد.
+- تم تصحيح رابط استعادة كلمة المرور ليستخدم:
+  - `/login/changePassword/:token`
+  بدلا من:
+  - `/login/verification/:token`
+- تم تشغيل:
+  - `node --check src/Helpers/Mail.mjs`
+  - `npm test` داخل `server`
+  - `git diff --check`
+- نتيجة اختبارات الخادم:
+  - 8 اختبارات passed.
+
+---
+
 ### 35. توحيد روابط API في مكونات club وteam
 
 - تم إضافة `apiUrl` إلى ملفات config المركزية:
@@ -96,8 +119,6 @@
 - تم تشغيل اختبار `client/sports-course`:
   - `CI=true npm test -- --watchAll=false`
   - النتيجة: passed.
-- ملاحظة: ما زال يظهر تحذير CRA عن dependency غير مصرح بها، وتحذير Jest عن
-  open handles، لكن الاختبار لم يفشل.
 - لم يتم تشغيل lint/test داخل `landing-page` و`print` لأن `node_modules` غير
   موجود محليا لهما.
 
