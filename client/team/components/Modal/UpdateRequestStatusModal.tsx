@@ -10,7 +10,7 @@ type Props = {
 } & ModalProps;
 
 export const UpdateRequestStatusModal = ({data, opened, ...props}: Props) => {
-    const {register, handleSubmit, control, watch, reset, formState: { errors },} = useForm();
+    const {register, handleSubmit, control, watch, reset} = useForm();
     const [updateRequest] = useUpdateRequest();
 
     const onSubmit = ({note}: any) => {
@@ -60,7 +60,7 @@ export const UpdateRequestStatusModal = ({data, opened, ...props}: Props) => {
                             ? <Text size={"xl"} my={30} mx={"auto"}>هل انت متأكد من الانتهى من طلب اللاعب؟</Text>
                             : null
                 }
-                <form style={{width: "100%"}} onSubmit={handleSubmit(onSubmit, () => console.log("error: ", errors))} id="submit_form">
+                <form style={{width: "100%"}} onSubmit={handleSubmit(onSubmit)} id="submit_form">
                     <Grid gutter={20}>
                         <Col span={12}>
                             <Textarea

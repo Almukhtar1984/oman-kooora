@@ -9,6 +9,7 @@ import {useAllTeams, useAllTechnicals} from "../graphql";
 import useStore from "../store/useStore";
 import {TechnicalsTable} from "../components/Tables";
 import {ChangeStatusTechnicalsModal, DeleteTechnicalModal, UpdateTechnicalModal} from "../components/Modal";
+import {printUrl} from "../lib/config";
 
 export default function TechnicalApparatus() {
     const userData = useStore((state: any) => state.userData);
@@ -111,8 +112,6 @@ export default function TechnicalApparatus() {
         );
     }
 
-    console.log({openDeleteModal});
-
     return (
         <Box>
             <Head><title>طموح</title></Head>
@@ -142,7 +141,7 @@ export default function TechnicalApparatus() {
                                         <Menu.Item
                                             key={item?.id}
                                             component={"a"}
-                                            href={`https://print.omkooora.com/#/technicals/${item?.id}/team`}
+                                            href={`${printUrl}/#/technicals/${item?.id}/team`}
                                             target={"_blank"}
                                         >{item?.name}</Menu.Item>
                                     ))}

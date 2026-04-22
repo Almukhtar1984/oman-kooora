@@ -21,6 +21,8 @@ import Schema from "./Graphql/index.mjs"
 import {buildGraphqlValidationRules} from "./Graphql/ValidationRules.mjs";
 import {AuthMiddleware} from "./Middlewares/index.mjs"
 import {graphqlSensitiveRateLimit} from "./Middlewares/GraphqlRateLimit.mjs"
+import {privateUploadFileMiddleware} from "./Middlewares/PrivateFiles.mjs"
+import {publicUploadImageMiddleware} from "./Middlewares/PublicImages.mjs"
 import logger from "./Config/logger.mjs"
 import {socketServer} from "./Socket/index.mjs"
 
@@ -69,12 +71,13 @@ const defaultWhitelist = [
     app.use(cookieParser())
     app.use(expressUserAgent());
 
-    app.use('/images', express.static(path.join(__dirname, '../uploads')))
+    app.get('/images/:filename', publicUploadImageMiddleware())
     app.use(express.urlencoded({ extended: true, limit: process.env.REQUEST_BODY_LIMIT || "1mb" }));
     app.use(express.json({ limit: process.env.REQUEST_BODY_LIMIT || "1mb" }));
     app.use(helmet({ contentSecurityPolicy: isProduction ? undefined : false }));
 
     app.use(AuthMiddleware)
+    app.get("/files/:filename", privateUploadFileMiddleware())
     app.use("/graphql", graphqlSensitiveRateLimit())
 
     const apolloServer = new ApolloServer({

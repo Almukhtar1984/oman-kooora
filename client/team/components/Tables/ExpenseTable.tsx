@@ -109,7 +109,7 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.nationalID}`}
+                        href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.attachment}`}
                     >
                         <File size={18} />
                     </ActionIcon>

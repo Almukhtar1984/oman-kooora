@@ -5,6 +5,7 @@ import Modal, { Props as ModalProps } from "./Modal";
 import {AllBlog, AllPlayers, useAllAssembly, useAllAssemblyTeam, useAllTeams, useDeleteBlog} from "../../graphql";
 import useStore from "../../store/useStore";
 import {AssemblyTableTeam} from "../Tables";
+import {printUrl} from "../../lib/config";
 
 type Props = {
     hasPermission: (permission: string) => boolean;
@@ -110,7 +111,7 @@ export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
                         variant={"outline"}
 
                         component={"a"}
-                        href={`https://print.omkooora.com/#/assembly/${team}/team`}
+                        href={`${printUrl}/#/assembly/${team}/team`}
                         target={"_blank"}
                     >
                         طباعة القائمة

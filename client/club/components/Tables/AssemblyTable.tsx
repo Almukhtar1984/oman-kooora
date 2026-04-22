@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
+import {printUrl} from "../../lib/config";
 const customStyles: TableStyles = {
     table: {
         style: {
@@ -106,7 +107,7 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
                         <Menu.Item 
                             component={"a"}
                             icon={<Printer size={18} />}
-                            href={`https://print.omkooora.com/#/assembly-card/${item?.id}`}
+                            href={`${printUrl}/#/assembly-card/${item?.id}`}
                             target={"_blank"}
                         >طباعة البطاقة</Menu.Item>
                     </Menu.Dropdown>
@@ -142,7 +143,7 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.nationalID}`}
+                        href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalID}`}
                     >
                         <Id size={18} />
                     </ActionIcon>

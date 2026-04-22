@@ -5,6 +5,8 @@ import QRCode from "qrcode";
 //@ts-ignore
 import dayjs from "dayjs";
 
+import {apiUrl, printUrl} from "../../config";
+
 interface Props {
     assembly?: any;
 }
@@ -64,11 +66,6 @@ const styles = StyleSheet.create({
 
 const AssemblyCardTemplate = ({ assembly }: Props) => {
     let forceUpdate = useForceUpdate();
-
-    // const apiUrl = "https://api.omkooora.com"
-    const apiUrl = "http://localhost:7000"
-
-    const printUrl = "https://print.omkooora.com"
 
     let canvas: any = null;
     let qrCodeGenerator = (qrcode: any) => {

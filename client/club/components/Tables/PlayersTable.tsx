@@ -18,6 +18,7 @@ const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
+import {printUrl} from "../../lib/config";
 
 const customStyles: TableStyles = {
     table: {
@@ -295,7 +296,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                             }
 
                             {hasPermission("8")
-                                ? <Menu.Item component={"a"} icon={<Printer size={18} />} href={`https://print.omkooora.com/#/${item?.id}`} target={"_blank"} >طباعة البطاقة</Menu.Item>
+                                ? <Menu.Item component={"a"} icon={<Printer size={18} />} href={`${printUrl}/#/${item?.id}`} target={"_blank"} >طباعة البطاقة</Menu.Item>
                                 : null
                             }
 
@@ -385,7 +386,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                 component="a"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.nationalID}`}
+                                href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalID}`}
                             >
                                 <Id size={18} />
                             </ActionIcon>
@@ -402,7 +403,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                 component="a"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.nationalIDBack}`}
+                                href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalIDBack}`}
                             >
                                 <Id size={18} />
                             </ActionIcon>
@@ -423,7 +424,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                             component="a"
                             target="_blank"
                             rel="noopener noreferrer"
-                            href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.parentApproval}`}
+                            href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.parentApproval}`}
                         >
                             <FileCertificate size={18} />
                         </ActionIcon>

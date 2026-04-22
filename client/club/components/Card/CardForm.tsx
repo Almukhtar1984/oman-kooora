@@ -93,7 +93,7 @@ const CardForm = ({ data, onEditModal, onDeleteModal, hasPermission, ...props }:
                                 component="a"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                href={`${process.env.NEXT_PUBLIC_API_URL}/images/${data.file}`}
+                                href={`${process.env.NEXT_PUBLIC_API_URL}/files/${data.file}`}
                             >
                                 تحميل الاستمارة
                             </Button>

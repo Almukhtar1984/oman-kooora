@@ -10,8 +10,6 @@ export default function Members() {
     // const [getAllPlayersClub] = useAllPlayersClub();
     const [allMembers, setAllMembers] = useState([]);
 
-    console.log({id, type})
-
     useEffect(() => {
         if (id && id !== "") {
             if (type && type === "team") {

@@ -10,6 +10,7 @@ import {DotsVertical, FileCertificate, Id, Printer, Upload, Paperclip, EditCircl
 import {Filter} from "tabler-icons-react";
 import dayjs from "dayjs";
 import {useEffect, useState} from "react";
+import {printUrl} from "../../lib/config";
 
 const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
@@ -248,7 +249,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                     component="a"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.nationalID}`}
+                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalID}`}
                                                 >
                                                     <Id size={18} />
                                                 </ActionIcon>
@@ -265,7 +266,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                     component="a"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.nationalIDBack}`}
+                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalIDBack}`}
                                                 >
                                                     <Id size={18} />
                                                 </ActionIcon>
@@ -285,7 +286,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                     component="a"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.parentApproval}`}
+                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.parentApproval}`}
                                                 >
                                                     <FileCertificate size={18} />
                                                 </ActionIcon>
@@ -353,7 +354,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                     {hasPermission("5")
                                                         ? <Menu.Item
                                                             component={"a"} icon={<Printer size={18} />}
-                                                            href={`https://print.omkooora.com/#/${item?.id}`}
+                                                            href={`${printUrl}/#/${item?.id}`}
                                                             target={"_blank"}
                                                         >طباعة البطاقة</Menu.Item>
                                                         : null

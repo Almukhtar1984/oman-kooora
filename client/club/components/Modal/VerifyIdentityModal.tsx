@@ -41,10 +41,10 @@ export const VerifyIdentityModal = ({data, opened, setNewStatus, setOpenChangeSt
             <Stack align={"center"} justify={"center"}>
                 <Grid gutter={20} w={"100%"}>
                     <Col span={12}>
-                        <Image src={`${process.env.NEXT_PUBLIC_API_URL}/images/${data.nationalID}`} alt={""} height={"300px"} width={"100%"} />
+                        <Image src={`${process.env.NEXT_PUBLIC_API_URL}/files/${data.nationalID}`} alt={""} height={"300px"} width={"100%"} />
                     </Col>
                     <Col span={12}>
-                        <Image src={`${process.env.NEXT_PUBLIC_API_URL}/images/${data.nationalIDBack}`} alt={""} height={"300px"} width={"100%"} />
+                        <Image src={`${process.env.NEXT_PUBLIC_API_URL}/files/${data.nationalIDBack}`} alt={""} height={"300px"} width={"100%"} />
                     </Col>
 
                     <Col span={12}>

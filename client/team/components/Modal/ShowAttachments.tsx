@@ -37,7 +37,7 @@ export const ShowAttachments = ({data, setSelectedData, setOpenDeleteAttachmentM
                                                 component="a"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.content}`}
+                                                href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.content}`}
                                             >
                                                 <Group position={"center"}>
                                                     <Paperclip size={16} />

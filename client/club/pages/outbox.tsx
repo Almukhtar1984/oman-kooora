@@ -61,7 +61,6 @@ export default function Outbox() {
     }, [userData])
 
     useEffect(() => {
-        console.log(dataAllMessages)
         if (dataAllMessages && "allMessageClubSender" in dataAllMessages) {
             setAllMessages([...dataAllMessages.allMessageClubSender])
         }

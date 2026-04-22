@@ -106,7 +106,7 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
         {name: 'المرفقات', selector: (item: any) => (
             <Group spacing={5}>
                 {item?.attachment?.map((item: any) => (
-                    <Button size={"xs"} key={item?.id} component={"a"} target={"_blank"} href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.content}`} >
+                    <Button size={"xs"} key={item?.id} component={"a"} target={"_blank"} rel="noopener noreferrer" href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.content}`} >
                         تحميل
                     </Button>
                 ))}

@@ -5,7 +5,7 @@ import React, {useEffect, useState} from "react";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
 import { Carousel } from '@mantine/carousel';
-import {open} from "fs";
+import {apiUrl} from "@/lib/config";
 
 type Props = {
     data?: any;
@@ -93,7 +93,7 @@ const CardStadium = ({ data, setOpenAddModal, setSelectedData, ...props }: Props
                                 {images.map((item: string, index) => (
                                     <Carousel.Slide key={index}>
                                         <Image
-                                            src={`${process.env.NEXT_PUBLIC_API_URL}/images/${item}`}
+                                            src={`${apiUrl}/images/${item}`}
                                             width={"100%"} height={200}
                                             styles={{
                                                 root: {border: "2px solid #eee", borderRadius: 8},

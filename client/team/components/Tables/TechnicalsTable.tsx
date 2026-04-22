@@ -110,7 +110,7 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.testimony_experience}`}
+                        href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.testimony_experience}`}
                     >
                         <FileCertificate size={18} />
                     </ActionIcon>

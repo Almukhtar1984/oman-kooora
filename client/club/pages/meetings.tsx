@@ -54,7 +54,6 @@ export default function Meetings() {
     }, [userData])
 
     useEffect(() => {
-        console.log(dataAllMeetings)
         if (dataAllMeetings && "allMeetingsClub" in dataAllMeetings) {
             setAllMeetings([...dataAllMeetings.allMeetingsClub])
         }

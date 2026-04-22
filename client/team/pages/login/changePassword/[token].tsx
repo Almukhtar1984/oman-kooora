@@ -37,7 +37,7 @@ export default function ChangePassword() {
     const { classes, cx, theme } = useStyles();
     const route = useRouter()
     const [changePassword] = useChangePassword();
-    const {register, handleSubmit, control, watch, reset, formState: { errors }} = useForm();
+    const {register, handleSubmit, control, watch, reset} = useForm();
 
     const [alert, setAlert] = useState<{ status?: string; msg?: string; length?: number; code?: string; }>({});
 
@@ -77,7 +77,7 @@ export default function ChangePassword() {
                 <Grid.Col xs={11} sm={10} md={8} lg={6} p={0}>
                     <Grid justify="center" align="center" p={"md"} sx={{width: "100%"}} >
                         <Grid.Col xs={11} sm={10} md={8} lg={6} xl={4} >
-                            <form onSubmit={handleSubmit(onFormSubmit, () => console.log("error: ", errors))} id="submit_form">
+                            <form onSubmit={handleSubmit(onFormSubmit)} id="submit_form">
                                 <Stack justify="center" align="center" >
                                     <Text className={classes.title} >تغيير كلمة المرور</Text>
                                     <PasswordInput

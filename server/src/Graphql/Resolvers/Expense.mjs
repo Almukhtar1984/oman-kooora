@@ -112,8 +112,7 @@ export const resolvers = {
                 return await Expense.create(content)
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create expense")
                 throw new ApolloError(error)
             }
         },
@@ -195,8 +194,7 @@ export const resolvers = {
 
                 return comment
             } catch (error) {
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create expense comment")
                 throw new ApolloError(error)
             }
         },

@@ -20,6 +20,7 @@ import {
 import {useAllPlayers} from "../graphql";
 import useStore from "../store/useStore";
 import {PlayersTable} from "../components/Tables";
+import {printUrl} from "../lib/config";
 
 export default function Players() {
     const userData = useStore((state: any) => state.userData);
@@ -149,7 +150,7 @@ export default function Players() {
                                     color={"primary"}
 
                                     component={"a"}
-                                    href={`https://print.omkooora.com/#/players/${userData?.person?.member?.team?.id}/team`}
+                                    href={`${printUrl}/#/players/${userData?.person?.member?.team?.id}/team`}
                                     target={"_blank"}
                                 >
                                     طباعة قائمة اللاعبين

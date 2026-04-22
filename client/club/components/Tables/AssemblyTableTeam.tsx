@@ -87,7 +87,7 @@ export const AssemblyTableTeam = ({ list }: Props) => {
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.nationalID}`}
+                        href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalID}`}
                     >
                         <Id size={18} />
                     </ActionIcon>

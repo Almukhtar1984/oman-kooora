@@ -62,10 +62,6 @@ const styles = StyleSheet.create({
 const ListTechnicals = ({ players }: Props) => {
     let forceUpdate = useForceUpdate();
 
-    const apiUrl = "https://api.omkooora.com"
-    // const apiUrl = "http://localhost:7000"
-
-
     return (
         <PDFViewer  style={{ minHeight: "calc(100vh - 25px )", minWidth: "calc(100vw - 10px )" }}>
             <Document>

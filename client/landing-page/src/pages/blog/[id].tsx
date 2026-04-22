@@ -5,6 +5,7 @@ import {useBlog} from "@/graphql";
 import {NavBar} from "@/component/Header";
 import {useRouter} from "next/router";
 import {RichTextBox} from "@/component/RichTextBox";
+import {apiUrl} from "@/lib/config";
 
 export default function Blog() {
     let {query} = useRouter();
@@ -55,7 +56,7 @@ export default function Blog() {
                                 {blog?.attachment?.map((item: any) => (
                                     <Image
                                         key={item?.id}
-                                        src={`${process.env.NEXT_PUBLIC_API_URL}/images/${item?.content}`}
+                                        src={`${apiUrl}/images/${item?.content}`}
                                         width={"100%"} height={"auto"}
                                         styles={{
                                             root: {border: "2px solid #eee", borderRadius: 8},

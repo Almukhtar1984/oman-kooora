@@ -10,8 +10,6 @@ export default function Technicals() {
     // const [getAllPlayersClub] = useAllPlayersClub();
     const [allTechnicals, setAllTechnicals] = useState([]);
 
-    console.log({id, type})
-
     useEffect(() => {
         if (id && id !== "") {
             if (type && type === "team") {

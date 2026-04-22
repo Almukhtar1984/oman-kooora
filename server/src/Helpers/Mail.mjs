@@ -1,5 +1,7 @@
 import SibApiV3Sdk from 'sib-api-v3-sdk';
 
+import logger from "../Config/logger.mjs";
+
 
 const maileVerificationMail = (token, role) => {
     const url = role === "admin"
@@ -101,9 +103,9 @@ export const createMail = async (mail) => {
             }*/
         ]
 
-    }).then(function(data) {
-        console.log(data);
-    }, function(error) {
-        console.error(error);
+    }).then(function() {
+        logger.info("Verification email sent");
+    }, function() {
+        logger.error("Unable to send verification email");
     });
 };

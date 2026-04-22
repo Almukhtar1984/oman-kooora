@@ -5,6 +5,7 @@ import { setContext } from "@apollo/client/link/context";
 import useStore from "../store/useStore";
 import { getNewToken } from "../graphql";
 import { history } from "./helpers/history";
+import {apiBaseUrl} from "./config";
 
 // import {useAuth} from "./helpers/_auth";
 // import {useGetCurrentUser, getNewToken} from "../graphql";
@@ -30,16 +31,6 @@ const resolvePendingRequests = () => {
     pendingRequests.map((callback) => callback());
     pendingRequests = [];
 };
-
-const defaultApiBaseUrl =
-    process.env.NODE_ENV === "development"
-        ? "http://localhost:7001"
-        : "https://api.omkooora.com";
-
-const apiBaseUrl =
-    process.env.REACT_APP_API_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    defaultApiBaseUrl;
 
 const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
 

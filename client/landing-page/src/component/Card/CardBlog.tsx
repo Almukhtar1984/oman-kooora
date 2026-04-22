@@ -4,6 +4,7 @@ import {Avatar, Box, BoxProps, Flex, MantineTheme, Text, Stack, Image} from "@ma
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
+import {apiUrl} from "@/lib/config";
 
 type Props = {
     data?: any;
@@ -53,7 +54,7 @@ const CardBlog = ({ data, ...props }: Props) => {
 
                     {data?.attachment && data?.attachment.length > 0
                         ? <Image
-                            src={`${process.env.NEXT_PUBLIC_API_URL}/images/${data?.attachment?.[0]?.content}`}
+                            src={`${apiUrl}/images/${data?.attachment?.[0]?.content}`}
                             width={"100%"} height={200}
                             styles={{
                                 root: {border: "2px solid #eee", borderRadius: 8},

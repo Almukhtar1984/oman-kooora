@@ -129,8 +129,7 @@ export const resolvers = {
                 return stadium
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create stadium")
                 throw new ApolloError(error)
             }
         },
@@ -236,8 +235,7 @@ export const resolvers = {
 
                 return await Reservations.create({...content})
             } catch (error) {
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create reservation")
                 throw new ApolloError(error)
             }
         },

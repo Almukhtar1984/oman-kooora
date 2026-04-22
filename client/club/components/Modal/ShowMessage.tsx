@@ -50,7 +50,6 @@ export const ShowMessage = (props: Props) => {
             getMessage({
                 variables: {id: props.data },
                 onCompleted: ({message}) => {
-                    console.log(message)
                     setContent(message?.content)
                 }
             })
@@ -105,7 +104,7 @@ export const ShowMessage = (props: Props) => {
                         <Col span={12} >
                             <Group spacing={10}>
                                 {dataMessage?.message?.attachment?.map((item: any) => (
-                                    <Button key={item?.id} component={"a"} target={"_blank"} href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.content}`} >
+                                    <Button key={item?.id} component={"a"} target={"_blank"} rel="noopener noreferrer" href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.content}`} >
                                         تحميل
                                     </Button>
                                 ))}

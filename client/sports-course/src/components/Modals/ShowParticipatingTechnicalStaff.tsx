@@ -5,12 +5,9 @@ import useStore from "../../store/useStore";
 import dayjs from "dayjs";
 import {useAllParticipatingTechnicalStaff} from "../../graphql";
 import React, {useEffect, useState} from "react";
+import {apiBaseUrl} from "../../lib/config";
 
 const {Col} = Grid
-const apiBaseUrl =
-    process.env.REACT_APP_API_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:7001";
 
 type Props = {
     data?: any;

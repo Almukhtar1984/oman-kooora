@@ -12,7 +12,7 @@ type Props = {
 } & ModalProps;
 
 export const ChangeStatusPlayersModal = ({id, status, opened, ...props}: Props) => {
-    const {register, handleSubmit, control, watch, reset, formState: { errors },} = useForm();
+    const {register, handleSubmit, control, watch, reset} = useForm();
     const [updatePlayer] = useChangeStatusPlayer();
 
     const onSubmit = ({note}: any) => {
@@ -59,7 +59,7 @@ export const ChangeStatusPlayersModal = ({id, status, opened, ...props}: Props) 
                         : null
                 }
 
-                <form style={{width: "100%"}} onSubmit={handleSubmit(onSubmit, () => console.log("error: ", errors))} id="submit_form">
+                <form style={{width: "100%"}} onSubmit={handleSubmit(onSubmit)} id="submit_form">
                     <Grid gutter={20}>
                         <Col span={12}>
                             <Textarea

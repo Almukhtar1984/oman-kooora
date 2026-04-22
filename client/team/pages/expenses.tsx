@@ -50,7 +50,6 @@ export default function Expenses() {
     }, [userData])
 
     useEffect(() => {
-        console.log(dataAllExpenses)
         if (dataAllExpenses && "allExpensesTeam" in dataAllExpenses) {
             setAllExpenses([...dataAllExpenses.allExpensesTeam])
         }

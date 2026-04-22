@@ -6,6 +6,7 @@ import {AllBlog, useAllTeams, useDeleteBlog} from "../../graphql";
 import { useForm } from "@mantine/form";
 import useStore from "../../store/useStore";
 import { useRouter } from "next/router";
+import {printUrl} from "../../lib/config";
 
 type Props = {
     data?: any;
@@ -60,7 +61,7 @@ export const PrintModal = ({ data, ...props }: Props) => {
                             rightIcon={<Check size={15} />}
                             bg={"primary"}
                             component={"a"}
-                            href={`https://print.omkooora.com/#/players/${values.team}/team/${values.class_name}/${age2Check}/${ageCheck === "" ? "0" : ageCheck}`}
+                            href={`${printUrl}/#/players/${values.team}/team/${values.class_name}/${age2Check}/${ageCheck === "" ? "0" : ageCheck}`}
                             target={"_blank"}
                             onClick={closeModal}
                         >طباعة</Button>

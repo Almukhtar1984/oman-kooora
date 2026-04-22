@@ -195,8 +195,6 @@ export const resolvers = {
             try {
                 const value = await isIdentical(image, cardID)
 
-                console.log(value);
-
                 return value
             } catch (error) {
                 logger.error("")
@@ -377,14 +375,12 @@ export const resolvers = {
                     const stream = createReadStream();
                     await stream.pipe( createWriteStream(pathName) );
 
-                    console.log({uniqName})
                     await Players.update({parentApproval: uniqName}, {where: {id: result.id}})
                 }
 
                 return result
             } catch (error) {
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create player")
                 throw new ApolloError(error)
             }
         },
@@ -482,7 +478,6 @@ export const resolvers = {
                     const stream = createReadStream();
                     await stream.pipe( createWriteStream(pathName) );
 
-                    console.log({uniqName})
                     await Players.update({parentApproval: uniqName}, {where: {id}})
                 }
 

@@ -11,8 +11,6 @@ export default function Assembly() {
 
     const [allAssembly, setAllAssembly] = useState([]);
 
-    console.log({id, type})
-
     useEffect(() => {
         if (id && id !== "") {
             if (type && type === "team") {

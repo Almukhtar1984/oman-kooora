@@ -22,6 +22,7 @@ import {useAllMembers, useAllTeams} from "../graphql";
 import useStore from "../store/useStore";
 import {MembersTable} from "../components/Tables";
 import {ChangeStatusMembersModal, DeleteMembersModal, UpdateMemberModal} from "../components/Modal";
+import {printUrl} from "../lib/config";
 
 export default function Members() {
     const userData = useStore((state: any) => state.userData);
@@ -155,7 +156,7 @@ export default function Members() {
                                         <Menu.Item
                                             key={item?.id}
                                             component={"a"}
-                                            href={`https://print.omkooora.com/#/members/${item?.id}/team`}
+                                            href={`${printUrl}/#/members/${item?.id}/team`}
                                             target={"_blank"}
                                         >{item?.name}</Menu.Item>
                                     ))}

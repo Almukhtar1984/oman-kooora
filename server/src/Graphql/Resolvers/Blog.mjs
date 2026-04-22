@@ -61,8 +61,6 @@ export const resolvers = {
                     }
                 })
 
-                console.log({blogsTeam})
-
                 return [...blogsClub, ...blogsTeam]
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
@@ -154,8 +152,7 @@ export const resolvers = {
                 return blog
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create blog")
                 throw new ApolloError(error)
             }
         },

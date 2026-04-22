@@ -19,6 +19,232 @@
 
 ## 2026-04-22
 
+### 30. إزالة طباعات validation errors من نماذج الدخول والإدارة
+
+- تم إزالة callbacks التي تطبع `errors` عند فشل validation من صفحات الدخول:
+  - `client/club/pages/login/*`
+  - `client/team/pages/login/*`
+  - `client/super-admin/pages/login/*`
+  - `client/plyer/pages/login/*`
+- تم إزالة نفس نمط الطباعة من عدد من نماذج الإدارة في:
+  - `client/club/components/Modal`
+  - `client/team/components/Modal`
+  - `client/super-admin/components/Modal`
+- تم تنظيف `errors` غير المستخدم من `useForm` في النماذج التي لم تعد تحتاجه.
+- تم إصلاح تحذير `react-hooks/exhaustive-deps` في:
+  - `client/super-admin/components/Modal/EditClubModal.tsx`
+- تم تشغيل lint على ملفات `super-admin` المتأثرة، والنتيجة:
+  - لا توجد warnings أو errors.
+
+---
+
+### 29. تنظيف logs خام داخل الخادم
+
+- تم تنظيف طباعات خام داخل ملفات الخادم التالية:
+  - `server/src/Helpers/Identical.mjs`
+  - `server/src/Helpers/Mail.mjs`
+  - `server/src/Graphql/Resolvers/Players.mjs`
+  - `server/src/Graphql/Resolvers/Blog.mjs`
+  - `server/src/Graphql/Resolvers/League.mjs`
+  - `server/src/Graphql/Resolvers/Stadium.mjs`
+  - `server/src/Graphql/Resolvers/Expense.mjs`
+- تمت إزالة طباعات تعرض:
+  - نتيجة فحص OCR.
+  - أسماء ملفات مرفوعة.
+  - نتائج استعلامات.
+  - أخطاء خام من catch blocks.
+- تم استبدال بعض الأخطاء برسائل `logger.error` عامة بدون تفاصيل حساسة.
+- تم تشغيل فحص syntax على الملفات المعدلة.
+- تم تشغيل `npm test` داخل `server` والنتيجة:
+  - 8 اختبارات passed.
+
+---
+
+### 28. توحيد إعدادات API في sports-course وlanding-page
+
+- تم إضافة config مركزي في:
+  - `client/sports-course/src/lib/config.ts`
+  - `client/landing-page/src/lib/config.ts`
+- تم تعديل GraphQL client في `client/sports-course` لاستخدام `apiBaseUrl`
+  المركزي بدلا من تعريف الرابط داخل ملف GraphQL نفسه.
+- تم تعديل مكونات عرض المشاركين في `sports-course` لاستخدام نفس config عند
+  بناء روابط الصور.
+- تم تعديل GraphQL client وروابط الصور في `landing-page` لاستخدام `apiUrl`
+  المركزي.
+- تم إزالة import غير مستخدم من `fs` داخل:
+  - `client/landing-page/src/component/Card/CardStadium.tsx`
+- تم تشغيل اختبار `client/sports-course`:
+  - `npm test -- --watchAll=false`
+  - النتيجة: passed.
+
+---
+
+### 27. تنظيف دفعة إضافية من logs الحساسة
+
+- تم إزالة طباعات تعرض بيانات runtime أو بيانات مستخدمين من:
+  - صفحات الرسائل والاجتماعات في `client/club`.
+  - صفحات الرسائل والاجتماعات والمصروفات في `client/team`.
+  - مكونات البحث عن الأشخاص وعرض الرسائل في `client/club` و`client/team`.
+  - صفحة الملف الشخصي في `client/plyer`.
+  - صفحات `Assembly`, `Members`, و`Technicals` في تطبيق `client/print`.
+  - ملف routes في `client/sports-course`.
+- تم تعديل GraphQL client في `client/landing-page` حتى لا يطبع أخطاء GraphQL
+  في الإنتاج.
+- تم تشغيل اختبار `client/sports-course`:
+  - `npm test -- --watchAll=false`
+  - النتيجة: passed.
+- ملاحظة: ظهر تحذير من `react-scripts` بخصوص dependency غير مصرح بها، وتحذير
+  Jest عن open handles، لكن الاختبار لم يفشل.
+
+---
+
+### 26. نقل روابط الطباعة في club وteam إلى env
+
+- تم إضافة config للروابط في:
+  - `client/club/lib/config.ts`
+  - `client/team/lib/config.ts`
+- تم إضافة متغير بيئة جديد في:
+  - `client/club/.env.example`
+  - `client/team/.env.example`
+- المتغير الجديد:
+  - `NEXT_PUBLIC_PRINT_URL`
+- تم تعديل روابط الطباعة في واجهتي `club` و`team` لتستخدم config بدلا من
+  كتابة `https://print.omkooora.com` داخل المكونات والصفحات.
+- شملت الروابط:
+  - طباعة بطاقات اللاعبين.
+  - طباعة بطاقات الجمعية.
+  - طباعة قوائم اللاعبين.
+  - طباعة قوائم الأعضاء والجهاز الفني.
+
+---
+
+### 25. إزالة روابط codegen الخارجية المباشرة
+
+- تم تعديل ملفات `codegen.ts` في الواجهات التالية:
+  - `client/club/codegen.ts`
+  - `client/team/codegen.ts`
+  - `client/super-admin/codegen.ts`
+  - `client/plyer/codegen.ts`
+- أصبحت ملفات codegen تستخدم:
+  - `NEXT_PUBLIC_API_URL`
+  - fallback محلي: `http://localhost:7001`
+- تم تعديل ملفات `graphql.config.yml` في نفس الواجهات لتستخدم ملف schema
+  المحلي:
+  - `./graphql.schema.json`
+- تم إزالة الاعتماد المباشر على:
+  - `https://api-employees.qafilaty.com/graphql`
+- الهدف هو تقليل الروابط الصلبة داخل المشروع وربط التوليد ببيئة التشغيل.
+
+---
+
+### 24. تقييد مسار الصور العام
+
+- تم استبدال `express.static` المفتوح على مجلد `uploads` بمسار محدود:
+  - `GET /images/:filename`
+- تم إضافة middleware جديد:
+  - `server/src/Middlewares/PublicImages.mjs`
+- أصبح `/images` يسمح فقط بأسماء ملفات آمنة وامتدادات صور محددة:
+  - `jpg`
+  - `jpeg`
+  - `png`
+  - `webp`
+- لم يعد `/images` يخدم مستندات مثل:
+  - `pdf`
+  - `docx`
+  - `xlsx`
+  - `zip`
+  - `svg`
+- تم إبقاء `/files/:filename` للمستندات الخاصة التي تحتاج مصادقة.
+- تم إضافة اختبار جديد للتأكد من أن `/images` يقبل الصور الآمنة ويرفض
+  المستندات والـ SVG ومحاولات path traversal.
+- تم تشغيل `npm test` داخل `server` والنتيجة:
+  - 8 اختبارات passed
+- تم تشغيل:
+  - `node --check server/src/Middlewares/PublicImages.mjs`
+  - `node --check server/src/app.mjs`
+
+---
+
+### 23. إضافة أمثلة إعدادات البيئة للواجهات
+
+- تم إضافة `.env.example` للواجهات التالية:
+  - `client/club/.env.example`
+  - `client/team/.env.example`
+  - `client/super-admin/.env.example`
+  - `client/plyer/.env.example`
+  - `client/landing-page/.env.example`
+  - `client/sports-course/.env.example`
+  - `client/print/.env.example`
+- تم توثيق رابط API المحلي الافتراضي:
+  - `http://localhost:7001`
+- تم تعديل تطبيق `client/print` ليقرأ روابط التشغيل من env:
+  - `REACT_APP_API_URL`
+  - `REACT_APP_PRINT_URL`
+- تم إضافة ملف إعداد مركزي:
+  - `client/print/src/config.ts`
+- تم إزالة روابط API الصلبة داخل ملفات PDF الأساسية في تطبيق الطباعة، مع
+  إبقاء fallback إنتاجي داخل ملف config المركزي.
+- تم جعل طباعة أخطاء GraphQL في تطبيق `print` تعمل خارج الإنتاج فقط.
+- لم يتم تشغيل test/lint لتطبيق `print` لأن `node_modules` غير موجود محليا.
+
+---
+
+### 22. نقل أول دفعة من روابط الملفات الخاصة إلى المسار المحمي
+
+- تم تعديل روابط المستندات الخاصة في واجهتي `club` و`team` لتستخدم:
+  - `/files/:filename`
+- شملت الدفعة الأولى:
+  - صور البطاقة المدنية الأمامية والخلفية في شاشة التحقق.
+  - روابط البطاقة المدنية في جداول اللاعبين والأعضاء.
+  - استمارة موافقة ولي الأمر.
+  - شهادة الخبرة للجهاز الفني.
+  - مرفقات اللاعبين والرسائل والاجتماعات.
+  - ملف الاستمارة في بطاقات النماذج.
+- تم تصحيح رابط مرفق المصروفات في واجهة `team`:
+  - كان يتحقق من `attachment` لكن يفتح `nationalID`.
+  - أصبح يفتح `attachment` عبر `/files`.
+- بقيت صور الأخبار، الملاعب، والصور الشخصية العامة على `/images` مؤقتا حتى
+  لا تتأثر الصفحات العامة.
+- تم تشغيل:
+  - `npm test` داخل `server`
+  - `npm run db:check-model-migrations` داخل `server`
+  - `node --check server/src/app.mjs`
+  - `node --check server/src/Middlewares/PrivateFiles.mjs`
+- لم يتم تشغيل lint لواجهتي `club` و`team` لأن `node_modules` غير موجودة
+  محليا لهذين التطبيقين.
+
+---
+
+### 21. إضافة مسار محمي للملفات الخاصة
+
+- تم إضافة middleware جديد:
+  - `server/src/Middlewares/PrivateFiles.mjs`
+- تم إضافة مسار محمي في الخادم:
+  - `GET /files/:filename`
+- المسار الجديد يعمل بعد `AuthMiddleware`، لذلك يتطلب مستخدما مصادقا.
+- يدعم المسار المصادقة عبر:
+  - `Authorization` header
+  - refresh cookie `__tomoh` مع التحقق من `user-agent`,
+    `refresh_token_id`, و`refresh_token_version`
+- دعم refresh cookie ضروري لأن روابط الملفات المباشرة في المتصفح لا ترسل
+  `Authorization` header.
+- تمت إضافة حماية على اسم الملف:
+  - منع المسارات الفرعية
+  - منع path traversal مثل `../`
+  - السماح فقط بأسماء ملفات آمنة
+- تمت إضافة headers للملفات الخاصة:
+  - `Cache-Control: private, no-store`
+  - `X-Content-Type-Options: nosniff`
+- لم يتم إيقاف `/images` حاليا لأن الواجهات ما زالت تستخدمه لصور ومرفقات
+  ومستندات. إيقافه مباشرة سيكسر روابط تحميل قائمة.
+- تم إضافة اختبارات:
+  - `server/tests/private-files.test.mjs`
+- تم تشغيل `npm test` داخل `server` والنتيجة:
+  - 7 اختبارات passed
+- تم تشغيل فحص syntax على الملفات الجديدة والمعدلة، وتم تشغيل `git diff --check`.
+
+---
+
 ### 20. إضافة اختبارات آلية لرفع الصور
 
 - تم إضافة سكربت اختبار للخادم:

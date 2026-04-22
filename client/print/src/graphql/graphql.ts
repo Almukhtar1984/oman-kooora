@@ -1,18 +1,16 @@
 import {ApolloClient, from, createHttpLink, InMemoryCache} from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 
+import {apiUrl} from "../config";
 
 const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
 
-    if (graphQLErrors) {
+    if (graphQLErrors && process.env.NODE_ENV !== "production") {
         const { path, message, locations } = graphQLErrors[0];
 
         console.log(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
     }
 });
-
-const apiUrl = "https://api.omkooora.com"
-// const apiUrl = "http://localhost:7000"
 
 const httpLink = createHttpLink({
     uri: `${apiUrl}/graphql`,

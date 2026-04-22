@@ -61,7 +61,6 @@ export const isIdentical = async (image, value) => {
 
   if (!isIdentical) {
     // Retry with 180-degree rotation if not identified
-    console.log("180")
     const retryRotatedImg = await sharpImg.rotate(180).toBuffer();
     const retryResult = await Tesseract.recognize(retryRotatedImg, 'eng');
     return retryResult.data.text.includes(value);

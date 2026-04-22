@@ -4,6 +4,8 @@ import {Page, Text, Image, Document, StyleSheet, View, Font, PDFViewer} from "@r
 import QRCode from "qrcode";
 import dayjs from "dayjs";
 
+import {apiUrl, printUrl} from "../../config";
+
 interface Props {
     player?: any;
 }
@@ -63,11 +65,6 @@ const styles = StyleSheet.create({
 
 const CardTemplate = ({ player }: Props) => {
     let forceUpdate = useForceUpdate();
-
-    const apiUrl = "https://api.omkooora.com"
-    // const apiUrl = "http://localhost:7000"
-
-    const printUrl = "https://print.omkooora.com"
 
     let canvas: any = null;
     let qrCodeGenerator = (qrcode: any) => {

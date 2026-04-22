@@ -62,7 +62,6 @@ export default function Inbox() {
     }, [userData])
 
     useEffect(() => {
-        console.log(dataAllMessages)
         if (dataAllMessages && "allMessageTeamReceiver" in dataAllMessages) {
             setAllMessages([...dataAllMessages.allMessageTeamReceiver])
         }

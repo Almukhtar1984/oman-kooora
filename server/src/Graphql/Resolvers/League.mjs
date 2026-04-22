@@ -376,8 +376,7 @@ export const resolvers = {
 
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create league")
                 throw new ApolloError(error)
             }
         },
@@ -438,8 +437,7 @@ export const resolvers = {
 
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create participating teams")
                 throw new ApolloError(error)
             }
         },
@@ -508,8 +506,7 @@ export const resolvers = {
 
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create match")
                 throw new ApolloError(error)
             }
         },
@@ -567,8 +564,7 @@ export const resolvers = {
 
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create match card")
                 throw new ApolloError(error)
             }
         },
@@ -632,8 +628,7 @@ export const resolvers = {
 
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create participating players")
                 throw new ApolloError(error)
             }
         },
@@ -800,8 +795,6 @@ export const resolvers = {
                         await ScorerMatch.create(row)
                     }
                 }
-
-                console.log({result});
 
                 return {
                     status: result[0] >= 1

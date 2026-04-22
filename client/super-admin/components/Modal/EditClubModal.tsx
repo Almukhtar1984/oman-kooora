@@ -42,7 +42,7 @@ export const EditClubModal = ({ data, ...props }: Props) => {
             });
             setGovernorate(data?.governorate)
         }
-    }, [opened]);
+    }, [opened, data?.name, data?.phone, data?.governorate, reset]);
 
     const onSubmit = ({name, phone}: any) => {
         updateClub({
@@ -87,7 +87,7 @@ export const EditClubModal = ({ data, ...props }: Props) => {
             }
         >
             <Box sx={({ colors }) => ({padding: 20})}>
-                <form onSubmit={handleSubmit(onSubmit, () => console.log("error: ", errors))} id="submit_form">
+                <form onSubmit={handleSubmit(onSubmit)} id="submit_form">
                     <Grid gutter={20}>
                         <Col span={6}>
                             <TextInput

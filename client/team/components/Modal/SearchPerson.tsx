@@ -49,8 +49,6 @@ export const SearchPerson = (props: Props) => {
         reset();
     };
 
-    console.log(person);
-    
     return (
         <Modal
             size="lg"
