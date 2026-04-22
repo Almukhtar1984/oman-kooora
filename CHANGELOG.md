@@ -19,6 +19,31 @@
 
 ## 2026-04-22
 
+### 20. إضافة اختبارات آلية لرفع الصور
+
+- تم إضافة سكربت اختبار للخادم:
+  - `npm test`
+- السكربت يستخدم Node.js test runner بدون إضافة dependency جديدة:
+  - `node --test "tests/**/*.test.mjs"`
+- تم إضافة اختبار جديد:
+  - `server/tests/upload.test.mjs`
+- الاختبارات تغطي helper رفع الصور:
+  - قبول ملف PNG صحيح وحفظه
+  - حذف الملف المؤقت بعد الاختبار
+  - رفض امتداد غير مسموح مثل SVG
+  - رفض MIME type غير مطابق
+  - رفض محتوى ملف لا يطابق magic bytes
+- تم تشغيل `npm test` داخل `server` والنتيجة:
+  - 4 اختبارات passed
+- تم تشغيل:
+  - `node --check server/tests/upload.test.mjs`
+  - `node --check server/src/Helpers/Upload.mjs`
+  - `git diff --check`
+- لا تزال اختبارات upload الخاصة بكل resolver بحاجة إضافة تدريجية عند نقل باقي
+  مرفقات المشروع إلى helper المركزي.
+
+---
+
 ### 19. إزالة طباعات حساسة من تسجيل الدخول وتجديد token
 
 - تم إزالة طباعة refresh token من عملاء GraphQL:

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test": "node --test \"tests/**/*.test.mjs\"",
     "dev": "nodemon ./src/app.mjs",
     "start": "node ./scripts/start-production.mjs",
     "db:migrate": "node ./scripts/migrate.mjs up",
