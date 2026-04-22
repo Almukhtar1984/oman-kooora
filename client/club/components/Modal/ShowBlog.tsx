@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import {
     Box,
     Button,
@@ -66,7 +67,7 @@ export const ShowBlog = (props: Props) => {
                                 {props?.data?.attachment?.map((item: any) => (
                                     <Image
                                         key={item?.id}
-                                        src={`${process.env.NEXT_PUBLIC_API_URL}/images/${item?.content}`}
+                                        src={`${apiUrl}/images/${item?.content}`}
                                         width={"100%"} height={400}
                                         styles={{
                                             root: {border: "2px solid #eee", borderRadius: 8},

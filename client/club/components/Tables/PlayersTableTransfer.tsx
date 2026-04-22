@@ -62,12 +62,11 @@ export const PlayersTableTransfer = ({ idClub, list, search, setOpenEditModal, s
         setAllMembers({nodes: [...filterAllMembers]})
     }, [search]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelUpdate = (data: any, status: string) => {
-        console.log({data, status})
         typeof setSelectedRow === "function" && setSelectedRow({
             ...data,
             status

@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import { useTheme } from "@emotion/react";
 import {ActionIcon, Avatar, Box, BoxProps, Flex, MantineTheme, Menu, Text, Stack, Image, Group, Badge} from "@mantine/core";
 import {DotsVertical, Edit, Trash} from "tabler-icons-react";
@@ -108,7 +109,7 @@ const CardStadium = ({ data, onEditModal, onDeleteModal, setOpenShowModal, hasPe
                                 {images.map((item: string, index) => (
                                     <Carousel.Slide key={index}>
                                         <Image
-                                            src={`${process.env.NEXT_PUBLIC_API_URL}/images/${item}`}
+                                            src={`${apiUrl}/images/${item}`}
                                             width={"100%"} height={200}
                                             styles={{
                                                 root: {border: "2px solid #eee", borderRadius: 8},

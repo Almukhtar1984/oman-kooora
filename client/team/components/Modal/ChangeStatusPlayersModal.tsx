@@ -28,7 +28,6 @@ export const ChangeStatusPlayersModal = ({id, status, opened, ...props}: Props) 
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

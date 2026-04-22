@@ -35,7 +35,6 @@ export const AddTeamModal = (props: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

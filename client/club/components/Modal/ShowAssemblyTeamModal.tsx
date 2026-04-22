@@ -51,7 +51,7 @@ export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
         getAllAssemblyTeam({
             variables: {idTeam: team},
             fetchPolicy: "network-only",
-            onError: error => console.log(error)
+            onError: () => void 0
         })
     };
 

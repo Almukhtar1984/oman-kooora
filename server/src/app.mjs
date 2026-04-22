@@ -121,16 +121,16 @@ const defaultWhitelist = [
 
     try {
         await DB.authenticate();
-        console.log('Connection has been established successfully.');
+        logger.info("Database connection established");
     } catch (error) {
-        console.error('Unable to connect to the database:', error);
+        logger.error("Unable to connect to the database");
     }
 
     try {
         socket = new socketServer(httpServer)
         await socket.connection()
     }  catch (error) {
-        console.error('socket server error:', error);
+        logger.error("Socket server initialization failed");
     }
 
     // set port, listen for requests
@@ -138,7 +138,7 @@ const defaultWhitelist = [
 
     // Start Server here
     httpServer.listen(PORT,() => {
-        console.info(`Server is running is http://localhost:${PORT}${apolloServer.graphqlPath}`)
+        logger.info(`Server is running on http://localhost:${PORT}${apolloServer.graphqlPath}`)
     });
 })();
 

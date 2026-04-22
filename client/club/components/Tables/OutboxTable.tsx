@@ -133,8 +133,8 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
         setAllMembers({nodes: [...filterAllMembers]})
     }, [search]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelUpdate = (id: string) => {

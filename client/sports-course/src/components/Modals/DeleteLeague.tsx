@@ -29,9 +29,7 @@ export const DeleteLeague = ({data, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم حذف الدورة")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

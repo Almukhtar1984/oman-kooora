@@ -81,9 +81,7 @@ export const AddScorerMatch = ({data, ...props}: Props) => {
                     closeModal();
                     notyf.success("تم اضافة الهداف")
                 },
-                onError: ({graphQLErrors}) => {
-                    console.log(false)
-                }
+                onError: () => void 0
             })
         }
     };

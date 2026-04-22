@@ -133,8 +133,8 @@ export const InboxTable = ({ list, search, setOpenCommentModal, setOpenChangeSta
         setAllMembers({nodes: [...filterAllMembers]})
     }, [search]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelDelete = (id: string) => {

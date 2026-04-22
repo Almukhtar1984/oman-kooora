@@ -57,7 +57,7 @@ export const createMail = async (mail) => {
     const recipientName = mail.name || process.env.MAIL_DEFAULT_TO_NAME || "Recipient";
 
     if (!apiKey.apiKey || !senderEmail || !recipientEmail) {
-        console.warn("Mail transport is not configured");
+        logger.warn("Mail transport is not configured");
         return;
     }
 

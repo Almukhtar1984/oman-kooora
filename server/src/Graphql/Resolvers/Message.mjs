@@ -300,8 +300,7 @@ export const resolvers = {
                 return message
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create message")
                 throw new ApolloError(error)
             }
         },
@@ -405,8 +404,7 @@ export const resolvers = {
                 return comment
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create message comment")
                 throw new ApolloError(error)
             }
         },

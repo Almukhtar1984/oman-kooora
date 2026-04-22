@@ -39,8 +39,6 @@ export const AddListPlayers = ({data, ...props}: Props) => {
             const worksheet = workbook.Sheets[firstSheetName];
             const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
-            // console.log({excelData});
-            
             for (let index = 0; index < excelData.length; index++) {
                 const element = excelData[index];
                 //@ts-ignore
@@ -120,13 +118,11 @@ export const AddListPlayers = ({data, ...props}: Props) => {
         createListPlayer({
             variables: {content: allContents},
             onCompleted: ({createListPlayer}) => {
-                console.log(createListPlayer);
                 notyf.success("تم اضافة اللاعبين انتقل الى صفحة اللاعبين لتستطيع مشاهدت القائمة")
                 closeModal()
             },
             onError: (error) => {
                 notyf.success("فشلت اضافة اللاعبين")
-                console.log(error);
             },
         })
     };

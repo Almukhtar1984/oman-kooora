@@ -67,7 +67,6 @@ export const UpdateExpenseModal = ({id, opened, ...props}: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

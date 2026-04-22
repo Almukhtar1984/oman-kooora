@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import { ActionIcon, Box, Button, Col, Grid, Group, Image, Text, Stack, TextInput } from "@mantine/core";
 import {Check, Search, X} from "tabler-icons-react";
 import React, {useEffect, useState} from "react";
@@ -83,7 +84,7 @@ export const SearchPerson = (props: Props) => {
                                     <Grid gutter={20}>
                                         <Col span={3} >
                                             {person?.personal_picture
-                                                ? <Image src={`${process.env.NEXT_PUBLIC_API_URL}/images/${person?.personal_picture}`} alt="" />
+                                                ? <Image src={`${apiUrl}/images/${person?.personal_picture}`} alt="" />
                                                 : <Image src={"/profile-blank.jpg"} alt="" />
                                             }
                                         </Col>

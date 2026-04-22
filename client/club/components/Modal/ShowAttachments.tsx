@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import {ActionIcon, Box, Button, Col, Grid, Group, Image, Text, Title} from "@mantine/core";
 import React from "react";
 import Modal, { Props as ModalProps } from "./Modal";
@@ -37,7 +38,7 @@ export const ShowAttachments = ({data, setSelectedData, setOpenDeleteAttachmentM
                                                 component="a"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.content}`}
+                                                href={`${apiUrl}/files/${item.content}`}
                                             >
                                                 <Group position={"center"}>
                                                     <Paperclip size={16} />

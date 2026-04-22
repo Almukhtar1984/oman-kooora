@@ -22,7 +22,6 @@ export const DeleteAssemblyModal = ({ data, ...props }: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

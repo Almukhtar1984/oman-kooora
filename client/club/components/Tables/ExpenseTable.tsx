@@ -61,8 +61,8 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
         setAllMembers({nodes: [...filterAllMembers]})
     }, [search]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelUpdate = (data: any) => {

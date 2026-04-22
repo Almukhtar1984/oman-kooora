@@ -48,11 +48,6 @@ export const UpdateMatch = ({data, dataLeague, ...props}: Props) => {
 
 
     useEffect(() => {
-        // console.log(allTeams);
-        // console.log({
-        //     first_team: data?.firstTeam?.id,
-        //     second_team: data?.secondTeam?.id
-        // });
         if (data !== null && props.opened) {
             setValues({
                 first_team: data?.firstTeam?.id,
@@ -79,9 +74,7 @@ export const UpdateMatch = ({data, dataLeague, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم تعديل المباراة")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

@@ -22,7 +22,6 @@ export const DeletePlayersModal = ({ id, ...props }: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

@@ -49,7 +49,7 @@ export const UpdateAdminMembersModal = ({ id, opened, ...props }: Props) => {
                 fetchPolicy: "network-only"
             })
         }
-    }, [id, opened])
+    }, [getClubManagement, id, opened])
 
     useEffect(() => {
         if (dataClubManagement && "clubManagement" in dataClubManagement && dataClubManagement.clubManagement !== null) {
@@ -75,7 +75,7 @@ export const UpdateAdminMembersModal = ({ id, opened, ...props }: Props) => {
             })
             setIdPerson(data?.person?.id)
         }
-    }, [dataClubManagement])
+    }, [dataClubManagement, form])
 
     const onSubmit = (data: any) => {
         const {person, user, membership_date, membership_date_end, } = data
@@ -104,9 +104,7 @@ export const UpdateAdminMembersModal = ({ id, opened, ...props }: Props) => {
         .then(() => {
             closeModal();
         })
-        .catch(reason => {
-            console.log(reason)
-        })
+        .catch(() => {})
     };
 
     const closeModal = () => {

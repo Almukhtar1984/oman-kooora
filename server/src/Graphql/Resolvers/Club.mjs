@@ -133,8 +133,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                logger.error("")
+                logger.error("Unable to create club")
                 throw new ApolloError(error)
             }
         },

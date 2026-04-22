@@ -25,6 +25,8 @@ export const ComplaintTable = ({ list, search, setOpenEditModal, setOpenDeleteMo
         nodes: []
     });
 
+    const handlePaginationChange = () => {};
+
     const theme = useTheme({
         ...mantineTheme,
         HeaderRow: `
@@ -48,7 +50,7 @@ export const ComplaintTable = ({ list, search, setOpenEditModal, setOpenDeleteMo
             page: 0,
             size: 10,
         },
-        onChange: onPaginationChange,
+        onChange: handlePaginationChange,
     });
 
     useEffect(() => {
@@ -59,10 +61,6 @@ export const ComplaintTable = ({ list, search, setOpenEditModal, setOpenDeleteMo
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers({nodes: [...filterAllMembers]})
     }, [search]);
-
-    function onPaginationChange(action, state) {
-        console.log(action, state);
-    }
 
     const openModelUpdate = (data: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(data)

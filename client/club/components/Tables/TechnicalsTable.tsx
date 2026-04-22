@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import * as React from 'react';
 
 import { CompactTable } from '@table-library/react-table-library/compact';
@@ -77,8 +78,8 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
         }
     }, [valueCheck]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelDelete = (id: string) => {
@@ -155,7 +156,7 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.testimony_experience}`}
+                        href={`${apiUrl}/files/${item.testimony_experience}`}
                     >
                         <FileCertificate size={18} />
                     </ActionIcon>
@@ -269,7 +270,7 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
                                                     component="a"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.testimony_experience}`}
+                                                    href={`${apiUrl}/files/${item.testimony_experience}`}
                                                 >
                                                     <FileCertificate size={18} />
                                                 </ActionIcon>

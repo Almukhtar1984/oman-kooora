@@ -19,6 +19,135 @@
 
 ## 2026-04-22
 
+### 35. توحيد روابط API في مكونات club وteam
+
+- تم إضافة `apiUrl` إلى ملفات config المركزية:
+  - `client/club/lib/config.ts`
+  - `client/team/lib/config.ts`
+- تم تعديل GraphQL client في:
+  - `client/club/lib/graphql.ts`
+  - `client/team/lib/graphql.ts`
+- تم استبدال الاستخدام المباشر لـ `process.env.NEXT_PUBLIC_API_URL` داخل
+  مكونات `client/club` و`client/team` باستخدام `apiUrl`.
+- شمل التعديل روابط:
+  - الصور العامة عبر `/images`.
+  - الملفات الخاصة عبر `/files`.
+  - روابط المرفقات والجداول والنماذج.
+- نتيجة البحث بعد التعديل:
+  - لم يبق استخدام مباشر لـ `process.env.NEXT_PUBLIC_API_URL` داخل مكونات
+    `club` أو `team`.
+  - بقي الاستخدام فقط داخل ملفات config وcodegen.
+- تم تشغيل:
+  - `git diff --check`
+- لم يتم تشغيل lint لهذين التطبيقين لأن `node_modules` غير موجودة محليا.
+
+---
+
+### 34. تنظيف logs في runtime الخادم وإضافة redaction للـ logger
+
+- تم استبدال طباعات runtime داخل الخادم برسائل `logger` عامة في:
+  - `server/src/app.mjs`
+  - `server/src/Models/index.mjs`
+  - `server/src/Socket/initSocketServer.mjs`
+  - `server/src/Helpers/Mail.mjs`
+  - عدة GraphQL resolvers كانت تطبع أخطاء خام.
+- تم إزالة تعليقات debug القديمة التي تحتوي `console.log` من أجزاء runtime.
+- تم تنظيف socket logs حتى لا تطبع معرفات sockets أو قائمة المستخدمين
+  المتصلين.
+- تم إضافة redaction داخل `server/src/Config/logger.mjs` لإخفاء قيم حساسة
+  مثل:
+  - authorization
+  - token
+  - refresh token
+  - password
+  - secret
+  - api key
+- نتيجة البحث بعد التنظيف:
+  - لم يبق `console.log` في runtime.
+  - بقيت مخرجات `console.log/console.error` داخل `server/scripts` فقط لأنها
+    مخرجات أوامر CLI للمigrations/checks.
+- تم ضبط `server/scripts/check-model-migrations.mjs` ليستثني ملف تجميع
+  الموديلات `server/src/Models/index.mjs` من شرط migration، لأن تغييره لا
+  يعني بالضرورة تعديل حقول قاعدة البيانات.
+- تم تشغيل:
+  - فحص syntax على ملفات الخادم المعدلة.
+  - `npm test` داخل `server`
+  - `npm run db:check-model-migrations` داخل `server`
+  - `git diff --check`
+- نتيجة اختبارات الخادم:
+  - 8 اختبارات passed.
+
+---
+
+### 33. تنظيف logs في sports-course وlanding-page وprint
+
+- تم إزالة طباعات debug من:
+  - `client/sports-course`
+  - `client/landing-page`
+  - `client/print`
+- تم تحويل طباعة أخطاء GraphQL في `client/print` إلى `console.warn` مقيّد
+  بخارج الإنتاج، مثل باقي الواجهات.
+- تم إزالة تعليقات debug التي تحتوي `console.log` من `sports-course` و`print`.
+- تم تحسين auth helper في `client/sports-course` عبر تثبيت callbacks وتنظيف
+  interval الخاص بتجديد الجلسة عند مغادرة الصفحة.
+- نتيجة البحث بعد التنظيف:
+  - لم يبق `console.log` فعلي داخل `sports-course`, `landing-page`, أو `print`.
+  - بقيت `console.warn` الخاصة بأخطاء GraphQL خارج الإنتاج فقط.
+- تم تشغيل اختبار `client/sports-course`:
+  - `CI=true npm test -- --watchAll=false`
+  - النتيجة: passed.
+- ملاحظة: ما زال يظهر تحذير CRA عن dependency غير مصرح بها، وتحذير Jest عن
+  open handles، لكن الاختبار لم يفشل.
+- لم يتم تشغيل lint/test داخل `landing-page` و`print` لأن `node_modules` غير
+  موجود محليا لهما.
+
+---
+
+### 32. تنظيف logs في واجهتي club وteam
+
+- تم إزالة طباعات pagination والبحث من جداول واجهتي:
+  - `client/club`
+  - `client/team`
+- تم إزالة طباعات الأخطاء والبيانات الخام من نماذج `Modal` و`Drawer` في
+  `club` و`team`.
+- تم تحويل callbacks الافتراضية في `ConfirmModal` إلى no-op بدلا من طباعة
+  `Cancel` و`Confirmed`.
+- تم إزالة تعليقات debug قديمة تحتوي `console.log`.
+- تم تحسين auth helper في `client/club` و`client/team` عبر تثبيت callbacks
+  وتنظيف interval الخاص بتجديد الجلسة عند مغادرة الصفحة.
+- نتيجة البحث بعد التنظيف:
+  - لم يبق `console.log` في `client/club` أو `client/team`.
+  - بقي `console.warn` داخل GraphQL clients فقط، وهو يعمل خارج الإنتاج.
+- تم تشغيل:
+  - `git diff --check`
+- لم يتم تشغيل lint داخل `client/club` و`client/team` لأن `node_modules` غير
+  موجود محليا لهذين التطبيقين.
+
+---
+
+### 31. تنظيف logs في نماذج الإدارة وتطبيق اللاعب
+
+- تم تنظيف نماذج `client/super-admin` الإدارية من طباعات runtime داخل
+  callbacks وcatch blocks، مع إبقاء السلوك نفسه عند نجاح أو فشل العمليات.
+- تم تنظيف نماذج `client/plyer` الخاصة بالطلبات والمقترحات والشكاوى من
+  طباعات الأخطاء الخام.
+- تم تنظيف جداول `client/plyer` الخاصة بالطلبات والمقترحات والشكاوى من
+  طباعات البحث وتغيير الصفحات.
+- تم إصلاح إعداد pagination في جداول `client/plyer` بعد إزالة دالة الطباعة
+  القديمة حتى لا تبقى مراجع مكسورة.
+- تم إزالة تعليقات قديمة تحتوي `console.log` داخل تطبيق اللاعب وواجهة
+  `super-admin`.
+- تم تحسين auth helper في `client/super-admin` و`client/plyer` عبر تثبيت
+  callbacks وتنظيف interval عند مغادرة الصفحة.
+- تم تشغيل:
+  - `npm run lint -- --file ...` داخل `client/super-admin` على الملفات
+    المتأثرة، والنتيجة بدون warnings أو errors
+  - `git diff --check`
+- لم يتم تشغيل lint داخل `client/plyer` لأن `node_modules` غير موجود محليا
+  لهذا التطبيق.
+
+---
+
 ### 30. إزالة طباعات validation errors من نماذج الدخول والإدارة
 
 - تم إزالة callbacks التي تطبع `errors` عند فشل validation من صفحات الدخول:

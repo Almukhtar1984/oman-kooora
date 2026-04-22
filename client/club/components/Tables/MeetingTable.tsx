@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import * as React from 'react';
 
 import { useTheme } from '@table-library/react-table-library/theme';
@@ -101,8 +102,8 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
         setAllMembers({nodes: [...filterAllMembers]})
     }, [search]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelDelete = (id: string) => {
@@ -166,7 +167,7 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
                                     <Cell>
                                         <Group spacing={5}>
                                             {item?.attachment?.map((item: any) => (
-                                                <Button size={"xs"} key={item?.id} component={"a"} target={"_blank"} rel="noopener noreferrer" href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.content}`} >
+                                                <Button size={"xs"} key={item?.id} component={"a"} target={"_blank"} rel="noopener noreferrer" href={`${apiUrl}/files/${item.content}`} >
                                                     تحميل
                                                 </Button>
                                             ))}

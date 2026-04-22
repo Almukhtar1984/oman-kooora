@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import useStore from "../../store/useStore";
 import decode from "jwt-decode";
 import {getNewToken, useGetCurrentUser} from "../../graphql";
@@ -8,16 +8,9 @@ import {Loader, Stack} from "@mantine/core";
 const useAuth = (getCurrentUserLazy) => {
     let token = (useStore.getState() as any)?.token;
 
-    let checkAuth = async () => {
-        await checkRefreshToken();
-        return true;
-    };
-
-    let checkRefreshToken = async () => {
+    let checkRefreshToken = useCallback(async () => {
         let currentDate = new Date();
         let decodedJWT: any = token && decode(token);
-
-        // console.log({currentDate, decodedJWT})
 
         if (!decodedJWT || decodedJWT.exp * 1000 < currentDate.getTime()) {
             getNewToken()
@@ -52,7 +45,12 @@ const useAuth = (getCurrentUserLazy) => {
                     return false;
                 })
         }
-    };
+    }, [getCurrentUserLazy, token]);
+
+    let checkAuth = useCallback(async () => {
+        await checkRefreshToken();
+        return true;
+    }, [checkRefreshToken]);
 
     return {
         checkAuth,
@@ -76,13 +74,14 @@ const ProtectedPage = ( { client, children }: Props ): any => {
         (async function () {
             await checkAuth();
         })();
-    }, []);
+    }, [checkAuth]);
 
     useEffect(() => {
-        setInterval(async function () {
+        const intervalId = setInterval(async function () {
             await checkRefreshToken();
         }, 1000*60*0.75)
-    }, []);
+        return () => clearInterval(intervalId);
+    }, [checkRefreshToken]);
 
     if (!isAuth && loading) return <LoadingPage />;
     return <>{children}</>;

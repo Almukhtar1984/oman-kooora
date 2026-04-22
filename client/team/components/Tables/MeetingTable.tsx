@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import * as React from 'react';
 
 import {ActionIcon, Button, Group, Menu, Stack, Text} from '@mantine/core';
@@ -62,8 +63,8 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
         setAllMembers([...filterAllMembers])
     }, [search]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelDelete = (id: string) => {
@@ -106,7 +107,7 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
         {name: 'المرفقات', selector: (item: any) => (
             <Group spacing={5}>
                 {item?.attachment?.map((item: any) => (
-                    <Button size={"xs"} key={item?.id} component={"a"} target={"_blank"} rel="noopener noreferrer" href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.content}`} >
+                    <Button size={"xs"} key={item?.id} component={"a"} target={"_blank"} rel="noopener noreferrer" href={`${apiUrl}/files/${item.content}`} >
                         تحميل
                     </Button>
                 ))}

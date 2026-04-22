@@ -49,9 +49,7 @@ export const UpdateScorerMatch = ({data, ...props}: Props) => {
                         scorersMatch: [...newScorersMatch]
                     })
                 },
-                onError: (error) => {
-                    console.log(error);
-                },
+                onError: () => void 0,
             })
             
             setAllTeams([
@@ -112,9 +110,7 @@ export const UpdateScorerMatch = ({data, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم تعديل الهدافين")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

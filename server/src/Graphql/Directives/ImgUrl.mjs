@@ -21,7 +21,6 @@ export default function imgUrlDirective(directiveName) {
                     fieldConfig.resolve = async (source, args, context, info) => {
                         const imgName = await resolve(source, args, context, info)
 
-                        //console.log(imgName)
                         if (imgName !== null) {
                             return `${API_URL}/images/${imgName}`
                         }

@@ -124,8 +124,7 @@ export const resolvers = {
                 return result
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log({ error })
-                // logger.error("")
+                logger.error("Unable to create technical apparatus")
                 throw new ApolloError(error)
             }
         },

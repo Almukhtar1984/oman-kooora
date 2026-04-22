@@ -63,8 +63,8 @@ export const PlayersTableLoan = ({ idClub, list, search, setOpenEditModal, setSe
         setAllMembers({nodes: [...filterAllMembers]})
     }, [search]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelUpdate = (data: any, status: string) => {

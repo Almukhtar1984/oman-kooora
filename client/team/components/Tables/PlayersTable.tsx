@@ -10,7 +10,7 @@ import {DotsVertical, FileCertificate, Id, Printer, Upload, Paperclip, EditCircl
 import {Filter} from "tabler-icons-react";
 import dayjs from "dayjs";
 import {useEffect, useState} from "react";
-import {printUrl} from "../../lib/config";
+import {apiUrl, printUrl} from "../../lib/config";
 
 const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
@@ -122,8 +122,8 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
         }
     }, [dateCheck]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelDelete = (id: string) => {
@@ -216,7 +216,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                     <Cell>
                                         <Avatar
                                             w={50} h={50}
-                                            src={item?.person?.personal_picture ? `${process.env.NEXT_PUBLIC_API_URL}/images/${item?.person?.personal_picture}` : ""}
+                                            src={item?.person?.personal_picture ? `${apiUrl}/images/${item?.person?.personal_picture}` : ""}
                                             alt="it's me"
                                         />
                                     </Cell>
@@ -249,7 +249,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                     component="a"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalID}`}
+                                                    href={`${apiUrl}/files/${item.nationalID}`}
                                                 >
                                                     <Id size={18} />
                                                 </ActionIcon>
@@ -266,7 +266,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                     component="a"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalIDBack}`}
+                                                    href={`${apiUrl}/files/${item.nationalIDBack}`}
                                                 >
                                                     <Id size={18} />
                                                 </ActionIcon>
@@ -286,7 +286,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                     component="a"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.parentApproval}`}
+                                                    href={`${apiUrl}/files/${item.parentApproval}`}
                                                 >
                                                     <FileCertificate size={18} />
                                                 </ActionIcon>

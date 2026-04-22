@@ -21,9 +21,7 @@ export const DeleteProposalModal = ({ id, ...props }: Props) => {
             .then(() => {
                 closeModal();
             })
-            .catch(reason => {
-                console.log(reason)
-            })
+            .catch(() => {})
     };
 
     const closeModal = () => {

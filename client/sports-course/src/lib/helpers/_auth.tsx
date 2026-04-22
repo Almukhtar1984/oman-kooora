@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import useStore from "../../store/useStore";
 import decode from "jwt-decode";
 import { getNewToken, useGetCurrentUser } from "../../graphql";
@@ -9,19 +9,12 @@ import {redirect, useLocation, useNavigate} from "react-router-dom";
 export const useAuth = (getCurrentUserLazy: any) => {
     let token = (useStore.getState() as any)?.token;
 
-    let checkAuth = async () => {
-        await checkRefreshToken();
-        return true;
-    };
-
     const location = useLocation();
     const navigate = useNavigate();
 
-    let checkRefreshToken = async () => {
+    let checkRefreshToken = useCallback(async () => {
         let currentDate = new Date();
         let decodedJWT: any = token && decode(token);
-
-        // console.log({currentDate, decodedJWT})
 
         if (!decodedJWT || decodedJWT.exp * 1000 < currentDate.getTime()) {
             getNewToken()
@@ -56,7 +49,12 @@ export const useAuth = (getCurrentUserLazy: any) => {
                     return false;
                 })
         }
-    };
+    }, [getCurrentUserLazy, location.pathname, navigate, token]);
+
+    let checkAuth = useCallback(async () => {
+        await checkRefreshToken();
+        return true;
+    }, [checkRefreshToken]);
 
     return {
         checkAuth,
@@ -82,13 +80,14 @@ export const AuthProvider = ({ client, children }: Props): any => {
         (async function () {
             await checkAuth();
         })();
-    }, []);
+    }, [checkAuth]);
 
     useEffect(() => {
-        setInterval(async function () {
+        const intervalId = setInterval(async function () {
             await checkRefreshToken();
         }, 1000 * 60 * 0.75)
-    }, []);
+        return () => clearInterval(intervalId);
+    }, [checkRefreshToken]);
 
     if (!isAuth && loading) {
         return (

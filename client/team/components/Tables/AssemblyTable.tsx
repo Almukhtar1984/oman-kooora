@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
-import {printUrl} from "../../lib/config";
+import {apiUrl, printUrl} from "../../lib/config";
 const customStyles: TableStyles = {
     table: {
         style: {
@@ -135,7 +135,7 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalID}`}
+                        href={`${apiUrl}/files/${item.nationalID}`}
                     >
                         <Id size={18} />
                     </ActionIcon>

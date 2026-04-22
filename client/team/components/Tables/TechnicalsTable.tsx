@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import * as React from 'react';
 import { CompactTable } from '@table-library/react-table-library/compact';
 import {ActionIcon, Badge, Group, Menu, Pagination, Stack, Text} from '@mantine/core';
@@ -69,7 +70,6 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
             ],
             search
         )
-        console.log(filterAllMembers)
         setAllMembers([...filterAllMembers])
     }, [search]);
 
@@ -110,7 +110,7 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.testimony_experience}`}
+                        href={`${apiUrl}/files/${item.testimony_experience}`}
                     >
                         <FileCertificate size={18} />
                     </ActionIcon>

@@ -25,7 +25,6 @@ export const ChangeStatusTeamModal = ({ data, ...props }: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

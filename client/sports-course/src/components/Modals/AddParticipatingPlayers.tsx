@@ -94,9 +94,7 @@ export const AddParticipatingPlayers = ({data, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم اضافة الفرق")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

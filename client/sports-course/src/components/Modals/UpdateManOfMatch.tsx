@@ -47,9 +47,7 @@ export const UpdateManOfMatch = ({data, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم اضافة رجل المباراة")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

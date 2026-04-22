@@ -46,7 +46,6 @@ export const RenewLoanedModal = ({ data, ...props }: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

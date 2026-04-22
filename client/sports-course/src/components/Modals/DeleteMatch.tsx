@@ -29,9 +29,7 @@ export const DeleteMatch = ({data, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم حذف المباراة")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

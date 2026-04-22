@@ -67,8 +67,8 @@ const ConfirmModal = (props?: Props) => {
             bg: "white",
             color: props?.modalColor || "violet"
         },
-        onCancel: () => console.log("Cancel"),
-        onConfirm: () => console.log("Confirmed"),
+        onCancel: () => {},
+        onConfirm: () => {},
         ...props,
     });
 };

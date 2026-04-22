@@ -15,7 +15,6 @@ export const ChangeStatusMembersModal = ({id, status, opened, ...props}: Props) 
     const {register, handleSubmit, control, watch, reset} = useForm();
     const [updateMember] = useChangeStatusMember();
 
-    console.log({id, status})
 
     const onSubmit = ({note}: any) => {
         updateMember({
@@ -30,7 +29,6 @@ export const ChangeStatusMembersModal = ({id, status, opened, ...props}: Props) 
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

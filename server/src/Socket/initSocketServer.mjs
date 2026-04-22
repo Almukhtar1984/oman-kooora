@@ -1,9 +1,9 @@
 import { Server }   from "socket.io";
-import { format as dateFormat } from 'date-fns';
 import sequelize from 'sequelize';
 import RandToken from 'rand-token';
 
 import { AuthMiddlewareSocket } from "../Middlewares/index.mjs";
+import logger from "../Config/logger.mjs";
 
 const { uid } = RandToken;
 const {Op, col, QueryTypes} = sequelize;
@@ -49,9 +49,6 @@ export class socketServer {
 
 	socketConfig() {
 		this.io.use( async (socket, next)=>{
-			const nowDate = new Date();
-			const dateConnection = dateFormat(nowDate, "yyyy-mm-dd HH:MM:ss");
-
 			let token = socket.handshake.auth.token || "";
 
 			let Authorization = await AuthMiddlewareSocket(token)
@@ -61,7 +58,7 @@ export class socketServer {
 			}
 
 			if (!socket.handshake.query.userId) {
-				console.log("*** No date config ***")
+				logger.warn("Socket connection rejected: missing user id");
 				return next(new Error("date config empty"));
 			}
 
@@ -77,9 +74,6 @@ export class socketServer {
 			await this.socketInfo(socket)
 			 await this.sendNotifications(socket);
 
-			//this.socketPacketCreate(socket)
-			//this.socketPacket(socket)
-			//this.socketUpgrade(socket)
 			this.socketError(socket);
 			this.socketDisconnect(socket);
 			return await socket
@@ -87,24 +81,13 @@ export class socketServer {
 	}
 
 	async socketInfo(socket) {
-		console.log('\n***************************************************************************');
-		console.log('*** New user information ************************************************** \n**');
-		console.log('** \t A new user here his id => ', socket.id);
-		console.log("** \t Type transport connection : ", socket.conn.transport.name);
-		console.log('**\n***************************************************************************');
-		console.log('*** general information *************************************************** \n**');
-
 		let fetchSockets = await this.io.fetchSockets() // get all sockets
 		this.online_users = []; // re-empty list online users
 		fetchSockets.map(socket => {
 			this.online_users.push(socket.id) // add just id user
 		});
 
-		console.log("** \t Number visitor connected ", this.io.of("/").sockets.size)
-		console.log("** \t Online users ========> ", this.online_users);
-
-		console.log('**\n***************************************************************************');
-		console.log('*************************************************************************** \n');
+		logger.info(`Socket connected. Online sockets: ${this.io.of("/").sockets.size}`);
 	}
 
 	async sendNewMessage(to, message) {
@@ -127,7 +110,7 @@ export class socketServer {
 
 	socketError(socket) {
 		socket.on("error", (err) => {
-			console.log("error", err)
+			logger.error("Socket error");
 			if (err && err.message === UNAUTHORIZED) {
 				socket.disconnect();
 			}
@@ -139,36 +122,13 @@ export class socketServer {
 
 	socketDisconnect(socket) {
 		socket.on('disconnect',(data)=>{
-			const nowDate = new Date();
-			const dateDisconnect = dateFormat(nowDate, "yyyy-mm-dd HH:MM:ss");
-
 //			if (socket.id.split("_")[1] != "undefined") {
 //				User.update({lastDisconnection: dateDisconnect}, {
 //					where: { id:  socket.id.split("_")[1] }
 //				})
 //			}
-			console.info(`${dateDisconnect}  | visitor ${socket.id} disconnected 🖐🖐🖐`);
+			logger.info("Socket disconnected");
 			this.online_users = this.online_users.filter(user => user != socket.id);
-		});
-	}
-
-	socketPacketCreate(socket) {
-		socket.conn.on("packetCreate", ({ type, data }) => {
-			// console.log("packetCreate");
-			// console.log({ type, data });
-		});
-	}
-
-	socketPacket(socket) {
-		socket.conn.on("packet", ({ type, data }) => {
-			// console.log("packet");
-			// console.log({ type, data });
-		});
-	}
-
-	socketUpgrade(socket) {
-		socket.conn.once("upgrade", () => {
-			// console.log("upgraded transport", socket.conn.transport.name);
 		});
 	}
 }

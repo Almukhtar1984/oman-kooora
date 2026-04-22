@@ -142,7 +142,6 @@ export const PlayersTransferModal = ({id, opened, ...props}: Props) => {
                 closeModal();
             },
             onError: error1 => {
-                console.log(error1)
             }
         })
     };

@@ -43,9 +43,7 @@ export const AddClubModal = (props: Props) => {
         .then(() => {
             closeModal();
         })
-        .catch(reason => {
-            console.log(reason)
-        })
+        .catch(() => {})
     };
 
     const closeModal = () => {

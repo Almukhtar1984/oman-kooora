@@ -35,9 +35,7 @@ export const UpdateProposalModal = ({data, opened, ...props}: Props) => {
         .then(() => {
             closeModal();
         })
-        .catch(reason => {
-            console.log(reason)
-        })
+        .catch(() => {})
     };
 
     const closeModal = () => {

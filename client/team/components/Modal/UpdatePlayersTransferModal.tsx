@@ -27,7 +27,6 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

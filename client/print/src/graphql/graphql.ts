@@ -8,7 +8,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
     if (graphQLErrors && process.env.NODE_ENV !== "production") {
         const { path, message, locations } = graphQLErrors[0];
 
-        console.log(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
+        console.warn(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
     }
 });
 

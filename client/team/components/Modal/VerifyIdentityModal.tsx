@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import {Box, Button, Col, Grid, Group, Image, Stack, Text, Textarea,} from "@mantine/core";
 import {Check, X} from "tabler-icons-react";
 import React from "react";
@@ -42,10 +43,10 @@ export const VerifyIdentityModal = ({data, opened, setNewStatus, setOpenChangeSt
 
                 <Grid gutter={20} w={"100%"}>
                     <Col span={12}>
-                        <Image src={`${process.env.NEXT_PUBLIC_API_URL}/files/${data.nationalID}`} alt={""} height={"300px"} width={"100%"} />
+                        <Image src={`${apiUrl}/files/${data.nationalID}`} alt={""} height={"300px"} width={"100%"} />
                     </Col>
                     <Col span={12}>
-                        <Image src={`${process.env.NEXT_PUBLIC_API_URL}/files/${data.nationalIDBack}`} alt={""} height={"300px"} width={"100%"} />
+                        <Image src={`${apiUrl}/files/${data.nationalIDBack}`} alt={""} height={"300px"} width={"100%"} />
                     </Col>
 
                     <Col span={12}>

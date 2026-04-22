@@ -109,7 +109,6 @@ export const UpdatePlayersModal = ({id, opened, ...props}: Props) => {
         })
         .catch(reason => {
             setLoade(false)
-            console.log(reason)
         })
     };
 

@@ -89,9 +89,7 @@ export const AddParticipating = ({data, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم اضافة الفرق")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 
@@ -104,17 +102,14 @@ export const AddParticipating = ({data, ...props}: Props) => {
         let newAllTeamsClub: { label: string, value: string }[] = []
 
 
-        console.log(teamsClub)
 
         if (teamsClub.length > 0) {
-            console.log(teamsClub.teams)
 
             for (let i = 0; i < teamsClub[0].teams.length; i++) {
                 const team = teamsClub[0].teams[i]
 
                 newAllTeamsClub.push({value: team.id, label: `${team.name} - ${category?.[team?.category - 1]}`})
             }
-            console.log(newAllTeamsClub)
 
             let newAllTeams = [...allTeams]
             newAllTeams.splice(index, 1, newAllTeamsClub)

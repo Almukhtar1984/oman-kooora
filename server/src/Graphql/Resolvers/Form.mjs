@@ -91,8 +91,7 @@ export const resolvers = {
                 return form
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create form")
                 throw new ApolloError(error)
             }
         },

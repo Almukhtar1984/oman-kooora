@@ -50,9 +50,7 @@ export const UpdateMatchResult = ({data, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم اضافة الدورة")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

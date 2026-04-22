@@ -15,7 +15,6 @@ export const ChangeStatusTechnicalsModal = ({id, status, opened, ...props}: Prop
     const {register, handleSubmit, control, watch, reset} = useForm();
     const [updateTechnical] = useChangeStatusTechnicalApparatus();
 
-    console.log({id, status})
 
     const onSubmit = ({note}: any) => {
         updateTechnical({
@@ -30,7 +29,6 @@ export const ChangeStatusTechnicalsModal = ({id, status, opened, ...props}: Prop
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

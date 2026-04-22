@@ -28,10 +28,6 @@ export const AddAttachmentPlayerModal = (props: Props) => {
         setLoade(true)
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
-        console.log({
-            attachments: attachments,
-            idPlayer: props.id
-        });
         
         createAttachmentPlayer({
             variables: {

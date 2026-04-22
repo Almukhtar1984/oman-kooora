@@ -22,7 +22,6 @@ export const DeleteMembersModal = ({ id, ...props }: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

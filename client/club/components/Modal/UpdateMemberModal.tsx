@@ -97,7 +97,6 @@ export const UpdateMemberModal = ({id, opened, ...props}: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

@@ -25,6 +25,8 @@ export const RequestsTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
         nodes: []
     });
 
+    const handlePaginationChange = () => {};
+
     const theme = useTheme({
         ...mantineTheme,
         HeaderRow: `
@@ -47,7 +49,7 @@ export const RequestsTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
             page: 0,
             size: 10,
         },
-        onChange: onPaginationChange,
+        onChange: handlePaginationChange,
     });
 
     useEffect(() => {
@@ -64,13 +66,8 @@ export const RequestsTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
             ],
             search
         )
-        console.log(filterAllMembers)
         setAllMembers({nodes: [...filterAllMembers]})
     }, [search]);
-
-    function onPaginationChange(action, state) {
-        console.log(action, state);
-    }
 
     const openModelUpdate = (data: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(data)

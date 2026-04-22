@@ -75,7 +75,6 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                 closeModal();
             },
             onError: (error) => {
-                console.log(error)
                 setLoading(false)
             }
         })

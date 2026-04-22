@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import * as React from 'react';
 import {ActionIcon, Group, Menu, Stack, Text} from '@mantine/core';
 import {DotsVertical, Check, X, File} from "tabler-icons-react";
@@ -60,8 +61,8 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
         setAllMembers([...filterAllMembers])
     }, [search]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelUpdate = (data: any) => {
@@ -109,7 +110,7 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.attachment}`}
+                        href={`${apiUrl}/files/${item.attachment}`}
                     >
                         <File size={18} />
                     </ActionIcon>

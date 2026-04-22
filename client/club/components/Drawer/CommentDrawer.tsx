@@ -24,7 +24,6 @@ export function CommentDrawer({ data, setOpenCommentModal, ...props }: Props) {
                 variables: {id: data },
                 fetchPolicy: "network-only",
                 onCompleted: ({message}) => {
-                    console.log(message)
                     setContent(message?.content)
                 }
             })

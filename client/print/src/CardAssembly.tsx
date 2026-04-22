@@ -17,9 +17,6 @@ function CardAssembly() {
         }
     }, [id])
 
-    // console.log({id});
-    
-
     return (
         <AssemblyCardTemplate assembly={dataAssembly?.assembly as any} />
     );

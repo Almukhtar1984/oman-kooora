@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import {
     Box,
     Button,
@@ -104,7 +105,7 @@ export const ShowMessage = (props: Props) => {
                         <Col span={12} >
                             <Group spacing={10}>
                                 {dataMessage?.message?.attachment?.map((item: any) => (
-                                    <Button key={item?.id} component={"a"} target={"_blank"} rel="noopener noreferrer" href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.content}`} >
+                                    <Button key={item?.id} component={"a"} target={"_blank"} rel="noopener noreferrer" href={`${apiUrl}/files/${item.content}`} >
                                         تحميل
                                     </Button>
                                 ))}

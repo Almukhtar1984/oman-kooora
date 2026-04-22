@@ -26,6 +26,7 @@ export const ProposalTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
         nodes: []
     });
 
+    const handlePaginationChange = () => {};
 
     const theme = useTheme({
         ...mantineTheme,
@@ -49,7 +50,7 @@ export const ProposalTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
             page: 0,
             size: 10,
         },
-        onChange: onPaginationChange,
+        onChange: handlePaginationChange,
     });
 
     useEffect(() => {
@@ -69,12 +70,7 @@ export const ProposalTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
         setAllMembers({nodes: [...filterAllMembers]})
 
 
-        console.log(filterAllMembers)
     }, [search]);
-
-    function onPaginationChange(action, state) {
-        console.log(action, state);
-    }
 
     const openModelUpdate = (data: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(data)

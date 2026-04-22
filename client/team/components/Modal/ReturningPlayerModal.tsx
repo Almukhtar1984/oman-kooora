@@ -44,7 +44,6 @@ export const ReturningPlayerModal = ({ data, ...props }: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

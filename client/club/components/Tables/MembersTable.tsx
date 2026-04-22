@@ -89,8 +89,8 @@ export const MembersTable = ({ list, search, setOpenEditModal, setNewStatus, set
         }
     }, [valueCheck]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelDelete = (id: string) => {

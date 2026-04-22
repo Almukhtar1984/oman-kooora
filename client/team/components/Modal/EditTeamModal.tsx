@@ -50,7 +50,6 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

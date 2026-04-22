@@ -37,7 +37,9 @@ const changedFiles = new Set([
 ]);
 
 const modelFiles = [...changedFiles].filter((file) => {
-    return file.startsWith("server/src/Models/") && file.endsWith(".mjs");
+    return file.startsWith("server/src/Models/")
+        && file.endsWith(".mjs")
+        && file !== "server/src/Models/index.mjs";
 });
 
 const migrationFiles = [...changedFiles].filter((file) => {

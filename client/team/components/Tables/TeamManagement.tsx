@@ -68,8 +68,8 @@ export const TeamManagementTable = ({ list, setOpenEditModal, setOpenDeleteModal
         setAllMembers({nodes: list})
     }, [list]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelUpdate = (id: string) => {

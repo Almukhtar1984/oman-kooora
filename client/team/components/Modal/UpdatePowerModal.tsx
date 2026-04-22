@@ -127,7 +127,6 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                 })
             },
             onError: ({graphQLErrors}) => {
-                console.log(graphQLErrors)
             }
         })
     };

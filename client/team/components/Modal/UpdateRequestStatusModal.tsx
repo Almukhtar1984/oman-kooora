@@ -28,7 +28,6 @@ export const UpdateRequestStatusModal = ({data, opened, ...props}: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

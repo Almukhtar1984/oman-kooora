@@ -1,5 +1,6 @@
 import Sequelize from 'sequelize'
 import DB from '../Config/DBContact.mjs'
+import logger from '../Config/logger.mjs'
 
 
 // import models
@@ -294,10 +295,10 @@ if (shouldSyncModels) {
     // Development-only escape hatch. Database changes should normally be applied through migrations.
     DB.sync({ alter: true, force: false })
     .then(() => {
-        console.log('Tables are updated without being deleted.')
+        logger.info("Tables are updated without being deleted")
     })
     .catch ((error) => {
-        console.error('Unable to update Tables:', error);
+        logger.error("Unable to update tables");
     })
 }
 

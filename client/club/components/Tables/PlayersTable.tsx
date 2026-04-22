@@ -18,7 +18,7 @@ const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
-import {printUrl} from "../../lib/config";
+import {apiUrl, printUrl} from "../../lib/config";
 
 const customStyles: TableStyles = {
     table: {
@@ -198,8 +198,8 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
         return filterAllMembers
     }
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const openModelUpdate = (id: string) => {
@@ -386,7 +386,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                 component="a"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalID}`}
+                                href={`${apiUrl}/files/${item.nationalID}`}
                             >
                                 <Id size={18} />
                             </ActionIcon>
@@ -403,7 +403,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                 component="a"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalIDBack}`}
+                                href={`${apiUrl}/files/${item.nationalIDBack}`}
                             >
                                 <Id size={18} />
                             </ActionIcon>
@@ -424,7 +424,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                             component="a"
                             target="_blank"
                             rel="noopener noreferrer"
-                            href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.parentApproval}`}
+                            href={`${apiUrl}/files/${item.parentApproval}`}
                         >
                             <FileCertificate size={18} />
                         </ActionIcon>

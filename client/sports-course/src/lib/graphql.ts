@@ -7,12 +7,7 @@ import { getNewToken } from "../graphql";
 import { history } from "./helpers/history";
 import {apiBaseUrl} from "./config";
 
-// import {useAuth} from "./helpers/_auth";
-// import {useGetCurrentUser, getNewToken} from "../graphql";
-// import Router from "next/router";
-
 const authLink = setContext((_, { headers, operationName }) => {
-    //console.log(useStore.getState());
     const token = (useStore.getState() as any).token;
 
     return {
@@ -34,7 +29,6 @@ const resolvePendingRequests = () => {
 
 const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
 
-    // console.log({ graphQLErrors, networkError, operation, forward })
     if (graphQLErrors) {
         const { extensions, path, message, locations } = graphQLErrors[0];
 
@@ -71,8 +65,6 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
             return innerForward.flatMap(() => {
                 return forward(operation);
             });
-        } else {
-            //console.log(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
         }
         if (process.env.NODE_ENV !== "production") {
             console.warn(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);

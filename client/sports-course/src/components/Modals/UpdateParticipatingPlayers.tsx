@@ -47,9 +47,7 @@ export const UpdateParticipatingPlayers = ({data, ...props}: Props) => {
                 notyf.success("تم تعديل اللاعب")
             },
             refetchQueries: [AllParticipatingPlayers],
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

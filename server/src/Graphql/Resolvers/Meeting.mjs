@@ -129,8 +129,7 @@ export const resolvers = {
                 return meeting
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create meeting")
                 throw new ApolloError(error)
             }
         },

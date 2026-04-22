@@ -31,7 +31,6 @@ export const DeleteExpenseModal = ({ data, ...props }: Props) => {
             closeModal();
         })
         .catch(reason => {
-            console.log(reason)
         })
     };
 

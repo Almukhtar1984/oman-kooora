@@ -52,9 +52,7 @@ export const AddMatchCard = ({data, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم اضافة البطاقة")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

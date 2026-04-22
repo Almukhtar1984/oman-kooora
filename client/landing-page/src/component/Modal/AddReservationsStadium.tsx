@@ -48,7 +48,6 @@ export const AddReservationsStadium = ({data, ...props}: Props) => {
             },
             onError: ({graphQLErrors}) => {
                 notyf.error({message: "الوقت المرد الحجز فيه محجوز ادخل فترة زمنية اخرى", duration: 10000})
-                console.log(false)
                 setLoading(false)
             }
         })

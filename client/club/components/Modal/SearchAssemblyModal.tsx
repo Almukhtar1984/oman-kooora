@@ -25,11 +25,9 @@ export const SearchAssemblyModal = (props: Props) => {
                     cardNumber: card_number
                 },
                 onCompleted: ({person}) => {
-                    console.log(person)
                     //closeModal();
                 },
                 onError: ({graphQLErrors}) => {
-                    console.log(graphQLErrors)
                 }
             })
         }

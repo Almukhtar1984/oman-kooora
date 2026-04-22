@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import * as React from 'react';
 
 import { CompactTable } from '@table-library/react-table-library/compact';
@@ -53,8 +54,8 @@ export const AssemblyTableTeam = ({ list }: Props) => {
         setAllMembers({nodes: list})
     }, [list]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    function onPaginationChange() {
+        return undefined;
     }
 
     const COLUMNS = [
@@ -87,7 +88,7 @@ export const AssemblyTableTeam = ({ list }: Props) => {
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/files/${item.nationalID}`}
+                        href={`${apiUrl}/files/${item.nationalID}`}
                     >
                         <Id size={18} />
                     </ActionIcon>

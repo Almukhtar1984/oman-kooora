@@ -39,9 +39,6 @@ const CardTeam = ({ data, onEditModal, onDeleteModal, onChangeStatusModal, onCha
     const theme = useTheme() as MantineTheme;
     let route = useRouter();
 
-    // console.log(data)
-
-
     return (
         <>
             <Box

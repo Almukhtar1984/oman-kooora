@@ -102,8 +102,7 @@ export const resolvers = {
                 })
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
-                console.log(error)
-                // logger.error("")
+                logger.error("Unable to create permission")
                 throw new ApolloError(error)
             }
         },

@@ -31,7 +31,7 @@ export const UpdateRequestModal = ({data, opened, ...props}: Props) => {
             refetchQueries: [AllRequests]
         })
         .then(() => closeModal())
-        .catch(reason => console.log(reason))
+        .catch(() => {})
     };
 
     const closeModal = () => {

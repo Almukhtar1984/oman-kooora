@@ -58,9 +58,7 @@ export const AddMatch = ({data, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم اضافة المباراة")
             },
-            onError: ({graphQLErrors}) => {
-                console.log(false)
-            }
+            onError: () => void 0
         })
     };
 

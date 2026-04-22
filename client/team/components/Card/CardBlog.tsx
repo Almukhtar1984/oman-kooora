@@ -1,3 +1,4 @@
+import {apiUrl} from "../../lib/config";
 import { useTheme } from "@emotion/react";
 import {
     ActionIcon,
@@ -95,7 +96,7 @@ const CardBlog = ({ data, onEditModal, onDeleteModal, setOpenShowModal, hasPermi
 
                         {data?.attachment && data?.attachment.length > 0
                             ? <Image
-                                src={`${process.env.NEXT_PUBLIC_API_URL}/images/${data?.attachment?.[0]?.content}`}
+                                src={`${apiUrl}/images/${data?.attachment?.[0]?.content}`}
                                 width={"100%"} height={200}
                                 styles={{
                                     root: {border: "2px solid #eee", borderRadius: 8},
