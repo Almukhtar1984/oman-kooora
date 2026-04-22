@@ -40,7 +40,6 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
                     getNewToken()
                         .then(({data}: any) => {
                             const { refreshToken } = data
-                            console.log("errorLink ", refreshToken?.token)
                             useStore.setState({ isAuth: true, token: refreshToken?.token });
                             resolvePendingRequests();
                             return true;
@@ -66,7 +65,9 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
                 return forward(operation);
             });
         } else {
-            console.log(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
+            if (process.env.NODE_ENV !== "production") {
+                console.warn(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
+            }
         }
     }
 });

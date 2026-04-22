@@ -65,8 +65,6 @@ export default function Login() {
                 }
             }
         }).then(({ data: { authenticateUser } }) => {
-                console.log({ authenticateUser })
-
                 useStore.setState({ token: authenticateUser?.token });
                 useStore.setState({ isAuth: true });
                 getCurrentUserLazy({

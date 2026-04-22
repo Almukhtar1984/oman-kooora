@@ -433,8 +433,6 @@ export const resolvers = {
                         const membershipDateEnd = clubManagement.membership_date_end
                         const dateNow = formatDate(new Date(), "yyyy-MM-dd")
 
-                        console.log({membershipDateEnd, dateNow}, membershipDateEnd <= dateNow)
-
                         if(membershipDateEnd <= dateNow) {
                             return new ApolloError("Membership Date End", "MEMBERSHIP_DATE_END");
                         }
@@ -455,8 +453,7 @@ export const resolvers = {
                     user
                 }
             } catch (error) {
-                console.log(error)
-                logger.error("")
+                logger.error("User authentication failed")
                 throw new ApolloError(error)
             }
         },
@@ -666,10 +663,8 @@ export const resolvers = {
             try {
                 let user = await User.findOne({
                     where: { email },
-                    logging: (msg, time) => console.log({query : msg, time: `${time} ms`}),
                 });
 
-                // console.log({user})
                 // Person is not exist
                 if (!user) { return new ApolloError('User not found', 'USER_NOT_EXIST');}
 

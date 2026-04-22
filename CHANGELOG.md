@@ -19,6 +19,77 @@
 
 ## 2026-04-22
 
+### 19. إزالة طباعات حساسة من تسجيل الدخول وتجديد token
+
+- تم إزالة طباعة refresh token من عملاء GraphQL:
+  - `client/club/lib/graphql.ts`
+  - `client/team/lib/graphql.ts`
+  - `client/super-admin/lib/graphql.ts`
+  - `client/plyer/lib/graphql.ts`
+  - `client/sports-course/src/lib/graphql.ts`
+- تم جعل رسائل أخطاء GraphQL في العملاء تظهر في التطوير فقط بدلا من الإنتاج.
+- تم إزالة طباعة نتيجة `authenticateUser` من صفحات الدخول:
+  - `client/club/pages/login/index.tsx`
+  - `client/plyer/pages/login/index.tsx`
+- تم إزالة طباعات debug من تسجيل الدخول في الخادم داخل:
+  - `server/src/Graphql/Resolvers/User.mjs`
+- تم إزالة logging خاص باستعلام `forgetPassword` حتى لا تطبع SQL query في
+  runtime.
+- تم تشغيل:
+  - `node --check server/src/Graphql/Resolvers/User.mjs`
+  - `git diff --check`
+  - lint صفحة دخول `client/super-admin`
+  - اختبار `client/sports-course`
+- هذا لا يغلق بند logs بالكامل لأن المشروع ما زال يحتوي console logs عامة في
+  شاشات ومكونات أخرى تحتاج تنظيف تدريجي.
+
+---
+
+### 18. إضافة check يمنع تعديل Models بدون migration
+
+- تم إضافة سكربت تحقق جديد:
+  - `server/scripts/check-model-migrations.mjs`
+- تم إضافة أمر npm داخل `server/package.json`:
+  - `npm run db:check-model-migrations`
+- وظيفة السكربت:
+  - يفحص الملفات المتغيرة في `server/src/Models`
+  - يفحص وجود ملفات migration متغيرة في `server/migrations`
+  - يفشل إذا تغير model بدون migration مرافق
+- تم إضافة GitHub Action جديد:
+  - `.github/workflows/server-checks.yml`
+- الـ workflow يعمل على pull requests التي تغير ملفات `server/**`، ويشغل:
+  - `npm ci`
+  - `npm run db:check-model-migrations`
+  - `node --check` على ملفات `.mjs` المتغيرة في الخادم
+- تم تشغيل السكربت محليا ونجح على الحالة الحالية.
+- تم تشغيل فحص syntax على السكربت، وتم تشغيل `git diff --check`.
+
+---
+
+### 17. إضافة حدود GraphQL للعمق والتعقيد
+
+- تم إضافة ملف validation rules جديد:
+  - `server/src/Graphql/ValidationRules.mjs`
+- تم ربط validation rules داخل Apollo Server في:
+  - `server/src/app.mjs`
+- الحدود المضافة:
+  - حد أقصى لعمق الاستعلام عبر `GRAPHQL_MAX_DEPTH`
+  - حد أقصى لتعقيد الاستعلام عبر `GRAPHQL_MAX_COMPLEXITY`
+- القيم الافتراضية الموثقة:
+  - `GRAPHQL_MAX_DEPTH=8`
+  - `GRAPHQL_MAX_COMPLEXITY=500`
+- تم توثيق المتغيرات الجديدة في:
+  - `server/.env.example`
+- عند تجاوز الحد يرجع GraphQL خطأ بكود:
+  - `GRAPHQL_DEPTH_LIMIT`
+  - `GRAPHQL_COMPLEXITY_LIMIT`
+- تم تجاهل حقول introspection الداخلية مثل `__schema`, `__type`, و`__typename`
+  من الحساب حتى لا يتعطل التطوير المحلي.
+- تم تشغيل فحص syntax على ملفات التعديل، وتم تشغيل اختبار validation صغير
+  للتأكد من رفض الاستعلامات العميقة والمعقدة، وتم تشغيل `git diff --check`.
+
+---
+
 ### 16. تشغيل migrations والفحوص الآلية
 
 - تم تشغيل migrations محليا عبر:

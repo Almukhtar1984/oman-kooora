@@ -18,6 +18,7 @@ import graphqlUploadExpress from "graphql-upload/graphqlUploadExpress.mjs"
 
 import DB from './Config/DBContact.mjs';
 import Schema from "./Graphql/index.mjs"
+import {buildGraphqlValidationRules} from "./Graphql/ValidationRules.mjs";
 import {AuthMiddleware} from "./Middlewares/index.mjs"
 import {graphqlSensitiveRateLimit} from "./Middlewares/GraphqlRateLimit.mjs"
 import logger from "./Config/logger.mjs"
@@ -84,9 +85,7 @@ const defaultWhitelist = [
         debug: !isProduction,
         csrfPrevention: true,
         allowBatchedHttpRequests: false,
-        // validationRules: [
-        //     depthLimit(5)
-        // ],
+        validationRules: buildGraphqlValidationRules(),
         plugins: [
             isProduction
                 ? ApolloServerPluginLandingPageDisabled()
