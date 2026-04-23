@@ -6,10 +6,7 @@ import logger from "../../Config/logger.mjs";
 
 import {Members, Person, Players, Team, TechnicalApparatus} from '../../Models/index.mjs';
 import {assertCanAccessClub, assertCanAccessTeam} from "../../Helpers/Authorization.mjs";
-import {v4 as UUID} from "uuid";
-import path from "path";
-import {__dirname} from "../../app.mjs";
-import {createWriteStream} from "fs";
+import {savePdfUpload} from "../../Helpers/Upload.mjs";
 
 dotenv.config();
 
@@ -101,17 +98,7 @@ export const resolvers = {
                     let uniqName = "";
 
                     if (content.testimony_experience) {
-                        const { createReadStream, filename, mimetype, encoding } = await content.testimony_experience;
-
-                        const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                        if(fileType !== "PDF") { return new ApolloError("This file is not pdf") }
-
-                        uniqName = `${UUID()}.${fileType}`;
-                        const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                        const stream = createReadStream();
-                        await stream.pipe( createWriteStream(pathName) );
+                        uniqName = await savePdfUpload(content.testimony_experience);
                     }
 
                     result = await TechnicalApparatus.create({
@@ -149,17 +136,7 @@ export const resolvers = {
                 const testimonyExperience = await content.testimony_experience
                 let uniqName = "";
                 if (testimonyExperience) {
-                    const { createReadStream, filename, mimetype, encoding } = testimonyExperience;
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if(fileType !== "PDF") { return new ApolloError("This file is not pdf") }
-
-                    uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
+                    uniqName = await savePdfUpload(testimonyExperience);
                 }
 
                 let result = await TechnicalApparatus.update({...content, testimony_experience: uniqName}, { where: { id } })

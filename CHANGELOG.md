@@ -1,5 +1,43 @@
 # Project Change Log
 
+## 2026-04-23
+
+### 37. تقوية رفع الملفات في Players وAssembly وTechnicalApparatus
+
+- تم إضافة دالتين جديدتين إلى `server/src/Helpers/Upload.mjs`:
+  - `savePdfUpload`: لحفظ PDF فقط مع تحقق من الامتداد، MIME، وmagic bytes
+    (`%PDF` = `0x25 0x50 0x44 0x46`)
+  - `saveDocumentUpload`: لحفظ مرفقات متعددة الأنواع مع تحقق من الامتداد، MIME،
+    وmagic bytes لكل نوع يدعمها (صور، PDF، مستندات Office، ZIP). أنواع CSV
+    تُتحقق منها فقط بالامتداد والـ MIME لعدم وجود magic bytes موثوق.
+- تم تحديث `server/src/Graphql/Resolvers/Assembly.mjs`:
+  - استبدال رفع الصور القديم (stream.pipe بدون تحقق) بـ `saveImageUpload`
+    لـ nationalID، nationalIDBack، وpersonal_picture في `createAssembly`
+    و`updateAssembly`.
+  - إزالة imports غير مستخدمة (createWriteStream, path, UUID, __dirname).
+- تم تحديث `server/src/Graphql/Resolvers/Players.mjs`:
+  - استبدال رفع الصور القديم بـ `saveImageUpload` لـ nationalID وnationalIDBack
+    في `createPlayer` و`updatePlayer`.
+  - استبدال رفع PDF القديم بـ `savePdfUpload` لـ parentApproval في `createPlayer`
+    و`updatePlayer`.
+  - استبدال رفع المرفقات القديم بـ `saveDocumentUpload` في `addAttachmentPlayer`.
+  - إزالة imports غير مستخدمة (createWriteStream, path, UUID, __dirname).
+- تم تحديث `server/src/Graphql/Resolvers/TechnicalApparatus.mjs`:
+  - استبدال رفع PDF القديم بـ `savePdfUpload` لـ testimony_experience في
+    `createTechnicalApparatus` و`updateTechnicalApparatus`.
+  - إزالة imports غير مستخدمة (createWriteStream, path, UUID, __dirname).
+- تم إضافة اختبارات جديدة في `server/tests/upload.test.mjs`:
+  - 4 اختبارات لـ `savePdfUpload`: رفع صحيح، رفض امتداد خاطئ، رفض MIME خاطئ،
+    رفض محتوى غير PDF.
+  - 5 اختبارات لـ `saveDocumentUpload`: رفع PDF صحيح، رفع PNG صحيح، رفض نوع
+    غير مسموح (exe)، رفض MIME خاطئ، رفض محتوى غير مطابق.
+- نتيجة الاختبارات:
+  - 17 اختبار passed.
+
+---
+
+
+
 هذا الملف مخصص لتوثيق أي تعديل يتم على المشروع.
 
 الهدف من الملف:

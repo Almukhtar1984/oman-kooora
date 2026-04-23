@@ -5,11 +5,8 @@ import dotenv from 'dotenv'
 import logger from "../../Config/logger.mjs";
 
 import {AttachmentPerson, Club, Members, Person, Players, Team, Transfer} from '../../Models/index.mjs';
-import {v4 as UUID} from "uuid";
-import path from "path";
-import {__dirname} from "../../app.mjs";
-import {createWriteStream} from "fs";
 import { isIdentical } from '../../Helpers/index.mjs';
+import {saveImageUpload, savePdfUpload, saveDocumentUpload} from "../../Helpers/Upload.mjs";
 
 
 dotenv.config();
@@ -297,13 +294,13 @@ export const resolvers = {
     Mutation: {
         createPlayer: async (obj, {content}, context, info) =>  {
             try {
-                const onePerson = await Person.findOne({ 
+                const onePerson = await Person.findOne({
                     where: {
                         [Op.or]: [
                             {card_number: content.person.card_number},
                             {phone: content.person.phone}
                         ]
-                    } 
+                    }
                 })
                 if (onePerson) {
                     if (onePerson.card_number === content.person.card_number) {
@@ -329,52 +326,17 @@ export const resolvers = {
                 }
 
                 if (result && nationalID) {
-                    const { createReadStream, filename, mimetype, encoding } = nationalID;
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-
-                    let uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    const uniqName = await saveImageUpload(nationalID);
                     await Players.update({nationalID: uniqName}, {where: {id: result.id}})
                 }
 
                 if (result && nationalIDBack) {
-                    const { createReadStream, filename, mimetype, encoding } = nationalIDBack;
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-
-                    let uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    const uniqName = await saveImageUpload(nationalIDBack);
                     await Players.update({nationalIDBack: uniqName}, {where: {id: result.id}})
                 }
 
                 if (result && parentApproval) {
-                    const { createReadStream, filename, mimetype, encoding } = parentApproval;
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if("PDF" !== fileType) { return new ApolloError("The Parent Approval is not pdf") }
-
-                    let uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    const uniqName = await savePdfUpload(parentApproval);
                     await Players.update({parentApproval: uniqName}, {where: {id: result.id}})
                 }
 
@@ -390,14 +352,14 @@ export const resolvers = {
                 let allResults = []
                 for (let index = 0; index < content.length; index++) {
                     const element = content[index];
-                    
-                    const onePerson = await Person.findOne({ 
+
+                    const onePerson = await Person.findOne({
                         where: {
                             [Op.or]: [
                                 {card_number: element.person.card_number},
                                 {phone: element.person.phone}
                             ]
-                        } 
+                        }
                     })
                     if (!onePerson) {
                         let person = await Person.create(element.person)
@@ -432,52 +394,17 @@ export const resolvers = {
                 let result = await Players.update(content, { where: { id } })
 
                 if (nationalID) {
-                    const { createReadStream, filename, mimetype, encoding } = nationalID;
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-
-                    let uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    const uniqName = await saveImageUpload(nationalID);
                     await Players.update({nationalID: uniqName}, {where: {id}})
                 }
 
                 if (nationalIDBack) {
-                    const { createReadStream, filename, mimetype, encoding } = nationalIDBack;
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-
-                    let uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    const uniqName = await saveImageUpload(nationalIDBack);
                     await Players.update({nationalIDBack: uniqName}, {where: {id}})
                 }
 
                 if (parentApproval) {
-                    const { createReadStream, filename, mimetype, encoding } = parentApproval;
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if("PDF" !== fileType) { return new ApolloError("The Parent Approval is not pdf") }
-
-                    let uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
+                    const uniqName = await savePdfUpload(parentApproval);
                     await Players.update({parentApproval: uniqName}, {where: {id}})
                 }
 
@@ -529,21 +456,8 @@ export const resolvers = {
                 let allResult = []
                 if (allAttachments && allAttachments.length > 0) {
                     for (let index = 0; index < allAttachments.length; index++) {
-                        const { createReadStream, filename, mimetype, encoding } = await allAttachments[index];
-                        const listType = ["JPEG", "JPG", "PNG", "PDF", "DOC", "DOCX", "XLS", "XLSX", "PPT", "PPTX", "CSV", "ZIP"]
-    
-                        const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-    
-                        if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-    
-                        let uniqName = `${UUID()}.${fileType}`;
-                        const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-    
-                        const stream = createReadStream();
-                        await stream.pipe( createWriteStream(pathName) );
-    
+                        const uniqName = await saveDocumentUpload(allAttachments[index]);
                         const result = await AttachmentPerson.create({id_player: idPlayer, content: uniqName})
-
                         allResult.push(result)
                     }
                 }

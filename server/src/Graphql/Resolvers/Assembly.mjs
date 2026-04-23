@@ -1,14 +1,11 @@
 import { ApolloError } from 'apollo-server-express';
 import sequelize from 'sequelize';
 import dotenv from 'dotenv'
-import path from "path";
-import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
 
 import {Club, Members, Person, Assembly, User, Team, Players,} from '../../Models/index.mjs';
-import {createWriteStream} from "fs";
-import {__dirname} from "../../app.mjs";
+import {saveImageUpload} from "../../Helpers/Upload.mjs";
 
 
 dotenv.config();
@@ -94,58 +91,19 @@ export const resolvers = {
                 let data = {...content}
 
                 if (nationalID) {
-                    const { createReadStream, filename, mimetype, encoding } = nationalID;
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-
-                    let uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
-                    data = {...data, nationalID: uniqName}
+                    data = {...data, nationalID: await saveImageUpload(nationalID)}
                 } else {
                     data = {...data, nationalID: oldNationalID}
                 }
 
                 if (nationalIDBack) {
-                    const { createReadStream, filename, mimetype, encoding } = nationalIDBack;
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-
-                    let uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
-                    data = {...data, nationalIDBack: uniqName}
+                    data = {...data, nationalIDBack: await saveImageUpload(nationalIDBack)}
                 } else {
                     data = {...data, nationalIDBack: oldNationalIDBack}
                 }
 
                 if (personal_picture) {
-                    const { createReadStream, filename, mimetype, encoding } = personal_picture;
-                    const listType = ["JPEG", "JPG", "PNG"]
-
-                    const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                    if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-
-                    let uniqName = `${UUID()}.${fileType}`;
-                    const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                    const stream = createReadStream();
-                    await stream.pipe( createWriteStream(pathName) );
-
-                    data = {...data, personal_picture: uniqName}
+                    data = {...data, personal_picture: await saveImageUpload(personal_picture)}
                 } else {
                     data = {...data, personal_picture: oldPersonalPicture}
                 }
@@ -168,54 +126,15 @@ export const resolvers = {
                     let data = {...content}
 
                     if (nationalID) {
-                        const { createReadStream, filename, mimetype, encoding } = nationalID;
-                        const listType = ["JPEG", "JPG", "PNG"]
-
-                        const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                        if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-
-                        let uniqName = `${UUID()}.${fileType}`;
-                        const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                        const stream = createReadStream();
-                        await stream.pipe( createWriteStream(pathName) );
-
-                        data = {...data, nationalID: uniqName}
+                        data = {...data, nationalID: await saveImageUpload(nationalID)}
                     }
 
                     if (nationalIDBack) {
-                        const { createReadStream, filename, mimetype, encoding } = nationalIDBack;
-                        const listType = ["JPEG", "JPG", "PNG"]
-
-                        const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                        if(!listType.includes(fileType)) { return new ApolloError("national ID Back is not image") }
-
-                        let uniqName = `${UUID()}.${fileType}`;
-                        const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                        const stream = createReadStream();
-                        await stream.pipe( createWriteStream(pathName) );
-
-                        data = {...data, nationalIDBack: uniqName}
+                        data = {...data, nationalIDBack: await saveImageUpload(nationalIDBack)}
                     }
 
                     if (personal_picture) {
-                        const { createReadStream, filename, mimetype, encoding } = personal_picture;
-                        const listType = ["JPEG", "JPG", "PNG"]
-
-                        const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                        if(!listType.includes(fileType)) { return new ApolloError("personal_picture ID is not image") }
-
-                        let uniqName = `${UUID()}.${fileType}`;
-                        const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                        const stream = createReadStream();
-                        await stream.pipe( createWriteStream(pathName) );
-
-                        data = {...data, personal_picture: uniqName}
+                        data = {...data, personal_picture: await saveImageUpload(personal_picture)}
                     }
 
                     let result = await Assembly.update({...data}, { where: { id } })
