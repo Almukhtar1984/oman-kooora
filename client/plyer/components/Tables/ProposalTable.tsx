@@ -70,7 +70,7 @@ export const ProposalTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
         setAllMembers({nodes: [...filterAllMembers]})
 
 
-    }, [search]);
+    }, [list, search]);
 
     const openModelUpdate = (data: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(data)

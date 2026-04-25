@@ -172,8 +172,9 @@ const ContractEmployeeTable = ({ data, searchValue, onEditModal, ...props }: Pro
   ));
 
   React.useEffect(() => {
-    handleSearchChange(searchValue);
-  }, [searchValue]);
+    setSearch(searchValue);
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: searchValue }));
+  }, [searchValue, data, sortBy, reverseSortDirection]);
 
   return (
     <Table

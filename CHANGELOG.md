@@ -19,6 +19,65 @@
 
 ## 2026-04-25
 
+### 44. إصلاح اختبار client/print
+
+- تم إضافة polyfill لـ `TextEncoder` و`TextDecoder` في:
+  - `client/print/src/setupTests.ts`
+- تم تحديث الاختبار الافتراضي القديم في:
+  - `client/print/src/App.test.tsx`
+- أصبح الاختبار يعزل GraphQL وPDF renderer عبر mocks مناسبة، ويتحقق من أن
+  صفحة الطباعة ترندر preview داخل Jest.
+- تم تشغيل:
+  - `CI=true npm test -- --watchAll=false` داخل `client/print`
+- النتيجة:
+  - test suite واحد passed.
+
+---
+
+### 43. تنظيف تحذيرات lint في plyer
+
+- تم إصلاح تحذيرات `react-hooks/exhaustive-deps` في صفحات:
+  - `client/plyer/pages/index.tsx`
+  - `client/plyer/pages/proposals.tsx`
+  - `client/plyer/pages/requests.tsx`
+  - `client/plyer/pages/profile.tsx`
+  - `client/plyer/pages/login/verification/[token].tsx`
+- تم إصلاح تحذير الصورة بدون `alt` في:
+  - `client/plyer/components/Layout/Sidebar.tsx`
+- تم إصلاح تحذيرات `react-hooks/exhaustive-deps` في مودالات وجداول `plyer`:
+  - `UpdateComplaintModal`, `UpdateProposalModal`, `UpdateRequestModal`
+  - `ComplaintTable`, `ProposalTable`, و`RequestsTable`
+- تم تشغيل:
+  - `npm run lint -- --no-cache` داخل `client/plyer`
+  - `git diff --check`
+- نتيجة lint:
+  - لا توجد warnings أو errors.
+
+---
+
+### 42. تنظيف تحذيرات lint في super-admin
+
+- تم إصلاح تحذير `react-hooks/exhaustive-deps` في صفحة تحقق البريد:
+  - `client/super-admin/pages/login/verification/[token].tsx`
+- تم إصلاح تحذير الصورة بدون `alt` في:
+  - `client/super-admin/components/Layout/Sidebar.tsx`
+- تم إصلاح تحذيرات `react-hooks/exhaustive-deps` في جداول `super-admin`
+  الخاصة بالبحث والترتيب، منها:
+  - `BranchTable`, `ContractEmployeeTable`, `DepartementTable`,
+    `EmployeerSettingsTable`, `ExpenseEmployeeTable`, `RequestEmployeeTable`,
+    `RequestTable`, `SaleTable`, `SchedulesTable`, `SectionTable`,
+    `VacationTable`, `WageTable`, و`WorkSystemTable`.
+- تم تشغيل:
+  - `npm run lint -- --no-cache` داخل `client/super-admin`
+  - `npm run test:server`
+  - `npm run db:check-model-migrations`
+  - `git diff --check`
+- نتيجة lint:
+  - لا توجد warnings أو errors من ESLint.
+  - بقي تنبيه dependency من Next بسبب اختلاف نسخة `@next/font` عن `next`.
+
+---
+
 ### 41. تنظيف تحذيرات lint في team
 
 - تم إصلاح تحذيرات `react-hooks/exhaustive-deps` في صفحات `client/team`

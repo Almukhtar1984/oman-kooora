@@ -39,7 +39,7 @@ export default function Requests() {
                 fetchPolicy: "network-only"
             })
         }
-    }, [userData])
+    }, [userData, getAllRequests])
 
     useEffect(() => {
         if (dataAllRequests && "allRequests" in dataAllRequests) {

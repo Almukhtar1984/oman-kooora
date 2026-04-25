@@ -32,7 +32,7 @@ export default function Home() {
                 variables: {idPlayer, type: "complaint"}
             })
         }
-    }, [userData])
+    }, [userData, getAllRequests])
 
     useEffect(() => {
         if (dataAllRequests && "allRequests" in dataAllRequests) {

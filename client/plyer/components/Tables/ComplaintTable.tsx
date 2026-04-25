@@ -60,7 +60,7 @@ export const ComplaintTable = ({ list, search, setOpenEditModal, setOpenDeleteMo
     useEffect(() => {
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers({nodes: [...filterAllMembers]})
-    }, [search]);
+    }, [list, search]);
 
     const openModelUpdate = (data: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(data)

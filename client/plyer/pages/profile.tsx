@@ -32,7 +32,7 @@ export default function Profile () {
             // @ts-ignore
             setAge(dayjs(userData?.person?.date_birth, "YYYY-MM-DD"))
         }
-    }, [userData]);
+    }, [userData, form]);
 
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });

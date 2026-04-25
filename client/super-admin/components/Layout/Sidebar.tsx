@@ -131,6 +131,7 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
             <Box className={classes.header} p={5}>
                 <Image
                     src={"/logo.jpg"}
+                    alt="Tomoh"
                     fit={"contain"}
                     width={"50px"}
                     styles={(theme) => ({

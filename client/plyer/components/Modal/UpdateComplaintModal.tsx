@@ -22,7 +22,7 @@ export const UpdateComplaintModal = ({data, opened, ...props}: Props) => {
         form.setValues({
             content: data?.content
         })
-    }, [opened, data])
+    }, [opened, data, form])
 
     const onSubmit = ({content }: any) => {
         updateReques({

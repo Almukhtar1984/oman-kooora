@@ -224,8 +224,9 @@ const SaleTable = ({ data, searchValue, onEditModal, ...props }: Props) => {
   ));
 
   React.useEffect(() => {
-    handleSearchChange(searchValue);
-  }, [searchValue]);
+    setSearch(searchValue);
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: searchValue }));
+  }, [searchValue, data, sortBy, reverseSortDirection]);
 
   return (
     <Table
