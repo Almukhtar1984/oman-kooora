@@ -19,6 +19,53 @@
 
 ## 2026-04-25
 
+### 50. تقليل مخاطر router في print وsports-course
+
+- تم تحديث `react-router-dom` إلى `7.14.2` في:
+  - `client/print`
+  - `client/sports-course`
+- تم إضافة Jest module mapping في التطبيقين لأن `react-scripts@5` لا يتعامل
+  جيدا مع package exports الحديثة لـ React Router v7.
+- تم إضافة `TextEncoder/TextDecoder` polyfill في `client/sports-course`.
+- تم إضافة `styled-components` في `client/sports-course` لأنه peer dependency
+  مطلوبة من `react-data-table-component`.
+- تم إضافة `graphql` في `client/print` لأنه peer dependency مطلوبة من
+  `@apollo/client`.
+- نتائج audit:
+  - `client/print`: من 69 مشكلة إلى 65 مشكلة، وانخفضت high من 30 إلى 27.
+  - `client/sports-course`: من 66 مشكلة إلى 63 مشكلة، وانخفضت high من 31 إلى 28.
+- تم تشغيل:
+  - `npm run lint` داخل `client/print`
+  - `CI=true npm test -- --watchAll=false` داخل `client/print`
+  - `npm run build` داخل `client/print`
+  - `npm run lint` داخل `client/sports-course`
+  - `CI=true npm test -- --watchAll=false` داخل `client/sports-course`
+  - `npm run build` داخل `client/sports-course`
+
+---
+
+### 49. تقليل مخاطر audit في landing-page
+
+- تم تحديث `client/landing-page` من:
+  - `next@13.4.3` إلى `next@13.5.11`
+  - `eslint-config-next@13.4.3` إلى `eslint-config-next@13.5.11`
+- تم إضافة dependencies كانت مستخدمة أو مطلوبة كـ peer dependencies ولم تكن
+  مصرحة مباشرة:
+  - `@tiptap/react`
+  - `@tiptap/extension-link`
+  - `@tiptap/pm`
+  - `@tabler/icons-react`
+  - `embla-carousel-react`
+- نتيجة `npm audit --omit=dev` في `client/landing-page` انخفضت من 24 مشكلة
+  إلى 16 مشكلة، وتمت إزالة كل مشاكل `critical`.
+- ما زالت 7 مشاكل `high` مرتبطة أساسا بترقية Next major لاحقة.
+- تم تشغيل:
+  - `npm run lint`
+  - `npm run build`
+  - `npm audit --omit=dev`
+
+---
+
 ### 48. توحيد package manager على npm
 
 - تم اعتماد npm كمدير الحزم الرسمي للمشروع لأن:
