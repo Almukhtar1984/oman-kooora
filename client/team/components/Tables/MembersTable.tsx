@@ -106,7 +106,7 @@ export const MembersTable = ({ list, search, setOpenEditModal, setNewStatus, set
                     : item?.status == "waiting_club"
                         ? <Badge fw={500} color="yellow">قيد انتظار تاكيد النادي</Badge>
                         : <Badge fw={500} color="yellow">قيد الانتظار</Badge>
-                                        
+
         ), width: '120px'},
         {name: 'الخيارات', selector: (item: any) => (
             <Group>

@@ -95,7 +95,7 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
                             ? <Menu.Item icon={<CalendarStats size={14} />} onClick={() => openModelRenew(item)} >تجديد الاشتراك</Menu.Item>
                             : null
                         }
-                        <Menu.Item 
+                        <Menu.Item
                             component={"a"}
                             icon={<Printer size={18} />}
                             href={`${printUrl}/#/assembly-card/${item?.id}`}
@@ -120,7 +120,7 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
 
             const date1 = new Date(`${parseInt(year)+1}-01-01`);
             const date2 = new Date();
-            
+
 
             return date2 >= date1 ? <Badge color="red">منتهي</Badge> : <Badge color="teal">يعمل</Badge>
         }, width: '150px' },

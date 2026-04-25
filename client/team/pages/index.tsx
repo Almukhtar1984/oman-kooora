@@ -20,7 +20,7 @@ export default function Home() {
             })
         }
     }, [userData, getStatisticsTeam])
-    
+
     useEffect(() => {
         if (dataStatisticsTeam && "statisticsTeam" in dataStatisticsTeam) {
             setAllStatisticsTeam(dataStatisticsTeam.statisticsTeam)

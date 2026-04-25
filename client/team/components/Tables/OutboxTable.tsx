@@ -56,7 +56,7 @@ interface Props {
 
 export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatusModal, setNewStatus, setSelectedRow, openDrawer, setSelectedDrawer, setOpenDeleteModal, setOpenShowModal, hasPermission }: Props) => {
     const [allMembers, setAllMembers] = useState<any>([]);
-    
+
     useEffect(() => {
         setAllMembers(list)
     }, [list]);

@@ -106,7 +106,7 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
                     <ActionIcon
                         color="green"
                         variant="light"
-                
+
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"

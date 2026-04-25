@@ -127,7 +127,7 @@ export default function Players() {
             </Box>
         );
     }
-    
+
     return (
         <Box>
             <Head>
@@ -207,7 +207,7 @@ export default function Players() {
             <DeletePlayersModal title="حذف لاعب" opened={openDeleteModal} id={selectedData} onClose={() => setOpenDeleteModal(false)}/>
             <PlayersTransferModal title="نقل لاعب" opened={openTransferModal} id={selectedData} onClose={() => setOpenTransferModal(false)}/>
             <PlayersLoanModal title="إعارة اللاعب" opened={openLoanModal} id={selectedData} onClose={() => setOpenLoanModal(false)}/>
-        
+
             <AddAttachmentPlayerModal title="إضافة مرفقات" opened={openAddAttachmentPlayerModal} id={selectedData} onClose={() => setOpenAddAttachmentPlayerModal(false)}/>
             <DeleteAttachmentPlayerModal
                 title=""
@@ -215,7 +215,7 @@ export default function Players() {
                 id={selectedAttachment}
                 onClose={() => setOpenDeleteAttachmentModal(false)}
             />
-            
+
             <ShowAttachments
                 title="المرفقات"
                 setSelectedData={setSelectedAttachment}

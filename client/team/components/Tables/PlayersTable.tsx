@@ -295,7 +295,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                             : null
                                         }
                                     </Cell>
-                                    
+
                                     <Cell>
                                         {item?.status == "accepted"
                                             ? <Badge fw={500} color="teal">مقبول</Badge>
@@ -326,14 +326,14 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                         ? <Menu.Item icon={<Upload size={18} />} onClick={() => openModelAddImage(item?.person?.id)} >إضافة صورة</Menu.Item>
                                                         : null
                                                     }
-                                                    
+
                                                     {item?.status == "waiting" && hasPermission("4")
                                                         ? <Menu.Item icon={<Id size={14} />} onClick={() => openModelVerifyIdentity(item)} >تحقق</Menu.Item>
                                                         : null
                                                     }
 
                                                     {item.attachmentsPlayer.length > 0 ?
-                                                        <Menu.Item 
+                                                        <Menu.Item
                                                             icon={<Paperclip size={18} />}
                                                             onClick={() => {
                                                                 setSelectedRow(item)
@@ -343,14 +343,14 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                         : null
                                                     }
 
-                                                    <Menu.Item 
+                                                    <Menu.Item
                                                         icon={<Upload size={18} />}
                                                         onClick={() => {
                                                             setSelectedRow(item?.id)
                                                             setOpenAddAttachmentPlayerModal(true)
                                                         }}
                                                     >إضافة مرفقات</Menu.Item>
-                                                    
+
                                                     {hasPermission("5")
                                                         ? <Menu.Item
                                                             component={"a"} icon={<Printer size={18} />}

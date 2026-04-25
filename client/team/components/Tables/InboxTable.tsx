@@ -86,7 +86,7 @@ export const InboxTable = ({ list, search, setOpenCommentModal, setOpenChangeSta
         typeof openDrawer === "function" && openDrawer()
     }
 
-    
+
     const COLUMNS = [
         {name: 'الخيارات', selector: (item: any) => (
             <Group>
