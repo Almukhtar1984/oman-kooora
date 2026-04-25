@@ -21,6 +21,11 @@
 
 ### 56. ترقية إضافية لتقليل high في الواجهات
 
+- تم ترقية `client/club` و`client/team` إلى `next@15.5.15` و
+  `eslint-config-next@15.5.15`.
+- تم حذف `@next/font` غير المستخدم من `client/club` و`client/team`.
+- تم تحويل lint في `client/club` و`client/team` إلى ESLint CLI لأن
+  `next lint` لم يعد متاحا في Next 15.
 - تم ترقية `client/super-admin` إلى `next@15.5.15` و
   `eslint-config-next@15.5.15`.
 - تم حذف `@next/font` غير المستخدم من `client/super-admin`.
@@ -36,8 +41,8 @@
 - تم استبدال `xlsx` في `client/club` بـ `exceljs` داخل رفع قائمة اللاعبين،
   مع تحميله ديناميكيا وقت قراءة الملف فقط.
 - نتائج `npm audit --omit=dev` بعد التعديل:
-  - `client/club`: 8 مشاكل، 0 critical، 1 high.
-  - `client/team`: 6 مشاكل، 0 critical، 1 high.
+  - `client/club`: 8 مشاكل، 0 critical، 0 high.
+  - `client/team`: 6 مشاكل، 0 critical، 0 high.
   - `client/super-admin`: 6 مشاكل، 0 critical، 0 high.
   - `client/landing-page`: 2 مشاكل، 0 critical، 0 high.
 - تم تشغيل lint وproduction build للواجهات المتأثرة.
