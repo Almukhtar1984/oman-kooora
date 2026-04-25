@@ -56,8 +56,8 @@ export const ShowLeague = ({data, setSelectedData, setOpenShowParticipatingPlaye
         >
             <Box style={({ colors }) => ({padding: 20})}>
                 <Grid gutter={20}>
-                    {groupedData?.map((item: any) => (
-                        <Col span={4} >
+                    {groupedData?.map((item: any, index: number) => (
+                        <Col key={item?.[0]?.group || index} span={4} >
                             <Box bg={theme.white} style={({ colors }) => ({padding: 20})}>
                                 <Stack>
                                     <Text ta={"center"} size={"sm"} fw={"bold"} color={theme.colors.gray[7]}>

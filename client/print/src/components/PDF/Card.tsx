@@ -59,9 +59,8 @@ const styles = StyleSheet.create({
 })
 
 const CardTemplate = ({ player }: Props) => {
-    let canvas: any = null;
-    let qrCodeGenerator = (qrcode: any) => {
-        canvas = document.createElement("canvas");
+    const qrCodeGenerator = (qrcode: string) => {
+        const canvas = document.createElement("canvas");
         QRCode.toCanvas(canvas, qrcode, {
             margin: 2,
         });

@@ -66,7 +66,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
                 return forward(operation);
             });
         }
-        if (process.env.NODE_ENV !== "production") {
+        if (import.meta.env.MODE !== "production") {
             console.warn(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
         }
     }

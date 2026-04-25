@@ -101,7 +101,7 @@ const ListAssembly = ({ assemblies }: Props) => {
 
                         {/*first_name second_name third_name tribe date_birth card_number phone type nationalID membership_date gender subscription_date*/}
                         {assemblies?.map((player: any, index: number) => (
-                            <View style={{display: "flex", flexDirection: "row", width: "100%", alignItems: "center", justifyContent: "space-between", padding: "0.2cm 0.2cm 0"}}>
+                            <View key={player?.id || index} style={{display: "flex", flexDirection: "row", width: "100%", alignItems: "center", justifyContent: "space-between", padding: "0.2cm 0.2cm 0"}}>
                                 <View style={{flex: 1, border: "1px solid #555", height: "1cm", display: "flex", alignItems: "center", justifyContent: "center"}}>
                                     <Text style={{fontSize: 9, fontWeight: 400}}>
                                         {player?.person?.date_birth}

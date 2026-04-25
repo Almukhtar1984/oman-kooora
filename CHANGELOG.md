@@ -19,6 +19,33 @@
 
 ## 2026-04-25
 
+### 57. ترحيل print من CRA إلى Vite
+
+- تم حذف `react-scripts` من `client/print`.
+- تم حذف `react-scripts` من `client/sports-course`.
+- تم اعتماد Vite للتشغيل والبناء.
+- تم اعتماد Vitest بدل Jest/CRA للاختبارات.
+- تم إضافة `vite.config.ts` وملف `index.html` الخاص بـ Vite في التطبيقين.
+- تم تحديث إعدادات البيئة في `client/print/.env.example`:
+  - `REACT_APP_API_URL` أصبح `VITE_API_URL`
+  - `REACT_APP_PRINT_URL` أصبح `VITE_PRINT_URL`
+- تم تحديث إعدادات البيئة في `client/sports-course`:
+  - `REACT_APP_API_URL` أصبح `VITE_API_URL`
+  - `REACT_APP_SOCKET_URL` أصبح `VITE_SOCKET_URL`
+  - `NEXT_PUBLIC_API_URL` أصبح `VITE_API_URL`
+  - `NEXT_PUBLIC_SOCKET_URL` أصبح `VITE_SOCKET_URL`
+- تم تحديث root scripts وCI حتى تشغل اختبارات `print` و`sports-course` بدون
+  خيار `--watchAll=false` الخاص بـ Jest.
+- نتيجة `npm audit --omit=dev` في `client/print`: 0 مشاكل.
+- نتيجة `npm audit --omit=dev` في `client/sports-course`: 0 مشاكل.
+- تم تشغيل:
+  - `npm run lint`
+  - `npm test`
+  - `npm run build`
+  داخل `client/print` و`client/sports-course`.
+
+---
+
 ### 56. ترقية إضافية لتقليل high في الواجهات
 
 - تم ترقية `client/club` و`client/team` إلى `next@15.5.15` و

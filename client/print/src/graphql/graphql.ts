@@ -3,9 +3,9 @@ import { onError } from "@apollo/client/link/error";
 
 import {apiUrl} from "../config";
 
-const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+const errorLink = onError(({ graphQLErrors }) => {
 
-    if (graphQLErrors && process.env.NODE_ENV !== "production") {
+    if (graphQLErrors && import.meta.env.MODE !== "production") {
         const { path, message, locations } = graphQLErrors[0];
 
         console.warn(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);

@@ -1,13 +1,16 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import App from './App';
 
-jest.mock('./graphql', () => ({
-  usePlayer: () => [jest.fn(), { data: null }],
+vi.mock('./graphql', () => ({
+  usePlayer: () => [vi.fn(), { data: null }],
 }));
 
-jest.mock('./components/PDF/Card', () => () => <div>print card preview</div>);
+vi.mock('./components/PDF/Card', () => ({
+  default: () => <div>print card preview</div>,
+}));
 
 test('renders print card preview', () => {
   render(

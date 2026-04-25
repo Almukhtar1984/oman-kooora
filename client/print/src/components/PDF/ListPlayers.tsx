@@ -107,7 +107,7 @@ const ListPlayers = ({ players }: Props) => {
                         </View>
 
                         {players?.map((player: any, index: number) => (
-                            <View style={{display: "flex", flexDirection: "row", width: "100%", alignItems: "center", justifyContent: "space-between", padding: "0.1cm 0.2cm 0"}}>
+                            <View key={player?.id || index} style={{display: "flex", flexDirection: "row", width: "100%", alignItems: "center", justifyContent: "space-between", padding: "0.1cm 0.2cm 0"}}>
                                 <View style={{flex: 0.7, border: "1px solid #555", height: "1cm", display: "flex", alignItems: "center", justifyContent: "center"}}>
                                     <Text style={{fontSize: 9, fontWeight: 400}}>
                                         {player?.player_center}

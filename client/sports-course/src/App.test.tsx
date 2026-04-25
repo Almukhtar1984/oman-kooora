@@ -2,6 +2,7 @@ import { MockedProvider } from '@apollo/client/testing';
 import { DirectionProvider,MantineProvider } from '@mantine/core';
 import { render,screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import App from './App';
 
 beforeAll(() => {
@@ -11,11 +12,11 @@ beforeAll(() => {
       matches: false,
       media: query,
       onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
     }),
   });
 });

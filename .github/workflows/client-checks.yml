@@ -81,7 +81,12 @@ jobs:
         working-directory: ${{ matrix.path }}
         env:
           CI: true
-        run: npm test -- --watchAll=false
+        run: |
+          if [ "${{ matrix.app }}" = "print" ] || [ "${{ matrix.app }}" = "sports-course" ]; then
+            npm test
+          else
+            npm test -- --watchAll=false
+          fi
 
   build:
     name: Build ${{ matrix.app }}

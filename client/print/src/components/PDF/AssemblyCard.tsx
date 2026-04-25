@@ -2,7 +2,6 @@ import React from "react";
 
 import {Page, Text, Image, Document, StyleSheet, View, Font, PDFViewer} from "@react-pdf/renderer";
 import QRCode from "qrcode";
-//@ts-ignore
 import dayjs from "dayjs";
 
 import {apiUrl, printUrl} from "../../config";
@@ -60,16 +59,15 @@ const styles = StyleSheet.create({
 })
 
 const AssemblyCardTemplate = ({ assembly }: Props) => {
-    let canvas: any = null;
-    let qrCodeGenerator = (qrcode: any) => {
-        canvas = document.createElement("canvas");
+    const qrCodeGenerator = (qrcode: string) => {
+        const canvas = document.createElement("canvas");
         QRCode.toCanvas(canvas, qrcode, {
             margin: 2,
         });
         return canvas.toDataURL();
     };
 
-    let expireDate = (subscription_date: string) => {
+    const expireDate = (subscription_date: string) => {
         const year = dayjs(subscription_date).format("YYYY")
     
         const date = new Date(`${parseInt(year)+1}-12-31`);
