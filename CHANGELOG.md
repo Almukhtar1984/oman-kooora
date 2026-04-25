@@ -19,6 +19,147 @@
 
 ## 2026-04-25
 
+### 56. ترقية إضافية لتقليل high في الواجهات
+
+- تم ترقية `client/super-admin` إلى `next@15.5.15` و
+  `eslint-config-next@15.5.15`.
+- تم حذف `@next/font` غير المستخدم من `client/super-admin`.
+- تم ترقية `client/landing-page` إلى `next@15.5.15` و
+  `eslint-config-next@15.5.15`.
+- تم تحويل `client/landing-page` من `next export` القديم إلى
+  `output: "export"` داخل `next.config.js`.
+- تم تحديث حزم Tiptap إلى `2.27.2` في:
+  - `client/club`
+  - `client/team`
+  - `client/landing-page`
+- تم حذف `react-pdf` غير المستخدم من `client/team`.
+- تم استبدال `xlsx` في `client/club` بـ `exceljs` داخل رفع قائمة اللاعبين،
+  مع تحميله ديناميكيا وقت قراءة الملف فقط.
+- نتائج `npm audit --omit=dev` بعد التعديل:
+  - `client/club`: 8 مشاكل، 0 critical، 1 high.
+  - `client/team`: 6 مشاكل، 0 critical، 1 high.
+  - `client/super-admin`: 6 مشاكل، 0 critical، 0 high.
+  - `client/landing-page`: 2 مشاكل، 0 critical، 0 high.
+- تم تشغيل lint وproduction build للواجهات المتأثرة.
+
+---
+
+### 55. تقليل audit أكثر في واجهات Next بدون breaking changes
+
+- تم تشغيل `npm audit fix --omit=dev` على:
+  - `client/club`
+  - `client/team`
+  - `client/super-admin`
+  - `client/plyer`
+  - `client/landing-page`
+- تم إضافة `@types/apollo-upload-client` في `client/landing-page` لأن
+  production build كشف نقص type declarations بعد تحديث lockfile.
+- نتائج `npm audit --omit=dev` بعد التعديل:
+  - `client/club`: 8 مشاكل، 0 critical، 1 high.
+  - `client/team`: 6 مشاكل، 0 critical، 1 high.
+  - `client/super-admin`: 6 مشاكل، 0 critical، 0 high.
+  - `client/plyer`: 6 مشاكل، 0 critical، 0 high.
+  - `client/landing-page`: 2 مشاكل، 0 critical، 0 high.
+- تم تشغيل lint وproduction build للواجهات الخمس بعد التعديل.
+
+---
+
+### 54. إزالة criticals المتبقية من print وsports-course
+
+- تم إضافة `overrides` في:
+  - `client/print`
+  - `client/sports-course`
+- الهدف هو إجبار أدوات CRA/Jest القديمة على استعمال نسخ آمنة من:
+  - `@babel/traverse`
+  - `form-data`
+- نتائج `npm audit --omit=dev` بعد التعديل:
+  - `client/print`: 62 مشكلة، 0 critical.
+  - `client/sports-course`: 61 مشكلة، 0 critical.
+- تم تشغيل:
+  - `npm run lint`
+  - `CI=true npm test -- --watchAll=false`
+  - `npm run build`
+  داخل `client/print` و`client/sports-course`.
+
+---
+
+### 53. إزالة criticals من واجهات Next الإدارية
+
+- تم حذف dependency قديمة وغير مستخدمة `codegen@0.1.0` من:
+  - `client/club`
+  - `client/team`
+  - `client/super-admin`
+  - `client/plyer`
+- السبب: المشروع يستخدم `@graphql-codegen/cli` الرسمي في devDependencies، بينما
+  حزمة `codegen` القديمة كانت تسحب `js-yaml` و`underscore` بثغرات critical.
+- تم تحديث `@react-pdf/renderer` إلى `4.5.1` في:
+  - `client/club`
+  - `client/team`
+  - `client/print`
+- تم تحديث GraphQL Codegen dev dependencies في `client/club` لإزالة
+  `@babel/traverse` الضعيف من audit.
+- تم ترقية `client/plyer` إلى `next@15.5.15` و`eslint-config-next@15.5.15`،
+  مع حذف `@next/font` غير المستخدم، وتحويل lint إلى ESLint CLI.
+- نتائج `npm audit --omit=dev` النهائية:
+  - `client/club`: 7 مشاكل، 0 critical.
+  - `client/team`: 8 مشاكل، 0 critical.
+  - `client/super-admin`: 6 مشاكل، 0 critical.
+  - `client/plyer`: 6 مشاكل، 0 critical.
+  - `client/print`: 62 مشكلة، 0 critical.
+- تم تشغيل:
+  - `npm run lint` و`npm run build` داخل `client/club`
+  - `npm run lint` و`npm run build` داخل `client/team`
+  - `npm run lint` و`npm run build` داخل `client/plyer`
+  - `npm run lint`, `npm run build`, و`CI=true npm test -- --watchAll=false`
+    داخل `client/print`
+
+---
+
+### 52. إضافة production build للواجهات داخل CI
+
+- تم تحديث `.github/workflows/client-checks.yml`.
+- أصبح CI يشغل `npm run build` لكل الواجهات:
+  - `client/club`
+  - `client/team`
+  - `client/super-admin`
+  - `client/plyer`
+  - `client/landing-page`
+  - `client/print`
+  - `client/sports-course`
+- الهدف أن أي dependency ناقصة أو خطأ TypeScript يظهر في production build قبل
+  الدمج، وليس فقط أثناء التشغيل المحلي.
+- تم التحقق من صحة ملف workflow عبر YAML parser.
+
+---
+
+### 51. تقليل مخاطر Next في club وteam وsuper-admin وplyer
+
+- تم تحديث `next`, `eslint-config-next`, و`@next/font` إلى `13.5.11` في:
+  - `client/club`
+  - `client/team`
+  - `client/super-admin`
+  - `client/plyer`
+- تم إضافة peer dependencies ناقصة كانت تظهر أثناء production build:
+  - `client/club`: `@tabler/icons-react`, `@tiptap/extension-link`,
+    `@tiptap/pm`, و`styled-components`
+  - `client/team`: `@tiptap/extension-link`, `@tiptap/pm`,
+    و`styled-components`
+- تم إصلاح أخطاء types ظهرت مع build الأحدث:
+  - `client/super-admin`: جعل `searchValue` الاختياري يتحول إلى string فارغ
+    قبل تمريره إلى state/sort.
+  - `client/team`: نقل `usePlayer` قبل `useEffect` الذي يستعمل `getPlayer`.
+  - `client/club` و`client/team`: إزالة `alt` من صور
+    `@react-pdf/renderer` مع تعطيل lint محدود لأن مكوّن PDF لا يدعم `alt`.
+- نتائج `npm audit --omit=dev` بعد التعديل:
+  - `client/club`: من 34 مشكلة إلى 33، وcritical من 7 إلى 6.
+  - `client/team`: من 35 مشكلة إلى 28، وcritical من 7 إلى 5.
+  - `client/super-admin`: من 26 مشكلة إلى 22، وcritical من 5 إلى 4.
+  - `client/plyer`: من 25 مشكلة إلى 24، وcritical من 5 إلى 4.
+- تم تشغيل:
+  - `npm run lint` و`npm run build` داخل التطبيقات الأربعة.
+
+---
+
 ### 50. تقليل مخاطر router في print وsports-course
 
 - تم تحديث `react-router-dom` إلى `7.14.2` في:

@@ -238,8 +238,8 @@ const EmployeerSettingsTable = ({ data, searchValue, ...props }: Props) => {
   ));
 
   React.useEffect(() => {
-    setSearch(searchValue);
-    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: searchValue }));
+    setSearch(searchValue ?? "");
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: searchValue ?? "" }));
   }, [searchValue, data, sortBy, reverseSortDirection]);
 
   return (

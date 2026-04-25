@@ -100,7 +100,8 @@ const CardTemplate = ({ shipmentDataList, userData }: Props) => {
                             <View style={{flex: 1}}>
                                 <View style={{display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "18mm", width: "18mm"}}>
                                     {/* logo */}
-                                    <Image style={{ width: "20mm", height: "20mm" }} src={"/logo.jpg"} alt="Logo" />
+                                    {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                                    <Image style={{ width: "20mm", height: "20mm" }} src={"/logo.jpg"} />
                                 </View>
                             </View>
 
@@ -111,7 +112,8 @@ const CardTemplate = ({ shipmentDataList, userData }: Props) => {
                             <View style={{flex: 1}}>
                                 <View style={{display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "30mm"}}>
                                     {/*logo*/}
-                                    <Image style={{ width: "100%", height: "20mm" }} src={"/Mahrez.jpg"} alt="Header" />
+                                    {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                                    <Image style={{ width: "100%", height: "20mm" }} src={"/Mahrez.jpg"} />
                                 </View>
                             </View>
 

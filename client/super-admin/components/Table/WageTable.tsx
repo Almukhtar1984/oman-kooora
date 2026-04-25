@@ -218,8 +218,8 @@ const WageTable = ({ data, searchValue, onEditModal, ...props }: Props) => {
   ));
 
   React.useEffect(() => {
-    setSearch(searchValue);
-    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: searchValue }));
+    setSearch(searchValue ?? "");
+    setSortedData(sortData(data, { sortBy, reversed: reverseSortDirection, search: searchValue ?? "" }));
   }, [searchValue, data, sortBy, reverseSortDirection]);
 
   return (

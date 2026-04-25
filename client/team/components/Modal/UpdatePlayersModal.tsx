@@ -50,6 +50,7 @@ export const UpdatePlayersModal = ({id, opened, ...props}: Props) => {
     const [nationalIDBack, setNationalIDBack] = useState<File[]>([]);
     const [idPerson, setIdPerson] = useState("");
     const [updatePlayer] = useUpdatePlayer();
+    const [getPlayer, { loading, error, data: dataPlayer }] = usePlayer();
     const [load, setLoade] = useState(false);
 
     useEffect(() => {
@@ -60,7 +61,6 @@ export const UpdatePlayersModal = ({id, opened, ...props}: Props) => {
             })
         }
     }, [id, opened, getPlayer])
-    const [getPlayer, { loading, error, data: dataPlayer }] = usePlayer();
 
 
     useEffect(() => {

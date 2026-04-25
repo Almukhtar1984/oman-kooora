@@ -55,6 +55,10 @@
       "^react-router$": "react-router/dist/development/index.js"
     }
   },
+  "overrides": {
+    "@babel/traverse": "^7.29.0",
+    "form-data": "^4.0.5"
+  },
   "browserslist": {
     "production": [
       ">0.2%",

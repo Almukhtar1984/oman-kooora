@@ -6,7 +6,6 @@ import Modal, { Props as ModalProps } from "./Modal";
 import useStore from "../../store/useStore";
 import {Dropzone, IMAGE_MIME_TYPE, MS_EXCEL_MIME_TYPE} from "@mantine/dropzone";
 import {Notyf} from "notyf";
-import * as XLSX from 'xlsx';
 import { useAddListPlayer } from "../../graphql";
 
 
@@ -22,28 +21,34 @@ export const AddListPlayers = ({data, ...props}: Props) => {
     });
     const [attachments, setAttachments] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
-    const [allDataImported, setAllDataImported] = useState([]);
-    const [allData, setAllData] = useState([]);
+    const [allDataImported, setAllDataImported] = useState<any[][]>([]);
+    const [allData, setAllData] = useState<any[][]>([]);
     const [allContents, setAllContents] = useState([]);
     const openRef = useRef<() => void>(null);
     const [createListPlayer] = useAddListPlayer()
 
-    const readFile = (file) => {
+    const readFile = (file: File) => {
         const reader = new FileReader();
-        
-        reader.onload = (e: any) => {
-            const data = new Uint8Array(e?.target?.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
+
+        reader.onload = async (e: ProgressEvent<FileReader>) => {
+            const buffer = e.target?.result;
+            if (!(buffer instanceof ArrayBuffer)) return;
+
+            const ExcelJS = await import("exceljs");
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(buffer);
+            const worksheet = workbook.worksheets[0];
+            if (!worksheet) return;
+
+            const excelData: any[][] = [];
+            worksheet.eachRow((row) => {
+                const values = Array.isArray(row.values) ? row.values.slice(1) : [];
+                excelData.push(values.map((value) => value?.toString?.() ?? value));
+            });
 
             for (let index = 0; index < excelData.length; index++) {
                 const element = excelData[index];
-                //@ts-ignore
                 if (element?.length >= 14) {
-                    //@ts-ignore
                     setAllDataImported((prv) => [...prv, element])
                 }
             }
@@ -59,11 +64,11 @@ export const AddListPlayers = ({data, ...props}: Props) => {
     }, [attachments]);
 
     useEffect(() => {
-        let allData = []
+        let allData: any[][] = []
         //@ts-ignore
         for (let index = 0; index < allDataImported?.length; index++) {
             const element = allDataImported[index];
-            let allElements = []
+            let allElements: any[] = []
             //@ts-ignore
             for (let index2 = 0; index2 < element?.length; index2++) {
                 const element2 = element[index2];
