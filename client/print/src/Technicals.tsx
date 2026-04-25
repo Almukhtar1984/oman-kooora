@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
 import ListTechnicals from "./components/PDF/ListTechnicals";
-import {useAllPlayersClub, useAllTechnicals} from "./graphql";
+import {useAllTechnicals} from "./graphql";
 import {useParams} from "react-router-dom";
 
 export default function Technicals() {
@@ -30,7 +30,7 @@ export default function Technicals() {
             //     })
             // }
         }
-    }, [id])
+    }, [getAllTechnicals, id, type])
 
     return (
         <ListTechnicals players={allTechnicals as any} />

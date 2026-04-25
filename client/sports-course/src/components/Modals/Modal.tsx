@@ -1,5 +1,5 @@
-import { ReactElement, useState } from "react";
-import {Modal as ModalUI, ModalProps,} from "@mantine/core";
+import { Modal as ModalUI,ModalProps } from "@mantine/core";
+import { ReactElement } from "react";
 
 export type Props = {
     header?: ReactElement;

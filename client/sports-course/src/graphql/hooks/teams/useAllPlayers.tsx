@@ -1,4 +1,4 @@
-import {useLazyQuery, gql} from "@apollo/client";
+import { gql,useLazyQuery } from "@apollo/client";
 
 export const AllPlayers = gql`
     query AllPlayers($idTeam: ID) {
@@ -27,7 +27,6 @@ export const AllPlayers = gql`
     }
 `;
 
-interface Props {}
 
 export const useAllPlayers = () => {
     return useLazyQuery(AllPlayers);

@@ -1,32 +1,26 @@
 export * from "./useAddLeague";
-export * from "./useDeleteLeague";
+export * from "./useAddMatch";
+export * from "./useAddMatchCard";
+export * from "./useAddParticipatingPlayers";
+export * from "./useAddParticipatingTeams";
+export * from "./useAddParticipatingTechnicalStaff";
+export * from "./useAddScorerMatch";
 export * from "./useAllLeagues";
+export * from "./useAllParticipatingPlayers";
+export * from "./useAllParticipatingTechnicalStaff";
+export * from "./useAllScorerMatch";
+export * from "./useAllTechnicals";
+export * from "./useDeleteLeague";
+export * from "./useDeleteMatch";
+export * from "./useDeleteMatchCard";
+export * from "./useDeleteParticipatingPlayers";
+export * from "./useDeleteParticipatingTeams";
+export * from "./useDeleteParticipatingTechnicalStaff";
 export * from "./useLeague";
 export * from "./useUpdateLeague";
-
-export * from "./useAddParticipatingTeams";
-export * from "./useDeleteParticipatingTeams";
-export * from "./useUpdateParticipatingTeams";
-
-export * from "./useAddMatch";
 export * from "./useUpdateMatch";
-export * from "./useDeleteMatch";
-
-export * from "./useAddMatchCard";
 export * from "./useUpdateMatchCard";
-export * from "./useDeleteMatchCard";
-
-export * from "./useAddParticipatingPlayers";
-export * from "./useDeleteParticipatingPlayers";
 export * from "./useUpdateParticipatingPlayers";
-export * from "./useAllParticipatingPlayers";
-
-export * from "./useAddParticipatingTechnicalStaff";
+export * from "./useUpdateParticipatingTeams";
 export * from "./useUpdateParticipatingTechnicalStaff";
-export * from "./useDeleteParticipatingTechnicalStaff";
-export * from "./useAllParticipatingTechnicalStaff";
-
-export * from "./useAllTechnicals";
-export * from "./useAddScorerMatch";
 export * from "./useUpdateScorerMatch";
-export * from "./useAllScorerMatch";

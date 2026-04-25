@@ -1,11 +1,11 @@
-import { ApolloClient, from, fromPromise, InMemoryCache } from "@apollo/client";
-import { createUploadLink } from "apollo-upload-client";
-import { onError } from "@apollo/client/link/error";
+import { ApolloClient,from,fromPromise,InMemoryCache } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
-import useStore from "../store/useStore";
+import { onError } from "@apollo/client/link/error";
+import { createUploadLink } from "apollo-upload-client";
 import { getNewToken } from "../graphql";
+import useStore from "../store/useStore";
+import { apiBaseUrl } from "./config";
 import { history } from "./helpers/history";
-import {apiBaseUrl} from "./config";
 
 const authLink = setContext((_, { headers, operationName }) => {
     const token = (useStore.getState() as any).token;

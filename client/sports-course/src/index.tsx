@@ -1,22 +1,22 @@
+import { ApolloProvider } from "@apollo/client";
+import { DirectionProvider,MantineProvider } from "@mantine/core";
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './styles/index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from 'react-router-dom';
-import {ApolloProvider} from "@apollo/client";
-import {AuthProvider} from "./lib/helpers/_auth";
-import {client} from "./lib/graphql";
-import {DirectionProvider, MantineProvider, rem} from "@mantine/core";
-import { breakPoints, colors } from "./lib/theme/theme";
+import App from './App';
+import { client } from "./lib/graphql";
+import { AuthProvider } from "./lib/helpers/_auth";
+import { breakPoints,colors } from "./lib/theme/theme";
+import reportWebVitals from './reportWebVitals';
+import './styles/index.css';
 
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import dayjs from "dayjs";
 import "dayjs/locale/ar";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 import duration from "dayjs/plugin/duration";
 import relativeTime from "dayjs/plugin/relativeTime";
-import customParseFormat from "dayjs/plugin/customParseFormat";
 
 import 'notyf/notyf.min.css';
 dayjs.extend(customParseFormat);

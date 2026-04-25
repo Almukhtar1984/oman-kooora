@@ -1,5 +1,5 @@
-import {useLazyQuery, gql} from "@apollo/client";
-import {GetPerson} from "../../queries";
+import { useLazyQuery } from "@apollo/client";
+import { GetPerson } from "../../queries";
 
 
 const useGetPerson = () => {

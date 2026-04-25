@@ -1,8 +1,6 @@
-import {OperationVariables, QueryTuple, useLazyQuery} from "@apollo/client";
-import {REFRESH_TOKEN} from "../../"
-import {client} from "../../../lib/graphql"
+import { REFRESH_TOKEN } from "../../";
+import { client } from "../../../lib/graphql";
 
-interface Props {}
 
 const getNewToken = async () => {
   return await client.query({

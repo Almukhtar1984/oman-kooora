@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect } from "react";
-import useStore from "../../store/useStore";
 import decode from "jwt-decode";
-import { getNewToken, useGetCurrentUser } from "../../graphql";
+import { useCallback,useEffect } from "react";
+import { getNewToken,useGetCurrentUser } from "../../graphql";
+import useStore from "../../store/useStore";
 
+import { useLocation,useNavigate } from "react-router-dom";
 import LoadingWidget from "../../components/Loading/LoadingWidget";
-import {redirect, useLocation, useNavigate} from "react-router-dom";
 
 export const useAuth = (getCurrentUserLazy: any) => {
     let token = (useStore.getState() as any)?.token;
@@ -72,7 +72,7 @@ export const AuthProvider = ({ client, children }: Props): any => {
     const isAuth = useStore((state: any) => state.isAuth);
 
 
-    const [getCurrentUserLazy, { data, loading, error }]: any = useGetCurrentUser();
+    const [getCurrentUserLazy, { loading }]: any = useGetCurrentUser();
 
     const { checkAuth, checkRefreshToken } = useAuth(getCurrentUserLazy);
 

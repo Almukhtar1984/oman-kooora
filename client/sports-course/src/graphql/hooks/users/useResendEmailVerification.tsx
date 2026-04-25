@@ -1,5 +1,5 @@
-import {ApolloCache, DefaultContext, gql, MutationTuple, useMutation,} from "@apollo/client";
-import {RESEND_VERIFICATION_EMAIL} from "../../"
+import { MutationTuple,useMutation } from "@apollo/client";
+import { RESEND_VERIFICATION_EMAIL } from "../../";
 
 interface VariableProps {
   email?: string;

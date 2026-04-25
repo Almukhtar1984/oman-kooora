@@ -1,4 +1,4 @@
-import {gql} from "@apollo/client";
+import { gql } from "@apollo/client";
 
 export const FORGET_PW = gql`
   mutation ForgetPassword($email: String) {

@@ -1,16 +1,8 @@
-import React, { useState } from 'react'
-import { Outlet } from 'react-router-dom'
-import {MainHeader} from './'
-import {SideBar} from './'
-import {AppShell, Skeleton} from "@mantine/core";
-import {useDisclosure} from "@mantine/hooks";
-import {useMantineTheme} from "@mantine/core";
-
-interface Props {
-    menu: boolean
-    setMenu: React.Dispatch<React.SetStateAction<boolean>>
-    direction: string
-}
+import { AppShell,useMantineTheme } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import { MainHeader,SideBar } from './';
 
 export const Layout = () => {
     const [opened, { toggle }] = useDisclosure();

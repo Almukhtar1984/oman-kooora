@@ -1,4 +1,4 @@
-import colors from "./colors";
 import breakPoints from "./breakPoints";
+import colors from "./colors";
 
-export { colors, breakPoints };
+export { colors,breakPoints };

@@ -1,6 +1,5 @@
-import React from 'react';
+import { MainRoutes } from "./routes";
 import './styles/App.css';
-import {MainRoutes} from "./routes";
 
 function App() {
   return (

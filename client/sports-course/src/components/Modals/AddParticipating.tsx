@@ -1,10 +1,10 @@
-import {Box, Button, Grid, Group, Select} from "@mantine/core";
-import {IconCheck, IconX} from "@tabler/icons-react";
-import React, {useEffect, useState} from "react";
+import { Box,Button,Grid,Group,Select } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import Modal, { Props as ModalProps } from "./Modal";
-import {AllLeagues, useAddParticipatingTeams, useAllClub, useAllTeams} from "../../graphql";
-import {Notyf} from "notyf";
+import { IconCheck,IconX } from "@tabler/icons-react";
+import { Notyf } from "notyf";
+import { useEffect,useState } from "react";
+import { AllLeagues,useAddParticipatingTeams,useAllClub } from "../../graphql";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -28,7 +28,6 @@ export const AddParticipating = ({data, ...props}: Props) => {
     const [allTeams, setAllTeams] = useState<{ label: string, value: string }[][]>([]);
 
     const [getAllClubs, {data: dataAllClub}] = useAllClub();
-    const [getAllTeams] = useAllTeams();
 
     useEffect(() => {
         if (data !== null && props.opened) {
@@ -57,7 +56,7 @@ export const AddParticipating = ({data, ...props}: Props) => {
         //         }
         //     })
         // }
-    }, [data, props.opened])
+    }, [data, insertListItem, props.opened])
 
     useEffect(() => {
         if (props.opened) {
@@ -75,7 +74,7 @@ export const AddParticipating = ({data, ...props}: Props) => {
                 }
             })
         }
-    }, [props.opened])
+    }, [getAllClubs, props.opened])
 
     const onFormSubmit = ({teams}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

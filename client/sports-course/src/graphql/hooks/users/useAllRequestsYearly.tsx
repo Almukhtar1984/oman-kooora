@@ -1,5 +1,4 @@
-import {useLazyQuery} from "@apollo/client";
-import {gql} from "@apollo/client";
+import { gql,useLazyQuery } from "@apollo/client";
 
 const AllRequestsAdminYearly = gql`
     query AllRequestsAdminYearly($idAdmin: ID, $start: String, $end: String) {

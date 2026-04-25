@@ -1,7 +1,6 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
 import { MockedProvider } from '@apollo/client/testing';
-import { DirectionProvider, MantineProvider } from '@mantine/core';
+import { DirectionProvider,MantineProvider } from '@mantine/core';
+import { render,screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 

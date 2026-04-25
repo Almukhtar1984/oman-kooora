@@ -1,13 +1,11 @@
-import {ActionIcon, Divider, Group, Menu, Tooltip} from '@mantine/core';
+import { ActionIcon,Divider,Group,Menu,Tooltip } from '@mantine/core';
 import {
-    IconDotsVertical,
-    IconEdit,
-    IconTrash,
-    IconInfoCircle,
-    IconPlus
+IconDotsVertical,
+IconEdit,IconInfoCircle,
+IconPlus,IconTrash
 } from '@tabler/icons-react';
-import DataTable, {TableStyles} from 'react-data-table-component';
 import dayjs from "dayjs";
+import DataTable,{ TableStyles } from 'react-data-table-component';
 import { GiSoccerBall } from "react-icons/gi";
 
 const customStyles: TableStyles = {

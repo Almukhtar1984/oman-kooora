@@ -1,12 +1,10 @@
-import {ActionIcon, Box, Button, Grid, Group, NumberInput, Select, TextInput, Tooltip} from "@mantine/core";
-import {IconCheck, IconPlus, IconTrash, IconX} from "@tabler/icons-react";
-import React, {useEffect, useState} from "react";
+import { ActionIcon,Box,Button,Grid,Group,Select,TextInput,Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import Modal, { Props as ModalProps } from "./Modal";
-import {AllLeagues, useAllParticipatingPlayers, useAllScorerMatch, useUpdateScorerMatch} from "../../graphql";
-import {Notyf} from "notyf";
-import {DateInput} from "@mantine/dates";
-import dayjs from "dayjs";
+import { IconCheck,IconPlus,IconTrash,IconX } from "@tabler/icons-react";
+import { Notyf } from "notyf";
+import { useEffect,useState } from "react";
+import { AllLeagues,useAllParticipatingPlayers,useAllScorerMatch,useUpdateScorerMatch } from "../../graphql";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -96,7 +94,14 @@ export const UpdateScorerMatch = ({data, ...props}: Props) => {
                 }
             })
         }
-    }, [data, props.opened])
+    }, [
+        data,
+        getAllParticipatingPlayersTeam01,
+        getAllParticipatingPlayersTeam02,
+        getAllScorerMatch,
+        props.opened,
+        setValues,
+    ])
 
     const onFormSubmit = ({scorersMatch}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

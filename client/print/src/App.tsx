@@ -16,7 +16,7 @@ function App() {
         fetchPolicy: "network-only"
       })
     }
-  }, [id])
+  }, [getPlayer, id])
 
   return (
     <CardTemplate player={dataPlayer?.player as any} />

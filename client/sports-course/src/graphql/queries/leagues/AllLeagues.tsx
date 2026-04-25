@@ -1,4 +1,4 @@
-import {gql} from "@apollo/client";
+import { gql } from "@apollo/client";
 
 export const AllLeagues = gql`
     query AllLeague($idClub: ID) {

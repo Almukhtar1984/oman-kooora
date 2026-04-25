@@ -1,10 +1,10 @@
-import {Box, Button, Grid, Group, Select} from "@mantine/core";
-import {IconCheck, IconX} from "@tabler/icons-react";
-import React, {useEffect, useState} from "react";
+import { Box,Button,Grid,Group,Select } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import Modal, { Props as ModalProps } from "./Modal";
-import {AllLeagues, useAllClub, useAllTeams, useUpdateLeague, useUpdateParticipatingTeams} from "../../graphql";
-import {Notyf} from "notyf";
+import { IconCheck,IconX } from "@tabler/icons-react";
+import { Notyf } from "notyf";
+import { useEffect,useState } from "react";
+import { AllLeagues,useAllClub,useUpdateParticipatingTeams } from "../../graphql";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -25,7 +25,6 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
     const [club, setClub] = useState<(string | null) []>([]);
     const [allTeams, setAllTeams] = useState<{ label: string, value: string }[][]>([]);
 
-    const [getAllTeams] = useAllTeams();
     const [getAllClubs, {data: dataAllClub}] = useAllClub();
 
     const [updateParticipatingTeams] = useUpdateParticipatingTeams();
@@ -51,7 +50,7 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
                 insertListItem("teams", {group: "", id_team: "", id_league: data.id})
             }
         }
-    }, [data, props.opened])
+    }, [data, insertListItem, props.opened])
 
     useEffect(() => {
         if (props.opened) {
@@ -69,7 +68,7 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
                 }
             })
         }
-    }, [props.opened])
+    }, [getAllClubs, props.opened])
 
     useEffect(() => {
         if (props.opened && dataAllClub?.allClub?.length >= 0) {
@@ -93,7 +92,7 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
 
             setAllClubs([...newAllClubs])
         }
-    }, [props.opened, dataAllClub])
+    }, [club, dataAllClub, props.opened])
 
     const onFormSubmit = ({teams}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

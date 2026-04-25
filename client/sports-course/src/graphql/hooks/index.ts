@@ -1,3 +1,3 @@
-export * from "./users";
-export * from "./teams";
 export * from "./leagues";
+export * from "./teams";
+export * from "./users";

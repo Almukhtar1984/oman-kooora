@@ -31,7 +31,7 @@ export default function Assembly() {
                 })
             }
         }
-    }, [id])
+    }, [getAllAssemblyClub, getAllAssemblyTeam, id, type])
 
     return (
         <ListAssembly assemblies={allAssembly as any} />

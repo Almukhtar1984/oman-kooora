@@ -1,13 +1,11 @@
-import {Box, Button, Grid, Group, TextInput, Textarea, NumberInput, Select} from "@mantine/core";
-import {IconCalendar, IconCheck, IconChevronDown, IconX} from "@tabler/icons-react";
-import React, {useEffect, useRef, useState} from "react";
+import { Box,Button,Grid,Group,Select,TextInput } from "@mantine/core";
+import { TimeInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
-import Modal, { Props as ModalProps } from "./Modal";
-import {AllLeagues, useAddLeague, useAddMatch, useAddMatchCard} from "../../graphql";
-import useStore from "../../store/useStore";
-import {Notyf} from "notyf";
-import {DateInput, DateTimePicker, TimeInput} from "@mantine/dates";
-import dayjs from "dayjs";
+import { IconCheck,IconX } from "@tabler/icons-react";
+import { Notyf } from "notyf";
+import { useEffect,useState } from "react";
+import { AllLeagues,useAddMatchCard } from "../../graphql";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -17,8 +15,7 @@ type Props = {
 } & ModalProps;
 
 export const AddMatchCard = ({data, ...props}: Props) => {
-    const userData = useStore((state: any) => state.userData);
-    const {getInputProps, reset, onSubmit, setValues} = useForm({
+    const {getInputProps, reset, onSubmit} = useForm({
         initialValues: {date: "", type: "", player: "", id_team: ""}
     });
     const [allTeams, setAllTeams] = useState<{ label: string, value: string }[]>([]);

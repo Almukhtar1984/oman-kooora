@@ -1,4 +1,4 @@
-import {gql} from "@apollo/client";
+import { gql } from "@apollo/client";
 
 export const UpdateScorerMatch = gql`
     mutation UpdateScorerMatch($content: [contentUpdateScorerMatch!]) {

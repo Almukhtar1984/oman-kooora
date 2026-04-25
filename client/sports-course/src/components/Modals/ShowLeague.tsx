@@ -1,8 +1,7 @@
-import {Box, Grid, Group, useMantineTheme, Stack, Text, ActionIcon, Divider, Menu} from "@mantine/core";
-import {IconDotsVertical, IconEdit, IconInfoCircle, IconTrash} from "@tabler/icons-react";
-import React, {useEffect, useRef, useState} from "react";
-import Modal, { Props as ModalProps } from "./Modal";
-import useStore from "../../store/useStore";
+import { ActionIcon,Box,Grid,Group,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
+import { IconDotsVertical,IconInfoCircle } from "@tabler/icons-react";
+import { useEffect,useState } from "react";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -15,7 +14,6 @@ type Props = {
 } & ModalProps;
 
 export const ShowLeague = ({data, setSelectedData, setOpenShowParticipatingPlayersModal, setOpenShowParticipatingTechnicalStaffModal, ...props}: Props) => {
-    const userData = useStore((state: any) => state.userData);
     const theme = useMantineTheme();
     const [groupedData, setGroupedData] = useState<any>([]);
 

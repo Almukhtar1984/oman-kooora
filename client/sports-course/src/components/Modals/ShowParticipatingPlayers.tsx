@@ -1,11 +1,9 @@
-import {Box, Grid, Group, useMantineTheme, Stack, Text, Menu, ActionIcon, Image} from "@mantine/core";
-import {IconDotsVertical, IconEdit} from "@tabler/icons-react";
-import Modal, { Props as ModalProps } from "./Modal";
-import useStore from "../../store/useStore";
-import dayjs from "dayjs";
-import {useAllParticipatingPlayers} from "../../graphql";
-import React, {useEffect, useState} from "react";
-import {apiBaseUrl} from "../../lib/config";
+import { ActionIcon,Box,Grid,Group,Image,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
+import { IconDotsVertical,IconEdit } from "@tabler/icons-react";
+import { useEffect,useState } from "react";
+import { useAllParticipatingPlayers } from "../../graphql";
+import { apiBaseUrl } from "../../lib/config";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -16,9 +14,8 @@ type Props = {
 } & ModalProps;
 
 export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditParticipatingPlayersModal, ...props}: Props) => {
-    const userData = useStore((state: any) => state.userData);
     const theme = useMantineTheme();
-    const [getAllParticipatingPlayers, {data: dataAllParticipatingPlayers}] = useAllParticipatingPlayers()
+    const [getAllParticipatingPlayers] = useAllParticipatingPlayers()
 
     const [allParticipatingPlayers, setAllParticipatingPlayers] = useState<object[]>([]);
 
@@ -34,7 +31,7 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
                 }
             })
         }
-    }, [data, props.opened]);
+    }, [data, getAllParticipatingPlayers, props.opened]);
 
     const closeModal = () => {
         props.onClose();

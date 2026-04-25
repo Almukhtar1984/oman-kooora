@@ -1,5 +1,5 @@
-import {MutationTuple, useMutation} from "@apollo/client";
-import {Add_User_Image} from "../../"
+import { MutationTuple,useMutation } from "@apollo/client";
+import { Add_User_Image } from "../../";
 
 
 interface VariableProps {

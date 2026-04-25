@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import './App.css';
 import ListPlayers from "./components/PDF/ListPlayers";
 import {useAllPlayersClub, useAllPlayersTeam, useAllPlayersClubByClass, useAllPlayersTeamByClass} from "./graphql";
@@ -53,28 +53,33 @@ export default function Players() {
                 }
             }
         }
-    }, [id])
+    }, [
+        className,
+        getAllPlayersClub,
+        getAllPlayersClubByClass,
+        getAllPlayersTeam,
+        getAllPlayersTeamByClass,
+        id,
+        type,
+    ])
 
-    useEffect(() => {
+    const filteredPlayers = useMemo(() => {
         if (op !== undefined && op !== "" && age !== undefined && age !== "") {
             if (op !== "" && age !== "0") {
-                let filterAllPlayers = allPlayers.filter((item: any) => {
-                    if (op == ">") {
+                return allPlayers.filter((item: any) => {
+                    if (op === ">") {
                         return dayjs(item?.person?.date_birth).fromNow(true) >= age
                     } else {
                         return dayjs(item?.person?.date_birth).fromNow(true) <= age
                     }
                 })
-                setAllPlayers([...filterAllPlayers])
-            } else {
-                setAllPlayers([...allPlayers])
             }
-        } else {
-            setAllPlayers([...allPlayers])
         }
-    }, [op, age]);
+
+        return allPlayers;
+    }, [age, allPlayers, op]);
 
     return (
-        <ListPlayers players={allPlayers as any} />
+        <ListPlayers players={filteredPlayers as any} />
     );
 }

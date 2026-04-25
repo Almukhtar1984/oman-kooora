@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react'
-import {Link, useLocation, useNavigate} from 'react-router-dom';
+import { useLocation,useNavigate } from 'react-router-dom';
 // import { useAllStore } from '../../graphql';
-import {Image, Tooltip, Box, AppShell, useMantineTheme} from '@mantine/core';
-import {IconHome} from "@tabler/icons-react";
-import classes  from "../../styles/Dashboard/SideBar.module.css";
+import { AppShell,Box,Image,Tooltip,useMantineTheme } from '@mantine/core';
+import { IconHome } from "@tabler/icons-react";
+import classes from "../../styles/Dashboard/SideBar.module.css";
 
 export const SideBar = () => {
     const theme = useMantineTheme();

@@ -1,5 +1,5 @@
-import {MutationTuple, useMutation} from "@apollo/client";
-import {DeleteLeague} from "../../"
+import { MutationTuple,useMutation } from "@apollo/client";
+import { DeleteLeague } from "../../";
 
 
 interface VariableProps {

@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
-import useStore from '../../store/useStore';
-import {Box, Button, Container, Flex, MantineTheme, Menu, Text, useMantineTheme, } from "@mantine/core";
+import { Box,Button,Container,Flex,MantineTheme,Menu,Text,useMantineTheme } from "@mantine/core";
+import { IconChevronDown,IconLogout } from "@tabler/icons-react";
 import Avvvatars from "avvvatars-react";
-import {useNavigate} from "react-router-dom";
-import {IconChevronDown, IconLogout} from "@tabler/icons-react";
-import {useLogout} from "../../graphql";
+import { useState } from 'react';
+import { useNavigate } from "react-router-dom";
+import { useLogout } from "../../graphql";
+import useStore from '../../store/useStore';
 
 interface Props {
     opened: boolean
@@ -59,11 +59,12 @@ export const MainHeader = ({opened, toggle}: Props) => {
                                     <Flex align={"center"} gap="22px" w="100%" h="100%">
                                         <Flex gap="8px" h="100%" align={"center"}>
                                             <Box
-                                                style={({ colors }) => ({
-                                                    border: "1px solid " + colors.gray[3],
+                                                style={{
+                                                    border: "1px solid " + theme.colors.gray[3],
                                                     borderRadius: "50%",
-                                                })}
+                                                }}
                                             >
+                                                {/* eslint-disable-next-line react/style-prop-object */}
                                                 <Avvvatars value="a" style="shape" size={34} border={true} borderColor="#FFFFFF" borderSize={2}/>
                                             </Box>
                                             <Flex direction={"column"} align={'flex-start'} gap="3px">

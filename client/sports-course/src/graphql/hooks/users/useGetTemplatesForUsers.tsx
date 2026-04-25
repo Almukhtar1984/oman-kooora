@@ -1,7 +1,6 @@
-import { gql, useQuery } from "@apollo/client";
-import {all_Formats} from "../../"
+import { useQuery } from "@apollo/client";
+import { all_Formats } from "../../";
 
-interface Props {}
 
 const useGetTemplatesForUsers = (/* { id }: { id?: string } */) => {
   let { data, loading, refetch } = useQuery(all_Formats, {

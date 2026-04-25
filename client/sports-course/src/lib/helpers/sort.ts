@@ -1,4 +1,4 @@
-import {matchSorter} from "match-sorter";
+import { matchSorter } from "match-sorter";
 
 export const sortedData = (data: Array<object>) => {
     return matchSorter(data, "", {

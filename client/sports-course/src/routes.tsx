@@ -1,11 +1,10 @@
-import React from 'react'
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Route,Routes,useLocation,useNavigate } from 'react-router-dom';
 
+import { Layout } from './components/Layouts';
 import { history } from './lib/helpers/history';
-import {Layout} from './components/Layouts';
 
+import { Home } from "./pages/Dashboard";
 import Login from "./pages/Login";
-import {Home} from "./pages/Dashboard";
 
 export const MainRoutes = () => {
     history.navigate = useNavigate();

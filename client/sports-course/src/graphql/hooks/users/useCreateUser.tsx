@@ -1,5 +1,5 @@
-import {ApolloCache, DefaultContext, MutationTuple, useMutation,} from "@apollo/client";
-import {Create_User} from "../../"
+import { ApolloCache,DefaultContext,MutationTuple,useMutation } from "@apollo/client";
+import { Create_User } from "../../";
 
 interface VariableProps {
   content: {

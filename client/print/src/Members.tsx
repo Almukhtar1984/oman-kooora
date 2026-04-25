@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
 import ListMembers from "./components/PDF/ListMembers";
-import {useAllPlayersClub, useAllMembers} from "./graphql";
+import {useAllMembers} from "./graphql";
 import {useParams} from "react-router-dom";
 
 export default function Members() {
@@ -30,7 +30,7 @@ export default function Members() {
             //     })
             // }
         }
-    }, [id])
+    }, [getAllMembers, id, type])
 
     return (
         <ListMembers players={allMembers as any} />

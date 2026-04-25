@@ -15,7 +15,7 @@ function CardAssembly() {
                 fetchPolicy: "network-only"
             })
         }
-    }, [id])
+    }, [getAssembly, id])
 
     return (
         <AssemblyCardTemplate assembly={dataAssembly?.assembly as any} />

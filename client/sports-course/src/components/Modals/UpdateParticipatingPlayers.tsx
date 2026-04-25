@@ -1,13 +1,10 @@
-import {ActionIcon, Box, Button, Grid, Group, Select, TextInput, Tooltip} from "@mantine/core";
-import {IconCheck, IconPlus, IconTrash, IconX} from "@tabler/icons-react";
-import React, {useEffect, useState} from "react";
+import { Box,Button,Grid,Group,Text,TextInput,useMantineTheme } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import Modal, { Props as ModalProps } from "./Modal";
-import {AllLeagues, AllParticipatingPlayers, useAddParticipatingPlayers, useAllPlayers, useUpdateParticipatingPlayers} from "../../graphql";
-import {Notyf} from "notyf";
-import {DateInput} from "@mantine/dates";
-import dayjs from "dayjs";
-import {Text, useMantineTheme} from "@mantine/core";
+import { IconCheck,IconX } from "@tabler/icons-react";
+import { Notyf } from "notyf";
+import { useEffect } from "react";
+import { AllParticipatingPlayers,useUpdateParticipatingPlayers } from "../../graphql";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -18,7 +15,7 @@ type Props = {
 
 export const UpdateParticipatingPlayers = ({data, ...props}: Props) => {
     const theme = useMantineTheme();
-    const {getInputProps, reset, onSubmit, values, setValues, removeListItem} = useForm({
+    const {getInputProps, reset, onSubmit, setValues} = useForm({
         initialValues: {number: ""}
     });
     const [updateParticipatingPlayers] = useUpdateParticipatingPlayers();
@@ -30,7 +27,7 @@ export const UpdateParticipatingPlayers = ({data, ...props}: Props) => {
                 number: data.number
             })
         }
-    }, [data, props.opened])
+    }, [data, props.opened, setValues])
 
     const onFormSubmit = ({number}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

@@ -1,5 +1,5 @@
-import {ApolloCache, DefaultContext, MutationTuple, useMutation,} from "@apollo/client";
-import {CHANGE_PW} from "../../"
+import { MutationTuple,useMutation } from "@apollo/client";
+import { CHANGE_PW } from "../../";
 
 
 interface VariableProps {

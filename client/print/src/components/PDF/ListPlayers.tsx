@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 import {Page, Text, Image, Document, StyleSheet, View, Font, PDFViewer} from "@react-pdf/renderer";
 
@@ -21,11 +21,6 @@ Font.register({
         },
     ]
 });
-
-function useForceUpdate() {
-    const [value, setValue] = useState(0);
-    return () => setValue((value) => value + 1);
-}
 
 const styles = StyleSheet.create({
     body: {
@@ -60,8 +55,6 @@ const styles = StyleSheet.create({
 })
 
 const ListPlayers = ({ players }: Props) => {
-    let forceUpdate = useForceUpdate();
-
     return (
         <PDFViewer   style={{ minHeight: "calc(100vh - 25px )", minWidth: "calc(100vw - 10px )" }}>
             <Document >

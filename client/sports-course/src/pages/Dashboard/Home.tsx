@@ -1,34 +1,14 @@
-import React, {useEffect, useState} from 'react'
-import {Container, Group, useMantineTheme, Button, TextInput} from "@mantine/core";
-import {IconPlus, IconSearch} from "@tabler/icons-react";
-import useStore from "../../store/useStore";
-import {searchSortedData, sortedData} from "../../lib/helpers/sort";
-import {useAllLeagues} from "../../graphql";
+import { Button,Container,Group,TextInput,useMantineTheme } from "@mantine/core";
+import { IconPlus,IconSearch } from "@tabler/icons-react";
+import React,{ useEffect,useState } from 'react';
 import {
-    AddLeague,
-    UpdateLeague,
-    DeleteLeague,
-    AddParticipating,
-    ShowLeague,
-    AddMatch,
-    ShowMatch,
-    UpdateParticipating,
-    AddMatchResult,
-    DeleteMatch,
-    UpdateMatch,
-    UpdateMatchResult,
-    AddMatchCard,
-    AddManOfMatch,
-    UpdateManOfMatch,
-    AddParticipatingPlayers,
-    ShowParticipatingPlayers,
-    UpdateParticipatingPlayers,
-    AddParticipatingTechnicalStaff,
-    ShowParticipatingTechnicalStaff,
-    AddScorerMatch,
-    UpdateScorerMatch
+AddLeague,AddManOfMatch,AddMatch,AddMatchCard,AddMatchResult,AddParticipating,AddParticipatingPlayers,AddParticipatingTechnicalStaff,AddScorerMatch,DeleteLeague,DeleteMatch,ShowLeague,ShowMatch,ShowParticipatingPlayers,ShowParticipatingTechnicalStaff,UpdateLeague,UpdateManOfMatch,UpdateMatch,
+UpdateMatchResult,UpdateParticipating,UpdateParticipatingPlayers,UpdateScorerMatch
 } from "../../components/Modals";
-import {LeaguesTabel} from "../../components/Tables";
+import { LeaguesTabel } from "../../components/Tables";
+import { useAllLeagues } from "../../graphql";
+import { searchSortedData,sortedData } from "../../lib/helpers/sort";
+import useStore from "../../store/useStore";
 
 export const Home = () => {
     const userData = useStore((state: any) => state.userData);
@@ -80,7 +60,7 @@ export const Home = () => {
                 variables: {idClub}
             })
         }
-    }, [userData])
+    }, [getAllLeague, userData])
 
     useEffect(() => {
         if (dataAllLeagues && "allLeagues" in dataAllLeagues) {

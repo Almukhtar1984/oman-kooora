@@ -1,11 +1,8 @@
-import {Box, Grid, Group, useMantineTheme, Stack, Text, Menu, ActionIcon, Image} from "@mantine/core";
-import {IconDotsVertical, IconEdit} from "@tabler/icons-react";
-import Modal, { Props as ModalProps } from "./Modal";
-import useStore from "../../store/useStore";
-import dayjs from "dayjs";
-import {useAllParticipatingTechnicalStaff} from "../../graphql";
-import React, {useEffect, useState} from "react";
-import {apiBaseUrl} from "../../lib/config";
+import { Box,Grid,Group,Image,Stack,Text,useMantineTheme } from "@mantine/core";
+import { useEffect,useState } from "react";
+import { useAllParticipatingTechnicalStaff } from "../../graphql";
+import { apiBaseUrl } from "../../lib/config";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -15,9 +12,8 @@ type Props = {
 } & ModalProps;
 
 export const ShowParticipatingTechnicalStaff = ({data, setSelectedData, ...props}: Props) => {
-    const userData = useStore((state: any) => state.userData);
     const theme = useMantineTheme();
-    const [getAllParticipatingTechnicalStaff, {data: dataAllParticipatingTechnicalStaff}] = useAllParticipatingTechnicalStaff()
+    const [getAllParticipatingTechnicalStaff] = useAllParticipatingTechnicalStaff()
 
     const [allParticipatingTechnicalStaff, setAllParticipatingTechnicalStaff] = useState<object[]>([]);
 
@@ -33,7 +29,7 @@ export const ShowParticipatingTechnicalStaff = ({data, setSelectedData, ...props
                 }
             })
         }
-    }, [data, props.opened]);
+    }, [data, getAllParticipatingTechnicalStaff, props.opened]);
 
     const closeModal = () => {
         props.onClose();

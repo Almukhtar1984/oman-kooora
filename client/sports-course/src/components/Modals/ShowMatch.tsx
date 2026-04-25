@@ -1,9 +1,7 @@
-import {Box, Divider, Grid, Group, useMantineTheme, Stack, Text, Menu, ActionIcon} from "@mantine/core";
-import {IconDotsVertical, IconEdit, IconPlus, IconTrash, } from "@tabler/icons-react";
-import Modal, { Props as ModalProps } from "./Modal";
-import useStore from "../../store/useStore";
+import { ActionIcon,Box,Divider,Grid,Group,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
+import { IconDotsVertical,IconEdit,IconPlus,IconTrash } from "@tabler/icons-react";
 import dayjs from "dayjs";
-import { useEffect } from "react";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -25,7 +23,6 @@ type Props = {
 } & ModalProps;
 
 export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  setOpenEditMatchResultModal, setOpenEditMatchModal, setOpenDeleteMatchModal, setOpenAddMatchCardModal, setOpenAddManOfMatchModal, setOpenEditManOfMatchModal, setOpenAddScorerModal, setOpenUpdateScorerModal, ...props}: Props) => {
-    const userData = useStore((state: any) => state.userData);
     const theme = useMantineTheme();
 
     const closeModal = () => {

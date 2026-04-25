@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 import {Page, Text, Image, Document, StyleSheet, View, Font, PDFViewer} from "@react-pdf/renderer";
 import QRCode from "qrcode";
@@ -25,11 +25,6 @@ Font.register({
         },
     ]
 });
-
-function useForceUpdate() {
-    const [value, setValue] = useState(0);
-    return () => setValue((value) => value + 1);
-}
 
 const styles = StyleSheet.create({
     body: {
@@ -64,8 +59,6 @@ const styles = StyleSheet.create({
 })
 
 const CardTemplate = ({ player }: Props) => {
-    let forceUpdate = useForceUpdate();
-
     let canvas: any = null;
     let qrCodeGenerator = (qrcode: any) => {
         canvas = document.createElement("canvas");

@@ -1,12 +1,10 @@
-import {ActionIcon, Box, Button, Grid, Group, Select, Tooltip} from "@mantine/core";
-import {IconCheck, IconPlus, IconTrash, IconX} from "@tabler/icons-react";
-import React, {useEffect, useState} from "react";
+import { ActionIcon,Box,Button,Grid,Group,Select,Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import Modal, { Props as ModalProps } from "./Modal";
-import {AllLeagues, useAddParticipatingTechnicalStaff, useAllTechnicals} from "../../graphql";
-import {Notyf} from "notyf";
-import {DateInput} from "@mantine/dates";
-import dayjs from "dayjs";
+import { IconCheck,IconPlus,IconTrash,IconX } from "@tabler/icons-react";
+import { Notyf } from "notyf";
+import { useEffect,useState } from "react";
+import { AllLeagues,useAddParticipatingTechnicalStaff,useAllTechnicals } from "../../graphql";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -70,7 +68,7 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
                 })
             }
         }
-    }, [participatingTeam])
+    }, [data?.participatingTeams, getAllTechnicals, participatingTeam, props.opened])
 
     const onFormSubmit = ({technicals}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

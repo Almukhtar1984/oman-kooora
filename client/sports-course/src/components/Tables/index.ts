@@ -1,1 +1,1 @@
-export * from "./Leagues"
+export * from "./Leagues";

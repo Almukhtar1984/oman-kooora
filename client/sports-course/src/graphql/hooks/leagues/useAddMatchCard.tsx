@@ -1,5 +1,5 @@
-import {MutationTuple, useMutation} from "@apollo/client";
-import {AddMatchCard} from "../.."
+import { MutationTuple,useMutation } from "@apollo/client";
+import { AddMatchCard } from "../..";
 
 
 interface VariableProps {

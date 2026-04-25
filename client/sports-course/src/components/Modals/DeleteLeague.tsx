@@ -1,9 +1,8 @@
-import {Box, Button, Grid, Group, Text} from "@mantine/core";
-import {IconCheck, IconX} from "@tabler/icons-react";
-import Modal, { Props as ModalProps } from "./Modal";
-import {AllLeagues, useDeleteLeague} from "../../graphql";
-import useStore from "../../store/useStore";
-import {Notyf} from "notyf";
+import { Box,Button,Grid,Group,Text } from "@mantine/core";
+import { IconCheck,IconX } from "@tabler/icons-react";
+import { Notyf } from "notyf";
+import { AllLeagues,useDeleteLeague } from "../../graphql";
+import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
 
@@ -13,8 +12,6 @@ type Props = {
 } & ModalProps;
 
 export const DeleteLeague = ({data, ...props}: Props) => {
-    const userData = useStore((state: any) => state.userData);
-
     const [deleteLeague] = useDeleteLeague();
 
     const onFormSubmit = () => {

@@ -19,6 +19,51 @@
 
 ## 2026-04-25
 
+### 46. تنظيف تحذيرات lint في sports-course
+
+- تم إضافة script جديد في `client/sports-course/package.json`:
+  - `npm run lint`
+- تم تنظيف تحذيرات ESLint في `client/sports-course`:
+  - تنظيم imports وإزالة imports غير المستخدمة.
+  - إزالة types وvariables غير المستخدمة.
+  - إصلاح dependencies الناقصة في `useEffect` داخل صفحات ومودالات الدورة.
+  - معالجة تحذير `react/style-prop-object` في `Avvvatars` مع إبقاء API
+    الخاصة بالمكتبة كما هي.
+- تم تشغيل:
+  - `npm run lint` داخل `client/sports-course`
+  - `CI=true npm test -- --watchAll=false` داخل `client/sports-course`
+  - `npm run test:server`
+  - `npm run db:check-model-migrations`
+  - `git diff --check`
+- النتيجة:
+  - `client/sports-course` lint بدون warnings أو errors.
+  - اختبار `client/sports-course` نجح.
+
+---
+
+### 45. إضافة lint لتطبيق print وتنظيف تحذير @next/font
+
+- تم تنظيف تحذيرات ESLint في `client/print`:
+  - إصلاح dependencies الناقصة في `useEffect`.
+  - إزالة imports وtypes ودوال غير مستخدمة.
+  - تحويل فلترة اللاعبين حسب العمر إلى `useMemo` بدل `useEffect` يغير نفس
+    state.
+  - استبدال المقارنة `==` بـ `===`.
+- تم إضافة script جديد في `client/print/package.json`:
+  - `npm run lint`
+- تم توحيد نسخة `@next/font` في `client/super-admin` مع نسخة `next` على
+  `13.0.3` لإزالة تحذير اختلاف النسخ أثناء lint.
+- تم تشغيل:
+  - `npm run lint` داخل `client/print`
+  - `npm run lint -- --no-cache` داخل `client/super-admin`
+  - `git diff --check`
+- النتيجة:
+  - `client/print` lint بدون warnings أو errors.
+  - `client/super-admin` lint بدون warnings أو errors وبدون تحذير
+    `@next/font`.
+
+---
+
 ### 44. إصلاح اختبار client/print
 
 - تم إضافة polyfill لـ `TextEncoder` و`TextDecoder` في:

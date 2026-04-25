@@ -1317,10 +1317,10 @@
   dependencies:
     glob "7.1.7"
 
-"@next/font@^13.0.4":
-  version "13.0.4"
-  resolved "https://registry.npmjs.org/@next/font/-/font-13.0.4.tgz"
-  integrity sha512-csZhVqe870p7XE03WfbDLzjVwdBAWxe6/lWGQosfqY/XN5tsmfDLpj442veicfCiiuF7/ydSnAAJxH8PQVBVWQ==
+"@next/font@^13.0.3":
+  version "13.0.3"
+  resolved "https://registry.npmjs.org/@next/font/-/font-13.0.3.tgz"
+  integrity sha512-J3bZooNyhzhRshEJZlc4Kagfx6f8LQkPdCsP0nZm63dAUaoeMaQRidFFhbL68WZ3S5XleVfpGYypZuBSyJqYtw==
 
 "@next/swc-android-arm-eabi@13.0.3":
   version "13.0.3"
