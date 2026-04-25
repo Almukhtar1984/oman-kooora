@@ -173,7 +173,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
         } else {
             setAllMembers({nodes: [...list]})
         }
-    }, [valueCheck, valueClasseCheck, dateCheck]);
+    }, [valueCheck, valueClasseCheck, dateCheck, list]);
 
     const dateFilter = (dateCheck: any, list: any) => {
         let listDates: string[] = []

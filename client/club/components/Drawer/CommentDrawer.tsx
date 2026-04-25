@@ -28,7 +28,7 @@ export function CommentDrawer({ data, setOpenCommentModal, ...props }: Props) {
                 }
             })
         }
-    }, [data, props.opened]);
+    }, [data, props.opened, getMessage]);
 
 
     useEffect(() => {

@@ -68,6 +68,7 @@ export const ShowBlog = (props: Props) => {
                                     <Image
                                         key={item?.id}
                                         src={`${apiUrl}/images/${item?.content}`}
+                                        alt={props?.data?.subject || "صورة الخبر"}
                                         width={"100%"} height={400}
                                         styles={{
                                             root: {border: "2px solid #eee", borderRadius: 8},

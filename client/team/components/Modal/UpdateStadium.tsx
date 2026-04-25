@@ -47,7 +47,7 @@ export const UpdateStadium = (props: Props) => {
             setAttachments((prevState) => [...prevState, ...result])
 
         }
-    }, [props.data, props.opened]);
+    }, [props.data, props.opened, attachmentsData, setValues]);
 
     const uniqueElements = (arr1, arr2) => {
         const uniqueArr1 = arr1.filter(item => !arr2.includes(item));

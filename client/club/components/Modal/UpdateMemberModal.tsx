@@ -35,6 +35,7 @@ export const UpdateMemberModal = ({id, opened, ...props}: Props) => {
     const form = useForm({
         initialValues: init
     });
+    const {setValues} = form;
     const [idPerson, setIdPerson] = useState("");
     const [updateMember] = useUpdateMember();
 
@@ -47,11 +48,11 @@ export const UpdateMemberModal = ({id, opened, ...props}: Props) => {
                 fetchPolicy: "network-only"
             })
         }
-    }, [id, opened])
+    }, [id, opened, getMember])
 
     useEffect(() => {
         if (dataMember && "member" in dataMember) {
-            form.setValues({
+            setValues({
                 classification: dataMember?.member?.classification,
                 membership_date: new Date(dataMember?.member?.membership_date) || null,
 
@@ -70,7 +71,7 @@ export const UpdateMemberModal = ({id, opened, ...props}: Props) => {
             })
             setIdPerson(dataMember?.member?.person?.id)
         }
-    }, [dataMember])
+    }, [dataMember, setValues])
 
     const onSubmit = (data: any) => {
         const {occupation, classification, membership_date, membership_date_end, paid, person } = data

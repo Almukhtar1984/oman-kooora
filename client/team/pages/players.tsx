@@ -66,7 +66,7 @@ export default function Players() {
             const permission = userData?.permission
             setPermissions(permission?.players?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllPlayers])
 
     useEffect(() => {
         if (dataAllPlayers && "allPlayers" in dataAllPlayers) {

@@ -36,6 +36,7 @@ export const UpdateTechnicalModal = ({id, opened, ...props}: Props) => {
     const form = useForm({
         initialValues: init
     });
+    const {setValues} = form;
     const [idPerson, setIdPerson] = useState("");
     const [file, setFile] = useState<File[] | null>(null);
     const openRef = useRef<() => void>(null);
@@ -50,11 +51,11 @@ export const UpdateTechnicalModal = ({id, opened, ...props}: Props) => {
                 fetchPolicy: "network-only"
             })
         }
-    }, [id, opened])
+    }, [id, opened, getTechnical])
 
     useEffect(() => {
         if (dataTechnical && "technicalApparatus" in dataTechnical) {
-            form.setValues({
+            setValues({
                 classification: dataTechnical?.technicalApparatus?.classification,
                 membership_date: new Date(dataTechnical?.technicalApparatus?.membership_date),
 
@@ -74,7 +75,7 @@ export const UpdateTechnicalModal = ({id, opened, ...props}: Props) => {
             })
             setIdPerson(dataTechnical?.technicalApparatus?.person?.id)
         }
-    }, [dataTechnical])
+    }, [dataTechnical, setValues])
 
     const onSubmit = (data: any) => {
         const {occupation, classification, membership_date, membership_date_end, paid, person } = data

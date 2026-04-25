@@ -64,7 +64,7 @@ export const InboxTable = ({ list, search, setOpenCommentModal, setOpenChangeSta
     useEffect(() => {
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers([...filterAllMembers])
-    }, [search]);
+    }, [search, list]);
 
     const openModelDelete = (id: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(id)

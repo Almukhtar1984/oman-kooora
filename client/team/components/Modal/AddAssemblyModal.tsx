@@ -55,7 +55,7 @@ export const AddAssemblyModal = (props: Props) => {
             setOldNationalIDBack(props?.data?.player?.nationalIDBack)
             setOldPersonalPicture(person?.personal_picture)
         }
-    }, [props.data, props.opened]);
+    }, [props.data, props.opened, setValues]);
 
     const onFormSubmit = ({first_name, second_name, third_name, tribe, date_birth, card_number, phone, type, membership_date, gender, subscription_date}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

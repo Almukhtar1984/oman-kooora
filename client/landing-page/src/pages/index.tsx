@@ -22,7 +22,7 @@ export default function Home() {
         getAllBlogs({
             fetchPolicy: "cache-and-network"
         })
-    }, [])
+    }, [getAllBlogs])
 
     useEffect(() => {
         if (dataAllBlogs && "allBlogs" in dataAllBlogs) {

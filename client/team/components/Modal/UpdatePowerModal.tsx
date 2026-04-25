@@ -26,6 +26,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
     const form = useForm({
         initialValues: init
     });
+    const {setValues} = form;
     const [idUser, setIdUser] = useState("");
     const [fullName, setFullName] = useState("");
     const [idPermissions, setIdPermissions] = useState("");
@@ -54,13 +55,13 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                 fetchPolicy: "network-only"
             })
         }
-    }, [id, opened])
+    }, [id, opened, getMember])
 
     useEffect(() => {
         if (dataMember && "member" in dataMember && dataMember.member !== null) {
             const member = dataMember.member
             setFullName(`${member?.person?.first_name} ${member?.person?.second_name} ${member?.person?.third_name} ${member?.person?.tribe}`)
-            form.setValues({
+            setValues({
                 user: {
                     email: member?.person?.user?.email,
                     password: ""
@@ -81,7 +82,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
             setForms(permission?.forms?.split(","))
             setPermissions(permission?.permissions?.split(","))
         }
-    }, [dataMember])
+    }, [dataMember, setValues])
 
     const onSubmit = (data: any) => {
         const {user } = data

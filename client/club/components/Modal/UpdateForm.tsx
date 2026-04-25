@@ -67,7 +67,7 @@ export const UpdateForm = (props: Props) => {
             })
             setContent(props.data?.description)
         }
-    }, [props.data, props.opened]);
+    }, [props.data, props.opened, setValues]);
 
     const onFormSubmit = ({subject, short_description}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

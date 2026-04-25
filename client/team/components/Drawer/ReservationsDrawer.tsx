@@ -24,7 +24,7 @@ export function ReservationsDrawer({ data, setOpenCommentModal, ...props }: Prop
                 fetchPolicy: "network-only"
             })
         }
-    }, [data, props.opened]);
+    }, [data, props.opened, getReservations]);
 
     useEffect(() => {
         if (dataReservations && "allReservations" in dataReservations && dataReservations?.allReservations.length >= 0) {

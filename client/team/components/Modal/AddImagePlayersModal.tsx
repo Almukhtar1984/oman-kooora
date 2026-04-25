@@ -100,7 +100,7 @@ export const AddImagePlayersModal = ({id, opened, ...props}: Props) => {
                             const imageUrl = URL.createObjectURL(item);
 
                             return (
-                                <Image key={index} src={imageUrl} imageProps={{ onLoad: () => URL.revokeObjectURL(imageUrl) }}/>
+                                <Image key={index} src={imageUrl} alt="صورة اللاعب" imageProps={{ onLoad: () => URL.revokeObjectURL(imageUrl) }}/>
                             );
                         })}
                     </Col>

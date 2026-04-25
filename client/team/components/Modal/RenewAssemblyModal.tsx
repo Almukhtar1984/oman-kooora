@@ -26,7 +26,7 @@ export const RenewAssemblyModal = ({ data, ...props }: Props) => {
         const yearNow = dayjs(new Date()).format("YYYY")
 
         setDuration(parseInt(yearNow) - parseInt(yearSubscription))
-    }, [])
+    }, [data?.subscription_date])
 
     const onSubmit = () => {
         updateAssembly({

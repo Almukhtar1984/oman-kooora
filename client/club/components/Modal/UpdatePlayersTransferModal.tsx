@@ -13,6 +13,7 @@ type Props = {
 
 export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
+    const clubId = userData?.person?.clubManagement?.club?.id;
     const form = useForm({
         initialValues: {id_team_to: ""}
     });
@@ -21,14 +22,14 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
     const [getAllTeams, { loading: loadingAllTeams, error: errorAllTeams, data: dataAllTeams }] = useAllTeams();
 
     useEffect(() => {
-        if (userData?.person?.clubManagement?.club?.id) {
-            const idClub = userData?.person?.clubManagement?.club?.id;
+        if (clubId) {
+            const idClub = clubId;
             getAllTeams({
                 variables: {idClub},
                 fetchPolicy: "cache-and-network"
             })
         }
-    }, [opened])
+    }, [opened, clubId, getAllTeams])
 
     useEffect(() => {
         if (dataAllTeams && "allTeam" in dataAllTeams && dataAllTeams?.allTeam?.length >= 0) {

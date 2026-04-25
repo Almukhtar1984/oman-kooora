@@ -35,7 +35,7 @@ export default function ReservationsStadium() {
 
     useEffect(() => {
         getAllStadium()
-    }, [])
+    }, [getAllStadium])
 
     useEffect(() => {
         if (dataAllStadium && "allStadiums" in dataAllStadium) {

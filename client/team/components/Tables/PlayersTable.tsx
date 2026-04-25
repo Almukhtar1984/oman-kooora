@@ -93,7 +93,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
         } else {
             setAllMembers({nodes: [...list]})
         }
-    }, [valueCheck]);
+    }, [valueCheck, list]);
 
     useEffect(() => {
         if (dateCheck.length > 0) {
@@ -120,7 +120,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
         } else {
             setAllMembers({nodes: [...list]})
         }
-    }, [dateCheck]);
+    }, [dateCheck, list]);
 
     function onPaginationChange() {
         return undefined;

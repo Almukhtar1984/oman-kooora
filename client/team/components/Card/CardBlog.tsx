@@ -97,6 +97,7 @@ const CardBlog = ({ data, onEditModal, onDeleteModal, setOpenShowModal, hasPermi
                         {data?.attachment && data?.attachment.length > 0
                             ? <Image
                                 src={`${apiUrl}/images/${data?.attachment?.[0]?.content}`}
+                                alt={data?.subject || "صورة الخبر"}
                                 width={"100%"} height={200}
                                 styles={{
                                     root: {border: "2px solid #eee", borderRadius: 8},

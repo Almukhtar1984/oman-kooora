@@ -53,7 +53,7 @@ export default function Blog() {
             const permission = userData?.permission
             setPermissions(permission?.blogs?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllBlogs])
 
     useEffect(() => {
         if (dataAllBlogs && "allBlogsClub" in dataAllBlogs) {

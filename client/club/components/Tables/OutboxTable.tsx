@@ -99,7 +99,7 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
         } else {
             setAllMembers({nodes: [...list]})
         }
-    }, [valueCheck]);
+    }, [valueCheck, list]);
 
     useEffect(() => {
         if (dateCheck.length > 0) {
@@ -126,12 +126,12 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
         } else {
             setAllMembers({nodes: [...list]})
         }
-    }, [dateCheck]);
+    }, [dateCheck, list]);
 
     useEffect(() => {
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers({nodes: [...filterAllMembers]})
-    }, [search]);
+    }, [search, list]);
 
     function onPaginationChange() {
         return undefined;

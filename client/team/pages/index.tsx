@@ -19,7 +19,7 @@ export default function Home() {
                 variables: {idTeam}
             })
         }
-    }, [userData])
+    }, [userData, getStatisticsTeam])
     
     useEffect(() => {
         if (dataStatisticsTeam && "statisticsTeam" in dataStatisticsTeam) {

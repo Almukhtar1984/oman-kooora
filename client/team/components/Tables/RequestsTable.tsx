@@ -65,7 +65,7 @@ export const RequestsTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
             search
         )
         setAllMembers([...filterAllMembers])
-    }, [search]);
+    }, [search, list]);
 
     const openModelUpdate = (data: any, status: string) => {
         typeof setSelectedRow === "function" && setSelectedRow({

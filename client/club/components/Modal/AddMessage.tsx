@@ -65,7 +65,7 @@ export const AddMessage = (props: Props) => {
                 }
             })
         }
-    }, [userData])
+    }, [userData, getAllTeam])
 
     const editor = useEditor({
         extensions: [

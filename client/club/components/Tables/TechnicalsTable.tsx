@@ -76,7 +76,7 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
         } else {
             setAllMembers({nodes: [...list]})
         }
-    }, [valueCheck]);
+    }, [valueCheck, list]);
 
     function onPaginationChange() {
         return undefined;

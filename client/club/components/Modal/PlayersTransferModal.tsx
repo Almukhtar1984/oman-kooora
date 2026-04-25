@@ -23,6 +23,7 @@ const init = {
 
 export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
+    const clubId = userData?.person?.clubManagement?.club?.id;
     const [allTeams, setAllTeams] = useState<{label: string, value: string, disabled?: boolean}[]>([]);
     const [allClubs, setAllClubs] = useState<{label: string, value: string, disabled?: boolean}[]>([]);
     const [type, setType] = useState(false);
@@ -45,14 +46,14 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
             })
         }
 
-        if (userData?.person?.clubManagement?.club?.id) {
-            const idClub = userData?.person?.clubManagement?.club?.id;
+        if (clubId) {
+            const idClub = clubId;
             getAllTeams({
                 variables: {idClub},
                 fetchPolicy: "cache-and-network"
             })
         }
-    }, [data, opened])
+    }, [data, opened, clubId, getAllTeams, getPlayer])
 
     useEffect(() => {
         const idTeam = data?.team?.id
@@ -66,7 +67,7 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
 
             setAllTeams([...allTeams])
         }
-    }, [dataAllTeams])
+    }, [dataAllTeams, data?.team?.id])
 
     useEffect(() => {
         if (type) {
@@ -83,11 +84,11 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
                 setAllTeams([...allTeams])
             }
         }
-    }, [type])
+    }, [type, data?.team?.id, dataAllTeams, getAllClubs])
 
     useEffect(() => {
         if (dataAllClubs && "allClub" in dataAllClubs) {
-            const idClub = userData?.person?.clubManagement?.club?.id;
+            const idClub = clubId;
             const allClubs: {label: string, value: string, disabled?: boolean}[] = []
 
             dataAllClubs?.allClub?.map((item: any) => {
@@ -96,7 +97,7 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
 
             setAllClubs([...allClubs])
         }
-    }, [dataAllClubs])
+    }, [dataAllClubs, clubId])
 
     const onSubmit = (data: any) => {
         const { id_team_to } = data

@@ -48,7 +48,7 @@ export default function TechnicalApparatus() {
             const permission = userData?.permission
             setPermissions(permission?.technicals?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllTechnicals])
 
     useEffect(() => {
         if (dataAllTechnicals && "allTechnicalApparatus" in dataAllTechnicals) {

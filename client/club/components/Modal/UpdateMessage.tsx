@@ -77,7 +77,7 @@ export const UpdateMessage = (props: Props) => {
                 }
             })
         }
-    }, [props.data, props.opened]);
+    }, [props.data, props.opened, getMessage, setValues]);
 
     const onFormSubmit = ({subject, priority}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

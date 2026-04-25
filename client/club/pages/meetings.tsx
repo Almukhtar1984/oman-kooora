@@ -51,7 +51,7 @@ export default function Meetings() {
             const permission = userData?.permission
             setPermissions(permission?.meeting?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllMeetings])
 
     useEffect(() => {
         if (dataAllMeetings && "allMeetingsClub" in dataAllMeetings) {

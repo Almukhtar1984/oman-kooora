@@ -67,7 +67,7 @@ export default function AddPlayer (props: Props) {
 
     useEffect(() => {
         getAllClubs({fetchPolicy: "cache-and-network"})
-    }, [])
+    }, [getAllClubs])
 
     useEffect(() => {
         if (dataAllClubs && "allClub" in dataAllClubs) {
@@ -93,7 +93,7 @@ export default function AddPlayer (props: Props) {
 
             setAllTeams([...allTeams])
         }
-    }, [clubSelected])
+    }, [clubSelected, dataAllClubs?.allClub])
 
     const onSubmit = (data: any) => {
         setLoade(true)

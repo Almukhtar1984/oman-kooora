@@ -29,7 +29,7 @@ export const PrintModal = ({ data, ...props }: Props) => {
             const idClub = userData?.person?.clubManagement?.club?.id;
             getAllTeam({variables: {idClub}})
         }
-    }, [userData])
+    }, [userData, getAllTeam])
 
     useEffect(() => {
         if (dataAllTeams && "allTeam" in dataAllTeams) {

@@ -13,6 +13,7 @@ import {ChangeStatusPlayersModal, UpdatePlayersTransferModal} from "../component
 
 export default function PlayersTransfer() {
     const userData = useStore((state: any) => state.userData);
+    const clubId = userData?.person?.clubManagement?.club?.id;
     // states
     const theme = useTheme() as MantineTheme;
     const [openAddModal, setOpenAddModal] = useState<boolean>(false);
@@ -30,8 +31,8 @@ export default function PlayersTransfer() {
     const [getAllPlayersTransferred, { loading, error, data: dataAllPlayersTransferred }] = useAllPlayersClubTransferred();
 
     useEffect(() => {
-        if (userData?.person?.clubManagement?.club?.id) {
-            const idClub = userData?.person?.clubManagement?.club?.id;
+        if (clubId) {
+            const idClub = clubId;
             getAllPlayersTransferred({
                 variables: {idClub}
             })
@@ -44,7 +45,7 @@ export default function PlayersTransfer() {
             const permission = userData?.permission
             setPermissions(permission?.transferPlayers?.split(","))
         }
-    }, [userData])
+    }, [userData, clubId, getAllPlayersTransferred])
 
     useEffect(() => {
         if (dataAllPlayersTransferred && "allPlayersClubTransferred" in dataAllPlayersTransferred) {
@@ -60,11 +61,11 @@ export default function PlayersTransfer() {
         }
 
         const filter = allPlayers.filter((item: any) => {
-            return (item?.lastTransfer?.status == "waiting" && item?.lastTransfer?.club_to?.id !== userData?.person?.clubManagement?.club?.id)
+            return (item?.lastTransfer?.status == "waiting" && item?.lastTransfer?.club_to?.id !== clubId)
         })
 
         setPlayersWaiting(filter.length)
-    }, [allPlayers])
+    }, [allPlayers, clubId])
 
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });

@@ -47,7 +47,7 @@ export default function Expenses() {
             const permission = userData?.permission
             setPermissions(permission?.expenses?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllExpenses])
 
     useEffect(() => {
         if (dataAllExpenses && "allExpensesTeam" in dataAllExpenses) {

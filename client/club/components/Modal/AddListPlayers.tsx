@@ -110,7 +110,7 @@ export const AddListPlayers = ({data, ...props}: Props) => {
             }
         }
         setAllContents(allContent)
-    }, [allData]);
+    }, [allData, data]);
 
     const onFormSubmit = () => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

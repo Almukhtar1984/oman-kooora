@@ -110,6 +110,7 @@ const CardStadium = ({ data, onEditModal, onDeleteModal, setOpenShowModal, hasPe
                                     <Carousel.Slide key={index}>
                                         <Image
                                             src={`${apiUrl}/images/${item}`}
+                                            alt={`${data?.name || "الملعب"} - صورة ${index + 1}`}
                                             width={"100%"} height={200}
                                             styles={{
                                                 root: {border: "2px solid #eee", borderRadius: 8},

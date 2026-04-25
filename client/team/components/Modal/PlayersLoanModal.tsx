@@ -32,6 +32,8 @@ const init = {
 
 export const PlayersLoanModal = ({id, opened, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
+    const teamId = userData?.person?.member?.team?.id;
+    const clubId = userData?.person?.member?.team?.club?.id;
     const [allTeams, setAllTeams] = useState<{label: string, value: string, disabled?: boolean}[]>([]);
     const [allClubs, setAllClubs] = useState<{label: string, value: string}[]>([]);
     const [type, setType] = useState(false);
@@ -54,19 +56,19 @@ export const PlayersLoanModal = ({id, opened, ...props}: Props) => {
             })
         }
 
-        if (userData && userData?.person?.member?.team?.club?.id) {
-            const idClub = userData?.person?.member?.team?.club?.id
+        if (clubId) {
+            const idClub = clubId
 
             getAllTeams({
                 variables: {idClub},
                 fetchPolicy: "cache-and-network"
             })
         }
-    }, [id, opened])
+    }, [id, opened, clubId, getAllTeams, getPlayer])
 
     useEffect(() => {
         if (dataAllTeams && "allTeam" in dataAllTeams && dataAllTeams?.allTeam?.length) {
-            const idTeam = userData?.person?.member?.team?.id
+            const idTeam = teamId
             const allTeams: {label: string, value: string, disabled?: boolean}[] = []
 
             dataAllTeams?.allTeam?.map((item: any) => {
@@ -75,14 +77,14 @@ export const PlayersLoanModal = ({id, opened, ...props}: Props) => {
 
             setAllTeams([...allTeams])
         }
-    }, [dataAllTeams])
+    }, [dataAllTeams, teamId])
 
     useEffect(() => {
         if (type) {
             getAllClubs({fetchPolicy: "cache-and-network"})
         } else {
             if (dataAllTeams && "allTeam" in dataAllTeams && dataAllTeams?.allTeam?.length) {
-                const idTeam = userData?.person?.member?.team?.id
+                const idTeam = teamId
                 const allTeams: {label: string, value: string, disabled?: boolean}[] = []
 
                 dataAllTeams?.allTeam?.map((item: any) => {
@@ -92,7 +94,7 @@ export const PlayersLoanModal = ({id, opened, ...props}: Props) => {
                 setAllTeams([...allTeams])
             }
         }
-    }, [type])
+    }, [type, teamId, dataAllTeams, getAllClubs])
 
     useEffect(() => {
         if (dataAllClubs && "allClub" in dataAllClubs) {
@@ -108,7 +110,7 @@ export const PlayersLoanModal = ({id, opened, ...props}: Props) => {
 
     useEffect(() => {
         if (clubSelected) {
-            const idTeam = userData?.person?.member?.team?.id
+            const idTeam = teamId
             const allTeams: {label: string, value: string, disabled?: boolean}[] = []
 
             const club = dataAllClubs?.allClub?.filter(item => item.id == clubSelected)
@@ -119,7 +121,7 @@ export const PlayersLoanModal = ({id, opened, ...props}: Props) => {
 
             setAllTeams([...allTeams])
         }
-    }, [clubSelected])
+    }, [clubSelected, dataAllClubs?.allClub, teamId])
 
     const onSubmit = (data: any) => {
         const { id_team_to, type, date_end, date_start } = data

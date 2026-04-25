@@ -35,6 +35,7 @@ export const UpdatePlayerModal = ({id, opened, ...props}: Props) => {
     const form = useForm({
         initialValues: init
     });
+    const {setValues} = form;
     const openRef = useRef<() => void>(null);
     const openRefBack = useRef<() => void>(null);
     const [nationalID, setNationalID] = useState<File[]>([]);
@@ -52,11 +53,11 @@ export const UpdatePlayerModal = ({id, opened, ...props}: Props) => {
                 fetchPolicy: "network-only"
             })
         }
-    }, [id, opened])
+    }, [id, opened, getPlayer])
 
     useEffect(() => {
         if (dataPlayer && "player" in dataPlayer) {
-            form.setValues({
+            setValues({
                 classes: dataPlayer?.player?.class,
                 activity: dataPlayer?.player?.activity,
                 player_center: dataPlayer?.player?.player_center,
@@ -73,7 +74,7 @@ export const UpdatePlayerModal = ({id, opened, ...props}: Props) => {
             })
             setIdPerson(dataPlayer?.player?.person?.id)
         }
-    }, [dataPlayer])
+    }, [dataPlayer, setValues])
 
     const onSubmit = (data: any) => {
         const {classes, activity, player_center, job, person } = data

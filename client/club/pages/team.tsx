@@ -57,7 +57,7 @@ export default function Home() {
             const permission = userData?.permission
             setPermissions(permission?.teams?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllTeam])
 
     useEffect(() => {
         if (dataAllTeams && "allTeam" in dataAllTeams) {

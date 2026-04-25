@@ -54,7 +54,7 @@ export default function Assembly() {
             const permission = userData?.permission
             setPermissions(permission?.assembly?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllAssembly])
 
     useEffect(() => {
         if (dataAllAssembly && "allAssemblyTeam" in dataAllAssembly) {

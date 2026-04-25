@@ -59,7 +59,7 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
     useEffect(() => {
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers([...filterAllMembers])
-    }, [search]);
+    }, [search, list]);
 
     function onPaginationChange() {
         return undefined;

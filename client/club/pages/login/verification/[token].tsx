@@ -37,19 +37,20 @@ export default function Verification() {
     const [resendEmailVerification] = useResendEmailVerification();
 
     let route = useRouter();
+    const token = route.query.token as string || "";
     const [verification, setVerification] = React.useState<any>(null);
 
     useEffect(() => {
         emailVerification({
             variables: {
-                token: route.query.token as string || ""
+                token
             }
         }).then(({ data: { forgetPassword } }) => {
             setVerification(true)
         }).catch((err) => {
             setVerification(false)
         });
-    }, []);
+    }, [emailVerification, token]);
 
     const resendVerificationEmail = () => {
         const notyf = new Notyf({ position: { x: "left", y: "bottom" } });

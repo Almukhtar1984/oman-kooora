@@ -9,21 +9,22 @@ import {apiUrl} from "@/lib/config";
 
 export default function Blog() {
     let {query} = useRouter();
+    const blogId = query.id;
 
     const [blog, setBlog] = useState<any>(null);
 
     const [getBlog, { loading, error, data: dataBlog }] = useBlog();
 
     useEffect(() => {
-        if (query && "id" in query && query.id !== "") {
+        if (blogId) {
             getBlog({
                 variables: {
-                    id: query.id
+                    id: blogId
                 },
                 fetchPolicy: "cache-and-network"
             })
         }
-    }, [query.id])
+    }, [blogId, getBlog])
 
     useEffect(() => {
         if (dataBlog && "blog" in dataBlog) {
@@ -57,6 +58,7 @@ export default function Blog() {
                                     <Image
                                         key={item?.id}
                                         src={`${apiUrl}/images/${item?.content}`}
+                                        alt={blog?.subject || "صورة الخبر"}
                                         width={"100%"} height={"auto"}
                                         styles={{
                                             root: {border: "2px solid #eee", borderRadius: 8},

@@ -29,7 +29,15 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
                 manager_name: data?.manager_name,
             });
         }
-    }, [opened]);
+    }, [
+        opened,
+        reset,
+        data?.activities,
+        data?.code,
+        data?.manager_name,
+        data?.name,
+        data?.phone
+    ]);
 
     const onSubmit = ({name, phone,  activities, code, manager_name}: any) => {
         updateTeam({

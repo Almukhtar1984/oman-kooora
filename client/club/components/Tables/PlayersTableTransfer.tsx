@@ -60,7 +60,7 @@ export const PlayersTableTransfer = ({ idClub, list, search, setOpenEditModal, s
     useEffect(() => {
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers({nodes: [...filterAllMembers]})
-    }, [search]);
+    }, [search, list]);
 
     function onPaginationChange() {
         return undefined;

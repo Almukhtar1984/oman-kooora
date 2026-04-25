@@ -46,7 +46,7 @@ export default function Members() {
             const permission = userData?.permission
             setPermissions(permission?.members?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllMembers])
 
     useEffect(() => {
         if (dataAllMembers && "allMembers" in dataAllMembers) {

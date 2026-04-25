@@ -48,7 +48,16 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
 
             setCategory(data?.category.toString())
         }
-    }, [opened]);
+    }, [
+        opened,
+        reset,
+        data?.activities,
+        data?.category,
+        data?.code,
+        data?.manager_name,
+        data?.name,
+        data?.phone
+    ]);
 
     const onSubmit = ({name, phone,  activities, code, manager_name}: any) => {
         setLoading(true)

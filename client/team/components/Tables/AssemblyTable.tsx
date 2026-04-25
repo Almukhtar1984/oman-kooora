@@ -61,7 +61,7 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
     useEffect(() => {
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers([...filterAllMembers])
-    }, [search]);
+    }, [search, list]);
 
     const openModelUpdate = (data: any) => {
         typeof setSelectedRow === "function" && setSelectedRow(data)

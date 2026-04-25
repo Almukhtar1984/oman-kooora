@@ -71,7 +71,7 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
             search
         )
         setAllMembers([...filterAllMembers])
-    }, [search]);
+    }, [search, list]);
 
     const openModelDelete = (id: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(id)

@@ -177,6 +177,7 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
             <Box className={classes.header} p={5}>
                 <Image
                     src={`${userData?.person?.clubManagement?.club?.logo}`}
+                    alt={userData?.person?.clubManagement?.club?.name || "شعار النادي"}
                     fit={"contain"}
                     width={"50px"}
                     height={"50px"}

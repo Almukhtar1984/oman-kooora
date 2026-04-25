@@ -95,12 +95,12 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
         } else {
             setAllMembers({nodes: [...list]})
         }
-    }, [valueCheck]);
+    }, [valueCheck, list]);
 
     useEffect(() => {
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers({nodes: [...filterAllMembers]})
-    }, [search]);
+    }, [search, list]);
 
     function onPaginationChange() {
         return undefined;

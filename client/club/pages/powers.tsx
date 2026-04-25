@@ -47,7 +47,7 @@ export default function Powers() {
             const permission = userData?.permission
             setPermissions(permission?.permissions?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllClubManagement, getAllTeam])
 
     useEffect(() => {
         if (dataAllClubManagement && "allClubManagement" in dataAllClubManagement) {

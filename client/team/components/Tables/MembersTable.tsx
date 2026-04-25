@@ -69,7 +69,7 @@ export const MembersTable = ({ list, search, setOpenEditModal, setNewStatus, set
             search
         )
         setAllMembers([...filterAllMembers])
-    }, [search]);
+    }, [search, list]);
 
     const openModelDelete = (id: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(id)

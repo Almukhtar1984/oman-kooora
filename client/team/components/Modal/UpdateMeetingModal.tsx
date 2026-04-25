@@ -23,6 +23,7 @@ export const UpdateMeetingModal = ({id, opened, ...props}: Props) => {
     const form = useForm({
         initialValues: init
     });
+    const {setValues} = form;
     const [attachments, setAttachments] = useState<File[]>([]);
     const openRef = useRef<() => void>(null);
     const [updateMeeting] = useUpdateMeeting();
@@ -36,18 +37,18 @@ export const UpdateMeetingModal = ({id, opened, ...props}: Props) => {
                 fetchPolicy: "network-only"
             })
         }
-    }, [id, opened])
+    }, [id, opened, getMeeting])
 
     useEffect(() => {
         if (dataMeeting && "meeting" in dataMeeting) {
-            form.setValues({
+            setValues({
                 // @ts-ignore
                 subject: dataMeeting?.meeting?.subject,
                 names_attending: dataMeeting?.meeting?.names_attending,
                 description: dataMeeting?.meeting?.description
             })
         }
-    }, [dataMeeting])
+    }, [dataMeeting, setValues])
 
     const onSubmit = (data: any) => {
         const {subject, names_attending, description } = data

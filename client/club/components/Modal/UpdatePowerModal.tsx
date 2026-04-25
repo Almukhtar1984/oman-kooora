@@ -37,6 +37,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
     const form = useForm({
         initialValues: init
     });
+    const {setValues} = form;
     const [idPerson, setIdPerson] = useState("");
     const [idPermissions, setIdPermissions] = useState("");
     const [updateAdminMember] = useUpdateClubManagement();
@@ -65,12 +66,12 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                 fetchPolicy: "network-only"
             })
         }
-    }, [id, opened])
+    }, [id, opened, getClubManagement])
 
     useEffect(() => {
         if (dataClubManagement && "clubManagement" in dataClubManagement && dataClubManagement.clubManagement !== null) {
             const clubManagement = dataClubManagement.clubManagement
-            form.setValues({
+            setValues({
                 membership_date: new Date(clubManagement?.membership_date) || null,
 
                 membership_date_end: new Date(clubManagement?.membership_date_end) || null,
@@ -107,7 +108,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
             setForms(permission?.forms?.split(","))
             setPermissions(permission?.permissions?.split(","))
         }
-    }, [dataClubManagement])
+    }, [dataClubManagement, setValues])
 
     const onSubmit = (data: any) => {
         const {membership_date, membership_date_end, person, user } = data

@@ -20,7 +20,7 @@ export default function Home() {
                 variables: {idClub}
             })
         }
-    }, [userData])
+    }, [userData, getStatisticsClub])
     
     useEffect(() => {
         if (dataStatisticsClub && "statisticsClub" in dataStatisticsClub) {

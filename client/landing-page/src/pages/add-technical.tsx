@@ -62,7 +62,7 @@ export default function AddTechnicalModal (props: Props) {
 
     useEffect(() => {
         getAllClubs({fetchPolicy: "cache-and-network"})
-    }, [])
+    }, [getAllClubs])
 
     useEffect(() => {
         if (dataAllClubs && "allClub" in dataAllClubs) {
@@ -88,7 +88,7 @@ export default function AddTechnicalModal (props: Props) {
 
             setAllTeams([...allTeams])
         }
-    }, [clubSelected])
+    }, [clubSelected, dataAllClubs?.allClub])
 
     const onSubmit = (data: any) => {
         setLoade(true)

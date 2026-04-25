@@ -80,7 +80,7 @@ export const AddMessage = (props: Props) => {
                 }
             })
         }
-    }, [userData])
+    }, [userData, getAllTeam])
 
     useEffect(() => {
         if (props.data && "person" in props.data && props.data.person) {
@@ -101,7 +101,7 @@ export const AddMessage = (props: Props) => {
                 subscription_date:     null
             })
         }
-    }, [props.data, props.opened]);
+    }, [props.data, props.opened, setValues]);
 
     const onFormSubmit = ({subject, priority, id_team_receiver}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });

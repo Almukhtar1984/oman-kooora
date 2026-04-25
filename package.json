@@ -1,0 +1,37 @@
+{
+  "name": "tomoh",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local orchestration scripts for the Tomoh monorepo.",
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "start:server": "npm --prefix server start",
+    "test:server": "npm --prefix server test",
+    "db:migrate": "npm --prefix server run db:migrate",
+    "db:rollback": "npm --prefix server run db:rollback",
+    "db:status": "npm --prefix server run db:status",
+    "db:check-model-migrations": "npm --prefix server run db:check-model-migrations",
+    "dev:club": "npm --prefix client/club run dev -- -p 3001",
+    "dev:team": "npm --prefix client/team run dev -- -p 3008",
+    "dev:super-admin": "npm --prefix client/super-admin run dev -- -p 3006",
+    "dev:plyer": "npm --prefix client/plyer run dev -- -p 3010",
+    "dev:landing-page": "npm --prefix client/landing-page run dev -- -p 3012",
+    "dev:print": "PORT=3000 npm --prefix client/print start",
+    "dev:sports-course": "PORT=3004 npm --prefix client/sports-course start",
+    "lint:club": "npm --prefix client/club run lint",
+    "lint:team": "npm --prefix client/team run lint",
+    "lint:super-admin": "npm --prefix client/super-admin run lint",
+    "lint:plyer": "npm --prefix client/plyer run lint",
+    "lint:landing-page": "npm --prefix client/landing-page run lint",
+    "build:club": "npm --prefix client/club run build",
+    "build:team": "npm --prefix client/team run build",
+    "build:super-admin": "npm --prefix client/super-admin run build",
+    "build:plyer": "npm --prefix client/plyer run build",
+    "build:landing-page": "npm --prefix client/landing-page run build",
+    "build:print": "npm --prefix client/print run build",
+    "build:sports-course": "npm --prefix client/sports-course run build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

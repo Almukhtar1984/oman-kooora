@@ -43,7 +43,7 @@ export default function Forms() {
             const permission = userData?.permission
             setPermissions(permission?.forms?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllForms])
 
     useEffect(() => {
         if (dataAllForms && "allForms" in dataAllForms) {

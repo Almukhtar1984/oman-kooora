@@ -45,7 +45,7 @@ export default function Powers() {
             const permission = userData?.permission
             setPermissions(permission?.permissions?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllMembersHasAccount])
 
     useEffect(() => {
         if (dataAllMembers && "allMembersHasAccount" in dataAllMembers) {

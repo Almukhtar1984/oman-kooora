@@ -59,7 +59,7 @@ export default function Members() {
             const permission = userData?.permission
             setPermissions(permission?.members?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllMembers, getAllTeam])
 
     useEffect(() => {
         if (dataAllMembers && "allMembersClub" in dataAllMembers) {

@@ -73,7 +73,7 @@ export const AddPowerModal = ({ id, existingMember, setExistingMember, ...props 
                 fetchPolicy: "cache-first"
             })
         }
-    }, [userData])
+    }, [userData, getAllMembers])
 
     useEffect(() => {
         if (dataAllMembers && "allMembers" in dataAllMembers) {

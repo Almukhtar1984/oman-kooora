@@ -59,7 +59,7 @@ export default function Inbox() {
             const permission = userData?.permission
             setPermissions(permission?.inbox?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllMessages])
 
     useEffect(() => {
         if (dataAllMessages && "allMessageTeamReceiver" in dataAllMessages) {

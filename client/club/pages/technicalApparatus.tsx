@@ -47,7 +47,7 @@ export default function TechnicalApparatus() {
             const permission = userData?.permission
             setPermissions(permission?.technicals?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllTechnicals, getAllTeam])
 
     useEffect(() => {
         if (dataAllTechnicals && "allTechnicalApparatusClub" in dataAllTechnicals) {

@@ -64,7 +64,7 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
     useEffect(() => {
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers([...filterAllMembers])
-    }, [search]);
+    }, [search, list]);
 
     const openModelUpdate = (id: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(id)

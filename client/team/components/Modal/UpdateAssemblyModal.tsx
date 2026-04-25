@@ -45,7 +45,7 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                 subscription_date:     new Date(data?.subscription_date)
             })
         }
-    }, [data, props.opened]);
+    }, [data, props.opened, setValues]);
 
     const onFormSubmit = ({first_name, second_name, third_name, tribe, date_birth, card_number, phone, type, membership_date, gender, subscription_date}: any) => {
         setLoading(true)

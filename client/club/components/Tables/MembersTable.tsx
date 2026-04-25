@@ -87,7 +87,7 @@ export const MembersTable = ({ list, search, setOpenEditModal, setNewStatus, set
         } else {
             setAllMembers({nodes: [...list]})
         }
-    }, [valueCheck]);
+    }, [valueCheck, list]);
 
     function onPaginationChange() {
         return undefined;

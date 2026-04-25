@@ -17,6 +17,95 @@
 
 ---
 
+## 2026-04-25
+
+### 41. تنظيف تحذيرات lint في team
+
+- تم إصلاح تحذيرات `react-hooks/exhaustive-deps` في صفحات `client/team`
+  الأساسية، منها:
+  - `assembly`, `blog`, `expenses`, `forms`, `inbox`, `outbox`, `meetings`,
+    `members`, `players`, `powers`, `requests`, `stadiums`,
+    و`technicalApparatus`.
+- تم إصلاح تحذيرات `react-hooks/exhaustive-deps` في مودالات وجداول `team`
+  التي كانت تعتمد على بيانات أو دوال خارجية بدون إدراجها في dependency arrays.
+- تم إصلاح تحذيرات الصور بدون `alt` في:
+  - `components/Card/CardBlog.tsx`
+  - `components/Card/CardStadium.tsx`
+  - `components/Layout/Sidebar.tsx`
+  - `components/Modal/AddImagePlayersModal.tsx`
+  - `components/Modal/ShowBlog.tsx`
+  - `components/PDF/Card.tsx`
+- تم تشغيل:
+  - `npm run lint -- --no-cache` داخل `client/team`
+- نتيجة lint:
+  - لا توجد warnings أو errors.
+
+---
+
+### 40. تنظيف تحذيرات lint في club
+
+- تم إصلاح تحذيرات `react-hooks/exhaustive-deps` في صفحات `client/club`
+  الأساسية، منها:
+  - `assembly`, `blog`, `forms`, `inbox`, `outbox`, `meetings`, `members`,
+    `players`, `players_loan`, `players_transfer`, `powers`, `team`,
+    و`technicalApparatus`.
+- تم إصلاح تحذيرات `react-hooks/exhaustive-deps` في مودالات وجداول `club`
+  التي كانت تعتمد على بيانات أو دوال خارجية بدون إدراجها في dependency arrays.
+- تم إصلاح تحذيرات الصور بدون `alt` في:
+  - `components/Card/CardBlog.tsx`
+  - `components/Layout/Sidebar.tsx`
+  - `components/Modal/ShowBlog.tsx`
+  - `components/PDF/Card.tsx`
+- تم تشغيل:
+  - `npm run lint -- --no-cache` داخل `client/club`
+- نتيجة lint:
+  - لا توجد warnings أو errors.
+
+---
+
+### 39. تنظيف تحذيرات lint في landing-page
+
+- تم إصلاح تحذيرات accessibility الخاصة بالصور بدون `alt` في:
+  - `client/landing-page/src/component/Card/CardBlog.tsx`
+  - `client/landing-page/src/component/Card/CardStadium.tsx`
+  - `client/landing-page/src/component/Header/Header.tsx`
+  - `client/landing-page/src/pages/blog/[id].tsx`
+- تم إصلاح تحذيرات `react-hooks/exhaustive-deps` في:
+  - `client/landing-page/src/pages/add-member.tsx`
+  - `client/landing-page/src/pages/add-player.tsx`
+  - `client/landing-page/src/pages/add-technical.tsx`
+  - `client/landing-page/src/pages/blog/[id].tsx`
+  - `client/landing-page/src/pages/index.tsx`
+  - `client/landing-page/src/pages/reservations-stadium.tsx`
+- تم تشغيل:
+  - `npm run lint -- --no-cache` داخل `client/landing-page`
+  - `git diff --check`
+- نتيجة lint:
+  - لا توجد warnings أو errors.
+
+---
+
+### 38. توثيق التشغيل المحلي وتوحيد منفذ API
+
+- تم إضافة `README.md` في جذر المشروع يوضح:
+  - مكونات monorepo.
+  - المنافذ المحلية الافتراضية لكل تطبيق.
+  - طريقة نسخ ملفات `.env.example`.
+  - أوامر تشغيل الخادم، الواجهات، وmigrations.
+- تم إضافة `package.json` في جذر المشروع يحتوي wrapper scripts فقط، بدون
+  تحويل المشروع إلى workspace أو إضافة dependencies جديدة.
+- تم توحيد منفذ API المحلي الافتراضي على `7001` عبر:
+  - `server/.env.example`
+  - `server/apollo.config.js`
+- تم تحديث `SECURITY_REVIEW_REPORT.md` لتعليم بنود التوثيق، طريقة التشغيل
+  الموحدة، وتوحيد المنافذ كمنجزة.
+- تم تشغيل:
+  - `npm run test:server`
+  - `npm run db:check-model-migrations`
+  - `git diff --check`
+
+---
+
 ## 2026-04-23
 
 ### 37. تقوية رفع الملفات في Players وAssembly وTechnicalApparatus
@@ -1011,4 +1100,3 @@
 - لم يتم رفع ملفات `.env` المحلية
 - لم يتم رفع `node_modules`
 - تم الإبقاء على المشروع مرفوعاً بطريقة أنظف وأسهل للمراجعة
-

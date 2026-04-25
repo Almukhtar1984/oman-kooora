@@ -27,7 +27,7 @@ export const RenewAssemblyModal = ({ data, ...props }: Props) => {
 
 
         setDuration(parseInt(yearNow) - parseInt(yearSubscription))
-    }, [])
+    }, [data?.subscription_date])
 
     const onSubmit = () => {
         updateAssembly({

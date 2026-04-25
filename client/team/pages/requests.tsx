@@ -45,7 +45,7 @@ export default function Requests() {
             const permission = userData?.permission
             setPermissions(permission?.complaints?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllRequests])
 
     useEffect(() => {
         if (dataAllRequests && "allRequestsTeam" in dataAllRequests) {

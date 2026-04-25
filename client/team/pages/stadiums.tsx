@@ -47,7 +47,7 @@ export default function Stadiums() {
             const permission = userData?.permission
             setPermissions(permission?.players?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllStadium])
 
     useEffect(() => {
         if (dataAllStadium && "allStadiumsTeam" in dataAllStadium) {

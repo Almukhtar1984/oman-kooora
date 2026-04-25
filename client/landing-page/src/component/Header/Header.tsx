@@ -113,6 +113,7 @@ export function NavBar() {
             <Container className={classes.header}>
                 <Image
                     src={"/logo.jpg"}
+                    alt="Tomoh"
                     fit={"contain"}
                     width={"50px"}
                     styles={(theme) => ({

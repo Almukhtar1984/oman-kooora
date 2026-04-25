@@ -13,6 +13,7 @@ type Props = {
 
 export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
+    const clubId = userData?.person?.clubManagement?.club?.id;
     const [team, setTeam] = useState<string | null>(null);
     const [allTeams, setAllTeams] = useState<{label: string, value: string}[]>([]);
     const [allAssembly, setAllAssembly] = useState<object[]>([]);
@@ -20,14 +21,14 @@ export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
     const [getAllAssemblyTeam, { loading, error, data: dataAllAssemblyTeam }] = useAllAssemblyTeam();
 
     useEffect(() => {
-        if (userData?.person?.clubManagement?.club?.id) {
-            const idClub = userData?.person?.clubManagement?.club?.id;
+        if (clubId) {
+            const idClub = clubId;
             getAllTeams({
                 variables: {idClub},
                 fetchPolicy: "cache-and-network"
             })
         }
-    }, [props.opened])
+    }, [props.opened, clubId, getAllTeams])
 
     useEffect(() => {
         if (dataAllTeams && "allTeam" in dataAllTeams && dataAllTeams?.allTeam?.length >= 0) {

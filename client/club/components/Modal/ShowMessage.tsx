@@ -55,7 +55,7 @@ export const ShowMessage = (props: Props) => {
                 }
             })
         }
-    }, [props.data, props.opened]);
+    }, [props.data, props.opened, getMessage]);
 
 
     const closeModal = () => {

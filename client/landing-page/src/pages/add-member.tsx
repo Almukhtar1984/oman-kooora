@@ -43,7 +43,7 @@ export default function AddMember (props: Props) {
 
     useEffect(() => {
         getAllClubs({fetchPolicy: "cache-and-network"})
-    }, [])
+    }, [getAllClubs])
 
     useEffect(() => {
         if (dataAllClubs && "allClub" in dataAllClubs) {
@@ -69,7 +69,7 @@ export default function AddMember (props: Props) {
 
             setAllTeams([...allTeams])
         }
-    }, [clubSelected])
+    }, [clubSelected, dataAllClubs?.allClub])
 
     const onSubmit = (data: any) => {
         const {id_team, occupation, classification, membership_date, membership_date_end, person } = data

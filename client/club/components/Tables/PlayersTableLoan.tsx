@@ -61,7 +61,7 @@ export const PlayersTableLoan = ({ idClub, list, search, setOpenEditModal, setSe
     useEffect(() => {
         const filterAllMembers = searchSortedData(list,['name'], search)
         setAllMembers({nodes: [...filterAllMembers]})
-    }, [search]);
+    }, [search, list]);
 
     function onPaginationChange() {
         return undefined;

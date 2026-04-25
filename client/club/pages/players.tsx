@@ -76,7 +76,7 @@ export default function Players() {
             const permission = userData?.permission
             setPermissions(permission?.players?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllPlayers, getAllTeam])
 
     useEffect(() => {
         if (dataAllPlayers && "allPlayersClub" in dataAllPlayers) {
@@ -115,7 +115,7 @@ export default function Players() {
             const filterAllPlayers = sortedData(allPlayers)
             setAllPlayersSorting([...filterAllPlayers])
         }
-    }, [ageCheck, age2Check]);
+    }, [ageCheck, age2Check, allPlayers]);
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { value } = event.currentTarget;

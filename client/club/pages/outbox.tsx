@@ -58,7 +58,7 @@ export default function Outbox() {
             const permission = userData?.permission
             setPermissions(permission?.outbox?.split(","))
         }
-    }, [userData])
+    }, [userData, getAllMessages])
 
     useEffect(() => {
         if (dataAllMessages && "allMessageClubSender" in dataAllMessages) {

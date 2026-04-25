@@ -23,6 +23,7 @@ export const UpdateExpenseModal = ({id, opened, ...props}: Props) => {
     const form = useForm({
         initialValues: init
     });
+    const {setValues} = form;
     const [updateExpense] = useUpdateExpense();
     const [attachment, setAttachment] = useState<File[]>([]);
     const openRef = useRef<() => void>(null);
@@ -36,18 +37,18 @@ export const UpdateExpenseModal = ({id, opened, ...props}: Props) => {
                 fetchPolicy: "network-only"
             })
         }
-    }, [id, opened])
+    }, [id, opened, getExpense])
 
     useEffect(() => {
         if (dataExpense && "expense" in dataExpense) {
-            form.setValues({
+            setValues({
                 // @ts-ignore
                 content: dataExpense?.expense?.value > 0 ? "1" :  "-1",
                 value: dataExpense?.expense?.value > 0 ? dataExpense?.expense?.value :  dataExpense?.expense?.value * -1,
                 note: dataExpense?.expense?.note
             })
         }
-    }, [dataExpense])
+    }, [dataExpense, setValues])
 
     const onSubmit = (data: any) => {
         const {content, note, value } = data
