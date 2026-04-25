@@ -10,7 +10,8 @@
     "db:migrate": "node ./scripts/migrate.mjs up",
     "db:rollback": "node ./scripts/migrate.mjs down",
     "db:status": "node ./scripts/migrate.mjs status",
-    "db:check-model-migrations": "node ./scripts/check-model-migrations.mjs"
+    "db:check-model-migrations": "node ./scripts/check-model-migrations.mjs",
+    "db:seed:demo": "node ./scripts/seed-demo.mjs"
   },
   "keywords": [],
   "author": "",

@@ -11,6 +11,7 @@
     "db:rollback": "npm --prefix server run db:rollback",
     "db:status": "npm --prefix server run db:status",
     "db:check-model-migrations": "npm --prefix server run db:check-model-migrations",
+    "db:seed:demo": "npm --prefix server run db:seed:demo",
     "dev:club": "npm --prefix client/club run dev -- -p 3001",
     "dev:team": "npm --prefix client/team run dev -- -p 3008",
     "dev:super-admin": "npm --prefix client/super-admin run dev -- -p 3006",

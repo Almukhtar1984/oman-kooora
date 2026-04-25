@@ -6,13 +6,48 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthenticateClient,useGetCurrentUser } from '../graphql';
 import useStore from '../store/useStore';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getLoginErrorMessage = (code?: string) => {
+    switch (code) {
+        case "AUTHENTICATION_FAILED":
+            return "بيانات الدخول غير صحيحة أو الحساب غير متاح.";
+        case "ACCOUNT_LOCKED":
+            return "تم قفل الحساب مؤقتا بسبب محاولات دخول كثيرة. حاول لاحقا.";
+        case "USER_NOT_EXIST":
+            return "لا يوجد مستخدم بهذا الإيميل.";
+        case "EMAIL_NOT_VERIFY":
+            return "هذا الحساب غير مفعل، قم بالتحقق من صندوق البريد لتفعيله.";
+        case "PASSWORD_INCORRECT":
+            return "كلمة المرور غير صحيحة، يرجى إعادة المحاولة.";
+        case "ACCOUNT_NOT_ACTIVE":
+            return "تم حظر حسابك من قبل المسؤول.";
+        default:
+            return "تعذر تسجيل الدخول حالياً. تأكد من البيانات وحاول مرة أخرى.";
+    }
+}
+
 const Login = () => {
     const theme = useMantineTheme();
     const {getInputProps, onSubmit} = useForm({
-        initialValues: {email: "", password: ""}
+        initialValues: {email: "", password: ""},
+        validateInputOnBlur: true,
+        validate: {
+            email: (value) => {
+                const email = value.trim();
+                if (!email) return "البريد الإلكتروني مطلوب.";
+                if (!EMAIL_PATTERN.test(email)) return "صيغة البريد الإلكتروني غير صحيحة.";
+                return null;
+            },
+            password: (value) => {
+                if (!value) return "كلمة المرور مطلوبة.";
+                if (value.length < 8) return "كلمة المرور يجب أن تكون 8 أحرف على الأقل.";
+                return null;
+            }
+        }
     });
 
-    const [authenticateClientMutation] = useAuthenticateClient();
+    const [authenticateClientMutation, { loading: authLoading }] = useAuthenticateClient();
     const [getCurrentUserLazy] = useGetCurrentUser();
 
     const navigate = useNavigate();
@@ -20,10 +55,12 @@ const Login = () => {
     const [alert, setAlert] = useState<{ status?: string; msg?: string; code?: string; }>({});
 
     let onFormSubmit = ({email, password}: any) => {
+        const normalizedEmail = email.trim().toLowerCase();
+        setAlert({});
         authenticateClientMutation({
             variables: {
                 content: {
-                    email: email,
+                    email: normalizedEmail,
                     password: password
                 }
             },
@@ -40,29 +77,12 @@ const Login = () => {
                 })
             },
             onError: ({graphQLErrors}) => {
-                if (graphQLErrors[0]?.extensions?.code === "AUTHENTICATION_FAILED") {
-                    setAlert({ status: "red", msg: "بيانات الدخول غير صحيحة أو الحساب غير متاح.", code: "" });
-                }
-
-                if (graphQLErrors[0]?.extensions?.code === "ACCOUNT_LOCKED") {
-                    setAlert({ status: "red", msg: "تم قفل الحساب مؤقتا بسبب محاولات دخول كثيرة. حاول لاحقا.", code: "" });
-                }
-
-                if (graphQLErrors[0]?.extensions?.code === "USER_NOT_EXIST") {
-                    setAlert({ status: "red", msg: "لا يوجد مستخدم بهاذا الإيميل", code: "" });
-                }
-
-                if (graphQLErrors[0]?.extensions?.code === "EMAIL_NOT_VERIFY") {
-                    setAlert({ status: "red", msg: "هذا الحساب غير مفعل، قم بالتحقق من صندوق البريد لتفعيله.", code: "EMAIL_NOT_VERIFY" });
-                }
-
-                if (graphQLErrors[0]?.extensions?.code === "PASSWORD_INCORRECT") {
-                    setAlert({ status: "red", msg: " كلمة المرور غير صحيحة، يرجى إعادة المحاولة.", code: "" });
-                }
-
-                if (graphQLErrors[0]?.extensions?.code === "ACCOUNT_NOT_ACTIVE") {
-                    setAlert({ status: "red", msg: "تم حظر حسابك من قبل المسؤول", code: "" });
-                }
+                const code = graphQLErrors?.[0]?.extensions?.code as string | undefined;
+                setAlert({
+                    status: "red",
+                    msg: getLoginErrorMessage(code),
+                    code: code === "EMAIL_NOT_VERIFY" ? "EMAIL_NOT_VERIFY" : ""
+                });
             }
         })
     };
@@ -98,7 +118,7 @@ const Login = () => {
                                     {...getInputProps("password")}
                                 />
 
-                                <Button type={"submit"} fullWidth loading={false} >تسجيل الدخول</Button>
+                                <Button type={"submit"} fullWidth loading={authLoading} >تسجيل الدخول</Button>
                             </Stack>
                         </form>
                     </Grid.Col>

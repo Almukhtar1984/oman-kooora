@@ -37,10 +37,33 @@ const initialValues = {
     password: ''
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getLoginErrorMessage = (code?: string) => {
+    switch (code) {
+        case "AUTHENTICATION_FAILED":
+            return "بيانات الدخول غير صحيحة أو الحساب غير متاح.";
+        case "ACCOUNT_LOCKED":
+            return "تم قفل الحساب مؤقتا بسبب محاولات دخول كثيرة. حاول لاحقا.";
+        case "USER_NOT_EXIST":
+            return "لا يوجد مستخدم بهذا الإيميل.";
+        case "EMAIL_NOT_VERIFY":
+            return "هذا الحساب غير مفعل، قم بالتحقق من صندوق البريد لتفعيله.";
+        case "PASSWORD_INCORRECT":
+            return "كلمة المرور غير صحيحة، يرجى إعادة المحاولة.";
+        case "ACCOUNT_NOT_ACTIVE":
+            return "تم حظر حسابك من قبل المسؤول.";
+        default:
+            return "تعذر تسجيل الدخول حالياً. تأكد من البيانات وحاول مرة أخرى.";
+    }
+}
+
 export default function Login() {
-    const [authenticateClientMutation, { data }] = useAuthenticateClient();
+    const [authenticateClientMutation, { loading: authLoading }] = useAuthenticateClient();
     const [resendEmailVerficationMutation] = useResendEmailVerification();
-    const {register, handleSubmit, control, watch, reset} = useForm();
+    const {register, handleSubmit, formState: {errors}} = useForm({
+        mode: "onTouched"
+    });
 
     const [getCurrentUserLazy] = useGetCurrentUser();
     const { classes, cx, theme } = useStyles();
@@ -56,11 +79,13 @@ export default function Login() {
     }, []);
 
     let onFormSubmit = ({email, password}: any) => {
-        setEmail(email)
+        const normalizedEmail = email.trim().toLowerCase();
+        setAlert({});
+        setEmail(normalizedEmail)
         authenticateClientMutation({
             variables: {
                 content: {
-                    email: email,
+                    email: normalizedEmail,
                     password: password
                 }
             }
@@ -76,102 +101,20 @@ export default function Login() {
                 });
             },
             (err) => {
-                if (err?.graphQLErrors[0]?.extensions?.code == "AUTHENTICATION_FAILED") {
-                    setAlert({
-                        status: "red",
-                        msg: "بيانات الدخول غير صحيحة أو الحساب غير متاح.",
-                        code: ""
-                    });
-                }
-
-                if (err?.graphQLErrors[0]?.extensions?.code == "ACCOUNT_LOCKED") {
-                    setAlert({
-                        status: "red",
-                        msg: "تم قفل الحساب مؤقتا بسبب محاولات دخول كثيرة. حاول لاحقا.",
-                        code: ""
-                    });
-                }
-
-                if (err?.graphQLErrors[0]?.extensions?.code == "USER_NOT_EXIST") {
-                    setAlert({
-                        status: "red",
-                        msg: "لا يوجد مستخدم بهاذا الإيميل",
-                        code: ""
-                    });
-                }
-
-                if (err?.graphQLErrors[0]?.extensions?.code == "EMAIL_NOT_VERIFY") {
-                    setAlert({
-                        status: "red",
-                        msg: "هذا الحساب غير مفعل، قم بالتحقق من صندوق البريد لتفعيله.",
-                        code: "EMAIL_NOT_VERIFY"
-                    });
-                }
-
-                if (err?.graphQLErrors[0]?.extensions?.code == "PASSWORD_INCORRECT") {
-                    setAlert({
-                        status: "red",
-                        msg: " كلمة المرور غير صحيحة، يرجى إعادة المحاولة.",
-                        code: ""
-                    });
-                }
-
-                if (err?.graphQLErrors[0]?.extensions?.code == "ACCOUNT_NOT_ACTIVE") {
-                    setAlert({
-                        status: "red",
-                        msg: "تم حظر حسابك من قبل المسؤول",
-                        code: ""
-                    });
-                }
+                const code = err?.graphQLErrors?.[0]?.extensions?.code as string | undefined;
+                setAlert({
+                    status: "red",
+                    msg: getLoginErrorMessage(code),
+                    code: code === "EMAIL_NOT_VERIFY" ? "EMAIL_NOT_VERIFY" : ""
+                });
             }
         ).catch((err) => {
-            if (err?.graphQLErrors[0]?.extensions?.code == "AUTHENTICATION_FAILED") {
-                setAlert({
-                    status: "red",
-                    msg: "بيانات الدخول غير صحيحة أو الحساب غير متاح.",
-                    code: ""
-                });
-            }
-
-            if (err?.graphQLErrors[0]?.extensions?.code == "ACCOUNT_LOCKED") {
-                setAlert({
-                    status: "red",
-                    msg: "تم قفل الحساب مؤقتا بسبب محاولات دخول كثيرة. حاول لاحقا.",
-                    code: ""
-                });
-            }
-
-            if (err?.graphQLErrors[0]?.extensions?.code == "USER_NOT_EXIST") {
-                setAlert({
-                    status: "red",
-                    msg: "لا يوجد مستخدم بهاذا الإيميل",
-                    code: ""
-                });
-            }
-
-            if (err?.graphQLErrors[0]?.extensions?.code == "EMAIL_NOT_VERIFY") {
-                setAlert({
-                    status: "red",
-                    msg: "هذا الحساب غير مفعل، قم بالتحقق من صندوق البريد لتفعيله.",
-                    code: "EMAIL_NOT_VERIFY"
-                });
-            }
-
-            if (err?.graphQLErrors[0]?.extensions?.code == "PASSWORD_INCORRECT") {
-                setAlert({
-                    status: "red",
-                    msg: " كلمة المرور غير صحيحة، يرجى إعادة المحاولة.",
-                    code: ""
-                });
-            }
-
-            if (err?.graphQLErrors[0]?.extensions?.code == "ACCOUNT_NOT_ACTIVE") {
-                setAlert({
-                    status: "red",
-                    msg: "تم حظر حسابك من قبل المسؤول",
-                    code: ""
-                });
-            }
+            const code = err?.graphQLErrors?.[0]?.extensions?.code as string | undefined;
+            setAlert({
+                status: "red",
+                msg: getLoginErrorMessage(code),
+                code: code === "EMAIL_NOT_VERIFY" ? "EMAIL_NOT_VERIFY" : ""
+            });
         })
     };
 
@@ -215,17 +158,36 @@ export default function Login() {
                                         type={"email"}
                                         placeholder={"البريد الالكتروني"}
                                         sx={{width: "100%"}}
-                                        {...register("email", { required: true })}
+                                        {...register("email", {
+                                            required: "البريد الإلكتروني مطلوب.",
+                                            setValueAs: (value) => value?.trim(),
+                                            pattern: {
+                                                value: EMAIL_PATTERN,
+                                                message: "صيغة البريد الإلكتروني غير صحيحة."
+                                            }
+                                        })}
                                     />
+                                    {errors.email?.message && (
+                                        <Text color="red" size="xs" sx={{alignSelf: "flex-start"}}>{errors.email.message as string}</Text>
+                                    )}
                                     <PasswordInput
                                         icon={<Lock color={theme.colors.gray[4]} />}
                                         variant="default"
                                         placeholder={"كلمة المرور"}
                                         sx={{width: "100%"}}
-                                        {...register("password", { required: true })}
+                                        {...register("password", {
+                                            required: "كلمة المرور مطلوبة.",
+                                            minLength: {
+                                                value: 8,
+                                                message: "كلمة المرور يجب أن تكون 8 أحرف على الأقل."
+                                            }
+                                        })}
                                     />
+                                    {errors.password?.message && (
+                                        <Text color="red" size="xs" sx={{alignSelf: "flex-start"}}>{errors.password.message as string}</Text>
+                                    )}
 
-                                    <Button type={"submit"} fullWidth color="primary" loading={false} loaderPosition="center">تسجيل الدخول</Button>
+                                    <Button type={"submit"} fullWidth color="primary" loading={authLoading} loaderPosition="center">تسجيل الدخول</Button>
                                     <Link href={"/login/forGotPassword"} className={classes.link} >نسيت كلمة المرور؟</Link>
                                 </Stack>
                             </form>

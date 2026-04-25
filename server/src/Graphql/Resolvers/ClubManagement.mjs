@@ -12,6 +12,28 @@ dotenv.config();
 
 const {Op, col} = sequelize;
 
+const normalizeClubManagementUserUpdate = (userInput = {}) => {
+    const update = {};
+
+    if (userInput.email !== undefined) {
+        update.email = userInput.email;
+    }
+
+    if (userInput.activation !== undefined) {
+        update.activation = userInput.activation;
+    }
+
+    if (userInput.email_verify !== undefined) {
+        update.email_verify = userInput.email_verify;
+    }
+
+    if (userInput.role !== undefined) {
+        update.role = ["1", "2", "3", "4"].includes(`${userInput.role}`) ? `${userInput.role}` : "2";
+    }
+
+    return update;
+}
+
 export const resolvers = {
     Query: {
         clubManagement: async (obj, {id}, context, info) =>  {
@@ -124,14 +146,14 @@ export const resolvers = {
 
                 let result = await ClubManagement.update({membership_date: content.membership_date, membership_date_end: content.membership_date_end}, { where: { id } })
 
+                const userUpdate = normalizeClubManagementUserUpdate(content.user);
+
                 let user = null
-                if (content.user.password && content.user.password !== "") {
-                    let password = await hashPassword(content.user.password);
-                    user = await User.update({...content.user, password}, { where: { id_person: idPerson } })
-                } else {
-                    delete content.user.passwor
-                    user = await User.update({...content.user}, { where: { id_person: idPerson } })
+                if (content.user.password && content.user.password.trim() !== "") {
+                    userUpdate.password = await hashPassword(content.user.password);
                 }
+
+                user = await User.update(userUpdate, { where: { id_person: idPerson } })
 
                 return {
                     status: result[0] === 1 || person[0] === 1 || user[0] === 1
