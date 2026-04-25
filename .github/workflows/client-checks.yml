@@ -1,0 +1,84 @@
+name: Client Checks
+
+on:
+  pull_request:
+    paths:
+      - "client/**"
+      - ".github/workflows/client-checks.yml"
+
+jobs:
+  lint:
+    name: Lint ${{ matrix.app }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: club
+            path: client/club
+          - app: team
+            path: client/team
+          - app: super-admin
+            path: client/super-admin
+          - app: plyer
+            path: client/plyer
+          - app: landing-page
+            path: client/landing-page
+          - app: print
+            path: client/print
+          - app: sports-course
+            path: client/sports-course
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.path }}
+        run: npm ci --legacy-peer-deps
+
+      - name: Run lint
+        working-directory: ${{ matrix.path }}
+        run: npm run lint
+
+  test:
+    name: Test ${{ matrix.app }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: print
+            path: client/print
+          - app: sports-course
+            path: client/sports-course
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.path }}
+        run: npm ci --legacy-peer-deps
+
+      - name: Run tests
+        working-directory: ${{ matrix.path }}
+        env:
+          CI: true
+        run: npm test -- --watchAll=false

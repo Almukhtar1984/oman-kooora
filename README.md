@@ -87,6 +87,5 @@ npm run db:check-model-migrations
 
 - The project currently keeps dependencies per app rather than as a single
   workspace.
-- Some apps still have both `package-lock.json` and `yarn.lock`; use the
-  lockfile agreed by the team for that app until package manager cleanup is
-  completed.
+- npm is the canonical package manager. Each app keeps its own
+  `package-lock.json`, and CI installs dependencies with `npm ci`.

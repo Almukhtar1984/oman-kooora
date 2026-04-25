@@ -19,6 +19,53 @@
 
 ## 2026-04-25
 
+### 48. توحيد package manager على npm
+
+- تم اعتماد npm كمدير الحزم الرسمي للمشروع لأن:
+  - كل التطبيقات تملك `package-lock.json`.
+  - root scripts تعتمد على `npm --prefix`.
+  - GitHub Actions تستخدم `npm ci`.
+- تم حذف ملفات `yarn.lock` المكررة من:
+  - `client/club`
+  - `client/plyer`
+  - `client/super-admin`
+- تم تحديث `README.md` لتوضيح أن `package-lock.json` هو lockfile المعتمد لكل
+  تطبيق.
+- تم تحديث `SECURITY_REVIEW_REPORT.md` وتعليم بند توحيد package manager كمنجز.
+
+---
+
+### 47. إضافة CI للواجهات
+
+- تم إضافة GitHub Action جديد:
+  - `.github/workflows/client-checks.yml`
+- تم إضافة wrapper scripts في `package.json` لتشغيل فحوص الواجهات من جذر
+  المشروع:
+  - `lint:print`
+  - `lint:sports-course`
+  - `test:print`
+  - `test:sports-course`
+- workflow الجديد يشغل على pull requests التي تغير ملفات `client/**`.
+- تم إضافة job لتشغيل lint لكل الواجهات:
+  - `club`
+  - `team`
+  - `super-admin`
+  - `plyer`
+  - `landing-page`
+  - `print`
+  - `sports-course`
+- تم إضافة job لتشغيل tests للتطبيقات التي عندها tests جاهزة:
+  - `print`
+  - `sports-course`
+- يستخدم workflow:
+  - Node.js 20
+  - `npm ci --legacy-peer-deps`
+  - npm cache حسب `package-lock.json` لكل تطبيق
+- تم تشغيل:
+  - `git diff --check`
+
+---
+
 ### 46. تنظيف تحذيرات lint في sports-course
 
 - تم إضافة script جديد في `client/sports-course/package.json`:
