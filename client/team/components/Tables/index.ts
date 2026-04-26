@@ -8,3 +8,7 @@ export * from "./OutboxTable";
 export * from "./ExpenseTable";
 export * from "./MeetingTable";
 export * from "./TeamManagement";
+export * from "./Leagues";
+export * from "./PlayersTableMobile";
+export * from "./PlayersTableLoan";
+export * from "./PlayersTableTransfer";

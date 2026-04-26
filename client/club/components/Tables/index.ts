@@ -1,6 +1,7 @@
 export * from "./MembersTable";
 export * from "./TechnicalsTable";
 export * from "./PlayersTable";
+export * from "./PlayersTableMobile";
 export * from "./PlayersTableTransfer";
 export * from "./AssemblyTable";
 export * from "./PlayersTableLoan";
@@ -10,3 +11,4 @@ export * from "./ExpenseTable";
 export * from "./MeetingTable";
 export * from "./AssemblyTableTeam";
 export * from "./ClubManagement";
+export * from "./ActionLogsTable";
