@@ -146,14 +146,6 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                 grow
                 className={classes.main}
                 p="15px"
-                styles={(theme) => ({
-                    scrollbar: {
-                        '&, &:hover': {
-                            background: "transparent",
-                        },
-                    }
-                })}
-
                 sx={{
                     "&.mantine-rtl-ScrollArea-root": {
                         overflow: "inherit"

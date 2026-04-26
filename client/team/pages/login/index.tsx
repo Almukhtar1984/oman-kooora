@@ -97,7 +97,7 @@ export default function Login() {
                     fetchPolicy: "network-only",
                     onCompleted: ({ currentUser }) => {
                         useStore.setState({ userData: currentUser });
-                        router.push("/members");
+                        router.push("/");
                     }
                 })
             },
