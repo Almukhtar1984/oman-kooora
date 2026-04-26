@@ -32,6 +32,7 @@ import {
     User
 } from "../src/Models/index.mjs";
 import {hashPassword} from "../src/Helpers/Password.mjs";
+import {mkdir, writeFile} from "node:fs/promises";
 
 const DEMO_PASSWORD = "Demo@12345";
 const LEGACY_ADMIN_PASSWORD = "Admin@12345";
@@ -41,6 +42,68 @@ const today = "2026-04-25";
 const nextYear = "2027-04-25";
 
 const asset = (name) => `demo/${name}`;
+const demoAssetsDir = new URL("../uploads/demo/", import.meta.url);
+const demoPng = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mP8z8BQDwAFgwJ/l5qBiwAAAABJRU5ErkJggg==",
+    "base64"
+);
+const demoJpeg = Buffer.from(
+    "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAH/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAEFAqf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/ASP/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/ASP/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAY/Ar//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/IV//2gAMAwEAAgADAAAAEP/EFBQRAQAAAAAAAAAAAAAAAAAAABD/2gAIAQMBAT8QH//EFBQRAQAAAAAAAAAAAAAAAAAAABD/2gAIAQIBAT8QH//EFBABAQAAAAAAAAAAAAAAAAAAABD/2gAIAQEAAT8QH//Z",
+    "base64"
+);
+
+const demoImageAssets = [
+    "club-tomoh.png",
+    "club-sahil.png",
+    "team-tomoh-first.png",
+    "team-tomoh-youth.png",
+    "team-sahil-first.png",
+    "message-logo.png",
+    "DEMO-ADM-001.jpg",
+    "DEMO-SA-001.jpg",
+    "DEMO-CA-001.jpg",
+    "DEMO-TA-001.jpg",
+    "DEMO-PL-001.jpg",
+    "DEMO-SP-001.jpg",
+    "DEMO-MB-001.jpg",
+    "DEMO-MB-002.jpg",
+    "DEMO-PL-002.jpg",
+    "DEMO-PL-003.jpg",
+    "DEMO-PL-004.jpg",
+    "DEMO-PL-005.jpg",
+    "DEMO-PL-006.jpg",
+    "DEMO-CO-001.jpg",
+    "DEMO-CO-002.jpg",
+    "DEMO-PL-001-front.jpg",
+    "DEMO-PL-001-back.jpg",
+    "DEMO-PL-002-front.jpg",
+    "DEMO-PL-002-back.jpg",
+    "DEMO-PL-003-front.jpg",
+    "DEMO-PL-003-back.jpg",
+    "DEMO-PL-004-front.jpg",
+    "DEMO-PL-004-back.jpg",
+    "DEMO-PL-005-front.jpg",
+    "DEMO-PL-005-back.jpg",
+    "DEMO-PL-006-front.jpg",
+    "DEMO-PL-006-back.jpg",
+    "assembly-1.jpg",
+    "assembly-2.jpg",
+    "assembly-1-front.jpg",
+    "assembly-1-back.jpg",
+    "assembly-2-front.jpg",
+    "assembly-2-back.jpg",
+    "stadium-main.jpg",
+    "blog-league.jpg"
+];
+
+const ensureDemoAssets = async () => {
+    await mkdir(demoAssetsDir, {recursive: true});
+
+    await Promise.all(demoImageAssets.map((name) => {
+        const bytes = name.toLowerCase().endsWith(".png") ? demoPng : demoJpeg;
+        return writeFile(new URL(name, demoAssetsDir), bytes);
+    }));
+};
 
 const upsert = async (model, where, values, transaction) => {
     const found = await model.findOne({where, transaction});
@@ -169,6 +232,7 @@ const upsertTechnical = async ({person, team, occupation, classification}, trans
 };
 
 const seed = async () => {
+    await ensureDemoAssets();
     await migrator.up();
 
     const result = await DB.transaction(async (transaction) => {

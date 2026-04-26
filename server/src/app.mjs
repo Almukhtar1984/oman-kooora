@@ -75,7 +75,7 @@ const defaultWhitelist = [
     app.use(cookieParser())
     app.use(expressUserAgent());
 
-    app.get('/images/:filename', publicUploadImageMiddleware())
+    app.get(['/images/:filename', '/images/*'], publicUploadImageMiddleware())
     app.use(express.urlencoded({ extended: true, limit: process.env.REQUEST_BODY_LIMIT || "1mb" }));
     app.use(express.json({ limit: process.env.REQUEST_BODY_LIMIT || "1mb" }));
     app.use(helmet({ contentSecurityPolicy: isProduction ? undefined : false }));

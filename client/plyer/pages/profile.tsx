@@ -32,7 +32,8 @@ export default function Profile () {
             // @ts-ignore
             setAge(dayjs(userData?.person?.date_birth, "YYYY-MM-DD"))
         }
-    }, [userData, form]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userData]);
 
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });

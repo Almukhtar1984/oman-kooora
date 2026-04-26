@@ -17,10 +17,13 @@ export const UpdateProposalModal = ({data, opened, ...props}: Props) => {
 
 
     useEffect(() => {
+        if (!opened) return;
+
         form.setValues({
             content: data?.content
         })
-    }, [opened, data, form])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [opened, data])
 
     const onSubmit = ({content }: any) => {
         updateReques({

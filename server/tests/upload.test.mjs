@@ -6,6 +6,7 @@ import {Readable} from "node:stream";
 import test from "node:test";
 
 import {saveImageUpload, savePdfUpload, saveDocumentUpload} from "../src/Helpers/Upload.mjs";
+import {isSafePublicImagePath} from "../src/Middlewares/PublicImages.mjs";
 
 const uploadDir = path.resolve(process.cwd(), "uploads");
 const pngBytes = Buffer.from([
@@ -70,6 +71,18 @@ test("saveImageUpload rejects invalid image content", async () => {
         })),
         (error) => error.extensions?.code === "INVALID_UPLOAD_CONTENT"
     );
+});
+
+test("isSafePublicImagePath accepts nested demo image paths", () => {
+    assert.equal(isSafePublicImagePath("demo/club-tomoh.png"), true);
+    assert.equal(isSafePublicImagePath("demo/blog-league.jpg"), true);
+});
+
+test("isSafePublicImagePath rejects traversal and unsafe nested paths", () => {
+    assert.equal(isSafePublicImagePath("../secret.png"), false);
+    assert.equal(isSafePublicImagePath("demo/../secret.png"), false);
+    assert.equal(isSafePublicImagePath("demo/payload.svg"), false);
+    assert.equal(isSafePublicImagePath("demo//club.png"), false);
 });
 
 // ─── PDF upload tests ─────────────────────────────────────────────────────────

@@ -15,10 +15,13 @@ export const UpdateRequestModal = ({data, opened, ...props}: Props) => {
     const [updateReques] = useUpdateRequest();
 
     useEffect(() => {
+        if (!opened) return;
+
         form.setValues({
             content: data?.content
         })
-    }, [opened, data, form])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [opened, data])
 
     const onSubmit = ({content}: any) => {
         updateReques({
