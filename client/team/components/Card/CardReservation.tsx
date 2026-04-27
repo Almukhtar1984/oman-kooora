@@ -27,7 +27,6 @@ const CardReservation = ({ data, onDeleteModal, hasPermission,refetchReservation
             await updateReservationStatus({
                 variables: { id: data?.id, status: "accepted" }, // Assuming 'accepted' is the confirmed status
             });
-            console.log('Reservation confirmed:', data?.id);
             await refetchReservations();
         } catch (error) {
             console.error('Error confirming reservation:', error);
@@ -54,7 +53,6 @@ const CardReservation = ({ data, onDeleteModal, hasPermission,refetchReservation
             await updateReservationStatus({
                 variables: { id: data?.id, status: "cancel" }, // Assuming 'cancel' is the disabled status
             });
-            console.log('Reservation canceled:', data?.id);
             await refetchReservations();
         } catch (error) {
             console.error('Error canceling reservation:', error);

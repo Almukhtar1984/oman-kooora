@@ -242,12 +242,8 @@ export const PlayersTableMobile = ({ list, search, setOpenEditModal, setOpenAddI
     
 
     useEffect(() => {
-        console.log(allMembers)
-        console.log(allstatus)
     }, [allstatus]);
     const dateFilter = (dateCheck: string[], list: any[]) => {
-        console.log("dateCheck",dateCheck)
-        console.log("list",list)
         if (dateCheck.length === 0) return list;
     
         // Filter members based on whether item.class exists in dateCheck
@@ -255,7 +251,6 @@ export const PlayersTableMobile = ({ list, search, setOpenEditModal, setOpenAddI
     };
 
     function onPaginationChange(action, state) {
-        console.log(action, state);
     }
 
     const openModelUpdate = (id: string) => {

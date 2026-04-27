@@ -34,7 +34,6 @@ export const AddSanctionModal = ({ player, ...props }: Props) => {
 
     const onFormSubmit = ({ note, id_player, date_from, date_to }: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
-        console.log(player?.id)
         setLoading(true);
         createSanction({
             variables: {

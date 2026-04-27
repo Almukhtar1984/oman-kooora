@@ -96,7 +96,6 @@ export const AddParticipatingTechnicalStaff = ({ data, ...props }: Props) => {
                 notyf.success("تم اضافة الفرق");
             },
             onError: ({ graphQLErrors }) => {
-                console.log(graphQLErrors);
             }
         });
     };

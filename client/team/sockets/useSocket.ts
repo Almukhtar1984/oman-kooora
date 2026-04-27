@@ -20,8 +20,7 @@ const useSocket = (): Socket | null => {
     const userId = (useStore.getState() as any)?.userData?.person?.member?.team?.id;
 
     if (token) {
-      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const socket = io(`${protocol}${process.env.NEXT_PUBLIC_API_SOCKET}`, {
+      const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
         path: "/socket.io/",
         transports: ["polling", "websocket"],
         auth: {
@@ -49,8 +48,7 @@ const useSocket = (): Socket | null => {
       const newUserId = (useStore.getState() as any)?.userData?.id;
 
       if (newToken && !socketInstance) {
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        const socket = io(`${protocol}${process.env.NEXT_PUBLIC_API_SOCKET}`, {
+        const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
           path: "/socket.io/",
           transports: ["polling", "websocket"],
           auth: {

@@ -21,7 +21,6 @@ type Props = {
 export const AddParticipatingPlayersMatch = ({data,dataMatch,setOpenShowMatchsModal, ...props}: Props) => {
     
     const userData = useStore((state: any) => state.userData);
-    console.log("userData:",userData?.person?.member?.team?.id)
 
     const {getInputProps, reset, onSubmit, values, insertListItem, removeListItem} = useForm({
         initialValues: {
@@ -101,7 +100,6 @@ export const AddParticipatingPlayersMatch = ({data,dataMatch,setOpenShowMatchsMo
                 
             })
         }
-        console.log("newPlayers:",newPlayers)
     
         
         createParticipatingPlayersMatch({
@@ -117,7 +115,6 @@ export const AddParticipatingPlayersMatch = ({data,dataMatch,setOpenShowMatchsMo
                 notyf.success("تم اضافة القائمة ")
             },
             onError: ({graphQLErrors}) => {
-                console.log(false)
             }
         })
     };

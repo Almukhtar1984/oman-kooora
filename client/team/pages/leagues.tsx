@@ -85,11 +85,9 @@ export default function Leagues() {
         if (dataAllLeagues && "allLeaguesTeam" in dataAllLeagues) {
             setAllLeagues([...dataAllLeagues.allLeaguesTeam]);
         }
-        console.log("dataAllLeagues:",dataAllLeagues)
     }, [dataAllLeagues]);
 
     useEffect(() => {
-        console.log("allLeagues:",allLeagues)
         if (allLeagues.length >= 0) {
             const filterAllLeagues = sortedData(allLeagues);
             setAllLeaguesSorting([...filterAllLeagues]);

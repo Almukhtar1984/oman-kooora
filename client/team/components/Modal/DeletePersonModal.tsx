@@ -22,7 +22,6 @@ export const DeletePersonModal = ({ id,closeModalParent, ...props }: Props) => {
             closeModalParent()
         })
         .catch(reason => {
-            console.log(reason);
         });
     };
 

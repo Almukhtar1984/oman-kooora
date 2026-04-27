@@ -233,8 +233,6 @@ export const PlayersTableMobile = ({ list, search, setOpenEditModal, setOpenVeri
     
 
     useEffect(() => {
-        console.log(allMembers)
-        console.log(allstatus)
     }, [allstatus]);
     const dateFilter = (dateCheck: any, list: any) => {
         let listDates: string[] = []
@@ -260,7 +258,6 @@ export const PlayersTableMobile = ({ list, search, setOpenEditModal, setOpenVeri
     }
 
     function onPaginationChange(action, state) {
-        console.log(action, state);
     }
 
     const openModelUpdate = (id: string) => {

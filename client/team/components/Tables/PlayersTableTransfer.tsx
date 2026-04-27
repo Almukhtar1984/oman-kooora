@@ -61,7 +61,6 @@ export const PlayersTableTransfer = ({ list, search, setOpenEditModal, setSelect
     }, [search]);
 
     function onPaginationChange(action, state) {
-        console.log(action, state);
     }
 
     const openModelUpdate = (data: any, status: string) => {

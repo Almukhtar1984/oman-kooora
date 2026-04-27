@@ -62,7 +62,6 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
     }, [search]);
 
     function onPaginationChange(action, state) {
-        console.log(action, state);
     }
 
     const openModelUpdate = (data: any, status: string) => {

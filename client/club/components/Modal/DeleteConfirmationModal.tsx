@@ -8,7 +8,6 @@ interface Props {
 }
 
 export const DeleteConfirmationModal = ({ opened, onClose, onConfirm }: Props) => {
-    console.log("open DeleteConfirmationModal")
     return (
         <Modal opened={opened} onClose={onClose} title="الفاء الاعارة">
             <Text>

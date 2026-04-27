@@ -145,7 +145,6 @@ export const LeaguesTabel = ({data, setSelectedData, setOpenShowGroupsModal, set
                                    
                                     <Menu.Item
                                         onClick={() => {
-                                            console.log(team.status)
                                             setOpenTeamParticipationAccptedModal(team.id);
                                             setSelectedParticipationTeam(team)
                                         }}

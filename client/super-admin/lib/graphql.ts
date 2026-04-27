@@ -5,6 +5,7 @@ import { setContext } from "@apollo/client/link/context";
 import useStore from "../store/useStore";
 import {getNewToken} from "../graphql";
 import Router from "next/router";
+import {apiUrl} from "./config";
 
 const authLink = setContext((_, { headers, operationName }) => {
     const token = (useStore.getState() as any).token;
@@ -73,7 +74,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
 });
 
 const httpLink = createUploadLink({
-    uri: `${process.env.NEXT_PUBLIC_API_URL}/graphql`,
+    uri: `${apiUrl}/graphql`,
     credentials: "include",
 });
 

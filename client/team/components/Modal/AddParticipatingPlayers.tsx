@@ -110,10 +110,8 @@ export const AddParticipatingPlayers = ({data, ...props}: Props) => {
       const selectedNumbers = values.players
         .map((p:any, i) => (i !== currentIndex ? p.number : null))
         .filter(Boolean);
-        console.log("existingNumbers:",existingNumbers)
       const blockedNumbers = [...selectedNumbers, ...existingNumbers];
       let test = jerseyNumbers.filter((num) => !blockedNumbers.includes(num.value));
-      console.log("jerseyNumbers.filter((num) => !blockedNumbers.includes(num.value):",test)
 
       return jerseyNumbers.filter((num) => !blockedNumbers.includes(num.value));
     };
@@ -148,7 +146,6 @@ export const AddParticipatingPlayers = ({data, ...props}: Props) => {
                 notyf.success("تم اضافة اللاعبين")
             },
             onError: ({graphQLErrors}) => {
-                console.log("graphQLErrors",graphQLErrors)
             }
         })
     };

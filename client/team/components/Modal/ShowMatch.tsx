@@ -37,8 +37,6 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
         props.onClose();
     };
     useEffect(() => {
-        console.log("data")
-        console.log("data match:",data)
     }, [data, props.opened])
 
     return (

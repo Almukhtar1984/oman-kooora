@@ -20,7 +20,6 @@ import {
   } & ModalProps;
   
   export const TechnicalItemModel = ({ item, opened, onClose }: Props) => {
-    console.log("item",item)
     const personalPictureUrl =
       item?.person?.personal_picture &&
       `${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${item.person.personal_picture}`;

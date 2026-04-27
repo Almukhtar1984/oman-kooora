@@ -20,8 +20,7 @@ const useSocket = (): Socket | null => {
     const userId = (useStore.getState() as any)?.userData?.person?.clubManagement?.club?.id
 
     if (token) {
-      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const socket = io(`${protocol}${process.env.NEXT_PUBLIC_API_SOCKET}`, {
+      const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
         path: "/socket.io/",
         transports: ["polling", "websocket"],
         auth: {

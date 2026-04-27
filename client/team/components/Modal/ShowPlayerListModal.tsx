@@ -12,7 +12,6 @@ type Props = {
 } & ModalProps;
 
 export const ShowPlayerListModal = ({ dataMatch, onClose, opened }: Props) => {
-  console.log("dataMatch:",dataMatch)
   const theme = useMantineTheme();
 
   const closeModal = () => {
@@ -20,8 +19,6 @@ export const ShowPlayerListModal = ({ dataMatch, onClose, opened }: Props) => {
   };
 
   useEffect(() => {
-    console.log("dataMatch");
-    console.log(dataMatch);
   }, [dataMatch, opened]);
 
   const renderPlayer = (
@@ -29,7 +26,6 @@ export const ShowPlayerListModal = ({ dataMatch, onClose, opened }: Props) => {
     index: number,
     direction: "starter" | "sub"
   ) => {
-    console.log("match:",match)
     const p = match?.id_participating_player;
     const person = p?.player?.person;
   

@@ -1232,7 +1232,7 @@
         "description": null,
         "fields": [
           {
-            "name": "filesname",
+            "name": "filenames",
             "description": null,
             "args": [],
             "type": {

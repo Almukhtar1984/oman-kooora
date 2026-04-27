@@ -48,7 +48,6 @@ export const UpdateParticipatingPlayers = ({data, ...props}: Props) => {
             },
             refetchQueries: [AllParticipatingPlayers],
             onError: ({graphQLErrors}) => {
-                console.log(false)
             }
         })
     };

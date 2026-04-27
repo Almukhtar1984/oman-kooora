@@ -60,9 +60,7 @@ export const LeagueCard = ({
     setOpenAddParticipatingPlayersModal
 }: Props) => {
     const [openCardOptionMenu, setOpenCardOptionMenu] = useState<boolean>(false);
-    console.log("data nami:",data)
     const team = data.participatingTeams.find((team: any) => team.team.id === idTeam);
-    console.log("idTeam",idTeam)
     return (
         <Box
             p={16}
@@ -148,7 +146,6 @@ export const LeagueCard = ({
                                    <Divider />
                                    <Menu.Item
                                        onClick={() => {
-                                           console.log(data.status)
                                            setOpenTeamParticipationAccptedModal(data.id);
                                            setSelectedParticipationTeam(data)
                                            

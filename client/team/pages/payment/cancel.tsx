@@ -6,7 +6,6 @@ export default function PaymentCancel() {
     const router = useRouter();
 
     useEffect(() => {
-        console.log('Payment was canceled.');
         // Perform any actions required on cancellation, like notifying the user or reverting any changes
     }, []);
 

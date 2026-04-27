@@ -441,7 +441,7 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
-        updateParticipatingTeams: async (obj, {id, content}, context, info) =>  {
+        updateParticipatingTeams: async (obj, {content}, context, info) =>  {
             try {
                 let result = 0
 
@@ -467,7 +467,7 @@ export const resolvers = {
                 }
 
                 return {
-                    status: result[0] >= 1
+                    status: result >= 1
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
@@ -658,7 +658,7 @@ export const resolvers = {
                 }
 
                 return {
-                    status: result[0] >= 1
+                    status: result >= 1
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
@@ -727,7 +727,7 @@ export const resolvers = {
                 }
 
                 return {
-                    status: result[0] >= 1
+                    status: result >= 1
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
@@ -797,7 +797,7 @@ export const resolvers = {
                 }
 
                 return {
-                    status: result[0] >= 1
+                    status: result >= 1
                 }
 
             } catch (error) {

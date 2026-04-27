@@ -34,7 +34,6 @@ export const AddImagePlayersModal = ({id, opened, ...props}: Props) => {
         })
         .catch(reason => {
             setLoade(false)
-            console.log(reason)
         })
     };
 

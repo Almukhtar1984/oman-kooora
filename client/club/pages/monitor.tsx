@@ -36,8 +36,6 @@ export default function Powers() {
             getAllActionLogsClub({
                 variables: { idClub },
                 onCompleted: (data) => {
-                    console.log("Query completed successfully:");
-                    console.log(data);
                 }
             });
     
@@ -54,7 +52,6 @@ export default function Powers() {
     }, [userData])
 
     useEffect(() => {
-        console.log(dataAllActionLogsClub)
 
         if (dataAllActionLogsClub && "allActionLogsClub" in dataAllActionLogsClub) {
          
@@ -63,7 +60,6 @@ export default function Powers() {
     }, [dataAllActionLogsClub])
 
     useEffect(() => {
-        console.log("allClubManagement fnish: ",allActionLogsClub)
 
         if (allActionLogsClub.length >= 0) {
             const filterAllClubManagement = sortedData(allActionLogsClub)

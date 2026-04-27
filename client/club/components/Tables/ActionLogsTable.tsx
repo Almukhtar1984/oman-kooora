@@ -110,15 +110,12 @@ export const ActionLogsTable = ({ list, setOpenEditModal, setOpenDeleteModal, se
     });
 
     useEffect(() => {
-        console.log("list:",list)
         setAllMembers({ nodes: list });
     }, [list]);
     useEffect(() => {
-        console.log(allMembers)
     }, [allMembers]);
  //allMembers
     function onPaginationChange(action, state) {
-        console.log(action, state);
     }
 
     const openModelUpdate = (id: string) => {

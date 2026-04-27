@@ -26,7 +26,6 @@ export const DeletePowerModal = ({ id, ...props }: Props) => {
             notyf.success("تم حذف المستخدم بنجاح")
         })
         .catch(reason => {
-            console.log(reason);
             notyf.error("حدث خطأ أثناء حذف المستخدم")
         });
     };

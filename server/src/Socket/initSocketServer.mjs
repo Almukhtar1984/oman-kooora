@@ -1,11 +1,9 @@
 import { Server }   from "socket.io";
 import sequelize from 'sequelize';
-import RandToken from 'rand-token';
 
 import { AuthMiddlewareSocket } from "../Middlewares/index.mjs";
 import logger from "../Config/logger.mjs";
 
-const { uid } = RandToken;
 const {Op, col, QueryTypes} = sequelize;
 
 const UNAUTHORIZED = 'You must be the authenticated user to get this information'
@@ -32,19 +30,13 @@ export class socketServer {
 			credentials: true
 		});
 
-		//instrument(this.io, { auth: false })
-		this.online_users = [];
+		// Map: userId -> Set of socket.id
+		this.userSockets = new Map();
 		this.socketConnect = null;
 	}
 
-	async getIds(id) {
-		let data = []
-		for (let i = 0; i < this.online_users.length; i++) {
-			if (this.online_users[i].split("_")[1] === id) {
-				await data.push(this.online_users[i])
-			}
-		}
-		return data;
+	getSocketIds(userId) {
+		return Array.from(this.userSockets.get(String(userId)) || []);
 	}
 
 	socketConfig() {
@@ -62,7 +54,8 @@ export class socketServer {
 				return next(new Error("date config empty"));
 			}
 
-			socket['id'] = `${uid(3)}_${socket.handshake.query.userId}` || this.online_users.length + 1;
+			socket.data.userId = String(socket.handshake.query.userId);
+			socket.data.role = socket.handshake.query.Role || "";
 
 			next();
 		});
@@ -70,65 +63,61 @@ export class socketServer {
 
 	async connection() {
 		this.socketConfig();
-		this.socketConnect = await this.io.on('connection', async (socket) => {
-			await this.socketInfo(socket)
-			 await this.sendNotifications(socket);
-
+		this.socketConnect = this.io.on('connection', (socket) => {
+			this._trackSocket(socket);
+			this.sendNotifications(socket);
 			this.socketError(socket);
 			this.socketDisconnect(socket);
-			return await socket
-		})
+
+			logger.info(`Socket connected. Online sockets: ${this.io.of("/").sockets.size}`);
+		});
 	}
 
-	async socketInfo(socket) {
-		let fetchSockets = await this.io.fetchSockets() // get all sockets
-		this.online_users = []; // re-empty list online users
-		fetchSockets.map(socket => {
-			this.online_users.push(socket.id) // add just id user
-		});
-
-		logger.info(`Socket connected. Online sockets: ${this.io.of("/").sockets.size}`);
+	_trackSocket(socket) {
+		const userId = socket.data.userId;
+		if (!this.userSockets.has(userId)) {
+			this.userSockets.set(userId, new Set());
+		}
+		this.userSockets.get(userId).add(socket.id);
 	}
 
 	async sendNewMessage(to, message) {
-		const Ids = await this.getIds(to)
-		if (Ids && Ids.length > 0) {
-			this.socketConnect.to(Ids).emit("newMessage", message)
+		const ids = this.getSocketIds(to);
+		if (ids.length > 0) {
+			this.socketConnect.to(ids).emit("newMessage", message);
 		}
 	}
 
 	async sendNewNotification(to, notification) {
-		const Ids = await this.getIds(to)
-		if (Ids && Ids.length > 0) {
-			this.socketConnect.to(Ids).emit("newNotification", notification)
+		const ids = this.getSocketIds(to);
+		if (ids.length > 0) {
+			this.socketConnect.to(ids).emit("newNotification", notification);
 		}
 	}
 
-	async sendNotifications(socket) {
+	sendNotifications(socket) {
         socket.emit("notifications", "this is connection emit")
 	}
 
 	socketError(socket) {
 		socket.on("error", (err) => {
 			logger.error("Socket error");
-			if (err && err.message === UNAUTHORIZED) {
-				socket.disconnect();
-			}
-			if (err && err.message === "date config empty") {
+			if (err && (err.message === UNAUTHORIZED || err.message === "date config empty")) {
 				socket.disconnect();
 			}
 		})
 	}
 
 	socketDisconnect(socket) {
-		socket.on('disconnect',(data)=>{
-//			if (socket.id.split("_")[1] != "undefined") {
-//				User.update({lastDisconnection: dateDisconnect}, {
-//					where: { id:  socket.id.split("_")[1] }
-//				})
-//			}
+		socket.on('disconnect', () => {
 			logger.info("Socket disconnected");
-			this.online_users = this.online_users.filter(user => user != socket.id);
+			const userId = socket.data.userId;
+			if (userId && this.userSockets.has(userId)) {
+				this.userSockets.get(userId).delete(socket.id);
+				if (this.userSockets.get(userId).size === 0) {
+					this.userSockets.delete(userId);
+				}
+			}
 		});
 	}
 }

@@ -39,9 +39,7 @@ export const UpdateSanction = ({ playerId, ...props }: Props) => {
 
     useEffect(() => {
         if (sanctionData && props.opened === true) {
-            console.log(sanctionData)
             const sanction = sanctionData?.SanctionLast;
-            console.log(sanctionData)
             setValues({
                 note: sanction?.note || "",
                 date_from: sanction?.date_from ? dayjs(sanction.date_from).format("YYYY-MM-DD") : "",

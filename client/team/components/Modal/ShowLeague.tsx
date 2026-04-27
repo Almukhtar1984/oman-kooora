@@ -38,7 +38,6 @@ export const ShowLeague = ({ data, setSelectedData, setOpenShowParticipatingPlay
                     setTeamPoints(calculatePoints);
                 },
                 onError: () => {
-                    console.log("error");
                 },
             });
             getTopGoal({
@@ -47,10 +46,8 @@ export const ShowLeague = ({ data, setSelectedData, setOpenShowParticipatingPlay
                 },
                 onCompleted: ({ calculateGoalPlayer }) => {
                     setTopGoal(calculateGoalPlayer);
-                    console.log(calculateGoalPlayer);
                 },
                 onError: () => {
-                    console.log("error");
                 },
             });
 

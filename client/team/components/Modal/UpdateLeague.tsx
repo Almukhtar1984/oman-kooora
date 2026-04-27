@@ -57,7 +57,6 @@ export const UpdateLeague = ({data, ...props}: Props) => {
                 notyf?.success("تم تعديل الدورة")
             },
             onError: ({graphQLErrors}) => {
-                console.log(false)
             }
         })
     };

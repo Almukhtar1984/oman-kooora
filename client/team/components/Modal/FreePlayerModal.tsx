@@ -23,8 +23,6 @@ import {
   
     const onSubmit = () => {
       const notyf = typeof window !== 'undefined' ? new Notyf({ position: { x: "right", y: "bottom" } }) : null;
-      console.log("data:",id)
-      console.log("")
       freePlayer({
         variables: { id: id },
         refetchQueries: [AllPlayers],

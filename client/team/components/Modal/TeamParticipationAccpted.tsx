@@ -29,7 +29,6 @@ export const TeamParticipationAccptedModal = ({ id,SelectedParticipationTeam, ..
                 
             },
             onError: ({graphQLErrors}) => {
-                console.log(false)
             }
         })
     };
@@ -45,7 +44,6 @@ export const TeamParticipationAccptedModal = ({ id,SelectedParticipationTeam, ..
                 
             },
             onError: ({graphQLErrors}) => {
-                console.log(false)
             }
         })
     };

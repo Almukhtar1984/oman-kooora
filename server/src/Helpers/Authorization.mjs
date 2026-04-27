@@ -30,7 +30,7 @@ export const assertSuperAdmin = (context) => {
     }
 }
 
-export const getUserAccessScope = async (user) => {
+const _fetchUserScope = async (user) => {
     if (isSuperAdmin(user)) {
         return {
             all: true,
@@ -75,12 +75,27 @@ export const getUserAccessScope = async (user) => {
     };
 }
 
+export const getUserAccessScope = async (user, context) => {
+    // Cache scope per request via context to avoid redundant DB queries
+    if (context) {
+        if (!context._scopeCache) context._scopeCache = new Map();
+        const userId = normalizeId(user.id);
+        if (context._scopeCache.has(userId)) {
+            return context._scopeCache.get(userId);
+        }
+        const scope = await _fetchUserScope(user);
+        context._scopeCache.set(userId, scope);
+        return scope;
+    }
+    return _fetchUserScope(user);
+}
+
 export const assertCanAccessClub = async (context, idClub) => {
     if (!hasId(idClub)) return;
 
     assertAuthenticated(context);
 
-    const scope = await getUserAccessScope(context.user);
+    const scope = await getUserAccessScope(context.user, context);
     if (scope.all || scope.clubIds.has(normalizeId(idClub))) return;
 
     throw new ApolloError("You do not have permission to access this club", "FORBIDDEN");
@@ -91,7 +106,7 @@ export const assertCanAccessTeam = async (context, idTeam) => {
 
     assertAuthenticated(context);
 
-    const scope = await getUserAccessScope(context.user);
+    const scope = await getUserAccessScope(context.user, context);
     if (scope.all || scope.teamIds.has(normalizeId(idTeam))) return;
 
     const team = await Team.findByPk(idTeam);
@@ -103,7 +118,7 @@ export const assertCanAccessTeam = async (context, idTeam) => {
 export const assertCanAccessAnyScope = async (context, {clubIds = [], teamIds = []}) => {
     assertAuthenticated(context);
 
-    const scope = await getUserAccessScope(context.user);
+    const scope = await getUserAccessScope(context.user, context);
     if (scope.all) return;
 
     const normalizedClubIds = clubIds.map(normalizeId).filter(Boolean);
@@ -147,7 +162,7 @@ export const assertCanAccessUserScope = async (context, idUser) => {
 
     if (normalizeId(context.user.id) === normalizeId(idUser)) return;
 
-    const currentScope = await getUserAccessScope(context.user);
+    const currentScope = await getUserAccessScope(context.user, context);
     if (currentScope.all) return;
 
     const targetUser = await User.findByPk(idUser);

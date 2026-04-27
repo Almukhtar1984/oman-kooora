@@ -16,7 +16,6 @@ export default function PaymentSuccess() {
 
     useEffect(() => {
         if (paymentStatus === "paid") {
-            console.log('Payment was successful!');
             // Perform any additional actions like updating the database or notifying the user
         }
     }, [paymentStatus]);

@@ -62,7 +62,7 @@ const typeDefs = gql`
     }
 
     type Files {
-        filesname:   [String!]
+        filenames:   [String!]
         url:        String!
     }
 

@@ -30,7 +30,6 @@ export const ConvertTechnicalToPlayerModal = ({ id, ...props }: Props) => {
 
     const onSubmit = () => {
         if (!id || !form.isValid()) {
-            console.log("Validation failed");
             return;
         }
 

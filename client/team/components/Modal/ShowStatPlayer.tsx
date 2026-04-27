@@ -22,7 +22,6 @@ export const ShowStatPlayer = ({ playerId, setSelectedPlayer, setOpenEditPlayerM
                 },
                 fetchPolicy: "network-only",
                 onCompleted: (data) => {
-                    console.log("Fetched Player Data:", data);  // Debugging: Print data to console
                 }
             });
         }
