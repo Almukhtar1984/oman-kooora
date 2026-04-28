@@ -409,7 +409,7 @@ export const resolvers = {
                 }
 
                 return {
-                    status: result[0] === 1 || person[0] === 1
+                    status: result[0] === 1 || (person !== null && person[0] === 1)
                 }
             } catch (error) {
                 logger.error("")

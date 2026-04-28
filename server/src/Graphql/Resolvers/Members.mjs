@@ -183,7 +183,7 @@ export const resolvers = {
                     let password = await hashPassword(content.user.password);
                     user = await User.update({...content.user, password}, { where: { id_person: idPerson } })
                 } else {
-                    delete content.user.passwor
+                    delete content.user.password
                     user = await User.update({...content.user}, { where: { id_person: idPerson } })
                 }
 

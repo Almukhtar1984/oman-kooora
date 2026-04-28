@@ -570,15 +570,6 @@ export const resolvers = {
                     result = await User.update({...content}, { where: { id } })
                 }
 
-                if (content.id_street && content.id_street.length > 0) {
-                    await UserStreet.destroy({ where: { id_user: id } })
-
-                    const streets = content.id_street
-                    for (let i = 0; i < streets.length; i++) {
-                        await UserStreet.create({id_user: user.id, id_street: streets[i]})
-                    }
-                }
-
                 return {
                     status: result[0] === 1
                 }
