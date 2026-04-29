@@ -1,0 +1,21 @@
+Options -Indexes +FollowSymLinks
+DirectoryIndex client/sports-course/dist/index.html
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+RewriteRule ^assets/(.*)$ client/sports-course/dist/assets/$1 [L,NC,QSA]
+
+RewriteCond %{DOCUMENT_ROOT}/client/sports-course/dist%{REQUEST_URI} -f
+RewriteRule ^(.*)$ client/sports-course/dist/$1 [L,QSA]
+
+RewriteCond %{DOCUMENT_ROOT}/client/sports-course/dist%{REQUEST_URI} -d
+RewriteRule ^(.*)$ client/sports-course/dist/$1 [L,QSA]
+
+RewriteRule ^ client/sports-course/dist/index.html [L]
+</IfModule>
+
+AddType text/javascript .js
+AddType text/css .css
+AddType text/html .html
+

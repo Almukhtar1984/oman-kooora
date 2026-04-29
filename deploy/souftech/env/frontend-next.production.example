@@ -1,0 +1,5 @@
+NEXT_PUBLIC_API_URL=https://omkoora-backend.souftech.com
+NEXT_PUBLIC_SOCKET_URL=https://omkoora-backend.souftech.com
+NEXT_PUBLIC_UPLOAD_URL=https://omkoora-backend.souftech.com
+NEXT_PUBLIC_PRINT_URL=https://print.omkooora.com
+

@@ -1,0 +1,24 @@
+Options -Indexes +FollowSymLinks
+DirectoryIndex client/landing-page/out/index.html
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+RewriteRule ^_next/(.*)$ client/landing-page/out/_next/$1 [L,NC,QSA]
+
+RewriteCond %{DOCUMENT_ROOT}/client/landing-page/out%{REQUEST_URI} -f
+RewriteRule ^(.*)$ client/landing-page/out/$1 [L,QSA]
+
+RewriteCond %{DOCUMENT_ROOT}/client/landing-page/out%{REQUEST_URI}/index.html -f
+RewriteRule ^(.+?)/?$ client/landing-page/out/$1/index.html [L,QSA]
+
+RewriteCond %{DOCUMENT_ROOT}/client/landing-page/out%{REQUEST_URI}.html -f
+RewriteRule ^(.+)$ client/landing-page/out/$1.html [L,QSA]
+
+RewriteRule ^ client/landing-page/out/index.html [L]
+</IfModule>
+
+AddType text/javascript .js
+AddType text/css .css
+AddType text/html .html
+
