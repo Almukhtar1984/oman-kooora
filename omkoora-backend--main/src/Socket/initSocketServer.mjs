@@ -3,6 +3,7 @@ import { format as dateFormat } from 'date-fns';
 import sequelize from 'sequelize';
 import RandToken from 'rand-token';
 import { AuthMiddlewareSocket } from "../Middlewares/index.mjs";
+import { allowedOrigins } from "../Config/runtime.mjs";
 
 const { uid } = RandToken;
 const { Op, col, QueryTypes } = sequelize;
@@ -14,26 +15,9 @@ export class SocketServer {
     this.io = new Server(httpServer, {
       path: "/socket.io/",
       cors: {
-        origin: [ 
-          "https://player.omkooora.com",
-          "https://team.omkooora.com",
-          "https://club.omkooora.com",
-          "https://super-admin.omkooora.com",
-          "https://omkooora.com",
-          "https://print.omkooora.com",
-          "https://league.omkooora.com",
-          "https://news.omkooora.com",
-          "http://localhost:3000",
-          'http://localhost:3001',
-          'http://localhost:3002',
-          'http://localhost:3006',
-          'https://clubv2.smsoma.com',
-          'https://omkoora-club-production.up.railway.app',
-          'https://reservation-accommodations-theatre-text.trycloudflare.com',
-          'https://holds-dive-seventh-teaching.trycloudflare.com'
-        ]
-      },
-      credentials: true
+        origin: allowedOrigins,
+        credentials: true
+      }
     });
 
     this.online_users = [];
@@ -97,6 +81,10 @@ export class SocketServer {
   }
 
   async connection() {
+    if (this.socketConnect) {
+      return this.socketConnect;
+    }
+
     this.socketConfig();
     this.socketConnect = await this.io.on('connection', async (socket) => {
       await this.socketInfo(socket);
@@ -127,15 +115,15 @@ export class SocketServer {
       }
     });
 
-    console.log('\n*** New user connected ***\n');
-    console.log('ID:', socket.id);
-    console.log('Connection type:', socket.conn.transport.name);
-    console.log('Total connected users:', this.io.of("/").sockets.size);
-    console.log('all Online users:', this.online_users);
-    console.log("*********************")
-    console.log('Team users:', this.Team_users);
-    console.log("*********************")
-    console.log('Club users:', this.Club_users);
+    if (process.env.LOG_SOCKET_EVENTS === 'true') {
+      console.log('\n*** New user connected ***\n');
+      console.log('ID:', socket.id);
+      console.log('Connection type:', socket.conn.transport.name);
+      console.log('Total connected users:', this.io.of("/").sockets.size);
+      console.log('all Online users:', this.online_users);
+      console.log('Team users:', this.Team_users);
+      console.log('Club users:', this.Club_users);
+    }
   }
 
   async sendNewNotification(type,to, notification) {
@@ -155,7 +143,9 @@ export class SocketServer {
 
   socketError(socket) {
     socket.on("error", (err) => {
-      console.log("error", err);
+      if (process.env.LOG_SOCKET_EVENTS === 'true') {
+        console.log("error", err);
+      }
       if (err && err.message === UNAUTHORIZED) {
         socket.disconnect();
       }
@@ -170,7 +160,9 @@ export class SocketServer {
       const nowDate = new Date();
       const dateDisconnect = dateFormat(nowDate, "yyyy-mm-dd HH:MM:ss");
 
-      console.info(`${dateDisconnect}  | visitor ${socket.id} disconnected 🖐🖐🖐`);
+      if (process.env.LOG_SOCKET_EVENTS === 'true') {
+        console.info(`${dateDisconnect} | visitor ${socket.id} disconnected`);
+      }
       this.online_users = this.online_users.filter(user => user != socket.id);
     });
   }
@@ -181,7 +173,6 @@ let socketInstance = null;
 export const initializeSocketServer = (httpServer) => {
   if (!socketInstance) {
     socketInstance = new SocketServer(httpServer);
-    socketInstance.connection();
   }
   return socketInstance;
 };

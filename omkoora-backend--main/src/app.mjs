@@ -23,6 +23,13 @@ import logger from "./Config/logger.mjs"
 import {initializeSocketServer} from "./Socket/index.mjs"
 import './Schedule/index.mjs'; // Add this line to include the cron job
 import LoggingPlugin from './ApolloPlugin/LoggingPlugin.mjs'
+import {
+    corsOptionsDelegate,
+    isAllowedOrigin,
+    isProduction,
+    shouldEnableGraphqlTools,
+    shouldLogRequestContext,
+} from './Config/runtime.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
@@ -30,6 +37,7 @@ export const __dirname = path.dirname(__filename);
 dotenv.config();
 const app = express();
 app.set('trust proxy', 1);
+app.disable('x-powered-by');
 const httpServer = createServer(app);
 
 let socket = null;
@@ -43,41 +51,6 @@ let socket = null;
             console.info(`Server is starting and listening on port ${PORT}`);
         });
 
-        let whitelist = [
-            "https://player.omkooora.com",
-            "https://team.omkooora.com",
-            "https://club.omkooora.com",
-            "https://super-admin.omkooora.com",
-            "https://omkooora.com",
-            "https://print.omkooora.com",
-            "https://league.omkooora.com",
-            
-            "https://news.omkooora.com",
-            "http://localhost:3000",
-            'http://localhost:3001',
-            'http://localhost:3006',
-
-            'https://clubv2.smsoma.com',
-            'https://omkoora-club-production.up.railway.app',
-            'https://reservation-accommodations-theatre-text.trycloudflare.com',
-            'https://holds-dive-seventh-teaching.trycloudflare.com'
-
-            
-            
-        ]
-
-        let corsOptionsDelegate = function (req, callback) {
-            let corsOptions;
-
-            if (whitelist.indexOf(req.header('Origin')) !== -1) {
-                corsOptions = {origin: req.header('Origin'), credentials: true}
-            } else {
-                corsOptions = { origin: false, credentials: false }
-            }
-
-            callback(null, corsOptions)
-        }
-
         // Middlewares
         app.use( cors(corsOptionsDelegate) );
         
@@ -88,9 +61,16 @@ let socket = null;
             // Fallback: If image not found locally, redirect to production
             res.redirect(`https://api.omkooora.com/images${req.url}`);
         });
-        app.use(express.urlencoded({ extended: true }));
-        app.use(express.json());
-        app.use(helmet({ contentSecurityPolicy: (process.env.NODE_ENV === 'production') ? undefined : false }));
+        app.get('/health', (req, res) => {
+            res.status(200).json({ status: 'ok' });
+        });
+
+        app.use(express.urlencoded({
+            extended: true,
+            limit: process.env.URLENCODED_BODY_LIMIT || '2mb',
+        }));
+        app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '2mb' }));
+        app.use(helmet({ contentSecurityPolicy: isProduction ? undefined : false }));
 
         app.use(AuthMiddleware)
 
@@ -98,32 +78,33 @@ let socket = null;
         const apolloServer = new ApolloServer({
             schema: Schema,
             tracing: false,
-            playground: true,
-            introspection: true,
-            debug: true,
+            playground: shouldEnableGraphqlTools,
+            introspection: shouldEnableGraphqlTools,
+            debug: !isProduction,
             csrfPrevention: true,
             allowBatchedHttpRequests: false,
             // validationRules: [
             //     depthLimit(5)
             // ],
             plugins: [
-                //process.env.NODE_ENV === 'production'
-                    //? ApolloServerPluginLandingPageDisabled()
-                    //: ApolloServerPluginLandingPageGraphQLPlayground({ settings: { 'request.credentials': 'include' } }),
-                    ApolloServerPluginLandingPageGraphQLPlayground({ settings: { 'request.credentials': 'include' } }),
-                    LoggingPlugin
+                shouldEnableGraphqlTools
+                    ? ApolloServerPluginLandingPageGraphQLPlayground({ settings: { 'request.credentials': 'include' } })
+                    : ApolloServerPluginLandingPageDisabled(),
+                LoggingPlugin
             ],
             persistedQueries: false,
             context: ({ req, res }) => {
                 let {user, isAuth } = req;
+                const origin = req.header('Origin');
 
-                logger.info(`DEBUG: Request Origin: ${req.header('Origin')}`);
-                logger.info(`DEBUG: Request Cookies: ${JSON.stringify(req.cookies)}`);
+                if (shouldLogRequestContext) {
+                    logger.info(`Request origin: ${origin || 'none'}, hasRefreshCookie: ${Boolean(req.cookies?.__tomoh)}`);
+                }
 
-                if (whitelist.indexOf(req.header('Origin')) !== -1) {
+                if (origin && isAllowedOrigin(origin)) {
                     res.setHeader('Access-Control-Allow-Credentials', 'true');
                     if (res.getHeader('access-control-allow-origin') === '*') {
-                        res.setHeader('access-control-allow-origin', req.header('Origin'));
+                        res.setHeader('access-control-allow-origin', origin);
                     }
                 }
                 let refreshToken = req.cookies["__tomoh"];
@@ -151,7 +132,7 @@ let socket = null;
         }
 
         try {
-            const socket = initializeSocketServer(httpServer);
+            socket = initializeSocketServer(httpServer);
             await socket.connection();
         } catch (error) {
             console.error('socket server error:', error);

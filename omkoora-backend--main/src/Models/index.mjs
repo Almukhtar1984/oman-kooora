@@ -1,5 +1,6 @@
 import Sequelize from 'sequelize'
 import DB from '../Config/DBContact.mjs'
+import {dbSyncOptions, shouldSyncDb} from '../Config/runtime.mjs'
 
 // import models
 import personModel       from './Person.mjs';
@@ -394,17 +395,15 @@ Penalty.belongsTo(Match, {foreignKey: { name: 'id_match' },onDelete: 'CASCADE',o
 Team.hasMany(Event, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Event.belongsTo(Team, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
-// Tables are updated without being deleted
-DB.sync({ alter: true, force: false })
-.then(() => {
-    console.log('Tables are updated without being deleted.')
-})
-.catch ((error) => {
-    console.error('Unable to update Tables:', error);
-    if (typeof logger !== 'undefined') {
-        logger.error(`Unable to update Tables: ${error.message}`);
-    }
-})
+if (shouldSyncDb) {
+    DB.sync(dbSyncOptions)
+        .then(() => {
+            console.log('Database schema sync completed.');
+        })
+        .catch((error) => {
+            console.error('Unable to sync database schema:', error);
+        });
+}
 
 
 export {

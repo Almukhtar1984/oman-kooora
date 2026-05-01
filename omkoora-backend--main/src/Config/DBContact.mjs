@@ -7,6 +7,10 @@ const NODE_ENV = process.env.NODE_ENV
 
 
 const dbConfig = NODE_ENV === "development" ? Config.development : Config.production;
+const toNumber = (value, fallback) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 export default new Sequelize(
     dbConfig.database,
@@ -17,12 +21,12 @@ export default new Sequelize(
         dialect: 'mysql',
         timezone: "+02:00",
         benchmark: true,
-        logging: dbConfig.logging,
+        logging: (process.env.DB_LOGGING === 'true' || dbConfig.logging) ? console.log : false,
         pool: {
-            max: 5,
-            min: 0,
-            acquire: 30000,
-            idle: 10000
+            max: toNumber(process.env.DB_POOL_MAX, 10),
+            min: toNumber(process.env.DB_POOL_MIN, 0),
+            acquire: toNumber(process.env.DB_POOL_ACQUIRE_MS, 30000),
+            idle: toNumber(process.env.DB_POOL_IDLE_MS, 10000)
         }
     }
 );

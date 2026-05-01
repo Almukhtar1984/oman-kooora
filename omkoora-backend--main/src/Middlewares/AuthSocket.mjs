@@ -16,8 +16,10 @@ export const AuthMiddlewareSocket = async (auth) => {
     }
 
 
-    // Extract the token and check for token
-    const token = authSocket.split(" ")[1];
+    // Accept both "Bearer <token>" and raw token values from socket clients.
+    const token = authSocket.startsWith("Bearer ")
+        ? authSocket.slice(7).trim()
+        : authSocket.trim();
 
     if (!token || token === "") {
         return {isAuth: false};

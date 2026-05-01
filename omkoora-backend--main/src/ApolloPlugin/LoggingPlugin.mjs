@@ -2,6 +2,8 @@ import { ActionLog,Club,User,Person, ClubManagement,Members,Team } from "../Mode
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import {CreateNotificationMessage ,CreateNotificationMemeber} from "../Helpers/Notification/index.mjs"
+import logger from "../Config/logger.mjs";
+import { shouldEnableActionLogging } from "../Config/runtime.mjs";
 
 
 dotenv.config();
@@ -33,13 +35,15 @@ const LoggingPlugin = {
     requestDidStart(requestContext) {
         return {
             async willSendResponse(requestContext) {
+                if (!shouldEnableActionLogging) {
+                    return;
+                }
                 
                 const { response, context } = requestContext;
                 const { req } = context;
-                const { query, variables, operationName } = req.body;
+                const { query, variables, operationName } = req.body || {};
 
                 if (!query) {
-                    console.log('No GraphQL query found in the request body');
                     return;
                 }
                 const queryType = query.trim().split(' ')[0];
@@ -141,7 +145,7 @@ const LoggingPlugin = {
                     }
                 }}
                 catch(error){
-                    console.error("error:",error)
+                    logger.error(`Action log operation parsing failed: ${error.message}`);
                     return;
                 }
                 if (!ActionType) {  
@@ -168,8 +172,8 @@ const LoggingPlugin = {
                                 ActionType = "Update"
             
                         }}
-                        catch{
-                            console.error('switch logs:', error);
+                        catch(error){
+                            logger.error(`Action log entity resolution failed: ${error.message}`);
                         }
             }
                 
@@ -191,32 +195,29 @@ const LoggingPlugin = {
                         entity_id: entity_id,
                         level : user_role,
                     });
-                    //console.log("EntityType:",EntityType)
-                    //console.log("action_type:",ActionType)
                     if(!(!response.errors)){
-                        console.log("the request not success")
                         return
                     }
                     if( ActionType ==="Create" &&  EntityType ==="Message"){
                        
-                        CreateNotificationMessage(variables?.content)
+                        void CreateNotificationMessage(variables?.content)
                     } 
                     if( ActionType ==="Create" &&  EntityType ==="Technical"){
                        
                     
-                        CreateNotificationMemeber(id_club,"Technical")
+                        void CreateNotificationMemeber(id_club,"Technical")
                     } 
 
                     if( ActionType ==="Create" &&  EntityType ==="Member"){
                        
                         
-                        CreateNotificationMemeber(id_club,"Member")
+                        void CreateNotificationMemeber(id_club,"Member")
                     } 
 
                     if( ActionType ==="Create" &&  EntityType ==="Player"){
                        
                         
-                        CreateNotificationMemeber(id_club,"Player")
+                        void CreateNotificationMemeber(id_club,"Player")
                     } 
                     //console.log("id_club:",id_club)
                     //console.log("id_team:",id_team)
@@ -238,8 +239,7 @@ const LoggingPlugin = {
                     //console.log(`Logged query ID ${actionLog.id} with status ${!response.errors}`);
                  
                 } catch (error) {
-                    //console.error('error creating logs:', error);
-                    CreateNotificationMessage(variables.content)
+                    logger.error(`Action log write failed: ${error.message}`);
                     
                 }
             },

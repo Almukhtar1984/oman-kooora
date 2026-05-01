@@ -6,6 +6,7 @@ import path from "path";
 import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
+import { refreshCookieOptions } from "../../Config/runtime.mjs";
 
 import {AuthToken, createMail, RefreshToken, VerifyToken, sameUserAgent, isExistUser, comparePassword, hashPassword, alreadyExistUser} from '../../Helpers/index.mjs';
 import {
@@ -107,44 +108,29 @@ export const resolvers = {
             const { refreshToken } = context;
             try {
                 if (!refreshToken || refreshToken === "") {
-                    logger.info("DEBUG: Refresh token is missing or empty in cookies");
                     return null;
                 }
 
-                logger.info(`DEBUG: Verifying refresh token: ${refreshToken.substring(0, 10)}...`);
                 let decodedToken = await VerifyToken(refreshToken);
 
                 if (!decodedToken) {
-                    logger.info("DEBUG: Refresh token verification failed (invalid or expired)");
                     return null;
                 }
 
-                logger.info(`DEBUG: Refresh token decoded for user ID: ${decodedToken.id}`);
                 let isExist = await isExistUser(decodedToken.id);
                 if (!isExist) {
-                    logger.info(`DEBUG: User not found for ID: ${decodedToken.id}`);
                     return null;
                 }
 
                 let token = await AuthToken({id: isExist.id}, 5);
 
-                const cookieOptions = {
-                    maxAge: 3600000 * 24 * 7,
-                    httpOnly: true,
-                    secure: true,
-                    sameSite: "none",
-                    path: "/"
-                };
-
-                // Renew the refresh token cookie
-                context.res.cookie('__tomoh', refreshToken, cookieOptions);
-                logger.info(`DEBUG: Refresh token cookie renewed for user: ${isExist.id}`);
+                context.res.cookie('__tomoh', refreshToken, refreshCookieOptions);
 
                 return {
                     token
                 }
             } catch (error) {
-                logger.error(`DEBUG: RefreshToken Error: ${error.message} \n ${error.stack}`)
+                logger.error(`Refresh token error: ${error.message}`)
                 return null;
             }
         },
@@ -328,22 +314,8 @@ export const resolvers = {
                
                 let refreshToken = await RefreshToken({id: user.id, useragent: context.req.useragent}, 7);
         
-                const cookieOptions = {
-                    maxAge: 3600000 * 24 * 7,
-                    httpOnly: true,
-                    secure: true,
-                    sameSite: "none",
-                    path: "/",
-                    // NOTE: Do NOT set domain. Without domain, the browser uses
-                    // "host-only" matching and sends the cookie back to the backend
-                    // server that set it, regardless of which frontend called it.
-                };
-
-                // DEBUG LOG
-                console.log("Final Cookie Options (no domain):", cookieOptions);
-
                 if (refreshToken !== null && refreshToken !== "") {
-                    context.res.cookie('__tomoh', refreshToken, cookieOptions);
+                    context.res.cookie('__tomoh', refreshToken, refreshCookieOptions);
                 }
 
                 return {
@@ -351,8 +323,7 @@ export const resolvers = {
                     user
                 }
             } catch (error) {
-                console.log(error)
-                logger.error("")
+                logger.error(`Authenticate user error: ${error.message}`)
                 throw new ApolloError(error)
             }
         },
@@ -648,10 +619,8 @@ export const resolvers = {
         logOut: async (obj, {}, context, info) => {
             try {
                 context.res.cookie('__tomoh', '', {
-                    maxAge: 0,
-                    httpOnly: true,
-                    secure: true,
-                    sameSite: "none"
+                    ...refreshCookieOptions,
+                    maxAge: 0
                 });
 
 

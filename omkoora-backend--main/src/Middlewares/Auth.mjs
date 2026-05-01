@@ -15,8 +15,10 @@ export const AuthMiddleware = async (req, res, next) => {
         return next();
     }
     
-    // Extract the token and check for token
-    const token = authHeader.split(" ")[1];
+    // Accept both "Bearer <token>" and raw token headers for older clients.
+    const token = authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7).trim()
+        : authHeader.trim();
 
     if (!token || token === "") {
         req.isAuth = false;
