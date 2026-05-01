@@ -1,1 +1,1 @@
-export * from "./useUpdateLoan ";
+export * from "./useUpdateLoan";

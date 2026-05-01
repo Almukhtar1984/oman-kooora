@@ -11,3 +11,8 @@ export * from "./useCreateTransfer";
 export * from "./useAddListPlayer";
 export * from "./useAddAttachmentPlayer";
 export * from "./useDeleteAttachmentPlayer";
+export * from "./useStatPlayer";
+export * from "./useDeleteTransfer";
+export * from "./useBackToOldTeamTransfer";
+export * from "./useUploadPlayersSheet";
+export * from "./useFreePlayer";

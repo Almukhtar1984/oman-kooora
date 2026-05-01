@@ -10,3 +10,8 @@ export * from "./UpdateTransfer";
 export * from "./CreateTransfer";
 export * from "./AddAttachmentPlayer";
 export * from "./DeleteAttachmentPlayer";
+export * from "./statPlayer";
+export * from "./DeleteTransfer";
+export * from "./BackToOldTeamTransfer";
+export * from "./UploadPlayersSheet";
+export * from "./FreePlayer";

@@ -3,6 +3,7 @@ export * from "./useUpdateTeam";
 export * from "./useDeleteTeam";
 export * from "./useAllTeams";
 export * from "./useTeam";
+export * from "./useTeamDetails";
 export * from "./useChangeStatusTeam";
 export * from "./useAllClub";
 export * from "./useStatisticsTeam";

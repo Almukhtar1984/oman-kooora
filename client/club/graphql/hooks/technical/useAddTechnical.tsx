@@ -7,6 +7,8 @@ interface VariableProps {
         occupation: string;
         classification: string;
         membership_date: string;
+        membership_date_end?: string;
+        paid?: boolean;
 
         testimony_experience: any;
         person: {

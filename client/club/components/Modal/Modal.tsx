@@ -5,16 +5,18 @@ export type Props = {
     header?: ReactElement;
     footer?: ReactElement;
     size?: string;
+    onSuccess?: () => void;
+    onCompleted?: () => void;
 } & ModalProps;
 
 function Modal(props: Props) {
-    const { children, footer } = props;
+    const { children, footer, onSuccess, onCompleted, ...modalProps } = props;
 
     return (
         <>
             <ModalUI
-                {...props}
-                size={props.size || "xl"}
+                {...modalProps}
+                size={modalProps.size || "xl"}
                 centered={true}
                 // transition="fade"
                 // transitionDuration={600}

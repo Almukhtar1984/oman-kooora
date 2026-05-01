@@ -9,6 +9,9 @@ interface VariableProps {
         job: string;
         nationalID?: any;
         nationalIDBack?: any;
+        parentApproval?: any;
+        type?: string;
+        class?: string;
 
         person: {
             first_name: string;

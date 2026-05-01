@@ -3,6 +3,7 @@ export * from "./UpdateTeam";
 export * from "./DeleteTeam";
 export * from "./AllTeams";
 export * from "./Team";
+export * from "./TeamDetails";
 export * from "./AllClubs";
 export * from "./StatisticsTeam";
 export * from "./StatisticsClub";
