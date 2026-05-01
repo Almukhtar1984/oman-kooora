@@ -7,14 +7,12 @@ import { useLocation,useNavigate } from "react-router-dom";
 import LoadingWidget from "../../components/Loading/LoadingWidget";
 
 const PUBLIC_ROUTES = ["/"];
+const AUTHENTICATED_REDIRECT = "/dashboard";
 
 const isPublicRoute = (pathname: string) => PUBLIC_ROUTES.includes(pathname);
 
 export const useAuth = (getCurrentUserLazy: any) => {
     const token = useStore((state: any) => state.token);
-
-    const location = useLocation();
-    const navigate = useNavigate();
 
     const loadCurrentUser = useCallback(async () => {
         return await new Promise((resolve) => {
@@ -96,10 +94,7 @@ export const AuthProvider = ({ client, children }: Props): any => {
         let mounted = true;
 
         (async function () {
-            if (isPublicRoute(location.pathname)) {
-                setIsCheckingAuth(false);
-                return;
-            }
+            const publicRoute = isPublicRoute(location.pathname);
 
             setIsCheckingAuth(true);
             const authenticated = await checkAuth();
@@ -108,8 +103,18 @@ export const AuthProvider = ({ client, children }: Props): any => {
                 return;
             }
 
+            if (publicRoute) {
+                if (authenticated) {
+                    navigate(AUTHENTICATED_REDIRECT, { replace: true });
+                    return;
+                }
+
+                setIsCheckingAuth(false);
+                return;
+            }
+
             if (!authenticated) {
-                navigate("/");
+                navigate("/", { replace: true });
                 return;
             }
 
