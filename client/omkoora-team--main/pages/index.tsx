@@ -182,7 +182,33 @@ export default function Home() {
     const handleAddImage = (id: string) => { setEditData(id); setOpenAddImageModal(true); };
     const handleRenewSubscription = (data: any) => { setEditData(data); setOpenRenewModal(true); };
 
-    const hasPermission = (p: string) => true; 
+    // Permission map keyed by page name. Mirrors the parsing already done in
+    // components/Layout/Sidebar.tsx so the dashboard tabs honour the same
+    // permission flags. The "role" derived here is *internal* (chairman vs
+    // not), not the global user role: classification === "رئيس" → "1".
+    const [permRole, setPermRole] = useState("");
+    const [pagePerms, setPagePerms] = useState<Record<string, string[]>>({});
+    useEffect(() => {
+        if (userData?.person?.member?.classification != null) {
+            setPermRole(userData.person.member.classification === "رئيس" ? "1" : "2");
+        }
+        const perm = userData?.permission;
+        if (perm) {
+            setPagePerms({
+                members: perm?.members?.split(",") || [],
+                technicals: perm?.technicals?.split(",") || [],
+                players: perm?.players?.split(",") || [],
+                assembly: perm?.assembly?.split(",") || [],
+            });
+        }
+    }, [userData]);
+
+    const makeHasPermission = (page: "members" | "technicals" | "players" | "assembly") =>
+        (code: string): boolean => {
+            if (permRole === "1") return true;
+            const codes = pagePerms[page];
+            return Array.isArray(codes) && codes.includes(code);
+        };
 
     return (
         <Box dir="rtl">
@@ -427,10 +453,10 @@ export default function Home() {
                                             onClick={() => { setEditData(null); setOpenAddPlayer(true); }}
                                         >إضافة لاعب</Button>
                                     </Group>
-                                    <MemberSection 
+                                    <MemberSection
                                         type="player"
                                         list={playersData?.allPlayers || []}
-                                        hasPermission={hasPermission}
+                                        hasPermission={makeHasPermission("players")}
                                         onEdit={(item) => handleEdit(item, 'player')}
                                         onDelete={(id) => handleDelete(id, 'player')}
                                         onChangeStatus={(id, status) => handleChangeStatus(id, status, 'player')}
@@ -458,10 +484,10 @@ export default function Home() {
                                             onClick={() => { setEditData(null); setOpenAddTechnical(true); }}
                                         >إضافة عضو فني</Button>
                                     </Group>
-                                    <MemberSection 
+                                    <MemberSection
                                         type="technical"
                                         list={techData?.allTechnicalApparatus || []}
-                                        hasPermission={hasPermission}
+                                        hasPermission={makeHasPermission("technicals")}
                                         onEdit={(item) => handleEdit(item, 'technical')}
                                         onDelete={(id) => handleDelete(id, 'technical')}
                                         onChangeStatus={(id, status) => handleChangeStatus(id, status, 'technical')}
@@ -480,10 +506,10 @@ export default function Home() {
                                             onClick={() => { setEditData(null); setOpenAddMember(true); }}
                                         >إضافة عضو مجلس إدارة</Button>
                                     </Group>
-                                    <MemberSection 
+                                    <MemberSection
                                         type="member"
                                         list={membersData?.allMembers || []}
-                                        hasPermission={hasPermission}
+                                        hasPermission={makeHasPermission("members")}
                                         onEdit={(item) => handleEdit(item, 'member')}
                                         onDelete={(id) => handleDelete(id, 'member')}
                                         onChangeStatus={(id, status) => handleChangeStatus(id, status, 'member')}
@@ -505,10 +531,10 @@ export default function Home() {
                                             </Menu.Dropdown>
                                         </Menu>
                                     </Group>
-                                    <MemberSection 
+                                    <MemberSection
                                         type="assembly"
                                         list={assemblyData?.allAssemblyClub || []}
-                                        hasPermission={hasPermission}
+                                        hasPermission={makeHasPermission("assembly")}
                                         onEdit={(item) => handleEdit(item, 'assembly')}
                                         onDelete={(id) => handleDelete(id, 'assembly')}
                                         onRenewSubscription={handleRenewSubscription}
