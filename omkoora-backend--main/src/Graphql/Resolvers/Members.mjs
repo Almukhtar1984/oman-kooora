@@ -1,4 +1,4 @@
-import { ApolloError } from 'apollo-server-express';
+import { ApolloError, AuthenticationError } from 'apollo-server-express';
 import sequelize, {where} from 'sequelize';
 import dotenv from 'dotenv';
 
@@ -129,6 +129,31 @@ export const resolvers = {
 
         createAdminMember: async (obj, {content}, context, info) =>  {
             try {
+                // The @auth directive on this mutation is currently commented out
+                // in the schema, so enforce authentication + a role-escalation
+                // guard inline. Roles in this codebase are stored as strings:
+                //   "1" = super-admin, "2" = club admin, "3" = team user.
+                // Without these checks any anonymous caller could promote
+                // themselves to "1" by passing role: "1" in the payload.
+                const { user, isAuth } = context;
+                if (!isAuth || !user) {
+                    return new AuthenticationError("Authentication required");
+                }
+                const requestedRole = content?.user?.role;
+                const callerRole = user.role;
+                if (requestedRole === "1") {
+                    return new ApolloError("Cannot create super-admin via this endpoint", "FORBIDDEN_ROLE");
+                }
+                if (requestedRole === "2" && callerRole !== "1") {
+                    return new ApolloError("Only super-admin can create club admins", "FORBIDDEN_ROLE");
+                }
+                if (requestedRole === "3" && callerRole !== "1" && callerRole !== "2") {
+                    return new ApolloError("Only super-admin or club admin can create team users", "FORBIDDEN_ROLE");
+                }
+                if (!["2", "3"].includes(requestedRole)) {
+                    return new ApolloError("Invalid role", "INVALID_ROLE");
+                }
+
                 const onePerson = await Person.findOne({ where: {card_number: content.user.person.card_number, phone: content.user.person.phone} })
                 if (onePerson) {
                     if (onePerson.card_number === content.user.person.card_number) {
@@ -155,7 +180,7 @@ export const resolvers = {
                     let user = await User.create({
                         ...content.user,
                         id_person: person.id,
-                        role: content.user.role,
+                        role: requestedRole,
                         password,
                         activation: true,
                         email_verify: true
