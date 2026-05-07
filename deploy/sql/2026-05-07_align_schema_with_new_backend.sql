@@ -1,20 +1,23 @@
--- Aligns the production `tomoh` MySQL schema with columns introduced by
--- omkoora-backend--main but never created in the original DB (which was
--- built by server-old).
+-- One-shot SQL patch — NOT a Sequelize migration.
+-- omkoora-backend--main has no migration runner; run this directly with
+-- the mysql CLI on the production server.
 --
--- Symptom these columns cause when missing:
---   Sequelize generates `SELECT ..., descreption, ... FROM teams` etc.
---   MySQL returns "Unknown column 'descreption'" → resolver throws →
---   the affected GraphQL query returns no data → frontend lists appear empty.
+-- Aligns the `tomoh` schema with columns declared by omkoora-backend--main's
+-- models that are missing from the existing DB.
 --
--- Pre-flight (run first to see whether any of these are still needed):
+-- Why it matters: Sequelize selects every defined attribute, so a query like
+--   SELECT id, name, ..., descreption FROM teams
+-- raises "Unknown column 'descreption'" and the resolver throws, leaving
+-- the team/club/player lists empty in the dashboards.
+--
+-- Pre-flight: confirm the columns are actually missing before running.
 --   DESCRIBE teams;    -- expecting `descreption`
 --   DESCRIBE clubs;    -- expecting `mohafada`
 --   DESCRIBE players;  -- expecting `type`
 --
--- Run order: take a backup, run this whole file in a transaction, verify, deploy backend.
+-- Run order:
 --   mysqldump -u root -p tomoh > /root/backups/tomoh_$(date +%F_%H%M).sql
---   mysql -u root -p tomoh < 2026-05-07_align_schema_with_new_backend.sql
+--   mysql -u root -p tomoh < deploy/sql/2026-05-07_align_schema_with_new_backend.sql
 
 START TRANSACTION;
 
