@@ -3,6 +3,7 @@ import React from "react";
 import Modal, { Props as ModalProps } from "./Modal";
 import useStore from "../../store/useStore";
 import {Paperclip, Trash} from "tabler-icons-react";
+import { getImageUrl } from "../../lib/helpers/image";
 
 type Props = {
     setSelectedData: (id: string) => void;
@@ -37,7 +38,7 @@ export const ShowAttachments = ({data, setSelectedData, setOpenDeleteAttachmentM
                                                 component="a"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                href={`${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${item.content}`}
+                                                href={getImageUrl(item.content)}
                                             >
                                                 <Group position={"center"}>
                                                     <Paperclip size={16} />

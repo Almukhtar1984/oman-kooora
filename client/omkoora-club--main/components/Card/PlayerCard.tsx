@@ -5,6 +5,7 @@ import 'dayjs/locale/ar';
 import { Box, Flex, Text, Badge, Menu, ActionIcon, Group, Tooltip, Avatar, Stack, Divider, Grid, Col } from '@mantine/core';
 import { DotsVertical, EditCircle, Trash, Id, Paperclip, Upload, ChartDots, XboxX, History, Eye, Check, X, ArrowsLeftRight, Printer, LockOpen } from 'tabler-icons-react';
 import { GiPlayerPrevious as GiPlayerPreviousIcon, GiPlayerNext as GiPlayerNextIcon } from "react-icons/gi";
+import { getImageUrl } from '../../lib/helpers/image';
 
 export interface PlayerData {
   id: string;
@@ -68,7 +69,7 @@ const getFullName = (person: PlayerData['person']) => {
 };
 
 const getAvatarUrl = (photo?: string) => {
-  return photo ? `${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${photo}` : '/unknow player.png';
+  return photo ? getImageUrl(photo) : '/unknow player.png';
 };
 
 /**
@@ -408,7 +409,7 @@ export function PlayerStats1({ data }: PlayerCardProps) {
                 size={28} 
                 radius="xl" 
                 color="blue" 
-                src={data?.team?.logo ? `${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${data.team.logo}` : null}
+                src={data?.team?.logo ? getImageUrl(data.team.logo) : null}
               >
                 {data?.team?.name?.charAt(0) || 'L'}
               </Avatar>
@@ -437,7 +438,7 @@ export function PlayerStats1({ data }: PlayerCardProps) {
                             metric.value !== '-' && (
                                 <Box 
                                     component="a" 
-                                    href={`${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${metric.label === 'البطاقة المدنية (أمام)' ? data.nationalID : data.nationalIDBack}`} 
+                                    href={getImageUrl(metric.label === 'البطاقة المدنية (أمام)' ? data.nationalID : data.nationalIDBack)}
                                     target="_blank" 
                                     sx={{ 
                                         display: 'flex',
@@ -456,7 +457,7 @@ export function PlayerStats1({ data }: PlayerCardProps) {
                         ) : metric.label === 'موافقة ولي الأمر' && metric.value !== '-' ? (
                             <Text 
                                 component="a" 
-                                href={`${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${data.parentApproval}`} 
+                                href={getImageUrl(data.parentApproval)}
                                 target="_blank" 
                                 sx={{ color: '#fff', fontWeight: 800, fontSize: '14px', textDecoration: 'underline' }}
                             >

@@ -780,7 +780,18 @@ export const resolvers = {
 
         deleteAttachmentPlayer: async (obj, {id}, context, info) =>  {
             try {
+                const attachment = await AttachmentPerson.findByPk(id)
                 const result = await AttachmentPerson.destroy({ where: { id } })
+
+                if (result === 1 && attachment?.content) {
+                    const filePath = path.join(__dirname, `./../uploads/${attachment.content}`)
+                    try {
+                        await fsPromises.unlink(filePath)
+                    } catch (err) {
+                        // File may already be missing on disk; the DB row is gone, that's the source of truth.
+                        logger.warn(`deleteAttachmentPlayer: could not unlink ${filePath}: ${err?.message}`)
+                    }
+                }
 
                 return {
                     status: result === 1

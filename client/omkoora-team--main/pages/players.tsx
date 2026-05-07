@@ -82,15 +82,14 @@ export default function Players() {
 
     useEffect(() => {
         if (dataAllPlayers && "allPlayers" in dataAllPlayers) {
-   
-            setAllPlayers([...dataAllPlayers.allPlayers])
-        }
-    }, [dataAllPlayers])
+            const fresh = dataAllPlayers.allPlayers
+            setAllPlayers([...fresh])
 
-
-    useEffect(() => {
-        if (dataAllPlayers && "allPlayers" in dataAllPlayers) {
-            setAllPlayers([...dataAllPlayers.allPlayers])
+            // Keep modals (e.g. ShowAttachments) in sync after add/delete-attachment refetches.
+            if (selectedData && typeof selectedData === "object" && selectedData?.id) {
+                const refreshed = fresh.find((p: any) => p.id === selectedData.id)
+                if (refreshed) setSelectedData(refreshed)
+            }
         }
     }, [dataAllPlayers])
 
