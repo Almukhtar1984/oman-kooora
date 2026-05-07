@@ -21,6 +21,7 @@ logs/
 
 # Local-only planning and risk notes
 SECURITY_REVIEW_REPORT.md
+WORK_CHECKLIST.md
 
 # Local backup of nested git metadata
 .git-history-backups/
