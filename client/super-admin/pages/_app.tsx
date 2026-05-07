@@ -1,10 +1,10 @@
 import "../styles/globals.css";
 import type { AppProps } from "next/app";
 import { client } from "../lib/graphql";
-import { Box, createEmotionCache, MantineProvider } from "@mantine/core";
+import { Box, MantineProvider } from "@mantine/core";
 import Layout from "../components/Layout/Layout";
 import { breakPoints, colors } from "../lib/theme/theme";
-import rtlPlugin from "stylis-plugin-rtl";
+import { rtlCache } from "../lib/emotionCache";
 import dayjs from "dayjs";
 import "dayjs/locale/ar";
 import duration from "dayjs/plugin/duration";
@@ -17,11 +17,6 @@ import {ProtectedPage} from "../lib/helpers/_auth";
 dayjs.extend(customParseFormat);
 dayjs.extend(duration)
 dayjs.extend(relativeTime)
-
-const rtlCache = createEmotionCache({
-    key: "mantine-rtl",
-    stylisPlugins: [rtlPlugin],
-});
 
 export default function App({ Component, pageProps }: AppProps) {
     return (
