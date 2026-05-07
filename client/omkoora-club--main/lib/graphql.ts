@@ -41,7 +41,6 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
                     getNewToken()
                         .then(({ data }: any) => {
                             const { refreshToken } = data
-                            console.log("errorLink ", refreshToken?.token)
                             useStore.setState({ isAuth: true, token: refreshToken?.token });
                             resolvePendingRequests();
                             return true;
