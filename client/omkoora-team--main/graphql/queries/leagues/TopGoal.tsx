@@ -4,9 +4,8 @@ import {gql} from "@apollo/client";
 export const TopGoal = gql`
     query TopGoal($leagueId: ID!) {
         calculateGoalPlayer(leagueId: $leagueId) {
-            team 
+            team
             Goal
-            PlayerName
             PlayerID{
             id
             player{
