@@ -115,6 +115,16 @@ const ProtectedPage = ( { client, children }: Props ): any => {
                 return;
             }
 
+            // The super-admin app is reserved for role "1" (super-admin) users.
+            // Authentication alone is not enough — anyone with a valid token
+            // for any role would otherwise reach the dashboard.
+            const userData = (useStore.getState() as any)?.userData;
+            if (userData?.role !== "1") {
+                useStore.setState({isAuth: false, token: "", userData: {}});
+                await Route.replace("/login");
+                return;
+            }
+
             setIsCheckingAuth(false);
         })();
         return () => {
