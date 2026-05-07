@@ -16,7 +16,7 @@ export const typeDefs = gql`
 
         deleteRequest ( id: ID! ): statusDelete #@auth(requires: user)
         
-        createRequestExternal(content: contentRequestExternal!): Request!
+        createRequestExternal(content: contentRequestExternal!): Request! @auth(requires: user)
     }
 
     type Request {
