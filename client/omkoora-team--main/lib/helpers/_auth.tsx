@@ -1,58 +1,78 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import useStore from "../../store/useStore";
 import decode from "jwt-decode";
 import {getNewToken, useGetCurrentUser} from "../../graphql";
-import Route from "next/router";
+import Route, {useRouter} from "next/router";
 import {Loader, Stack} from "@mantine/core";
 
+const PUBLIC_ROUTES = [
+    "/login",
+    "/login/createAccount",
+    "/login/forGotPassword",
+    "/login/verification/[token]",
+    "/login/changePassword/[token]"
+];
+
+const isPublicRoute = (pathname: string) => PUBLIC_ROUTES.includes(pathname);
+
 const useAuth = (getCurrentUserLazy) => {
-    let token = (useStore.getState() as any)?.token;
+    const token = useStore((state: any) => state.token);
 
-    let checkAuth = async () => {
-        await checkRefreshToken();
-        return true;
-    };
+    const loadCurrentUser = useCallback(async () => {
+        return await new Promise((resolve) => {
+            getCurrentUserLazy({
+                fetchPolicy: "network-only",
+                onCompleted: (data: any ) => {
+                    useStore.setState({ userData: data?.currentUser });
+                    useStore.setState({ numPoints: data?.currentUser?.person?.company?.points });
+                    resolve(true);
+                },
+                onError: () => {
+                    useStore.setState({ userData: {} });
+                    resolve(false);
+                }
+            });
+        });
+    }, [getCurrentUserLazy]);
 
-    let checkRefreshToken = async () => {
-        let currentDate = new Date();
-        let decodedJWT: any = token && decode(token);
+    let checkRefreshToken = useCallback(async () => {
+        try {
+            let decodedJWT: any = null;
 
-        // console.log({currentDate, decodedJWT})
+            try {
+                decodedJWT = token ? decode(token) : null;
+            } catch {
+                decodedJWT = null;
+            }
 
-        if (!decodedJWT || decodedJWT.exp * 1000 < currentDate.getTime()) {
-            getNewToken()
-                .then(({data}: any) => {
-                    const { refreshToken } = data
+            if (decodedJWT && decodedJWT.exp * 1000 >= Date.now()) {
+                useStore.setState({isAuth: true});
+                await loadCurrentUser();
+                return true;
+            }
 
-                    if (refreshToken?.token) {
-                        useStore.setState({
-                            isAuth: true,
-                            token: refreshToken.token,
-                        });
+            const {data}: any = await getNewToken();
+            const nextToken = data?.refreshToken?.token;
 
-                        getCurrentUserLazy({
-                            onCompleted: (data: any ) => {
-                                useStore.setState({ userData: data?.currentUser });
-                                useStore.setState({ numPoints: data?.currentUser?.person?.company?.points });
-                                //useValidAccessesStock
-                            },
-                            onError: (error: any) => {
-                                useStore.setState({ userData: {} });
-                            }
-                        })
+            if (!nextToken) {
+                throw new Error("Unable to refresh token");
+            }
 
-                        return;
-                    }
-                })
-                .catch(() => {
-                    useStore.setState({isAuth: false, token: ""});
-                    if(!["/login", "/login/createAccount", "/login/forGotPassword", "/login/verification/[token]", "/login/changePassword/[token]"].includes(Route.pathname)) {
-                        Route.push("/login");
-                    }
-                    return false;
-                })
+            useStore.setState({
+                isAuth: true,
+                token: nextToken,
+            });
+            await loadCurrentUser();
+            return true;
+        } catch {
+            useStore.setState({isAuth: false, token: "", userData: {}});
+            return false;
         }
-    };
+    }, [loadCurrentUser, token]);
+
+    let checkAuth = useCallback(async () => {
+        return await checkRefreshToken();
+    }, [checkRefreshToken]);
 
     return {
         checkAuth,
@@ -66,24 +86,50 @@ interface Props {
 }
 
 const ProtectedPage = ( { client, children }: Props ): any => {
-    let isAuth = (useStore.getState() as any)?.isAuth;
-    const [getCurrentUserLazy, {data, loading, error}]: any = useGetCurrentUser();
+    const router = useRouter();
+    const isAuth = useStore((state: any) => state.isAuth);
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+    const [getCurrentUserLazy]: any = useGetCurrentUser();
+
 
     const { checkAuth, checkRefreshToken } = useAuth(getCurrentUserLazy);
 
     useEffect(() => {
+        let mounted = true;
+
         (async function () {
-            await checkAuth();
+            if (isPublicRoute(router.pathname)) {
+                setIsCheckingAuth(false);
+                return;
+            }
+
+            setIsCheckingAuth(true);
+            const authenticated = await checkAuth();
+
+            if (!mounted) {
+                return;
+            }
+
+            if (!authenticated) {
+                await Route.replace("/login");
+                return;
+            }
+
+            setIsCheckingAuth(false);
         })();
-    }, []);
+        return () => {
+            mounted = false;
+        };
+    }, [checkAuth, router.pathname]);
 
     useEffect(() => {
-        setInterval(async function () {
+        const intervalId = setInterval(async function () {
             await checkRefreshToken();
         }, 1000*60*0.75)
-    }, []);
+        return () => clearInterval(intervalId);
+    }, [checkRefreshToken]);
 
-    if (!isAuth && loading) return <LoadingPage />;
+    if (isCheckingAuth || (!isAuth && !isPublicRoute(router.pathname))) return <LoadingPage />;
     return <>{children}</>;
 };
 
