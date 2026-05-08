@@ -14,19 +14,26 @@ export const DeleteAttachmentPlayerModal = ({ id, ...props }: Props) => {
     
     const onSubmit = () => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!id) {
+            notyf.error("لم يتم تحديد المرفق");
+            return;
+        }
         deleteAttachmentPlayer({
-            variables: {
-                id
-            },
-            refetchQueries: [AllPlayers]
+            variables: { id },
+            refetchQueries: [AllPlayers],
+            awaitRefetchQueries: true,
         })
-        .then(() => {
-            closeModal();
-            notyf.success("تم حذف المرفق بنجاح")
+        .then(({ data }) => {
+            if (data?.deleteAttachmentPlayer?.status) {
+                closeModal();
+                notyf.success("تم حذف المرفق بنجاح");
+            } else {
+                notyf.error("لم يتم حذف المرفق");
+            }
         })
         .catch(reason => {
             console.log(reason)
-            notyf.error("حدث خطأ أثناء حذف المرفق")
+            notyf.error("حدث خطأ أثناء حذف المرفق");
         })
     };
 

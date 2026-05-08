@@ -1,8 +1,9 @@
-import {Box, Button, Group, Text, useMantineTheme} from "@mantine/core";
+import {Box, Button, Group, Text} from "@mantine/core";
 import { Check, X } from "tabler-icons-react";
 import React from "react";
 import Modal, { Props as ModalProps } from "./Modal";
 import {AllPlayers, useDeleteAttachmentPlayer} from "../../graphql";
+import { Notyf } from "notyf";
 
 type Props = {
     id?: any;
@@ -10,19 +11,29 @@ type Props = {
 
 export const DeleteAttachmentPlayerModal = ({ id, ...props }: Props) => {
     const [deleteAttachmentPlayer] = useDeleteAttachmentPlayer();
-    
+
     const onSubmit = () => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!id) {
+            notyf.error("لم يتم تحديد المرفق");
+            return;
+        }
         deleteAttachmentPlayer({
-            variables: {
-                id
-            },
-            refetchQueries: [AllPlayers]
+            variables: { id },
+            refetchQueries: [AllPlayers],
+            awaitRefetchQueries: true,
         })
-        .then(() => {
-            closeModal();
+        .then(({ data }) => {
+            if (data?.deleteAttachmentPlayer?.status) {
+                closeModal();
+                notyf.success("تم حذف المرفق بنجاح");
+            } else {
+                notyf.error("لم يتم حذف المرفق");
+            }
         })
         .catch(reason => {
             console.log(reason)
+            notyf.error("حدث خطأ أثناء حذف المرفق");
         })
     };
 
