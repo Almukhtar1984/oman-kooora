@@ -111,6 +111,7 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
     }
 
     const COLUMNS = [
+        {name: '#', selector: (_: any, index?: number) => (typeof index === 'number' ? index + 1 : ''), width: '60px'},
         // {name: 'الصورة الشخصية', cellProps: {width: "200px"},  selector: (item: any) => <Avatar src={item?.person?.personal_picture} alt="it's me" /> ,  },
         {name: 'الاسم الكامل', selector: (item: any) => `${item?.person?.first_name} ${item?.person?.second_name} ${item?.person?.third_name} ${item?.person?.tribe}`, width: '200px'  },
         {name: 'رقم الهاتف', selector: (item: any) => item?.person?.phone, width: '120px' },

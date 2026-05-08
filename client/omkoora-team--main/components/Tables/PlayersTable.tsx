@@ -305,7 +305,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                         <Body>
                             {tableList.map((item, index) => (
                                 <Row key={item.id} item={item}>
-                                    <Cell>{index+1}</Cell>
+                                    <Cell>{pagination.state.page * pagination.state.size + index + 1}</Cell>
                                     <Cell>
                                         <Avatar
                                             w={50} h={50}
