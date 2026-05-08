@@ -3,6 +3,7 @@ import sequelize, {where} from 'sequelize';
 import dotenv from 'dotenv';
 
 import logger from "../../Config/logger.mjs";
+import db from "../../Config/DBContact.mjs";
 
 import {Members, Person, Players, Team, User, TechnicalApparatus} from '../../Models/index.mjs';
 import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
@@ -283,24 +284,31 @@ export const resolvers = {
 
         changeMemberClassification: async (obj, args, context, info) => {
             const { id, fromType, toType, ...content } = args;
+
+            if (fromType === toType) {
+                throw new ApolloError("From and to types are identical", "INVALID_TYPE_CHANGE");
+            }
+
+            const t = await db.transaction();
             try {
                 let currentRecord;
                 if (fromType === "player") {
-                    currentRecord = await Players.findByPk(id);
+                    currentRecord = await Players.findByPk(id, { transaction: t });
                 } else if (fromType === "technical") {
-                    currentRecord = await TechnicalApparatus.findByPk(id);
+                    currentRecord = await TechnicalApparatus.findByPk(id, { transaction: t });
                 } else if (fromType === "member") {
-                    currentRecord = await Members.findByPk(id);
+                    currentRecord = await Members.findByPk(id, { transaction: t });
                 }
 
                 if (!currentRecord) {
+                    await t.rollback();
                     throw new ApolloError("Record not found", "RECORD_NOT_FOUND");
                 }
 
                 const commonData = {
                     id_person: currentRecord.id_person,
                     id_team: currentRecord.id_team,
-                    status: "accepted", 
+                    status: "accepted",
                     note: currentRecord.note,
                 };
 
@@ -312,7 +320,7 @@ export const resolvers = {
                         player_center: content.player_center || "",
                         job: content.job || currentRecord.occupation || currentRecord.job || "",
                         class: content.class && content.class !== "" ? content.class : "firstDegree",
-                    });
+                    }, { transaction: t });
                 } else if (toType === "technical") {
                     newRecord = await TechnicalApparatus.create({
                         ...commonData,
@@ -321,7 +329,7 @@ export const resolvers = {
                         membership_date_end: content.membership_date_end,
                         occupation: content.occupation || content.job || currentRecord.occupation || currentRecord.job || "",
                         testimony_experience: "",
-                    });
+                    }, { transaction: t });
                 } else if (toType === "member") {
                     newRecord = await Members.create({
                         ...commonData,
@@ -330,23 +338,34 @@ export const resolvers = {
                         membership_date: content.membership_date || new Date(),
                         membership_date_end: content.membership_date_end,
                         paid: false,
-                    });
+                    }, { transaction: t });
+                } else {
+                    await t.rollback();
+                    throw new ApolloError("Invalid toType", "INVALID_TO_TYPE");
                 }
 
-                if (newRecord) {
-                    if (fromType === "player") {
-                        await Players.destroy({ where: { id } });
-                    } else if (fromType === "technical") {
-                        await TechnicalApparatus.destroy({ where: { id } });
-                    } else if (fromType === "member") {
-                        await Members.destroy({ where: { id } });
-                    }
-                    return newRecord;
+                if (!newRecord) {
+                    await t.rollback();
+                    throw new ApolloError("Failed to create new record", "CREATE_FAILED");
                 }
-                return null;
+
+                if (fromType === "player") {
+                    await Players.destroy({ where: { id }, transaction: t });
+                } else if (fromType === "technical") {
+                    await TechnicalApparatus.destroy({ where: { id }, transaction: t });
+                } else if (fromType === "member") {
+                    await Members.destroy({ where: { id }, transaction: t });
+                }
+
+                await t.commit();
+                return newRecord;
             } catch (error) {
+                if (t && !t.finished) {
+                    try { await t.rollback(); } catch (_) { /* already rolled back */ }
+                }
                 logger.error(error);
-                throw new ApolloError(error);
+                if (error instanceof ApolloError) throw error;
+                throw new ApolloError(error.message || "Failed to change classification", "CHANGE_CLASSIFICATION_FAILED");
             }
         },
     }

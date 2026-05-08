@@ -19,7 +19,14 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
 
     const handleSubmit = async () => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
-        if (!toType) return;
+        if (!toType) {
+            notyf.error("اختر التصنيف الجديد");
+            return;
+        }
+        if (!data?.id) {
+            notyf.error("لم يتم تحديد العضو");
+            return;
+        }
 
         try {
             await changeClassification({
@@ -32,21 +39,28 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
                     { query: AllPlayers, variables: { idClub } },
                     { query: AllMembers, variables: { idClub } },
                     { query: AllTechnicals, variables: { idClub } },
-                ]
+                ],
+                awaitRefetchQueries: true,
             });
             notyf.success("تم تغيير التصنيف بنجاح");
+            setToType(null);
             onSuccess();
             onClose();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            notyf.error("فشل تغيير التصنيف");
+            notyf.error(error?.message || "فشل تغيير التصنيف");
         }
+    };
+
+    const handleClose = () => {
+        setToType(null);
+        onClose();
     };
 
     return (
         <Modal
             opened={opened}
-            onClose={onClose}
+            onClose={handleClose}
             title="تغيير تصنيف العضو"
             centered
             dir="rtl"
@@ -85,7 +99,7 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
                 />
 
                 <Group position="right" mt="xl">
-                    <Button variant="subtle" onClick={onClose} color="gray">إلغاء</Button>
+                    <Button variant="subtle" onClick={handleClose} color="gray">إلغاء</Button>
                     <Button onClick={handleSubmit} loading={loading} disabled={!toType} color="blue">تأكيد التغيير</Button>
                 </Group>
             </Stack>
