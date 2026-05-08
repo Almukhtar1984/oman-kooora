@@ -18,6 +18,7 @@ interface VariableProps {
         blogs:      string[];
         forms:      string[];
         permissions:      string[];
+        leagues?:     string[];
     }
 }
 

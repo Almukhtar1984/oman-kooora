@@ -175,7 +175,7 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                 forms: permission?.forms?.split(","),
                 permissions: permission?.permissions?.split(","),
                 blogs: permission?.blogs?.split(","),
-                leagues:permission?.members?.split(","),
+                leagues: permission?.leagues?.split(",") || [],
             })
         }
     }, [userData])

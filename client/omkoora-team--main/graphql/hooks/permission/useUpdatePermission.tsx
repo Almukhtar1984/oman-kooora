@@ -21,6 +21,7 @@ interface VariableProps {
 
         complaints:      string[];
         expenses:      string[];
+        leagues?:        string[];
     }
 }
 

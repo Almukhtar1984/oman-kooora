@@ -31,9 +31,10 @@ export const typeDefs = gql`
         blogs:      String
         forms:      String
         permissions:      String
-        
+
         complaints:      String
         expenses:      String
+        leagues:      String
 
         user:      User
 
@@ -59,6 +60,7 @@ export const typeDefs = gql`
 
         complaints:      [String]
         expenses:      [String]
+        leagues:      [String]
 
 
         id_user:   ID

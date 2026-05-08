@@ -55,7 +55,8 @@ export const AddPowerModal = ({ id, ...props }: Props) => {
     const [blogs, setBlogs] = useState<string[]>([]);
     const [forms, setForms] = useState<string[]>([]);
     const [permissions, setPermissions] = useState<string[]>([]);
-    
+    const [leagues, setLeagues] = useState<string[]>([]);
+
     const onSubmit = (data: any) => {
         const {membership_date, membership_date_end, person, user } = data
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
@@ -100,6 +101,7 @@ export const AddPowerModal = ({ id, ...props }: Props) => {
                             blogs:      blogs,
                             forms:      forms,
                             permissions:      permissions,
+                            leagues:      leagues,
 
                             id_user:   id_user
                         }
@@ -443,6 +445,20 @@ export const AddPowerModal = ({ id, ...props }: Props) => {
                                             defaultValue={['1']}
                                             label="صلاحيات صفحة الصلاحيات"
                                             value={permissions} onChange={setPermissions}
+                                        >
+                                            <Group mt="xs">
+                                                <Checkbox value="1" label="عرض" />
+                                                <Checkbox value="2" label="اضافة" />
+                                                <Checkbox value="3" label="تعديل" />
+                                                <Checkbox value="4" label="حذف" />
+                                            </Group>
+                                        </Checkbox.Group>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Checkbox.Group
+                                            defaultValue={['1']}
+                                            label="صلاحيات البطولات"
+                                            value={leagues} onChange={setLeagues}
                                         >
                                             <Group mt="xs">
                                                 <Checkbox value="1" label="عرض" />

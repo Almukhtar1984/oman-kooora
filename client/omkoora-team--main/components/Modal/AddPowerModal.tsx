@@ -64,6 +64,7 @@ export const AddPowerModal = ({ id, existingMember, setExistingMember, ...props 
     const [meeting, setMeeting] = useState<string[]>([]);
     const [forms, setForms] = useState<string[]>([]);
     const [permissions, setPermissions] = useState<string[]>([]);
+    const [leagues, setLeagues] = useState<string[]>([]);
 
     useEffect(() => {
         if (userData?.person?.member?.team?.id) {
@@ -122,6 +123,7 @@ export const AddPowerModal = ({ id, existingMember, setExistingMember, ...props 
 
                             complaints: complaints,
                             expenses: expenses,
+                            leagues: leagues,
 
                             id_user:   id_user
                         }
@@ -488,6 +490,20 @@ export const AddPowerModal = ({ id, existingMember, setExistingMember, ...props 
                                                 <Checkbox value="2" label="اضافة" />
                                                 <Checkbox value="3" label="تعديل" />
                                                 {/*<Checkbox value="4" label="حذف" />*/}
+                                            </Group>
+                                        </Checkbox.Group>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Checkbox.Group
+                                            defaultValue={['1']}
+                                            label="صلاحيات البطولات"
+                                            value={leagues} onChange={setLeagues}
+                                        >
+                                            <Group mt="xs">
+                                                <Checkbox value="1" label="عرض" />
+                                                <Checkbox value="2" label="اضافة" />
+                                                <Checkbox value="3" label="تعديل" />
+                                                <Checkbox value="4" label="حذف" />
                                             </Group>
                                         </Checkbox.Group>
                                     </Col>

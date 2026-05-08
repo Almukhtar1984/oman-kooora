@@ -18,6 +18,7 @@ export const AllPermission = gql`
             blogs
             forms
             permissions
+            leagues
 
             user {
                 id

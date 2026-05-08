@@ -105,6 +105,7 @@ export const resolvers = {
                     permissions: (content.permissions || []).join(','),
                     complaints: (content.complaints || []).join(','),
                     expenses: (content.expenses || []).join(','),
+                    leagues: (content.leagues || []).join(','),
 
                     id_user:   content.id_user
                 })
@@ -149,6 +150,7 @@ export const resolvers = {
                     permissions: (content.permissions || []).join(','),
                     complaints: (content.complaints || []).join(','),
                     expenses: (content.expenses || []).join(','),
+                    leagues: (content.leagues || []).join(','),
                 }, { where: { id } })
 
                 return {

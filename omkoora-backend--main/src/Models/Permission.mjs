@@ -66,6 +66,10 @@ export default (db, types) => {
             type: types.STRING(25),
             allowNull: true
         },
+        leagues: {
+            type: types.STRING(25),
+            allowNull: true
+        },
     },{
         timestamps: true,
         createdAt: true,

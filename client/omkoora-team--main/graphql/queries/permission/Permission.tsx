@@ -19,6 +19,7 @@ export const Permission = gql`
             blogs
             forms
             permissions
+            leagues
 
             user {
                 id

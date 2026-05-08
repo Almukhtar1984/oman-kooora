@@ -41,6 +41,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
     const [meeting, setMeeting] = useState<string[]>([]);
     const [forms, setForms] = useState<string[]>([]);
     const [permissions, setPermissions] = useState<string[]>([]);
+    const [leagues, setLeagues] = useState<string[]>([]);
 
     const [expenses, setExpenses] = useState<string[]>([]);
     const [complaints, setComplaints] = useState<string[]>([]);
@@ -80,6 +81,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
             setMeeting(permission?.meeting?.split(","))
             setForms(permission?.forms?.split(","))
             setPermissions(permission?.permissions?.split(","))
+            setLeagues(permission?.leagues?.split(",") || [])
         }
     }, [dataMember])
 
@@ -117,6 +119,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
 
                             complaints: complaints,
                             expenses: expenses,
+                            leagues: leagues,
                         }
                     },
                     onCompleted: ({createPermission}) => {
@@ -335,6 +338,20 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                                                 <Checkbox value="2" label="اضافة" />
                                                 <Checkbox value="3" label="تعديل" />
                                                 {/*<Checkbox value="4" label="حذف" />*/}
+                                            </Group>
+                                        </Checkbox.Group>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Checkbox.Group
+                                            defaultValue={['1']}
+                                            label="صلاحيات البطولات"
+                                            value={leagues} onChange={setLeagues}
+                                        >
+                                            <Group mt="xs">
+                                                <Checkbox value="1" label="عرض" />
+                                                <Checkbox value="2" label="اضافة" />
+                                                <Checkbox value="3" label="تعديل" />
+                                                <Checkbox value="4" label="حذف" />
                                             </Group>
                                         </Checkbox.Group>
                                     </Col>
