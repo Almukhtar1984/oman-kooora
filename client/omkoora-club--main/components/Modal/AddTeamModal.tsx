@@ -362,19 +362,25 @@ export const AddTeamModal = (props: Props) => {
                             />
                         </Col>
                         <Col span={12}>
-                            <PasswordInput
-                                label="كلمة المرور"
-                                description="تم إنشاؤها تلقائياً (10 محارف). يمكنك التعديل أو إعادة الإنشاء."
-                                withAsterisk
-                                rightSection={
-                                    <Tooltip label="إنشاء كلمة مرور جديدة">
-                                        <ActionIcon onClick={() => form.setFieldValue("manager.password", generatePassword())}>
-                                            <Refresh size={16} />
-                                        </ActionIcon>
-                                    </Tooltip>
-                                }
-                                {...form.getInputProps("manager.password")}
-                            />
+                            <Group align="flex-end" spacing="xs" noWrap>
+                                <PasswordInput
+                                    label="كلمة المرور"
+                                    description="تم إنشاؤها تلقائياً (10 محارف). يمكنك التعديل أو إعادة الإنشاء."
+                                    withAsterisk
+                                    sx={{flex: 1}}
+                                    {...form.getInputProps("manager.password")}
+                                />
+                                <Tooltip label="إنشاء كلمة مرور جديدة">
+                                    <ActionIcon
+                                        size="lg"
+                                        variant="light"
+                                        color="blue"
+                                        onClick={() => form.setFieldValue("manager.password", generatePassword())}
+                                    >
+                                        <Refresh size={16} />
+                                    </ActionIcon>
+                                </Tooltip>
+                            </Group>
                         </Col>
                     </Grid>
                 </form>
