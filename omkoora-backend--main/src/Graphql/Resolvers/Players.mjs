@@ -48,9 +48,12 @@ export const resolvers = {
         allPlayers: async (obj, {idTeam}, context, info) =>  {
             try {
                 return await Players.findAll({
-                    where: {
-                        id_team: idTeam
-                    }
+                    where: { id_team: idTeam },
+                    include: [
+                        { model: Person, as: "person" },
+                        { model: Team, as: "team" },
+                        { model: AttachmentPerson, as: "attachmentsPlayer" },
+                    ],
                 })
             } catch (error) {
                 logger.error("")
@@ -98,15 +101,17 @@ export const resolvers = {
         allPlayersClub: async (obj, {idClub}, context, info) =>  {
             try {
                 return await Players.findAll({
-                    include: {
-                        model: Team,
-                        as: "team",
-                        required: true,
-                        right: true,
-                        where: {
-                            id_club: idClub
-                        }
-                    }
+                    include: [
+                        {
+                            model: Team,
+                            as: "team",
+                            required: true,
+                            right: true,
+                            where: { id_club: idClub }
+                        },
+                        { model: Person, as: "person" },
+                        { model: AttachmentPerson, as: "attachmentsPlayer" },
+                    ]
                 })
             } catch (error) {
                 logger.error("")
@@ -347,9 +352,11 @@ export const resolvers = {
     },
 
     Player: {
-        person: async ({id_person}, {}, context, info) =>  {
+        person: async (parent, {}, context, info) =>  {
+            // Use eager-loaded relation when allPlayers/allPlayersClub include person.
+            if (parent?.person) return parent.person;
             try {
-                return await Person.findByPk(id_person)
+                return await Person.findByPk(parent?.id_person)
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
@@ -397,9 +404,10 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
-        team: async ({id_team}, {}, context, info) =>  {
+        team: async (parent, {}, context, info) =>  {
+            if (parent?.team) return parent.team;
             try {
-                return await Team.findByPk(id_team)
+                return await Team.findByPk(parent?.id_team)
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
@@ -423,12 +431,11 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
-        attachmentsPlayer: async ({id}, {}, context, info) =>  {
+        attachmentsPlayer: async (parent, {}, context, info) =>  {
+            if (parent?.attachmentsPlayer) return parent.attachmentsPlayer;
             try {
                 return await AttachmentPerson.findAll({
-                    where: {
-                        id_player: id
-                    }
+                    where: { id_player: parent?.id }
                 })
             } catch (error) {
                 logger.error("")
