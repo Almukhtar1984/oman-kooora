@@ -48,12 +48,9 @@ export const resolvers = {
         allPlayers: async (obj, {idTeam}, context, info) =>  {
             try {
                 return await Players.findAll({
-                    where: { id_team: idTeam },
-                    include: [
-                        { model: Person, as: "person" },
-                        { model: Team, as: "team" },
-                        { model: AttachmentPerson, as: "attachmentsPlayer" },
-                    ],
+                    where: {
+                        id_team: idTeam
+                    }
                 })
             } catch (error) {
                 logger.error("")
@@ -101,17 +98,15 @@ export const resolvers = {
         allPlayersClub: async (obj, {idClub}, context, info) =>  {
             try {
                 return await Players.findAll({
-                    include: [
-                        {
-                            model: Team,
-                            as: "team",
-                            required: true,
-                            right: true,
-                            where: { id_club: idClub }
-                        },
-                        { model: Person, as: "person" },
-                        { model: AttachmentPerson, as: "attachmentsPlayer" },
-                    ]
+                    include: {
+                        model: Team,
+                        as: "team",
+                        required: true,
+                        right: true,
+                        where: {
+                            id_club: idClub
+                        }
+                    }
                 })
             } catch (error) {
                 logger.error("")
