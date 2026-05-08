@@ -199,7 +199,9 @@ export const resolvers = {
             try {
                 let person = null
                 if (content.user.person) {
-                    person = await Person.update({...content.user.person}, { where: { id: idPerson } })
+                    const personPatch = {...content.user.person};
+                    if (!personPatch.personal_picture) delete personPatch.personal_picture;
+                    person = await Person.update(personPatch, { where: { id: idPerson } })
                 }
 
                 let result = await Members.update({...content}, { where: { id } })
@@ -228,7 +230,9 @@ export const resolvers = {
             try {
                 let person = null
                 if (content.person) {
-                    person = await Person.update({...content.person}, { where: { id: idPerson } })
+                    const personPatch = {...content.person};
+                    if (!personPatch.personal_picture) delete personPatch.personal_picture;
+                    person = await Person.update(personPatch, { where: { id: idPerson } })
                 }
 
                 let result = await Members.update(content, { where: { id } })

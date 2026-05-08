@@ -120,7 +120,9 @@ export const resolvers = {
             try {
                 let person = null
                 if (content.person) {
-                    person = await Person.update({...content.person}, { where: { id: idPerson } })
+                    const personPatch = {...content.person};
+                    if (!personPatch.personal_picture) delete personPatch.personal_picture;
+                    person = await Person.update(personPatch, { where: { id: idPerson } })
                 }
 
                 const testimonyExperience = await content.testimony_experience

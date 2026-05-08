@@ -661,7 +661,16 @@ export const resolvers = {
                 // Update the person information if content.person exists
                 let person = null;
                 if (content.person) {
-                    person = await Person.update({ ...content.person }, { where: { id: idPerson } });
+                    // personal_picture is uploaded via the dedicated addImagePlayer
+                    // mutation, never via updatePlayer. If a stale form ever sends
+                    // an empty/undefined value here, dropping it prevents the saved
+                    // image from being silently nulled (e.g. after a transfer/loan
+                    // when the receiving team edits the player).
+                    const personPatch = { ...content.person };
+                    if (!personPatch.personal_picture) {
+                        delete personPatch.personal_picture;
+                    }
+                    person = await Person.update(personPatch, { where: { id: idPerson } });
                 }
                 if (!content.type) {
                     content.type = "internal";
