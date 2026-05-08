@@ -72,7 +72,10 @@ export default function PlayersLoan() {
 
     useEffect(() => {
         if (dataAllPlayersLoan && "allPlayersClubLoaned" in dataAllPlayersLoan) {
-            setAllPlayers([...dataAllPlayersLoan.allPlayersClubLoaned])
+            const fresh = dataAllPlayersLoan.allPlayersClubLoaned.filter(
+                (p: any) => p?.lastLoan?.status !== "rejected"
+            )
+            setAllPlayers([...fresh])
         }
     }, [dataAllPlayersLoan])
 

@@ -68,7 +68,10 @@ export default function PlayersTransfer() {
 
     useEffect(() => {
         if (dataAllPlayersTransferred && "allPlayersClubTransferred" in dataAllPlayersTransferred) {
-            setAllPlayers([...dataAllPlayersTransferred.allPlayersClubTransferred])
+            const fresh = dataAllPlayersTransferred.allPlayersClubTransferred.filter(
+                (p: any) => p?.lastTransfer?.status !== "rejected"
+            )
+            setAllPlayers([...fresh])
         }
     }, [dataAllPlayersTransferred])
 
