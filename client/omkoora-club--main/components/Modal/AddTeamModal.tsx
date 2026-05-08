@@ -1,61 +1,207 @@
-import {Box, Button, Col, FileInput, Grid, Group, Loader, Overlay, Select, Stack, Text} from "@mantine/core";
-import { Check, X } from "tabler-icons-react";
-import React, {useState} from "react";
-import { useForm, Controller } from "react-hook-form";
-import TextInput from "../Input/TextInput";
-import Modal, { Props as ModalProps } from "./Modal";
-import {AllTeams, useAddTeam} from "./../../graphql";
-import useStore from "../../store/useStore";
+import {ActionIcon, Alert, Box, Button, Col, CopyButton, Divider, FileInput, Grid, Group, Loader, Overlay, PasswordInput, Select, Stack, Text, Title, Tooltip} from "@mantine/core";
+import {Calendar, Check, Copy, Refresh, X} from "tabler-icons-react";
 import {IconChevronDown} from "@tabler/icons-react";
+import React, {useState} from "react";
+import {DateInput} from "@mantine/dates";
+import {useForm} from "@mantine/form";
+import dayjs from "dayjs";
 import {Notyf} from "notyf";
+
+import TextInput from "../Input/TextInput";
+import Modal, {Props as ModalProps} from "./Modal";
+import {AllTeams, useAddMember, useAddTeam} from "./../../graphql";
+import useStore from "../../store/useStore";
 
 type Props = {} & ModalProps;
 
+const PASSWORD_LENGTH = 10;
+const PASSWORD_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const PASSWORD_LOWER = "abcdefghijkmnpqrstuvwxyz";
+const PASSWORD_DIGIT = "23456789";
+
+const pickRandom = (pool: string) => pool[Math.floor(Math.random() * pool.length)];
+
+const generatePassword = () => {
+    const all = PASSWORD_UPPER + PASSWORD_LOWER + PASSWORD_DIGIT;
+    const chars = [
+        pickRandom(PASSWORD_UPPER),
+        pickRandom(PASSWORD_LOWER),
+        pickRandom(PASSWORD_DIGIT),
+    ];
+    while (chars.length < PASSWORD_LENGTH) chars.push(pickRandom(all));
+    return chars.sort(() => Math.random() - 0.5).join("");
+};
+
+const init = () => ({
+    name: "",
+    phone: "",
+    activities: "",
+    code: "",
+    manager: {
+        first_name: "",
+        second_name: "",
+        third_name: "",
+        tribe: "",
+        date_birth: null as Date | null,
+        card_number: "",
+        phone: "",
+        email: "",
+        password: generatePassword(),
+    },
+});
 
 export const AddTeamModal = (props: Props) => {
     const userData = useStore((state: any) => state.userData);
-    const {register, handleSubmit, control, watch, reset, formState: { errors }} = useForm();
-    const [value, setValue] = useState<File | null>(null);
+    const form = useForm({
+        initialValues: init(),
+        validate: {
+            name: (v) => (!v ? "مطلوب" : null),
+            phone: (v) => (!v ? "مطلوب" : null),
+            activities: (v) => (!v ? "مطلوب" : null),
+            code: (v) => (!v ? "مطلوب" : null),
+            manager: {
+                first_name: (v) => (!v ? "مطلوب" : null),
+                second_name: (v) => (!v ? "مطلوب" : null),
+                tribe: (v) => (!v ? "مطلوب" : null),
+                date_birth: (v) => {
+                    if (!v) return "مطلوب";
+                    if (!dayjs(v).isBefore(dayjs(), "day")) return "يجب أن يكون قبل اليوم";
+                    return null;
+                },
+                card_number: (v) => (!v ? "مطلوب" : null),
+                phone: (v) => (!v ? "مطلوب" : null),
+                email: (v) => {
+                    if (!v) return "مطلوب";
+                    if (!v.includes("@")) return "بريد غير صالح";
+                    return null;
+                },
+                password: (v) => (v && v.length >= 8 ? null : "كلمة المرور قصيرة"),
+            },
+        },
+    });
+
+    const [logo, setLogo] = useState<File | null>(null);
     const [category, setCategory] = useState<string | null>(null);
+    const [categoryError, setCategoryError] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [credentials, setCredentials] = useState<{email: string; password: string} | null>(null);
 
     const [createTeam] = useAddTeam();
+    const [createAdminMember] = useAddMember();
 
-    const onSubmit = ({name, phone, activities, code, manager_name}: any) => {
-        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
-        setLoading(true)
-        createTeam({
-            variables: {
-                content: {
-                    name,
-                    category: parseInt(category || "0"),
-                    phone,
-                    logo: value,
-                    activities,
-                    code,
-                    manager_name,
-                    id_club: userData?.person?.clubManagement?.club?.id
-                }
-            },
-            refetchQueries: [AllTeams]
-        })
-        .then(() => {
-            closeModal();
-            notyf.success("تمت الإضافة بنجاح")
-        })
-        .catch(reason => {
-            console.log(reason)
-            setLoading(false)
-            notyf.error("تعذرت الإضافة")
-        })
+    const onSubmit = async (data: ReturnType<typeof init>) => {
+        const notyf = new Notyf({position: {x: "right", y: "bottom"}});
+
+        if (!category) {
+            setCategoryError(true);
+            return;
+        }
+        setCategoryError(false);
+
+        const {name, phone, activities, code, manager} = data;
+        const manager_name = `${manager.first_name} ${manager.tribe}`.trim();
+
+        setLoading(true);
+        try {
+            const teamRes = await createTeam({
+                variables: {
+                    content: {
+                        name,
+                        category: parseInt(category || "0"),
+                        phone,
+                        logo,
+                        activities,
+                        code,
+                        manager_name,
+                        id_club: userData?.person?.clubManagement?.club?.id,
+                    },
+                },
+                refetchQueries: [AllTeams],
+            });
+
+            const teamId = teamRes?.data?.createTeam?.id;
+            if (!teamId) throw new Error("لم يتم استلام معرّف الفريق");
+
+            await createAdminMember({
+                variables: {
+                    content: {
+                        occupation: "مدير الفريق",
+                        classification: "manager",
+                        membership_date: dayjs().format("YYYY-MM-DD"),
+                        membership_date_end: "",
+                        user: {
+                            email: manager.email,
+                            password: manager.password,
+                            role: "3",
+                            person: {
+                                first_name: manager.first_name,
+                                second_name: manager.second_name,
+                                third_name: manager.third_name,
+                                tribe: manager.tribe,
+                                phone: manager.phone,
+                                card_number: manager.card_number,
+                                date_birth: dayjs(manager.date_birth).format("YYYY-MM-DD"),
+                            },
+                        },
+                        id_team: teamId,
+                    },
+                },
+            });
+
+            setLoading(false);
+            setCredentials({email: manager.email, password: manager.password});
+            notyf.success("تمت الإضافة بنجاح");
+        } catch (err: any) {
+            console.log(err);
+            setLoading(false);
+            const code = err?.graphQLErrors?.[0]?.extensions?.code;
+            if (code === "CARD_NUMBER_ALREADY_EXISTS") {
+                notyf.error("رقم البطاقة المدنية موجود مسبقاً");
+            } else if (code === "PHONE_NUMBER_ALREADY_EXISTS") {
+                notyf.error("رقم الهاتف موجود مسبقاً");
+            } else {
+                notyf.error("تعذرت الإضافة");
+            }
+        }
     };
 
     const closeModal = () => {
-        setLoading(false)
+        setLoading(false);
+        setLogo(null);
+        setCategory(null);
+        setCategoryError(false);
+        setCredentials(null);
+        form.setValues(init());
+        form.reset();
         props.onClose();
-        reset();
-        setValue(null)
     };
+
+    if (credentials) {
+        return (
+            <Modal
+                {...props}
+                onClose={closeModal}
+                footer={
+                    <Box py={16} px={20} bg="slate.0">
+                        <Group position="right" spacing="xs">
+                            <Button rightIcon={<Check size={15} />} onClick={closeModal}>تم</Button>
+                        </Group>
+                    </Box>
+                }
+            >
+                <Box p={20}>
+                    <Stack spacing="md">
+                        <Title order={4}>تم إنشاء الفريق ومديره</Title>
+                        <Alert color="orange" title="احفظ هذه البيانات الآن">
+                            لن تظهر كلمة المرور مرة أخرى. سلّمها لمدير الفريق بأمان.
+                        </Alert>
+                        <CredentialRow label="البريد الإلكتروني" value={credentials.email} />
+                        <CredentialRow label="كلمة المرور" value={credentials.password} mono />
+                    </Stack>
+                </Box>
+            </Modal>
+        );
+    }
 
     return (
         <Modal
@@ -63,66 +209,61 @@ export const AddTeamModal = (props: Props) => {
             onClose={closeModal}
             footer={
                 <Box py={16} px={20} bg="slate.0">
-                    <Group position={"right"} spacing={"xs"}>
+                    <Group position="right" spacing="xs">
                         <Button variant="outline" rightIcon={<X size={15} />} bg="white" onClick={closeModal}>إلغاء</Button>
                         <Button rightIcon={<Check size={15} />} type="submit" form="submit_form">تأكيد</Button>
                     </Group>
                 </Box>
             }
         >
-            {loading ?
-                <Overlay opacity={0.9} color="#fff" zIndex={5} >
-                    <Stack align={"center"} justify={"center"} h={"100%"} w={"100%"}>
+            {loading ? (
+                <Overlay opacity={0.9} color="#fff" zIndex={5}>
+                    <Stack align="center" justify="center" h="100%" w="100%">
                         <Loader size="xl" variant="dots" />
-                        <Text size={"lg"} fw={500}>يتم تحميل الملف يرجى الانتظار</Text>
+                        <Text size="lg" fw={500}>يتم إنشاء الفريق ومديره، يرجى الانتظار</Text>
                     </Stack>
                 </Overlay>
-                : null
-            }
+            ) : null}
 
-            <Box sx={({ colors }) => ({padding: 20})}>
-                <form onSubmit={handleSubmit(onSubmit, () => console.log("error: ", errors))} id="submit_form">
+            <Box p={20}>
+                <form onSubmit={form.onSubmit(onSubmit)} id="submit_form">
+                    <Divider label="معلومات الفريق" labelPosition="center" mb="md" />
                     <Grid gutter={20}>
                         <Col span={6}>
                             <TextInput
-                                label="اسم فريق"
-                                placeholder="اسم فريق"
+                                label="اسم الفريق"
+                                placeholder="اسم الفريق"
                                 withAsterisk
-                                required
-                                error={errors?.name_arabic && true}
-                                {...register("name", { required: true })}
+                                {...form.getInputProps("name")}
                             />
                         </Col>
                         <Col span={6}>
                             <Select
                                 label="التصنيف"
                                 placeholder="اختر تصنيف الفريق"
-
                                 rightSection={<IconChevronDown size="1rem" />}
                                 rightSectionWidth={30}
                                 withAsterisk
-                                required
-                                styles={{ rightSection: { pointerEvents: 'none' } }}
-
+                                styles={{rightSection: {pointerEvents: "none"}}}
                                 data={[
                                     {label: "الدرجة الاولى", value: "1"},
                                     {label: "الدرجة الثاني", value: "2"},
-                                    {label: "الدرجة الثالثة", value: "3"}
+                                    {label: "الدرجة الثالثة", value: "3"},
                                 ]}
-
                                 value={category}
-
-                                onChange={setCategory}
+                                onChange={(v) => {
+                                    setCategory(v);
+                                    setCategoryError(false);
+                                }}
+                                error={categoryError ? "مطلوب" : null}
                             />
                         </Col>
                         <Col span={6}>
                             <TextInput
-                                label="رقم الهاتف"
-                                placeholder="رقم الهاتف"
+                                label="رقم هاتف الفريق"
+                                placeholder="رقم هاتف الفريق"
                                 withAsterisk
-                                required
-                                error={errors?.phone && true}
-                                {...register("phone", { required: true })}
+                                {...form.getInputProps("phone")}
                             />
                         </Col>
                         <Col span={6}>
@@ -130,19 +271,7 @@ export const AddTeamModal = (props: Props) => {
                                 label="النشاط"
                                 placeholder="النشاط"
                                 withAsterisk
-                                error={errors?.activities && true}
-                                {...register("activities", { required: true })}
-                            />
-                        </Col>
-                        <Col span={6}>
-                            <FileInput
-                                label="الشعار"
-                                placeholder="الشعار"
-                                withAsterisk
-                                required
-                                error={errors?.logo && true}
-                                value={value}
-                                onChange={setValue}
+                                {...form.getInputProps("activities")}
                             />
                         </Col>
                         <Col span={6}>
@@ -150,19 +279,101 @@ export const AddTeamModal = (props: Props) => {
                                 label="الكود"
                                 placeholder="الكود"
                                 withAsterisk
-                                required
-                                error={errors?.code && true}
-                                {...register("code", { required: true })}
+                                {...form.getInputProps("code")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <FileInput
+                                label="الشعار"
+                                placeholder="الشعار"
+                                value={logo}
+                                onChange={setLogo}
+                            />
+                        </Col>
+                    </Grid>
+
+                    <Divider label="معلومات المدير" labelPosition="center" my="lg" />
+                    <Grid gutter={20}>
+                        <Col span={6}>
+                            <TextInput
+                                label="الاسم الأول"
+                                placeholder="الاسم الأول"
+                                withAsterisk
+                                {...form.getInputProps("manager.first_name")}
                             />
                         </Col>
                         <Col span={6}>
                             <TextInput
-                                label="اسم رئيس الفريق"
-                                placeholder="اسم رئيس الفريق"
+                                label="الاسم الثاني"
+                                placeholder="الاسم الثاني"
                                 withAsterisk
-                                required
-                                error={errors?.manager_name && true}
-                                {...register("manager_name", { required: true })}
+                                {...form.getInputProps("manager.second_name")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="الاسم الثالث (اختياري)"
+                                placeholder="الاسم الثالث"
+                                {...form.getInputProps("manager.third_name")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="اسم القبيلة"
+                                placeholder="اسم القبيلة"
+                                withAsterisk
+                                {...form.getInputProps("manager.tribe")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <DateInput
+                                label="تاريخ الميلاد"
+                                placeholder="تاريخ الميلاد"
+                                withAsterisk
+                                valueFormat="YYYY-MM-DD"
+                                maxDate={dayjs().subtract(1, "day").toDate()}
+                                icon={<Calendar size={16} />}
+                                {...form.getInputProps("manager.date_birth")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="رقم البطاقة المدنية"
+                                placeholder="رقم البطاقة المدنية"
+                                withAsterisk
+                                {...form.getInputProps("manager.card_number")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="رقم هاتف المدير"
+                                placeholder="رقم هاتف المدير"
+                                withAsterisk
+                                {...form.getInputProps("manager.phone")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                label="البريد الإلكتروني"
+                                placeholder="البريد الإلكتروني"
+                                withAsterisk
+                                type="email"
+                                {...form.getInputProps("manager.email")}
+                            />
+                        </Col>
+                        <Col span={12}>
+                            <PasswordInput
+                                label="كلمة المرور"
+                                description="تم إنشاؤها تلقائياً (10 محارف). يمكنك التعديل أو إعادة الإنشاء."
+                                withAsterisk
+                                rightSection={
+                                    <Tooltip label="إنشاء كلمة مرور جديدة">
+                                        <ActionIcon onClick={() => form.setFieldValue("manager.password", generatePassword())}>
+                                            <Refresh size={16} />
+                                        </ActionIcon>
+                                    </Tooltip>
+                                }
+                                {...form.getInputProps("manager.password")}
                             />
                         </Col>
                     </Grid>
@@ -171,3 +382,21 @@ export const AddTeamModal = (props: Props) => {
         </Modal>
     );
 };
+
+const CredentialRow = ({label, value, mono}: {label: string; value: string; mono?: boolean}) => (
+    <Group position="apart" spacing="xs" sx={(t) => ({border: `1px solid ${t.colors.slate[2]}`, borderRadius: 6, padding: 12})}>
+        <Box>
+            <Text size="xs" c="slate.6">{label}</Text>
+            <Text fw={600} sx={mono ? {fontFamily: "monospace", letterSpacing: 1} : undefined}>{value}</Text>
+        </Box>
+        <CopyButton value={value} timeout={1500}>
+            {({copied, copy}) => (
+                <Tooltip label={copied ? "تم النسخ" : "نسخ"} withArrow>
+                    <ActionIcon color={copied ? "teal" : "blue"} onClick={copy} variant="light">
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                    </ActionIcon>
+                </Tooltip>
+            )}
+        </CopyButton>
+    </Group>
+);
