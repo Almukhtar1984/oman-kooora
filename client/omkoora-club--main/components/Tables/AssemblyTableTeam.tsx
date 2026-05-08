@@ -8,6 +8,7 @@ import {ActionIcon, Badge, Group, Menu, Pagination, Text} from '@mantine/core';
 import {DotsVertical, Check, X, Id, FileCertificate, History, CalendarStats} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
+import {getImageUrl} from "../../lib/helpers/image";
 import dayjs from "dayjs";
 
 const key = 'Pagination';
@@ -83,11 +84,27 @@ export const AssemblyTableTeam = ({ list }: Props) => {
                     <ActionIcon
                         color="green"
                         variant="light"
-
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${item.nationalID}`}
+                        href={getImageUrl(item.nationalID)}
+                    >
+                        <Id size={18} />
+                    </ActionIcon>
+                    <Text size={"sm"}>البطاقة</Text>
+                </Group>
+                : null
+        )},
+        {label: 'صورة البطاقة الخلفية', renderCell: (item) => (
+            item.nationalIDBack && item.nationalIDBack !== "" ?
+                <Group position={"center"}>
+                    <ActionIcon
+                        color="green"
+                        variant="light"
+                        component="a"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        href={getImageUrl(item.nationalIDBack)}
                     >
                         <Id size={18} />
                     </ActionIcon>

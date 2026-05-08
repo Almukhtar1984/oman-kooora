@@ -3,6 +3,7 @@ import {ActionIcon, Badge, Group, Menu, Stack, Text,Select } from '@mantine/core
 import {DotsVertical, Id, CalendarStats, Printer,InfoCircle,SortAscending, SortDescending,X,Check,Edit} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
+import {getImageUrl} from "../../lib/helpers/image";
 import dayjs from "dayjs";
 import { useMediaQuery } from "@mantine/hooks";
 import DataTable, {TableStyles} from 'react-data-table-component';
@@ -73,7 +74,11 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
     }, [list]);
 
     useEffect(() => {
-        const filterAllMembers = searchSortedData(list,['name'], search)
+        const filterAllMembers = searchSortedData(
+            list,
+            ['first_name', 'second_name', 'third_name', 'tribe', 'phone', 'card_number'],
+            search
+        )
         setAllMembers([...filterAllMembers])
     }, [search]);
 
@@ -161,17 +166,15 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
         }, width: '150px' },
 
         {name: 'صورة البطاقة المدنية', selector: (item: any) => (
-        
             item.nationalID && item.nationalID !== "" ?
                 <Group position={"center"}>
                     <ActionIcon
                         color="green"
                         variant="light"
-
                         component="a"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.nationalID}`}
+                        href={getImageUrl(item.nationalID)}
                     >
                         <Id size={18} />
                     </ActionIcon>
@@ -180,24 +183,22 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
                 : null
         ), width: '180px'},
         {name: 'صورة البطاقة الخلفية', selector: (item: any) => (
-        
-          item.nationalID && item.nationalID !== "" ?
-              <Group position={"center"}>
-                  <ActionIcon
-                      color="green"
-                      variant="light"
-
-                      component="a"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.nationalIDBack}`}
-                  >
-                      <Id size={18} />
-                  </ActionIcon>
-                  <Text size={"sm"}>البطاقة</Text>
-              </Group>
-              : null
-      ), width: '180px'}
+            item.nationalIDBack && item.nationalIDBack !== "" ?
+                <Group position={"center"}>
+                    <ActionIcon
+                        color="green"
+                        variant="light"
+                        component="a"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        href={getImageUrl(item.nationalIDBack)}
+                    >
+                        <Id size={18} />
+                    </ActionIcon>
+                    <Text size={"sm"}>البطاقة</Text>
+                </Group>
+                : null
+        ), width: '180px'}
     ];
 
     const MOBILE_COLUMNS = [
