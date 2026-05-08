@@ -1,8 +1,8 @@
-import {ActionIcon, Box, Button, Col, Grid, Group, Image, Text, Title} from "@mantine/core";
+import {ActionIcon, Box, Col, Grid, Group, Stack, Text} from "@mantine/core";
 import React from "react";
 import Modal, { Props as ModalProps } from "./Modal";
-import useStore from "../../store/useStore";
 import {Paperclip, Trash} from "tabler-icons-react";
+import {IconDatabaseOff} from "@tabler/icons-react";
 import { getImageUrl } from "../../lib/helpers/image";
 
 type Props = {
@@ -12,11 +12,11 @@ type Props = {
 } & ModalProps;
 
 export const ShowAttachments = ({data, setSelectedData, setOpenDeleteAttachmentModal, ...props}: Props) => {
-    const userData = useStore((state: any) => state.userData);
-
     const closeModal = () => {
         props.onClose();
     };
+
+    const attachments = data?.attachmentsPlayer || [];
 
     return (
         <Modal
@@ -27,14 +27,12 @@ export const ShowAttachments = ({data, setSelectedData, setOpenDeleteAttachmentM
             <Box sx={({ colors }) => ({padding: 20, paddingTop: 0})}>
                 <Grid gutter={20}>
                     <Col span={12} >
-                        {data?.attachmentsPlayer && data.attachmentsPlayer.length > 0 ?
+                        {attachments.length > 0 ? (
                             <Group position={"center"} spacing={20} >
-                                {data.attachmentsPlayer.map((item: any, index: number) => (
-                                    <Box key={index} bg={"#eee"} p={10}>
+                                {attachments.map((item: any, index: number) => (
+                                    <Box key={item.id || index} bg={"#eee"} p={10}>
                                         <Group spacing={10} position={"center"}>
                                             <Box
-                                                key={index}
-
                                                 component="a"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -59,8 +57,12 @@ export const ShowAttachments = ({data, setSelectedData, setOpenDeleteAttachmentM
                                     </Box>
                                 ))}
                             </Group>
-                            : null
-                        }
+                        ) : (
+                            <Stack mih={120} align="center" justify="center" spacing={6}>
+                                <IconDatabaseOff size="3rem" strokeWidth={1} color="#ADB5BD" />
+                                <Text size="sm" c="gray.6">لا توجد مرفقات لهذا اللاعب</Text>
+                            </Stack>
+                        )}
                     </Col>
                 </Grid>
             </Box>
