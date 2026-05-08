@@ -393,6 +393,7 @@ export default function Players() {
             
             
             {<ShowStatPlayer
+                    title="تفاصيل اللاعب"
                     playerId={selectedData}
                     opened={StatPlayerModal}
                     onClose={() => setStatPlayerModal(false)}
