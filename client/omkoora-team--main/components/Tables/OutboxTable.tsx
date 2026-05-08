@@ -129,7 +129,7 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
                     : <Badge color="red">عاجل جدا</Badge>
         ), width: '120px'},
         {name: 'الموضوع', selector: (item: any) => item?.subject, width: '120px'},
-        {name: 'تاريخ الارسال', selector: (item: any) => dayjs(item?.createdAt).locale("ar").fromNow(), width: '200px'},
+        {name: 'تاريخ الارسال', selector: (item: any) => item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : '-', width: '200px'},
     ];
 
     const MOBILE_COLUMNS = [
@@ -147,7 +147,7 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
                     الموضوع: {item?.subject || 'غير متوفر'}
                   </Text>
                   <Text size="xs" color="dimmed">
-                    {dayjs(item?.createdAt).locale('ar').fromNow() || 'غير متوفر'}
+                    {item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : 'غير متوفر'}
                   </Text>
                 </Group>
                 <Badge

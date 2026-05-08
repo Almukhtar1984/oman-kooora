@@ -4,8 +4,10 @@ import {RichTextEditor} from "@mantine/tiptap";
 import React, {useEffect, useState} from "react";
 import {useEditor} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import dayjs from "dayjs";
 import {useMessage} from "../../graphql";
 import {RichTextBox} from "../RichTextEditor";
+import { getImageUrl } from "../../lib/helpers/image";
 
 type Props = {
     data?: any;
@@ -89,27 +91,30 @@ export function CommentDrawer({ data, setOpenCommentModal, ...props }: Props) {
                         <Stack mt={20}>
                             {comments.map((item: any) => (
                                 <Box key={item?.id} bg={"#eee"} p={20}>
-                                    <Group>
-                                        <Stack spacing={5}>
+                                    <Stack spacing={6}>
+                                        <Group position={"apart"} align={"center"}>
                                             {item?.club
-                                                ? <Group align={"flex-start"}>
-                                                    <Avatar src={item?.club?.logo as string} alt={item?.club?.logo as string} size={38} radius={20}/>
-                                                    <Text>{item?.club?.name}</Text>
+                                                ? <Group align={"center"} spacing={8}>
+                                                    <Avatar src={getImageUrl(item?.club?.logo as string)} alt={item?.club?.logo as string} size={32} radius={16}/>
+                                                    <Text fw={600}>{item?.club?.name}</Text>
                                                 </Group>
                                                 : item?.team
-                                                    ? <Group align={"flex-start"}>
-                                                        <Avatar src={item?.team?.logo as string} alt={item?.team?.logo as string} size={38} radius={20}/>
-                                                        <Text>{item?.team?.name}</Text>
+                                                    ? <Group align={"center"} spacing={8}>
+                                                        <Avatar src={getImageUrl(item?.team?.logo as string)} alt={item?.team?.logo as string} size={32} radius={16}/>
+                                                        <Text fw={600}>{item?.team?.name}</Text>
                                                     </Group>
                                                     : null
                                             }
+                                            <Text size={"xs"} c={"gray.6"}>
+                                                {item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : ""}
+                                            </Text>
+                                        </Group>
 
-                                            <Stack spacing={0}>
-                                                <Text size={"sm"}>{item?.content}</Text>
-                                                <Text size={"xs"}>{item?.note}</Text>
-                                            </Stack>
+                                        <Stack spacing={0}>
+                                            <Text size={"sm"}>{item?.content}</Text>
+                                            {item?.note ? <Text size={"xs"} c={"gray.6"}>{item.note}</Text> : null}
                                         </Stack>
-                                    </Group>
+                                    </Stack>
                                 </Box>
                             ))}
                         </Stack>

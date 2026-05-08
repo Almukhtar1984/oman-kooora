@@ -17,6 +17,7 @@ export const Message = gql`
                 id
                 content
                 note
+                createdAt
                 team {
                     id
                     logo

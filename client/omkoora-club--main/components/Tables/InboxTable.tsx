@@ -227,7 +227,7 @@ export const InboxTable = ({ list, search, setOpenCommentModal, setOpenChangeSta
                     الموضوع: {item?.subject || 'غير متوفر'}
                   </Text>
                   <Text size="xs" color="dimmed">
-                    {dayjs(item?.createdAt).locale('ar').fromNow() || 'غير متوفر'}
+                    {item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : 'غير متوفر'}
                   </Text>
                 </Group>
                 <Badge
@@ -360,9 +360,7 @@ export const InboxTable = ({ list, search, setOpenCommentModal, setOpenChangeSta
                                     <Cell>{item?.team_sender?.name}</Cell>
                                     <Cell>{item?.subject}</Cell>
                                     <Cell>
-                                        {/*<Tooltip label={item?.createdAt}>*/}
-                                            {dayjs(item?.createdAt).locale("ar").fromNow()}
-                                        {/*</Tooltip>*/}
+                                        {item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : '-'}
                                     </Cell>
                                 </Row>
                             ))}

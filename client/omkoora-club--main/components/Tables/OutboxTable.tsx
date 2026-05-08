@@ -231,7 +231,7 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
                     الموضوع: {item?.subject || 'غير متوفر'}
                   </Text>
                   <Text size="xs" color="dimmed">
-                    {dayjs(item?.createdAt).locale('ar').fromNow() || 'غير متوفر'}
+                    {item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : 'غير متوفر'}
                   </Text>
                 </Group>
                 <Badge
@@ -371,9 +371,7 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
                                     </Cell>
                                     <Cell>{item?.subject}</Cell>
                                     <Cell>
-                                        {/*<Tooltip label={item?.createdAt}>*/}
-                                            {dayjs(item?.createdAt).locale("ar").fromNow()}
-                                        {/*</Tooltip>*/}
+                                        {item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : '-'}
                                     </Cell>
                                 </Row>
                             ))}
