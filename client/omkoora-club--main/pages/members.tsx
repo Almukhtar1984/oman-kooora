@@ -247,15 +247,37 @@ function MembersContent() {
 
 export default function Members() {
     const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
+
+    // Lazy-mount tab panels: Mantine's <Tabs.Panel> renders children
+    // even when the tab is inactive, which made /members load all four
+    // heavy lists (players, technicals, members, assembly) at once.
+    // Track the active tab and only mount each panel's component the
+    // first time it's opened. Once mounted it stays — Apollo's cache
+    // makes subsequent visits instant without refetching.
+    const [activeTab, setActiveTab] = useState<string | null>("players");
+    const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set(["players"]));
+
+    const handleTabChange = (value: string | null) => {
+        setActiveTab(value);
+        if (value) {
+            setVisitedTabs((prev) => {
+                if (prev.has(value)) return prev;
+                const next = new Set(prev);
+                next.add(value);
+                return next;
+            });
+        }
+    };
+
     return (
         <Container size="xl" pt="md">
             <Title order={2} mb="xl" color="#1E3A8A">إدارة الأعضاء</Title>
-            <Tabs defaultValue="players" color="orange" sx={(theme) => ({
+            <Tabs value={activeTab} onTabChange={handleTabChange} color="orange" sx={(theme) => ({
                 '[data-active]': { borderColor: '#FBBF24', color: '#1E3A8A' }
             })}>
-                <Tabs.List mb="md" grow sx={{ 
-                    flexWrap: 'nowrap', 
-                    overflowX: 'auto', 
+                <Tabs.List mb="md" grow sx={{
+                    flexWrap: 'nowrap',
+                    overflowX: 'auto',
                     overflowY: 'hidden',
                     WebkitOverflowScrolling: 'touch',
                     '&::-webkit-scrollbar': { display: 'none' },
@@ -269,16 +291,16 @@ export default function Members() {
                 </Tabs.List>
 
                 <Tabs.Panel value="players">
-                    <Players />
+                    {visitedTabs.has("players") && <Players />}
                 </Tabs.Panel>
                 <Tabs.Panel value="technicals">
-                    <Technicals />
+                    {visitedTabs.has("technicals") && <Technicals />}
                 </Tabs.Panel>
                 <Tabs.Panel value="members">
-                    <MembersContent />
+                    {visitedTabs.has("members") && <MembersContent />}
                 </Tabs.Panel>
                 <Tabs.Panel value="assembly">
-                    <Assembly />
+                    {visitedTabs.has("assembly") && <Assembly />}
                 </Tabs.Panel>
             </Tabs>
         </Container>

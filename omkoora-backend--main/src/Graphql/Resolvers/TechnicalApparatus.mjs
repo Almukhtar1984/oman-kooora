@@ -60,7 +60,11 @@ export const resolvers = {
 
     TechnicalApparatus: {
         person: async ({id_person}, {}, context, info) =>  {
+            if (!id_person) return null;
             try {
+                if (context?.loaders?.person) {
+                    return await context.loaders.person.load(id_person);
+                }
                 return await Person.findByPk(id_person)
             } catch (error) {
                 logger.error("")

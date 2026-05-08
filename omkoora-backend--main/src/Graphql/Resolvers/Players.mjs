@@ -348,21 +348,30 @@ export const resolvers = {
 
     Player: {
         person: async (parent, {}, context, info) =>  {
-            // Use eager-loaded relation when allPlayers/allPlayersClub include person.
+            // Prefer eager-loaded relation, then per-request DataLoader
+            // (batches all Player.person calls in this response into one
+            // SELECT … WHERE id IN (…)), then fall back to a single
+            // findByPk if loaders aren't wired into context.
             if (parent?.person) return parent.person;
+            if (!parent?.id_person) return null;
             try {
-                return await Person.findByPk(parent?.id_person)
+                if (context?.loaders?.person) {
+                    return await context.loaders.person.load(parent.id_person);
+                }
+                return await Person.findByPk(parent.id_person)
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
             }
         },
         transfer: async ({id}, {}, context, info) =>  {
+            if (!id) return [];
             try {
+                if (context?.loaders?.transfersByPlayer) {
+                    return await context.loaders.transfersByPlayer.load(id);
+                }
                 return await Transfer.findAll({
-                    where: {
-                        id_player: id
-                    },
+                    where: { id_player: id },
                     order: [['createdAt', 'DESC']]
                 })
             } catch (error) {
@@ -401,8 +410,12 @@ export const resolvers = {
         },
         team: async (parent, {}, context, info) =>  {
             if (parent?.team) return parent.team;
+            if (!parent?.id_team) return null;
             try {
-                return await Team.findByPk(parent?.id_team)
+                if (context?.loaders?.team) {
+                    return await context.loaders.team.load(parent.id_team);
+                }
+                return await Team.findByPk(parent.id_team)
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
@@ -428,9 +441,13 @@ export const resolvers = {
         },
         attachmentsPlayer: async (parent, {}, context, info) =>  {
             if (parent?.attachmentsPlayer) return parent.attachmentsPlayer;
+            if (!parent?.id) return [];
             try {
+                if (context?.loaders?.attachmentsByPlayer) {
+                    return await context.loaders.attachmentsByPlayer.load(parent.id);
+                }
                 return await AttachmentPerson.findAll({
-                    where: { id_player: parent?.id }
+                    where: { id_player: parent.id }
                 })
             } catch (error) {
                 logger.error("")

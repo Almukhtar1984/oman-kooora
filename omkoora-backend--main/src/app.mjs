@@ -23,6 +23,7 @@ import logger from "./Config/logger.mjs"
 import {initializeSocketServer} from "./Socket/index.mjs"
 import './Schedule/index.mjs'; // Add this line to include the cron job
 import LoggingPlugin from './ApolloPlugin/LoggingPlugin.mjs'
+import { buildLoaders } from './Helpers/loaders.mjs'
 import {
     corsOptionsDelegate,
     isAllowedOrigin,
@@ -109,7 +110,12 @@ let socket = null;
                 }
                 let refreshToken = req.cookies["__tomoh"];
 
-                return { res, req, user, isAuth, refreshToken };
+                // Per-request DataLoaders. Field resolvers should call
+                // context.loaders.<name>.load(id) instead of Model.findByPk
+                // to batch lookups across all rows in the same response.
+                const loaders = buildLoaders();
+
+                return { res, req, user, isAuth, refreshToken, loaders };
             }
         });
 
