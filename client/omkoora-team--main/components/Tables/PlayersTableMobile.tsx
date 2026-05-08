@@ -4,7 +4,7 @@ import { CompactTable } from '@table-library/react-table-library/compact';
 import { useTheme } from '@table-library/react-table-library/theme';
 import {DEFAULT_OPTIONS, getTheme,} from '@table-library/react-table-library/mantine';
 import { usePagination } from '@table-library/react-table-library/pagination';
-import {ActionIcon, Badge, Checkbox, Group, Menu, Pagination, Select, Stack, Text, TextInput,Box} from '@mantine/core';
+import {ActionIcon, Badge, Checkbox, Group, Menu, Pagination, Select, Stack, Text, TextInput, Tooltip, Box} from '@mantine/core';
 import {DotsVertical, Check, X, Id, FileCertificate, History, EditCircle, Printer, Trash, Paperclip, Upload, ChartDots,XboxX,InfoCircle} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
@@ -315,9 +315,11 @@ export const PlayersTableMobile = ({ list, search, setOpenEditModal, setOpenAddI
                         مقبول
                       </Badge>
                     ) : item?.status === 'rejected' ? (
-                      <Badge fw={500} color="red" onClick={(e) => { e.stopPropagation(); setOpenRejectionModal(true);setSelectedPerson(item.note) }}>
-                        مرفوض
-                      </Badge>
+                      <Tooltip label={item?.note || "لم يتم ذكر سبب الرفض"} multiline width={260} withArrow>
+                        <Badge sx={{cursor:"pointer", textDecoration: "underline dotted"}} fw={500} color="red" onClick={(e) => { e.stopPropagation(); setOpenRejectionModal(true); setSelectedPerson(item.note) }}>
+                          مرفوض ⓘ
+                        </Badge>
+                      </Tooltip>
                     ) : item?.status === 'waiting_club' ? (
                       <Badge fw={500} color="yellow">
                         قيد انتظار تاكيد النادي
