@@ -31,6 +31,18 @@ const ClubRquest = [
     'ParticipatingTechnicalStaff'
 ];
 
+// Per #18 the client only wants ActionLogs for player lifecycle events:
+// add, delete, transfer, loan, free. Loan reuses the Transfer mutation
+// with transition_type=loan/returning, so the same operation names cover it.
+const TRACKED_OPERATIONS = new Set([
+    "CreatePlayer",
+    "DeletePlayer",
+    "CreateTransfer",
+    "UpdateTransfer",
+    "BackToOldTeamTransfer",
+    "FreePlayer",
+]);
+
 const LoggingPlugin = {
     requestDidStart(requestContext) {
         return {
@@ -38,7 +50,7 @@ const LoggingPlugin = {
                 if (!shouldEnableActionLogging) {
                     return;
                 }
-                
+
                 const { response, context } = requestContext;
                 const { req } = context;
                 const { query, variables, operationName } = req.body || {};
@@ -48,10 +60,14 @@ const LoggingPlugin = {
                 }
                 const queryType = query.trim().split(' ')[0];
                 const queryName = operationName;
-                
-                
+
+
                 if (queryType !== 'mutation') {
-                    
+
+                    return;
+                }
+
+                if (!TRACKED_OPERATIONS.has(queryName)) {
                     return;
                 }
              

@@ -59,16 +59,29 @@ const TeamRquest = [
     'ParticipatingTechnicalStaff'
 ];
 
+// Operations the client wants to keep auditing in ActionLogs.
+// Anything else is intentionally skipped per #18.
+const TRACKED_OPERATIONS = new Set([
+    "CreatePlayer",        // إضافة لاعب
+    "DeletePlayer",        // حذف لاعب
+    "CreateTransfer",      // انتقال لاعب (transition)
+    "UpdateTransfer",      // accept/reject انتقال
+    "BackToOldTeamTransfer", // إرجاع/إلغاء انتقال
+    "FreePlayer",          // تحرير لاعب
+    // إعارة player flows reuse Transfer mutations (transition_type: loan/returning),
+    // so CreateTransfer/UpdateTransfer above already cover the loan path.
+]);
+
 export const LoggingMiddleware = async  (req, res, next) => {
     const { query , variables , operationName } = req.body;
     if (query) {
         const queryType = query.trim().split(' ')[0];
         const queryName = operationName
 
+        if (queryType === 'mutation' && !TRACKED_OPERATIONS.has(queryName)) {
+            return next();
+        }
 
-        
-       
-    
         if (queryType === 'mutation') {
             // Add your specific logic for mutations here
 
