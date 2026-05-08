@@ -11,6 +11,7 @@ import {__dirname} from "../../app.mjs";
 import {createWriteStream, promises as fsPromises } from "fs";
 import { match } from 'assert';
 import {isIdentical} from "../../Helpers/isIdentical.mjs"
+import {CreateNotificationClub} from "../../Helpers/index.mjs"
 
 
 dotenv.config();
@@ -530,14 +531,25 @@ export const resolvers = {
                     if (fileType !== "PDF") {
                         return new ApolloError("The Parent Approval is not pdf", "PARENT_APPROVAL_NOT_PDF");
                     }
-        
+
                     let uniqName = `${UUID()}.${fileType}`;
                     const pathName = path.join(__dirname, `./../uploads/${uniqName}`);
                     const stream = createReadStream();
                     await stream.pipe(createWriteStream(pathName));
                     await Players.update({ parentApproval: uniqName }, { where: { id: result.id } });
                 }
-        
+
+                if (result && content.id_team) {
+                    try {
+                        const team = await Team.findByPk(content.id_team);
+                        if (team && team.id_club) {
+                            await CreateNotificationClub("player", "create", team.id_club, team.name, result.id);
+                        }
+                    } catch (notifyErr) {
+                        console.error("createPlayer: notification failed", notifyErr);
+                    }
+                }
+
                 return result;
             } catch (error) {
                 console.error(error);

@@ -56,22 +56,28 @@ const getPName = async (Category, id) => {
 };
 
 export const CreateNotificationClub = async (Category , FunctionType ,id_club,team,id_Player) => {
-    
     let functionType = operationTypes[FunctionType]
     let BodyText = ''
-    switch (Category){
-        case "player":
-            BodyText = " تم "+ functionType +" لاعب في فريق " +team
-        case "sanction":
-            BodyText = " تم "+ functionType +" عقوبة على اللاعب " + await getPName("player",id_Player)
+    try {
+        switch (Category){
+            case "player":
+                BodyText = " تم "+ functionType +" لاعب في فريق " + team
+                break
+            case "sanction":
+                BodyText = " تم "+ functionType +" عقوبة على اللاعب " + await getPName("player", id_Player)
+                break
+        }
+        const notification = await Notification.create({
+            id_club : id_club,
+            body : BodyText,
+        });
+        const socketServer = getSocketServerInstance();
+        if (socketServer) {
+            await socketServer.sendNewNotification('club', id_club, notification);
+        }
+    } catch (error) {
+        console.error("CreateNotificationClub error:", error);
     }
-    const notification = await Notification.create({
-        id_club : id_club,
-        body : BodyText,
-    });
-    const socketServer = getSocketServerInstance();
-           await socketServer.sendNewNotification('', notification);
-    
 }
 
 //CreateNotificationTeam("memeber","update",Members.id_team,Members.id)
