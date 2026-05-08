@@ -104,22 +104,22 @@ const ListAssembly = ({ assemblies }: Props) => {
                             <View key={player?.id || index} style={{display: "flex", flexDirection: "row", width: "100%", alignItems: "center", justifyContent: "space-between", padding: "0.2cm 0.2cm 0"}}>
                                 <View style={{flex: 1, border: "1px solid #555", height: "1cm", display: "flex", alignItems: "center", justifyContent: "center"}}>
                                     <Text style={{fontSize: 9, fontWeight: 400}}>
-                                        {player?.person?.date_birth}
+                                        {player?.date_birth}
                                     </Text>
                                 </View>
                                 <View style={{flex: 1, border: "1px solid #555", height: "1cm", display: "flex", alignItems: "center", justifyContent: "center"}}>
                                     <Text style={{fontSize: 9, fontWeight: 400}}>
-                                        {player?.person?.card_number}
+                                        {player?.card_number}
                                     </Text>
                                 </View>
                                 <View style={{flex: 1, border: "1px solid #555", height: "1cm", display: "flex", alignItems: "center", justifyContent: "center"}}>
                                     <Text style={{fontSize: 9, fontWeight: 400}}>
-                                        {player?.person?.phone}
+                                        {player?.phone}
                                     </Text>
                                 </View>
                                 <View style={{flex: 2, border: "1px solid #555", height: "1cm", display: "flex", alignItems: "center", justifyContent: "center"}}>
                                     <Text style={{fontSize: 9, fontWeight: 400}}>
-                                        {`${player?.person?.first_name} ${player?.person?.second_name} ${player?.person?.third_name} ${player?.person?.tribe}`}
+                                        {`${player?.first_name} ${player?.second_name} ${player?.third_name} ${player?.tribe}`}
                                     </Text>
                                 </View>
                                 <View style={{flex: 0.3, border: "1px solid #555", height: "1cm", display: "flex", alignItems: "center", justifyContent: "center"}}>
