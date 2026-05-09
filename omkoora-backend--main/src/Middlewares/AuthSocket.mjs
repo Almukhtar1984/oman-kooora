@@ -1,12 +1,13 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../Models/index.mjs';
 import {serializeUser} from "../Helpers/index.mjs";
+import { getAppKeyFromOrigin } from "../Config/runtime.mjs";
 import dotenv from 'dotenv'
 dotenv.config();
 
 const SECRET = process.env.SECRET_JWT
 
-export const AuthMiddlewareSocket = async (auth) => {
+export const AuthMiddlewareSocket = async (auth, origin) => {
 
     // Extract Authorization Header
     const authSocket = auth;
@@ -38,6 +39,15 @@ export const AuthMiddlewareSocket = async (auth) => {
         return {isAuth: false};
     }
 
+    // Tokens issued for a different frontend cannot connect to this app's
+    // socket session. Pre-split tokens have no `aud` and are accepted.
+    if (decodedToken.aud) {
+        const appKey = getAppKeyFromOrigin(origin);
+        if (decodedToken.aud !== appKey) {
+            return {isAuth: false};
+        }
+    }
+
     // If the user has valid token then Find the user by decoded token's id
     let authUser = await User.findByPk(decodedToken.id);
     if (!authUser) {
@@ -45,8 +55,6 @@ export const AuthMiddlewareSocket = async (auth) => {
     }
 
     const user = serializeUser(authUser)
-
-    //await AuthTrace.create({token : token, user_name: decodedToken.user_name, action: "Token Checked" })
 
     return {
         isAuth: true,

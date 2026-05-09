@@ -30,6 +30,9 @@ import {
     isProduction,
     shouldEnableGraphqlTools,
     shouldLogRequestContext,
+    getAppKeyFromOrigin,
+    refreshCookieName,
+    LEGACY_REFRESH_COOKIE,
 } from './Config/runtime.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -97,9 +100,11 @@ let socket = null;
             context: ({ req, res }) => {
                 let {user, isAuth } = req;
                 const origin = req.header('Origin');
+                const appKey = getAppKeyFromOrigin(origin);
+                const cookieName = refreshCookieName(appKey);
 
                 if (shouldLogRequestContext) {
-                    logger.info(`Request origin: ${origin || 'none'}, hasRefreshCookie: ${Boolean(req.cookies?.__tomoh)}`);
+                    logger.info(`Request origin: ${origin || 'none'}, app: ${appKey}, hasRefreshCookie: ${Boolean(req.cookies?.[cookieName])}`);
                 }
 
                 if (origin && isAllowedOrigin(origin)) {
@@ -108,14 +113,17 @@ let socket = null;
                         res.setHeader('access-control-allow-origin', origin);
                     }
                 }
-                let refreshToken = req.cookies["__tomoh"];
+                // Each app reads its own per-origin cookie. Fall back to the
+                // legacy single cookie so sessions issued before the per-app
+                // split keep working until they expire (7d).
+                let refreshToken = req.cookies[cookieName] || req.cookies[LEGACY_REFRESH_COOKIE];
 
                 // Per-request DataLoaders. Field resolvers should call
                 // context.loaders.<name>.load(id) instead of Model.findByPk
                 // to batch lookups across all rows in the same response.
                 const loaders = buildLoaders();
 
-                return { res, req, user, isAuth, refreshToken, loaders };
+                return { res, req, user, isAuth, refreshToken, loaders, appKey, origin };
             }
         });
 

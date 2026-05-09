@@ -63,7 +63,8 @@ export class SocketServer {
       const dateConnection = dateFormat(nowDate, "yyyy-mm-dd HH:MM:ss");
 
       let token = socket.handshake.auth.token || "";
-      let Authorization = await AuthMiddlewareSocket(token);
+      const origin = socket.handshake.headers?.origin;
+      let Authorization = await AuthMiddlewareSocket(token, origin);
 
       if (!Authorization.isAuth) {
         return next(new Error('You must be the authenticated user'));

@@ -6,7 +6,12 @@ import path from "path";
 import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
-import { refreshCookieOptions } from "../../Config/runtime.mjs";
+import {
+    refreshCookieOptions,
+    refreshCookieName,
+    LEGACY_REFRESH_COOKIE,
+    getAppKeyFromOrigin,
+} from "../../Config/runtime.mjs";
 
 import {AuthToken, createMail, RefreshToken, VerifyToken, sameUserAgent, isExistUser, comparePassword, hashPassword, alreadyExistUser} from '../../Helpers/index.mjs';
 import {
@@ -20,12 +25,6 @@ dotenv.config();
 
 const { hash, compare } = bcrypt;
 const SECRET = process.env.SECRET_JWT
-
-const NODE_ENV = process.env.NODE_ENV
-const ADMIN_URL = process.env.ADMIN_URL
-const EMPLOYEE_URL = process.env.EMPLOYEE_URL
-const SUPERVISOR_URL = process.env.SUPERVISOR_URL
-const CUSTOMER_URL = process.env.CUSTOMER_URL
 
 const {Op, col} = sequelize;
 
@@ -105,7 +104,7 @@ export const resolvers = {
         },
 
         refreshToken: async (obj, args, context, info) => {
-            const { refreshToken } = context;
+            const { refreshToken, appKey } = context;
             try {
                 if (!refreshToken || refreshToken === "") {
                     return null;
@@ -117,14 +116,20 @@ export const resolvers = {
                     return null;
                 }
 
+                // Reject a refresh attempt that uses a cookie issued for a
+                // different frontend (cross-app session reuse).
+                if (decodedToken.aud && decodedToken.aud !== appKey) {
+                    return null;
+                }
+
                 let isExist = await isExistUser(decodedToken.id);
                 if (!isExist) {
                     return null;
                 }
 
-                let token = await AuthToken({id: isExist.id}, 5);
+                let token = await AuthToken({id: isExist.id}, undefined, appKey);
 
-                context.res.cookie('__tomoh', refreshToken, refreshCookieOptions);
+                context.res.cookie(refreshCookieName(appKey), refreshToken, refreshCookieOptions);
 
                 return {
                     token
@@ -238,24 +243,11 @@ export const resolvers = {
     Mutation: {
         authenticateUser: async (obj, {content}, context, info) => {
             try {
-                const origin = context.req.header('Origin');
-               
-                let role = origin === ADMIN_URL ? "admin"
-                    : origin === CUSTOMER_URL ? "customer"
-                        : origin === SUPERVISOR_URL ? "supervisor"
-                            : origin === EMPLOYEE_URL ? "employee" : ""
-                
-                
-                let user = null;
-                if(role === "" && NODE_ENV === "development") {
-                    user = await User.findOne({
-                        where: { email: content.email }
-                    });
-                } else {
-                    user = await User.findOne({
-                        where: { email: content.email/*, role*/ }
-                    });
-                }
+                const { appKey } = context;
+
+                const user = await User.findOne({
+                    where: { email: content.email }
+                });
 
                 // User is existed
                 if (!user) {
@@ -264,58 +256,27 @@ export const resolvers = {
 
                 let isMatch = await comparePassword(content.password, user.password);
 
-                // If Password don't match
                 if (!isMatch) {
                     return new ApolloError("Password not incorrect", "PASSWORD_INCORRECT");
                 }
 
-                // If Password don't match
                 if (!user.email_verify) {
                     return new ApolloError("Email not verify", "EMAIL_NOT_VERIFY");
                 }
 
-                // If Password don't match
                 if (!user.activation) {
                     return new ApolloError("Account is not active", "ACCOUNT_NOT_ACTIVE");
                 }
 
-                /*if(NODE_ENV === "development") {
-                    const clubManagement = await ClubManagement.findOne({
-                        where: {
-                            id_person: user.id_person
-                        },
-                        include: {
-                            model: Club,
-                            as: "club",
-                            required: true,
-                            right: true
-                        }
-                    })
+                // Issue access + refresh tokens scoped to the calling frontend.
+                // Each app stores its own cookie so a login here cannot revive
+                // a session on a sibling app and a logout there cannot kill
+                // this one.
+                let token = await AuthToken({id: user.id}, undefined, appKey);
+                let refreshToken = await RefreshToken({id: user.id, useragent: context.req.useragent}, appKey);
 
-                    if (clubManagement) {
-                        if(!clubManagement.club.account_status) {
-                            return new ApolloError("Club is not active", "CLUB_NOT_ACTIVE");
-                        }
-
-                        const membershipDateEnd = clubManagement.membership_date_end
-                        const dateNow = formatDate(new Date(), "yyyy-MM-dd")
-
-                        console.log({membershipDateEnd, dateNow}, membershipDateEnd <= dateNow)
-
-                        if(membershipDateEnd <= dateNow) {
-                            return new ApolloError("Membership Date End", "MEMBERSHIP_DATE_END");
-                        }
-                    }
-                }*/
-              
-               
-                // Issue Token
-                let token = await AuthToken({id: user.id}, 5);
-               
-                let refreshToken = await RefreshToken({id: user.id, useragent: context.req.useragent}, 7);
-        
                 if (refreshToken !== null && refreshToken !== "") {
-                    context.res.cookie('__tomoh', refreshToken, refreshCookieOptions);
+                    context.res.cookie(refreshCookieName(appKey), refreshToken, refreshCookieOptions);
                 }
 
                 return {
@@ -618,11 +579,15 @@ export const resolvers = {
 
         logOut: async (obj, {}, context, info) => {
             try {
-                context.res.cookie('__tomoh', '', {
-                    ...refreshCookieOptions,
-                    maxAge: 0
-                });
+                const { appKey } = context;
+                const expired = { ...refreshCookieOptions, maxAge: 0 };
 
+                // Only clear this frontend's cookie. Sibling apps keep their
+                // own session cookies untouched.
+                context.res.cookie(refreshCookieName(appKey), '', expired);
+                // Also evict the legacy shared cookie so users carried over
+                // from the pre-split deploy don't keep a stray session.
+                context.res.cookie(LEGACY_REFRESH_COOKIE, '', expired);
 
                 return {
                     status: true,
