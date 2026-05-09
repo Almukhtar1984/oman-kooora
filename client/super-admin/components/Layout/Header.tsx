@@ -32,8 +32,16 @@ const Header = (props: Props) => {
 
     const onLogout = () => {
         logOut({
-            onCompleted: ({logOut}: any) => {
-                router.push("/login/")
+            onCompleted: () => {
+                useStore.setState({ token: undefined, isAuth: false, userData: {} });
+                // Full reload drops Apollo's in-memory cache and any zombie
+                // tokens held by other code paths, so the next request truly
+                // starts from scratch.
+                if (typeof window !== "undefined") {
+                    window.location.replace("/login/");
+                } else {
+                    router.replace("/login/");
+                }
             }
         })
     }

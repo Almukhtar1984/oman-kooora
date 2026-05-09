@@ -130,6 +130,9 @@ export const resolvers = {
                 let token = await AuthToken({id: isExist.id}, undefined, appKey);
 
                 context.res.cookie(refreshCookieName(appKey), refreshToken, refreshCookieOptions);
+                // Best-effort cleanup of the pre-split shared cookie so it
+                // stops lingering in the browser after a few visits.
+                context.res.cookie(LEGACY_REFRESH_COOKIE, '', { ...refreshCookieOptions, maxAge: 0 });
 
                 return {
                     token
@@ -278,6 +281,8 @@ export const resolvers = {
                 if (refreshToken !== null && refreshToken !== "") {
                     context.res.cookie(refreshCookieName(appKey), refreshToken, refreshCookieOptions);
                 }
+                // Drop any pre-split shared cookie this browser still carries.
+                context.res.cookie(LEGACY_REFRESH_COOKIE, '', { ...refreshCookieOptions, maxAge: 0 });
 
                 return {
                     token,

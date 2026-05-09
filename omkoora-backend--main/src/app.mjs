@@ -113,10 +113,11 @@ let socket = null;
                         res.setHeader('access-control-allow-origin', origin);
                     }
                 }
-                // Each app reads its own per-origin cookie. Fall back to the
-                // legacy single cookie so sessions issued before the per-app
-                // split keep working until they expire (7d).
-                let refreshToken = req.cookies[cookieName] || req.cookies[LEGACY_REFRESH_COOKIE];
+                // Each app reads ONLY its own per-origin cookie. The legacy
+                // shared cookie is intentionally ignored — honoring it would
+                // recreate the cross-app SSO bug we just fixed for any
+                // browser that still carries a pre-split __tomoh.
+                let refreshToken = req.cookies[cookieName];
 
                 // Per-request DataLoaders. Field resolvers should call
                 // context.loaders.<name>.load(id) instead of Model.findByPk

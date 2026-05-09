@@ -19,6 +19,41 @@
 
 ## 2026-05-09
 
+### 61. متابعة لـ #60 — إغلاق الثغرة المتبقية بعد deploy
+
+**المشكلة بعد النشر**: تسجيل الخروج كان يبقى يعرض المستخدم مسجلاً دخول
+في تطبيقات أخرى رغم فصل الكوكيز.
+
+**السببان**:
+
+1. **fallback للكوكي القديم في `app.mjs`**: المتصفحات اللي عندها كوكي
+   `__tomoh` من قبل الـ deploy كانت تستخدمه كـ master SSO مع كل التطبيقات
+   لأن السيرفر يقع عليه fallback. هذا يلغي فصل الكوكيز عملياً.
+2. **الـ frontend logout** ما كان يعمل full reload، فالـ Apollo cache
+   و Zustand state يبقى محتفظ بـ access token صالح.
+
+**الإصلاحات**:
+
+- `src/app.mjs`: حذف الـ fallback للـ legacy cookie. الكوكي القديم لا
+  يُقرأ نهائياً.
+- `src/Graphql/Resolvers/User.mjs`: تنظيف الكوكي القديم في كل response
+  من `authenticateUser` و `refreshToken` و `logOut` (Set-Cookie مع
+  Max-Age=0)، حتى يختفي من المتصفحات تلقائياً مع أول زيارة بعد deploy.
+- `Header.tsx` في الـ 4 تطبيقات (club, team, super-admin, player):
+  استبدال `router.push("/login/")` بـ `window.location.replace("/login/")`
+  لإجبار full page reload يمسح Apollo cache و Zustand state.
+- `scripts/test-auth-isolation.sh`: سكربت curl يختبر:
+  1. Login من club يضع `__tomoh_club` فقط.
+  2. Cookie الـ club يُرفض من team origin (aud check).
+  3. Logout من club يحذف `__tomoh_club` لكن `__tomoh_team` يبقى.
+  4. Refresh من club بعد logout يرجع `null`.
+  5. Refresh من team بعد logout club يبقى يعمل.
+
+**اختُبر محلياً**: كل الـ 8 فحوص نجحت + اختبار يدوي لكوكي legacy فقط
+(refresh رجع null كما هو متوقع).
+
+---
+
 ### 60. فصل المصادقة لكل واجهة (per-app auth)
 
 **المشكلة**: الدخول من دومين كان يفتح الباقي تلقائياً، والخروج من دومين كان
