@@ -25,3 +25,10 @@ WORK_CHECKLIST.md
 
 # Local backup of nested git metadata
 .git-history-backups/
+
+# Claude Code local files
+.claude/
+CLAUDE.md
+
+# Local DB dump
+tomoh.sql
