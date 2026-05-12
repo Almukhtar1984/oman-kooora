@@ -1,6 +1,7 @@
 export * from "./useAddTeam";
 export * from "./useUpdateTeam";
 export * from "./useDeleteTeam";
+export * from "./useResetTeamPassword";
 export * from "./useAllTeams";
 export * from "./useTeam";
 export * from "./useTeamDetails";

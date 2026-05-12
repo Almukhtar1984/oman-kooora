@@ -34,11 +34,18 @@ export const typeDefs = gql`
 
         activeUser (id: ID!, activation: Boolean): statusUpdate!
         logOut: statusDelete
+
+        resetTeamPassword(idTeam: ID!): ResetTeamPasswordPayload!
     }
 
     type AuthUser {
         token: String!
         user:  User
+    }
+
+    type ResetTeamPasswordPayload {
+        email:    String!
+        password: String!
     }
 
     input loginInfo {

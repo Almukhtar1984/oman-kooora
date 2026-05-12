@@ -1,4 +1,5 @@
 export * from "./AddTeamModal"
+export * from "./ResetTeamPasswordModal"
 export * from "./AddPlayerModal"
 export * from "./AddTechnicalModal"
 export * from "./EditTeamModal"

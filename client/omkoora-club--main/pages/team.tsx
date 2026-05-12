@@ -13,7 +13,8 @@ import {
     EditTeamModal,
     UpdateAdminMemberModal,
     AddListPlayers,
-    ChangeStatusAddPlayerModal
+    ChangeStatusAddPlayerModal,
+    ResetTeamPasswordModal
 } from "../components/Modal";
 import dayjs from "dayjs";
 import {useAllAssembly, useAllTeams} from "../graphql";
@@ -35,6 +36,7 @@ export default function Home() {
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
     const [openChangeStatusModal, setOpenChangeStatusModal] = useState<boolean>(false);
     const [openChangeStatusAddPlayerModal, setOpenChangeStatusAddPlayerModal] = useState<boolean>(false);
+    const [openResetPasswordModal, setOpenResetPasswordModal] = useState<boolean>(false);
     const [searchValue, setSearchValue] = useState<string>("");
     const [selectedData, setSelectedData] = useState<any>({});
     const [allTeams, setAllTeams] = useState<object[]>([]);
@@ -205,6 +207,11 @@ export default function Home() {
                                         setSelectedData(data!());
                                     }}
 
+                                    setOpenResetPasswordModal={(data) => {
+                                        setOpenResetPasswordModal(true);
+                                        setSelectedData(data!());
+                                    }}
+
                                     hasPermission={hasPermission}
                                 />
                             </Col>
@@ -233,6 +240,13 @@ export default function Home() {
                 opened={openChangeStatusAddPlayerModal}
                 data={selectedData}
                 onClose={() => setOpenChangeStatusAddPlayerModal(false)}
+            />
+
+            <ResetTeamPasswordModal
+                title="إعادة تعيين كلمة مرور المدير"
+                opened={openResetPasswordModal}
+                data={selectedData}
+                onClose={() => setOpenResetPasswordModal(false)}
             />
         </Box>
     );

@@ -28,6 +28,17 @@ const SECRET = process.env.SECRET_JWT
 
 const {Op, col} = sequelize;
 
+const PWD_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const PWD_LOWER = "abcdefghijkmnpqrstuvwxyz";
+const PWD_DIGIT = "23456789";
+const generateRandomPassword = (length = 10) => {
+    const all = PWD_UPPER + PWD_LOWER + PWD_DIGIT;
+    const pick = (pool) => pool[Math.floor(Math.random() * pool.length)];
+    const chars = [pick(PWD_UPPER), pick(PWD_LOWER), pick(PWD_DIGIT)];
+    while (chars.length < length) chars.push(pick(all));
+    return chars.sort(() => Math.random() - 0.5).join("");
+};
+
 export const resolvers = {
     Query: {
         user: async (obj, {id}, context, info) =>  {
@@ -600,6 +611,49 @@ export const resolvers = {
             } catch (error) {
                 throw new ApolloError(error);
             }
+        },
+
+        resetTeamPassword: async (obj, { idTeam }, context, info) => {
+            const { user, isAuth } = context;
+            if (!isAuth || !user) {
+                return new AuthenticationError("Authentication required");
+            }
+            if (user.role !== "1" && user.role !== "2") {
+                return new ApolloError("Only super-admin or club admin can reset team passwords", "FORBIDDEN_ROLE");
+            }
+
+            const team = await Team.findByPk(idTeam);
+            if (!team) {
+                return new ApolloError("Team not found", "TEAM_NOT_FOUND");
+            }
+
+            // Club admin (role 2) can only reset for teams inside their own club.
+            if (user.role === "2") {
+                const callerMgmt = await ClubManagement.findOne({ where: { id_person: user.id_person } });
+                if (!callerMgmt || callerMgmt.id_club !== team.id_club) {
+                    return new ApolloError("Team does not belong to your club", "FORBIDDEN_TEAM");
+                }
+            }
+
+            // Locate the team-manager User via the Member row created alongside it.
+            const member = await Members.findOne({
+                where: { id_team: idTeam, classification: 'manager' }
+            });
+            if (!member) {
+                return new ApolloError("No manager set for this team", "TEAM_MANAGER_NOT_FOUND");
+            }
+            const targetUser = await User.findOne({
+                where: { id_person: member.id_person, role: '3' }
+            });
+            if (!targetUser) {
+                return new ApolloError("Manager has no login account", "USER_NOT_EXIST");
+            }
+
+            const newPassword = generateRandomPassword(10);
+            const hashed = await hashPassword(newPassword);
+            await User.update({ password: hashed }, { where: { id: targetUser.id } });
+
+            return { email: targetUser.email, password: newPassword };
         },
         deletePerson: async (obj, { id }, context, info) => {
             try {

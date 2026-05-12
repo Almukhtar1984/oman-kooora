@@ -14,7 +14,7 @@ import {
     Badge,
     Space
 } from "@mantine/core";
-import { DotsVertical, Edit, Eye, Lock, LockOpen, Phone, Plus, Trash, User, } from "tabler-icons-react";
+import { DotsVertical, Edit, Eye, Key, Lock, LockOpen, Phone, Plus, Trash, User, } from "tabler-icons-react";
 import React, { ReactElement, useState } from "react";
 import { Router, useRouter } from "next/router";
 import dayjs from "dayjs";
@@ -29,13 +29,14 @@ type Props = {
     setOpenAddAdminModal: (callback?: () => any) => void;
     setOpenEditAdminModal: (callback?: () => any) => void;
     setOpenAddListPlayersModal: (callback?: () => any) => void;
+    setOpenResetPasswordModal: (callback?: () => any) => void;
     hasPermission: (permission: string) => boolean;
 } & BoxProps &
     React.AnchorHTMLAttributes<HTMLDivElement>;
 
 const category = ["الدرجة الاولى", "الدرجة الثاني", "الدرجة الثالثة"]
 
-const CardTeam = ({ data, onEditModal, onDeleteModal, onChangeStatusModal, onChangeStatusAddPlayerModal, setOpenAddAdminModal, setOpenEditAdminModal, setOpenAddListPlayersModal, hasPermission, ...props }: Props) => {
+const CardTeam = ({ data, onEditModal, onDeleteModal, onChangeStatusModal, onChangeStatusAddPlayerModal, setOpenAddAdminModal, setOpenEditAdminModal, setOpenAddListPlayersModal, setOpenResetPasswordModal, hasPermission, ...props }: Props) => {
     const [openCardOptionMenu, setopenCardOptionMenu] = useState<boolean>(false);
 
     const theme = useTheme() as MantineTheme;
@@ -137,6 +138,19 @@ const CardTeam = ({ data, onEditModal, onDeleteModal, onChangeStatusModal, onCha
                                             اضافة مدير
                                         </Menu.Item>
                                         : null
+                                }
+
+                                {data?.admin && hasPermission("7")
+                                    ? <Menu.Item
+                                        icon={<Key size={14} />}
+                                        color="gray.6"
+                                        onClick={() => {
+                                            setOpenResetPasswordModal(() => data);
+                                        }}
+                                    >
+                                        إعادة تعيين كلمة المرور
+                                    </Menu.Item>
+                                    : null
                                 }
 
                                 <Menu.Item

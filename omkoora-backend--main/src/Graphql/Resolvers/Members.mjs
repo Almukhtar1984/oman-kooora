@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import logger from "../../Config/logger.mjs";
 import db from "../../Config/DBContact.mjs";
 
-import {Members, Person, Players, Team, User, TechnicalApparatus} from '../../Models/index.mjs';
+import {Members, Person, Players, Team, User, TechnicalApparatus, Permission} from '../../Models/index.mjs';
 import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
 import {CreateNotificationTeam} from "../../Helpers/index.mjs"
 
@@ -137,68 +137,92 @@ export const resolvers = {
         },
 
         createAdminMember: async (obj, {content}, context, info) =>  {
+            // Roles are stored as strings: "1" = super-admin, "2" = club admin, "3" = team user.
+            const { user, isAuth } = context;
+            if (!isAuth || !user) {
+                return new AuthenticationError("Authentication required");
+            }
+            const requestedRole = content?.user?.role;
+            const callerRole = user.role;
+            if (requestedRole === "1") {
+                return new ApolloError("Cannot create super-admin via this endpoint", "FORBIDDEN_ROLE");
+            }
+            if (requestedRole === "2" && callerRole !== "1") {
+                return new ApolloError("Only super-admin can create club admins", "FORBIDDEN_ROLE");
+            }
+            if (requestedRole === "3" && callerRole !== "1" && callerRole !== "2") {
+                return new ApolloError("Only super-admin or club admin can create team users", "FORBIDDEN_ROLE");
+            }
+            if (!["2", "3"].includes(requestedRole)) {
+                return new ApolloError("Invalid role", "INVALID_ROLE");
+            }
+
+            const onePerson = await Person.findOne({ where: {card_number: content.user.person.card_number, phone: content.user.person.phone} })
+            if (onePerson) {
+                if (onePerson.card_number === content.user.person.card_number) {
+                    return new ApolloError("card number already exists", "CARD_NUMBER_ALREADY_EXISTS")
+                } else if (onePerson.phone === content.user.person.phone) {
+                    return new ApolloError("phone number already exists", "PHONE_NUMBER_ALREADY_EXISTS")
+                }
+            }
+
+            const alreadyExist = await alreadyExistUser(content.user.email);
+            if (alreadyExist !== false) {
+                return new ApolloError(alreadyExist.message, alreadyExist.code)
+            }
+
+            // Wrap Person/Member/User/Permission writes in a single transaction
+            // so a failure mid-way (e.g. unique-constraint on User) doesn't
+            // leave orphan Person/Member rows the caller can never log into.
             try {
-                // The @auth directive on this mutation is currently commented out
-                // in the schema, so enforce authentication + a role-escalation
-                // guard inline. Roles in this codebase are stored as strings:
-                //   "1" = super-admin, "2" = club admin, "3" = team user.
-                // Without these checks any anonymous caller could promote
-                // themselves to "1" by passing role: "1" in the payload.
-                const { user, isAuth } = context;
-                if (!isAuth || !user) {
-                    return new AuthenticationError("Authentication required");
-                }
-                const requestedRole = content?.user?.role;
-                const callerRole = user.role;
-                if (requestedRole === "1") {
-                    return new ApolloError("Cannot create super-admin via this endpoint", "FORBIDDEN_ROLE");
-                }
-                if (requestedRole === "2" && callerRole !== "1") {
-                    return new ApolloError("Only super-admin can create club admins", "FORBIDDEN_ROLE");
-                }
-                if (requestedRole === "3" && callerRole !== "1" && callerRole !== "2") {
-                    return new ApolloError("Only super-admin or club admin can create team users", "FORBIDDEN_ROLE");
-                }
-                if (!["2", "3"].includes(requestedRole)) {
-                    return new ApolloError("Invalid role", "INVALID_ROLE");
-                }
+                return await db.transaction(async (t) => {
+                    const person = await Person.create(content.user.person, { transaction: t });
 
-                const onePerson = await Person.findOne({ where: {card_number: content.user.person.card_number, phone: content.user.person.phone} })
-                if (onePerson) {
-                    if (onePerson.card_number === content.user.person.card_number) {
-                        return new ApolloError("card number already exists", "CARD_NUMBER_ALREADY_EXISTS")
-                    } else if (onePerson.phone === content.user.person.phone) {
-                        return new ApolloError("phone number already exists", "PHONE_NUMBER_ALREADY_EXISTS")
-                    }
-                }
+                    const memberPayload = { ...content };
+                    delete memberPayload.user;
+                    const member = await Members.create(
+                        { ...memberPayload, id_person: person.id },
+                        { transaction: t }
+                    );
 
-                let alreadyExist = await alreadyExistUser(content.user.email);
-
-                if (alreadyExist !== false) {
-                    return new ApolloError(alreadyExist.message, alreadyExist.code)
-                }
-
-                let person = await Person.create(content.user.person)
-
-                let result = null
-                if (person) {
-                    result = await Members.create({...content, id_person: person.id})
-
-                    let password = await hashPassword(content.user.password);
-
-                    let user = await User.create({
-                        ...content.user,
-                        id_person: person.id,
-                        role: requestedRole,
+                    const password = await hashPassword(content.user.password);
+                    const newUser = await User.create({
+                        email: content.user.email,
                         password,
+                        role: requestedRole,
                         activation: true,
-                        email_verify: true
-                    })
-                }
+                        email_verify: true,
+                        id_person: person.id,
+                    }, { transaction: t });
 
-                return result
+                    // Grant the new team admin a permission row covering every
+                    // section. Without this currentUser.permission is null and
+                    // the team dashboard sidebar renders empty after login.
+                    const fullGrant = "1,2,3,4,5,6,7,8,9,10";
+                    await Permission.create({
+                        teams: fullGrant,
+                        members: fullGrant,
+                        technicals: fullGrant,
+                        players: fullGrant,
+                        transfer_players: fullGrant,
+                        loan_players: fullGrant,
+                        assembly: fullGrant,
+                        inbox: fullGrant,
+                        outbox: fullGrant,
+                        meeting: fullGrant,
+                        blogs: fullGrant,
+                        forms: fullGrant,
+                        permissions: fullGrant,
+                        complaints: fullGrant,
+                        expenses: fullGrant,
+                        leagues: fullGrant,
+                        id_user: newUser.id,
+                    }, { transaction: t });
+
+                    return member;
+                });
             } catch (error) {
-                logger.error("")
+                logger.error(`createAdminMember error: ${error.message}`)
                 throw new ApolloError(error)
             }
         },
