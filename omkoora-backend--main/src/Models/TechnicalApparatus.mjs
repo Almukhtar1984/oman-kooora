@@ -1,3 +1,18 @@
+// See Members.mjs for the rationale — guard against empty / invalid strings
+// on DATE columns at the model layer.
+const sanitizeDate = (value) => {
+    if (value === null || value === undefined) return null;
+    if (value === "") return null;
+    if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed === "" || /^invalid/i.test(trimmed)) return null;
+        const parsed = new Date(trimmed);
+        return isNaN(parsed.getTime()) ? null : trimmed;
+    }
+    return value;
+};
+
 export default (db, types) => {
     return db.define('technical_apparatus', {
         id: {
@@ -16,11 +31,13 @@ export default (db, types) => {
         },
         membership_date: {
             type: types.DATE,
-            allowNull: false
+            allowNull: false,
+            set(value) { this.setDataValue('membership_date', sanitizeDate(value)); }
         },
         membership_date_end: {
             type: types.DATE,
-            allowNull: true
+            allowNull: true,
+            set(value) { this.setDataValue('membership_date_end', sanitizeDate(value)); }
         },
         paid: {
             type: types.BOOLEAN,
