@@ -3,6 +3,7 @@ export * from "./useCreateMember";
 export * from "./useChangeStatusMember";
 export * from "./useDeleteMember";
 export * from "./useAllMembers";
+export * from "./useAllTeamManagers";
 export * from "./useMember";
 export * from "./useUpdateMember";
 export * from "./useChangeMemberClassification";

@@ -12,3 +12,4 @@ export * from "./MeetingTable";
 export * from "./AssemblyTableTeam";
 export * from "./ClubManagement";
 export * from "./ActionLogsTable"
+export * from "./TeamManagersTable";

@@ -15,6 +15,7 @@ import Players from "./players";
 import Technicals from "./technicalApparatus";
 import Assembly from "./assembly";
 import { Tabs } from '@mantine/core';
+import { TeamManagersSection } from "../components/TeamManagersSection";
 
 function MembersContent() {
     const userData = useStore((state: any) => state.userData);
@@ -287,6 +288,7 @@ export default function Members() {
                     <Tabs.Tab value="players" fz={isMobile ? "xs" : "md"} fw={600}>اللاعبين</Tabs.Tab>
                     <Tabs.Tab value="technicals" fz={isMobile ? "xs" : "md"} fw={600}>الجهاز الفني</Tabs.Tab>
                     <Tabs.Tab value="members" fz={isMobile ? "xs" : "md"} fw={600}>مجلس الإدارة</Tabs.Tab>
+                    <Tabs.Tab value="managers" fz={isMobile ? "xs" : "md"} fw={600}>مدراء الفرق</Tabs.Tab>
                     <Tabs.Tab value="assembly" fz={isMobile ? "xs" : "md"} fw={600}>العمومية</Tabs.Tab>
                 </Tabs.List>
 
@@ -298,6 +300,9 @@ export default function Members() {
                 </Tabs.Panel>
                 <Tabs.Panel value="members">
                     {visitedTabs.has("members") && <MembersContent />}
+                </Tabs.Panel>
+                <Tabs.Panel value="managers">
+                    {visitedTabs.has("managers") && <TeamManagersSection />}
                 </Tabs.Panel>
                 <Tabs.Panel value="assembly">
                     {visitedTabs.has("assembly") && <Assembly />}
