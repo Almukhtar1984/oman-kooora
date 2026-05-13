@@ -229,29 +229,46 @@ export const resolvers = {
 
         updateAdminMember: async (obj, {id, idPerson, content}, context, info) =>  {
             try {
-                let person = null
-                if (content.user.person) {
+                let personResult = null
+                if (content.user && content.user.person) {
                     const personPatch = {...content.user.person};
                     if (!personPatch.personal_picture) delete personPatch.personal_picture;
-                    person = await Person.update(personPatch, { where: { id: idPerson } })
+                    personResult = await Person.update(personPatch, { where: { id: idPerson } })
                 }
 
-                let result = await Members.update({...content}, { where: { id } })
+                // Members.update only takes member-table columns. Strip the
+                // nested user payload before passing it through.
+                const memberPatch = {...content};
+                delete memberPatch.user;
+                const memberResult = await Members.update(memberPatch, { where: { id } });
 
-                let user = null
-                if (content.user.password && content.user.password !== "") {
-                    let password = await hashPassword(content.user.password);
-                    user = await User.update({...content.user, password}, { where: { id_person: idPerson } })
-                } else {
-                    delete content.user.passwor
-                    user = await User.update({...content.user}, { where: { id_person: idPerson } })
+                // Build a User-only patch. Email is updated when supplied;
+                // password is only touched when the caller explicitly sent a
+                // new non-empty value, otherwise the existing hash stays put.
+                // (The previous version had a typo — `passwor` — and ended up
+                // overwriting password with an empty string on every save,
+                // which silently locked the manager out.)
+                let userResult = null;
+                if (content.user) {
+                    const userPatch = {};
+                    if (content.user.email !== undefined && content.user.email !== null) {
+                        userPatch.email = content.user.email;
+                    }
+                    if (content.user.password && content.user.password !== "") {
+                        userPatch.password = await hashPassword(content.user.password);
+                    }
+                    if (Object.keys(userPatch).length > 0) {
+                        userResult = await User.update(userPatch, { where: { id_person: idPerson } });
+                    }
                 }
 
                 return {
-                    status: result[0] === 1 || person[0] === 1 || user[0] === 1
+                    status: (memberResult && memberResult[0] === 1)
+                        || (personResult && personResult[0] === 1)
+                        || (userResult && userResult[0] === 1)
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`updateAdminMember error: ${error.message}`)
                 throw new ApolloError(error)
             }
         },
