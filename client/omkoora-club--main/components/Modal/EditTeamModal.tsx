@@ -45,14 +45,20 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
                 phone: data?.phone,
                 activities: data?.activities,
                 code: data?.code,
-                manager_name: data?.manager_name,
             });
 
             setCategory(data?.category.toString())
         }
     }, [opened]);
 
-    const onSubmit = ({name, phone,  activities, code, manager_name}: any) => {
+    // manager_name is intentionally NOT in this form. The visible "manager"
+    // on the team card is sourced from the User account attached to the
+    // team's Member (classification='manager') — editing the legacy
+    // teams.manager_name string column from here only produced a
+    // confusing mismatch where the card said "no manager" but the edit
+    // form pre-populated a name. To change the displayed manager name,
+    // edit the manager's person record via "تعديل بيانات المدير".
+    const onSubmit = ({name, phone,  activities, code}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
         setLoading(true)
 
@@ -62,7 +68,6 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
             phone,
             activities,
             code,
-            manager_name
         };
 
         if (value) {
@@ -198,16 +203,10 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
                                 {...register("code", { required: true })}
                             />
                         </Col>
-                        <Col span={6}>
-                            <TextInput
-                                label="اسم المدير"
-                                placeholder="اسم المدير"
-                                withAsterisk
-                                error={errors?.manager_name && true}
-                                {...register("manager_name", { required: true })}
-                            />
-                        </Col>
                     </Grid>
+                    <Text size="xs" color="dimmed" mt="md">
+                        ملاحظة: لتعديل بيانات مدير الفريق (الاسم، الإيميل، كلمة المرور)، استعمل خيار &laquo;تعديل بيانات المدير&raquo; من قائمة الفريق.
+                    </Text>
                 </form>
             </Box>
         </Modal>

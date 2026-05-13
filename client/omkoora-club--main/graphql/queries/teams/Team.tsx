@@ -15,6 +15,17 @@ export const Team = gql`
             enableAddPlayer
             createdAt
             updatedAt
+            admin {
+                id
+                email
+                person {
+                    id
+                    first_name
+                    second_name
+                    third_name
+                    tribe
+                }
+            }
         }
     }
 `;

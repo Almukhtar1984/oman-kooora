@@ -430,7 +430,22 @@ export default function TeamDetailsPage() {
                                             { label: "اسم الفريق", value: team?.name, icon: Shield },
                                             { label: "النشاط", value: team?.activities, icon: Activity },
                                             { label: "هاتف", value: team?.phone, icon: Phone },
-                                            { label: "اسم رئيس الفريق", value: team?.manager_name, icon: Users },
+                                            {
+                                                label: "مدير الفريق",
+                                                // Prefer the live admin (User → Person) chain so the row
+                                                // reflects reality. Fall back to the legacy
+                                                // teams.manager_name string only when there's no admin
+                                                // attached, so unmigrated teams still show something.
+                                                value: team?.admin?.person
+                                                    ? [
+                                                        team.admin.person.first_name,
+                                                        team.admin.person.second_name,
+                                                        team.admin.person.third_name,
+                                                        team.admin.person.tribe,
+                                                    ].filter(Boolean).join(" ")
+                                                    : (team?.manager_name ? `${team.manager_name} (بدون حساب)` : null),
+                                                icon: Users
+                                            },
                                             { label: "رمز الفريق", value: team?.code, icon: Id },
                                             { label: "تاريخ الإنشاء", value: team?.createdAt ? dayjs(team.createdAt).format("YYYY-MM-DD") : null, icon: CalendarStats },
                                             {
