@@ -161,18 +161,31 @@ export const AddTeamManagerModal = ({data, ...props}: Props) => {
             setCredentials({email: values.email.trim(), password: values.password});
             notyf.success("تم إضافة المدير بنجاح");
         } catch (err: any) {
-            const code = err?.graphQLErrors?.[0]?.extensions?.code;
+            const gqlErr = err?.graphQLErrors?.[0];
+            const code = gqlErr?.extensions?.code;
+            const serverMessage = gqlErr?.message || err?.message;
+            // Diagnostic line — server's error code/message is the only handle
+            // we have when something unexpected happens (DB constraint, etc.)
+            console.error("[AddTeamManager] failed:", code, serverMessage, err);
+
             if (code === "CARD_NUMBER_ALREADY_EXISTS") {
                 notyf.error("رقم البطاقة المدنية موجود مسبقا");
                 form.setFieldError("card_number", "موجود مسبقا");
             } else if (code === "PHONE_NUMBER_ALREADY_EXISTS") {
                 notyf.error("رقم الهاتف موجود مسبقا");
                 form.setFieldError("phone", "موجود مسبقا");
-            } else if (code === "USER_ALREADY_EXISTS") {
+            } else if (code === "EMAIL_ALREADY_EXIST" || code === "USER_ALREADY_EXISTS") {
                 notyf.error("البريد الإلكتروني مستخدم بالفعل");
                 form.setFieldError("email", "مستخدم بالفعل");
+            } else if (code === "FORBIDDEN_ROLE") {
+                notyf.error("ليس لديك صلاحية لإضافة مدير");
+            } else if (code === "SequelizeUniqueConstraintError" || /unique/i.test(serverMessage || "")) {
+                // Surface the Sequelize-side uniqueness conflict that the
+                // app-level pre-check missed (e.g. unique index on phone
+                // alone, or email casing differences).
+                notyf.error("بيانات مكررة في قاعدة البيانات (هاتف / بطاقة / إيميل)");
             } else {
-                notyf.error("تعذرت الإضافة، لم يتم تسجيل أي بيانات");
+                notyf.error(`تعذرت الإضافة: ${serverMessage || "خطأ غير متوقع"}`);
             }
         } finally {
             setLoading(false);

@@ -144,19 +144,26 @@ export const AddTeamModal = (props: Props) => {
             setCredentials({email: manager.email, password: manager.password});
             notyf.success("تم التسجيل بنجاح");
         } catch (err: any) {
-            console.log(err);
             setLoading(false);
-            const code = err?.graphQLErrors?.[0]?.extensions?.code;
+            const gqlErr = err?.graphQLErrors?.[0];
+            const code = gqlErr?.extensions?.code;
+            const serverMessage = gqlErr?.message || err?.message;
+            console.error("[AddTeamModal] failed:", code, serverMessage, err);
+
             if (code === "CARD_NUMBER_ALREADY_EXISTS") {
                 notyf.error("رقم البطاقة المدنية موجود مسبقاً");
             } else if (code === "PHONE_NUMBER_ALREADY_EXISTS") {
                 notyf.error("رقم الهاتف موجود مسبقاً");
-            } else if (code === "USER_ALREADY_EXISTS") {
+            } else if (code === "EMAIL_ALREADY_EXIST" || code === "USER_ALREADY_EXISTS") {
                 notyf.error("البريد الإلكتروني مستخدم بالفعل");
             } else if (code === "INVALID_LOGO") {
                 notyf.error("نوع ملف الشعار غير مدعوم");
+            } else if (code === "FORBIDDEN_ROLE") {
+                notyf.error("ليس لديك صلاحية لإضافة فريق");
+            } else if (code === "SequelizeUniqueConstraintError" || /unique/i.test(serverMessage || "")) {
+                notyf.error("بيانات مكررة في قاعدة البيانات (هاتف / بطاقة / إيميل)");
             } else {
-                notyf.error("تعذرت الإضافة، لم يتم تسجيل أي بيانات");
+                notyf.error(`تعذرت الإضافة: ${serverMessage || "خطأ غير متوقع"}`);
             }
         }
     };

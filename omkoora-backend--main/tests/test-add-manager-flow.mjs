@@ -184,6 +184,31 @@ async function run() {
         ok('duplicate card_number rejected');
     }
 
+    // 5b) Duplicate email should fail with EMAIL_ALREADY_EXIST
+    log(`${c.yellow}5b)${c.reset} Validation: duplicate email must fail`);
+    try {
+        await gql({
+            origin: CLUB_ORIGIN, token: clubToken,
+            query: Q_CREATE_ADMIN_MEMBER,
+            variables: {content: {
+                occupation: 'مدير الفريق', classification: 'manager',
+                membership_date: new Date().toISOString().slice(0, 10), membership_date_end: '',
+                id_team: ID_TEAM,
+                user: {
+                    email: mgrEmail, password: mgrPass, role: '3', // same email as step 4
+                    person: {
+                        first_name: 'DupEmail', second_name: 'User', third_name: '', tribe: 'Smoke',
+                        phone: `8${stamp + 2}`.slice(0, 9), card_number: `2${cardNum}`.slice(0, 9), date_birth: '1990-01-01',
+                    },
+                },
+            }},
+        });
+        throw new Error('duplicate email was accepted');
+    } catch (e) {
+        if (e.code !== 'EMAIL_ALREADY_EXIST' && e.code !== 'USER_ALREADY_EXISTS') throw e;
+        ok(`duplicate email rejected (${e.code})`);
+    }
+
     // 6) Manager can log into the team app and currentUser exposes the team + permission
     log(`${c.yellow}6)${c.reset} Login manager on team origin`);
     const mgrAuth = await gql({
