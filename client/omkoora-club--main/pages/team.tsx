@@ -7,7 +7,7 @@ import CardTeam from "../components/Card/CardTeam";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
 import {
-    AddMembersModal,
+    AddTeamManagerModal,
     AddTeamModal,
     DeleteTeamModal,
     EditTeamModal,
@@ -230,7 +230,12 @@ export default function Home() {
                 data={selectedData}
                 onClose={() => setOpenChangeStatusModal(false)}
             />
-            <AddMembersModal title="إضافة مدير" opened={openAddAdminModal} id={selectedData?.id} onClose={() => setOpenAddAdminModal(false)}/>
+            <AddTeamManagerModal
+                title="إضافة مدير للفريق"
+                opened={openAddAdminModal}
+                data={selectedData}
+                onClose={() => setOpenAddAdminModal(false)}
+            />
             
             <UpdateAdminMemberModal title="تعديل معلومات المدير" opened={openEditAdminModal} id={selectedData?.person?.member?.id} onClose={() => setOpenEditAdminModal(false)}/>
             <AddListPlayers title="" opened={openAddListPlayersModal} data={selectedData?.id} onClose={() => setOpenAddListPlayersModal(false)}/>
