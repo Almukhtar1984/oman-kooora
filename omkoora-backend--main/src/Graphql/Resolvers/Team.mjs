@@ -1,12 +1,14 @@
-import { ApolloError } from 'apollo-server-express';
+import { ApolloError, AuthenticationError } from 'apollo-server-express';
 import sequelize from 'sequelize';
 import dotenv from 'dotenv'
 import path from "path";
 import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
+import db from "../../Config/DBContact.mjs";
 
-import {Club, Members, Person, Players, Team, User,TechnicalApparatus, Stadium} from '../../Models/index.mjs';
+import {Club, Members, Person, Players, Team, User,TechnicalApparatus, Stadium, Permission} from '../../Models/index.mjs';
+import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 import {CreateNotificationTeam} from "../../Helpers/index.mjs"
@@ -239,6 +241,108 @@ export const resolvers = {
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
+            }
+        },
+
+        // Single atomic call used by the "add team" form in the club app.
+        // Replaces the previous client-side sequence of createTeam → createAdminMember,
+        // which was non-atomic: if the second call failed (e.g. duplicate
+        // card_number / phone), the Team row was already committed and the
+        // form would refuse to re-submit cleanly, encouraging the user to
+        // retry — producing one duplicate Team per click. Wrapping both
+        // writes in a single transaction means a manager-side validation
+        // failure rolls the Team back as well, so the form is safe to retry.
+        createTeamWithAdmin: async (obj, {team, manager}, context, info) => {
+            const { user, isAuth } = context;
+            if (!isAuth || !user) {
+                return new AuthenticationError("Authentication required");
+            }
+            if (user.role !== "1" && user.role !== "2") {
+                return new ApolloError("Only super-admin or club admin can create teams", "FORBIDDEN_ROLE");
+            }
+
+            // Pre-check duplicates outside the transaction so the user gets
+            // a clear, recoverable error before we touch anything.
+            const dupPerson = await Person.findOne({
+                where: {
+                    card_number: manager?.person?.card_number,
+                    phone: manager?.person?.phone,
+                }
+            });
+            if (dupPerson) {
+                if (dupPerson.card_number === manager.person.card_number) {
+                    return new ApolloError("card number already exists", "CARD_NUMBER_ALREADY_EXISTS");
+                }
+                if (dupPerson.phone === manager.person.phone) {
+                    return new ApolloError("phone number already exists", "PHONE_NUMBER_ALREADY_EXISTS");
+                }
+            }
+            const dupUser = await alreadyExistUser(manager?.email);
+            if (dupUser !== false) {
+                return new ApolloError(dupUser.message, dupUser.code);
+            }
+
+            // Logo arrives as a graphql-upload promise. Resolve it before
+            // the transaction starts so the write inside the txn is fast.
+            let logoFileName = null;
+            if (team?.logo) {
+                const file = await team.logo;
+                const ext = file.filename.split(".").pop().toUpperCase();
+                if (!["JPEG", "JPG", "PNG"].includes(ext)) {
+                    return new ApolloError("This file is not image", "INVALID_LOGO");
+                }
+                logoFileName = `${UUID()}.${ext}`;
+                const pathName = path.join(__dirname, `./../uploads/${logoFileName}`);
+                const stream = file.createReadStream();
+                await stream.pipe(createWriteStream(pathName));
+            }
+
+            try {
+                const result = await db.transaction(async (t) => {
+                    const teamPayload = { ...team };
+                    delete teamPayload.logo;
+                    const newTeam = await Team.create(
+                        { ...teamPayload, logo: logoFileName },
+                        { transaction: t }
+                    );
+
+                    const newPerson = await Person.create(manager.person, { transaction: t });
+
+                    const newMember = await Members.create({
+                        occupation: manager.occupation || "مدير الفريق",
+                        classification: manager.classification || "manager",
+                        membership_date: manager.membership_date || null,
+                        membership_date_end: manager.membership_date_end || null,
+                        id_team: newTeam.id,
+                        id_person: newPerson.id,
+                    }, { transaction: t });
+
+                    const password = await hashPassword(manager.password);
+                    const newUser = await User.create({
+                        email: manager.email,
+                        password,
+                        role: "3",
+                        activation: true,
+                        email_verify: true,
+                        id_person: newPerson.id,
+                    }, { transaction: t });
+
+                    const fullGrant = "1,2,3,4,5,6,7,8,9,10";
+                    await Permission.create({
+                        teams: fullGrant, members: fullGrant, technicals: fullGrant,
+                        players: fullGrant, transfer_players: fullGrant, loan_players: fullGrant,
+                        assembly: fullGrant, inbox: fullGrant, outbox: fullGrant,
+                        meeting: fullGrant, blogs: fullGrant, forms: fullGrant,
+                        permissions: fullGrant, complaints: fullGrant, expenses: fullGrant,
+                        leagues: fullGrant, id_user: newUser.id,
+                    }, { transaction: t });
+
+                    return newTeam;
+                });
+                return result;
+            } catch (error) {
+                logger.error(`createTeamWithAdmin error: ${error.message}`);
+                throw new ApolloError(error);
             }
         },
 

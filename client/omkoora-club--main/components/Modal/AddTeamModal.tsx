@@ -9,7 +9,7 @@ import {Notyf} from "notyf";
 
 import TextInput from "../Input/TextInput";
 import Modal, {Props as ModalProps} from "./Modal";
-import {AllTeams, useAddMember, useAddTeam} from "./../../graphql";
+import {AllTeams, useCreateTeamWithAdmin} from "./../../graphql";
 import useStore from "../../store/useStore";
 
 type Props = {} & ModalProps;
@@ -86,8 +86,7 @@ export const AddTeamModal = (props: Props) => {
     const [loading, setLoading] = useState(false);
     const [credentials, setCredentials] = useState<{email: string; password: string} | null>(null);
 
-    const [createTeam] = useAddTeam();
-    const [createAdminMember] = useAddMember();
+    const [createTeamWithAdmin, {loading: mutationLoading}] = useCreateTeamWithAdmin();
 
     const onSubmit = async (data: ReturnType<typeof init>) => {
         const notyf = new Notyf({position: {x: "right", y: "bottom"}});
@@ -98,14 +97,19 @@ export const AddTeamModal = (props: Props) => {
         }
         setCategoryError(false);
 
+        // Guard against double-submit. The single-mutation server endpoint is
+        // already atomic, but if the user mashes the confirm button we still
+        // want to ignore subsequent clicks until the first round-trip lands.
+        if (loading || mutationLoading) return;
+
         const {name, phone, activities, code, manager} = data;
         const manager_name = `${manager.first_name} ${manager.tribe}`.trim();
 
         setLoading(true);
         try {
-            const teamRes = await createTeam({
+            await createTeamWithAdmin({
                 variables: {
-                    content: {
+                    team: {
                         name,
                         category: parseInt(category || "0"),
                         phone,
@@ -115,42 +119,30 @@ export const AddTeamModal = (props: Props) => {
                         manager_name,
                         id_club: userData?.person?.clubManagement?.club?.id,
                     },
-                },
-                refetchQueries: [AllTeams],
-            });
-
-            const teamId = teamRes?.data?.createTeam?.id;
-            if (!teamId) throw new Error("لم يتم استلام معرّف الفريق");
-
-            await createAdminMember({
-                variables: {
-                    content: {
+                    manager: {
+                        email: manager.email,
+                        password: manager.password,
                         occupation: "مدير الفريق",
                         classification: "manager",
                         membership_date: dayjs().format("YYYY-MM-DD"),
                         membership_date_end: "",
-                        user: {
-                            email: manager.email,
-                            password: manager.password,
-                            role: "3",
-                            person: {
-                                first_name: manager.first_name,
-                                second_name: manager.second_name,
-                                third_name: manager.third_name,
-                                tribe: manager.tribe,
-                                phone: manager.phone,
-                                card_number: manager.card_number,
-                                date_birth: dayjs(manager.date_birth).format("YYYY-MM-DD"),
-                            },
+                        person: {
+                            first_name: manager.first_name,
+                            second_name: manager.second_name,
+                            third_name: manager.third_name,
+                            tribe: manager.tribe,
+                            phone: manager.phone,
+                            card_number: manager.card_number,
+                            date_birth: dayjs(manager.date_birth).format("YYYY-MM-DD"),
                         },
-                        id_team: teamId,
                     },
                 },
+                refetchQueries: [AllTeams],
             });
 
             setLoading(false);
             setCredentials({email: manager.email, password: manager.password});
-            notyf.success("تمت الإضافة بنجاح");
+            notyf.success("تم التسجيل بنجاح");
         } catch (err: any) {
             console.log(err);
             setLoading(false);
@@ -159,8 +151,12 @@ export const AddTeamModal = (props: Props) => {
                 notyf.error("رقم البطاقة المدنية موجود مسبقاً");
             } else if (code === "PHONE_NUMBER_ALREADY_EXISTS") {
                 notyf.error("رقم الهاتف موجود مسبقاً");
+            } else if (code === "USER_ALREADY_EXISTS") {
+                notyf.error("البريد الإلكتروني مستخدم بالفعل");
+            } else if (code === "INVALID_LOGO") {
+                notyf.error("نوع ملف الشعار غير مدعوم");
             } else {
-                notyf.error("تعذرت الإضافة");
+                notyf.error("تعذرت الإضافة، لم يتم تسجيل أي بيانات");
             }
         }
     };
@@ -210,8 +206,16 @@ export const AddTeamModal = (props: Props) => {
             footer={
                 <Box py={16} px={20} bg="slate.0">
                     <Group position="right" spacing="xs">
-                        <Button variant="outline" rightIcon={<X size={15} />} bg="white" onClick={closeModal}>إلغاء</Button>
-                        <Button rightIcon={<Check size={15} />} type="submit" form="submit_form">تأكيد</Button>
+                        <Button variant="outline" rightIcon={<X size={15} />} bg="white" onClick={closeModal} disabled={loading}>إلغاء</Button>
+                        <Button
+                            rightIcon={<Check size={15} />}
+                            type="submit"
+                            form="submit_form"
+                            loading={loading}
+                            disabled={loading}
+                        >
+                            تأكيد
+                        </Button>
                     </Group>
                 </Box>
             }

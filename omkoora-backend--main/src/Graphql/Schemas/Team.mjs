@@ -13,9 +13,24 @@ export const typeDefs = gql`
     extend type Mutation {
         createTeam(content: contentTeam!): Team! #@auth(requires: user)
 
+        # Atomic team+manager creation. Use this from the club "add team" form
+        # so a failure on the manager side rolls the team back too, avoiding
+        # the duplicate-team-per-retry problem of the two-mutation flow.
+        createTeamWithAdmin(team: contentTeam!, manager: contentTeamManager!): Team!
+
         updateTeam (id: ID!, content: contentTeam!): statusUpdate @auth(requires: user)
 
         deleteTeam ( id: ID! ): statusDelete @auth(requires: user)
+    }
+
+    input contentTeamManager {
+        email:               String!
+        password:            String!
+        occupation:          String
+        classification:      String
+        membership_date:     String
+        membership_date_end: String
+        person:              contentPerson!
     }
 
     type Team {

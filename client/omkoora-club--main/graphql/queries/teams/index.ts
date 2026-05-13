@@ -1,4 +1,5 @@
 export * from "./AddTeam";
+export * from "./CreateTeamWithAdmin";
 export * from "./UpdateTeam";
 export * from "./DeleteTeam";
 export * from "./ResetTeamPassword";

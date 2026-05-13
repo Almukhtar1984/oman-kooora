@@ -75,14 +75,9 @@ const Q_CURRENT_USER = `
         }
     }`;
 
-const Q_CREATE_TEAM = `
-    mutation($content: contentTeam!) {
-        createTeam(content: $content) { id name }
-    }`;
-
-const Q_CREATE_ADMIN_MEMBER = `
-    mutation($content: contentAdminMember!) {
-        createAdminMember(content: $content) { id }
+const Q_CREATE_TEAM_WITH_ADMIN = `
+    mutation($team: contentTeam!, $manager: contentTeamManager!) {
+        createTeamWithAdmin(team: $team, manager: $manager) { id name }
     }`;
 
 async function run() {
@@ -116,46 +111,34 @@ async function run() {
         return;
     }
 
-    // 3) Create a team
-    log(`${c.yellow}3)${c.reset} createTeam ← "${teamName}"`);
+    // 3) Create the team and its manager in a single atomic call
+    log(`${c.yellow}3)${c.reset} createTeamWithAdmin ← "${teamName}"`);
     const created = await gql({
         origin: CLUB_ORIGIN, token: clubToken,
-        query: Q_CREATE_TEAM,
-        variables: {content: {
-            name: teamName, category: 1, phone: '99999999', activities: 'كرة القدم',
-            code: `T${stamp}`, manager_name: 'Test Manager', id_club: idClub,
-        }},
-    });
-    const teamId = created.createTeam.id;
-    ok(`team created id=${teamId}`);
-
-    // 4) Create admin-member for the team
-    log(`${c.yellow}4)${c.reset} createAdminMember`);
-    await gql({
-        origin: CLUB_ORIGIN, token: clubToken,
-        query: Q_CREATE_ADMIN_MEMBER,
-        variables: {content: {
-            occupation: 'مدير الفريق',
-            classification: 'manager',
-            membership_date: new Date().toISOString().slice(0, 10),
-            membership_date_end: '',
-            id_team: teamId,
-            user: {
-                email: mgrEmail,
-                password: mgrPass,
-                role: '3',
+        query: Q_CREATE_TEAM_WITH_ADMIN,
+        variables: {
+            team: {
+                name: teamName, category: 1, phone: '99999999', activities: 'كرة القدم',
+                code: `T${stamp}`, manager_name: 'Test Manager', id_club: idClub,
+            },
+            manager: {
+                email: mgrEmail, password: mgrPass,
+                occupation: 'مدير الفريق', classification: 'manager',
+                membership_date: new Date().toISOString().slice(0, 10),
+                membership_date_end: '',
                 person: {
                     first_name: 'Test', second_name: 'Manager', third_name: 'X',
                     tribe: 'Smoke', phone: `5${stamp}`.slice(0, 9),
                     card_number: cardNum, date_birth: '1990-01-01',
                 },
             },
-        }},
+        },
     });
-    ok(`manager user created ← ${mgrEmail}`);
+    const teamId = created.createTeamWithAdmin.id;
+    ok(`team + manager created atomically id=${teamId}, mgr=${mgrEmail}`);
 
-    // 5) Manager logs in via the team app
-    log(`${c.yellow}5)${c.reset} Login manager on team origin`);
+    // 4) Manager logs in via the team app
+    log(`${c.yellow}4)${c.reset} Login manager on team origin`);
     const mgrAuth = await gql({
         origin: TEAM_ORIGIN,
         query: Q_LOGIN,
@@ -164,8 +147,8 @@ async function run() {
     if (!mgrAuth?.authenticateUser?.token) throw new Error('manager login returned no token');
     ok('manager logged in');
 
-    // 6) currentUser on team side — verify person.member.team + permission
-    log(`${c.yellow}6)${c.reset} currentUser (team) — verify wiring`);
+    // 5) currentUser on team side — verify person.member.team + permission
+    log(`${c.yellow}5)${c.reset} currentUser (team) — verify wiring`);
     const mgrMe = await gql({origin: TEAM_ORIGIN, token: mgrAuth.authenticateUser.token, query: Q_CURRENT_USER});
     if (mgrMe.currentUser.role !== '3') throw new Error(`expected role=3, got ${mgrMe.currentUser.role}`);
     if (mgrMe.currentUser.person?.member?.team?.id !== teamId)
