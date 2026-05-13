@@ -311,8 +311,9 @@ export const resolvers = {
                     const newMember = await Members.create({
                         occupation: manager.occupation || "مدير الفريق",
                         classification: manager.classification || "manager",
-                        membership_date: manager.membership_date || null,
-                        membership_date_end: manager.membership_date_end || null,
+                        // MySQL refuses empty strings on DATE/DATETIME columns.
+                        membership_date: manager.membership_date && manager.membership_date !== "" ? manager.membership_date : null,
+                        membership_date_end: manager.membership_date_end && manager.membership_date_end !== "" ? manager.membership_date_end : null,
                         id_team: newTeam.id,
                         id_person: newPerson.id,
                     }, { transaction: t });

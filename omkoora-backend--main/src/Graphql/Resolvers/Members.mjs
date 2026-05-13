@@ -126,7 +126,10 @@ export const resolvers = {
 
                 let result = null
                 if (person) {
-                    result = await Members.create({...content, id_person: person.id})
+                    const memberPayload = { ...content };
+                    if (!memberPayload.membership_date_end) memberPayload.membership_date_end = null;
+                    if (!memberPayload.membership_date) memberPayload.membership_date = null;
+                    result = await Members.create({...memberPayload, id_person: person.id})
                 }
 
                 return result
@@ -180,6 +183,11 @@ export const resolvers = {
 
                     const memberPayload = { ...content };
                     delete memberPayload.user;
+                    // MySQL refuses empty strings on DATE/DATETIME columns.
+                    // Normalize the optional end-of-membership date so the
+                    // form can keep its convenient "" default.
+                    if (!memberPayload.membership_date_end) memberPayload.membership_date_end = null;
+                    if (!memberPayload.membership_date) memberPayload.membership_date = null;
                     const member = await Members.create(
                         { ...memberPayload, id_person: person.id },
                         { transaction: t }
@@ -240,6 +248,11 @@ export const resolvers = {
                 // nested user payload before passing it through.
                 const memberPatch = {...content};
                 delete memberPatch.user;
+                // Empty strings on DATE columns make MySQL throw
+                // ER_TRUNCATED_WRONG_VALUE — normalize to null so the form
+                // can keep its "" defaults for optional date fields.
+                if (memberPatch.membership_date === "") memberPatch.membership_date = null;
+                if (memberPatch.membership_date_end === "") memberPatch.membership_date_end = null;
                 const memberResult = await Members.update(memberPatch, { where: { id } });
 
                 // Build a User-only patch. Email is updated when supplied;
