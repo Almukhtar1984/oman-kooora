@@ -5,6 +5,7 @@ import {Phone, Lock, Mail} from "tabler-icons-react";
 import {useAuthenticateClient, useGetCurrentUser, useResendEmailVerification} from "../../graphql";
 
 import useStore from "../../store/useStore";
+import { applyNewToken } from "../../lib/helpers/authToken";
 
 import Link from "next/link";
 import {useRouter} from "next/router";
@@ -90,8 +91,9 @@ export default function Login() {
                 }
             }
         }).then(({ data: { authenticateUser } }) => {
-                useStore.setState({ token: authenticateUser?.token });
-                useStore.setState({ isAuth: true });
+                if (authenticateUser?.token) {
+                    applyNewToken(authenticateUser.token);
+                }
                 getCurrentUserLazy({
                     fetchPolicy: "network-only"
                 })

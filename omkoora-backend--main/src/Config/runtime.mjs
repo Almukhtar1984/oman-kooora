@@ -137,20 +137,21 @@ export const refreshCookieName = (appKey) => `__tomoh_${appKey || FALLBACK_APP_K
 // a stale shared session lingering after the per-app split is deployed.
 export const LEGACY_REFRESH_COOKIE = '__tomoh';
 
+// Defaults are intentionally generous: the client wants users to stay signed
+// in across reloads and long breaks. The frontend schedules a proactive
+// refresh well before access-token expiry, so an explicit logout still
+// propagates within seconds (server-side cookie clear + client-side wipe).
+export const ACCESS_TOKEN_HOURS = Number(process.env.ACCESS_TOKEN_HOURS || 24 * 7);
+
+export const REFRESH_TOKEN_DAYS = Number(process.env.REFRESH_TOKEN_DAYS || 90);
+
 export const refreshCookieOptions = {
-    maxAge: Number(process.env.REFRESH_COOKIE_MAX_AGE_MS || 3600000 * 24 * 7),
+    maxAge: Number(process.env.REFRESH_COOKIE_MAX_AGE_MS || 3600000 * 24 * REFRESH_TOKEN_DAYS),
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
     path: '/',
 };
-
-// Access-token lifetime in hours. Short by default so a logout on one tab
-// propagates to other tabs within ~one refresh interval (~45s on the client).
-export const ACCESS_TOKEN_HOURS = Number(process.env.ACCESS_TOKEN_HOURS || 0.25);
-
-// Refresh-token lifetime in days; matches the cookie max age above.
-export const REFRESH_TOKEN_DAYS = Number(process.env.REFRESH_TOKEN_DAYS || 7);
 
 export const shouldSyncDb = process.env.DB_SYNC === 'true';
 

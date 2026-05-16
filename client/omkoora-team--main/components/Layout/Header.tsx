@@ -13,6 +13,7 @@ import { getTimeAgo } from "../../lib/helpers/Time"
 import { notifications } from '@mantine/notifications';
 import { format } from 'date-fns';
 import { GiAbstract042, GiTrophyCup } from "react-icons/gi";
+import { clearAuth } from "../../lib/helpers/authToken";
 import { getImageUrl } from "../../lib/helpers/image";
 
 type Props = {};
@@ -47,7 +48,7 @@ const Header = (props: Props) => {
     const onLogout = () => {
         logOut({
             onCompleted: () => {
-                useStore.setState({ token: undefined, isAuth: false, userData: {} });
+                clearAuth();
                 // Full reload drops Apollo's in-memory cache and any zombie
                 // tokens held by other code paths, so the next request truly
                 // starts from scratch.

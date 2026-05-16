@@ -1,9 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
+import Route, { useRouter } from "next/router";
+import { Loader, Stack } from "@mantine/core";
 import useStore from "../../store/useStore";
-import decode from "jwt-decode";
-import {getNewToken, useGetCurrentUser} from "../../graphql";
-import Route, {useRouter} from "next/router";
-import {Loader, Stack} from "@mantine/core";
+import { useGetCurrentUser } from "../../graphql";
+import {
+    applyNewToken,
+    clearAuth,
+    decodeExpiryMs,
+    hydrateAuthFromStorage,
+    runRefresh,
+} from "./authToken";
 
 const PUBLIC_ROUTES = [
     "/login",
@@ -15,14 +21,12 @@ const PUBLIC_ROUTES = [
 
 const isPublicRoute = (pathname: string) => PUBLIC_ROUTES.includes(pathname);
 
-const useAuth = (getCurrentUserLazy) => {
-    const token = useStore((state: any) => state.token);
-
+const useAuth = (getCurrentUserLazy: any) => {
     const loadCurrentUser = useCallback(async () => {
         return await new Promise((resolve) => {
             getCurrentUserLazy({
                 fetchPolicy: "network-only",
-                onCompleted: (data: any ) => {
+                onCompleted: (data: any) => {
                     useStore.setState({ userData: data?.currentUser });
                     useStore.setState({ numPoints: data?.currentUser?.person?.company?.points });
                     resolve(true);
@@ -35,49 +39,32 @@ const useAuth = (getCurrentUserLazy) => {
         });
     }, [getCurrentUserLazy]);
 
-    let checkRefreshToken = useCallback(async () => {
+    const checkAuth = useCallback(async (): Promise<boolean> => {
         try {
-            let decodedJWT: any = null;
+            const restored = hydrateAuthFromStorage();
+            const expMs = decodeExpiryMs(restored);
+            const stillValid = restored && expMs && expMs > Date.now();
 
-            try {
-                decodedJWT = token ? decode(token) : null;
-            } catch {
-                decodedJWT = null;
+            if (stillValid) {
+                const ok = await loadCurrentUser();
+                if (ok) return true;
             }
 
-            if (decodedJWT && decodedJWT.exp * 1000 >= Date.now()) {
-                useStore.setState({isAuth: true});
-                await loadCurrentUser();
-                return true;
+            const next = await runRefresh();
+            if (!next) {
+                clearAuth();
+                return false;
             }
-
-            const {data}: any = await getNewToken();
-            const nextToken = data?.refreshToken?.token;
-
-            if (!nextToken) {
-                throw new Error("Unable to refresh token");
-            }
-
-            useStore.setState({
-                isAuth: true,
-                token: nextToken,
-            });
-            await loadCurrentUser();
-            return true;
+            applyNewToken(next);
+            const ok = await loadCurrentUser();
+            return ok as boolean;
         } catch {
-            useStore.setState({isAuth: false, token: "", userData: {}});
+            clearAuth();
             return false;
         }
-    }, [loadCurrentUser, token]);
+    }, [loadCurrentUser]);
 
-    let checkAuth = useCallback(async () => {
-        return await checkRefreshToken();
-    }, [checkRefreshToken]);
-
-    return {
-        checkAuth,
-        checkRefreshToken,
-    };
+    return { checkAuth };
 };
 
 interface Props {
@@ -85,14 +72,13 @@ interface Props {
     children?: any;
 }
 
-const ProtectedPage = ( { client, children }: Props ): any => {
+const ProtectedPage = ({ children }: Props): any => {
     const router = useRouter();
     const isAuth = useStore((state: any) => state.isAuth);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     const [getCurrentUserLazy]: any = useGetCurrentUser();
 
-
-    const { checkAuth, checkRefreshToken } = useAuth(getCurrentUserLazy);
+    const { checkAuth } = useAuth(getCurrentUserLazy);
 
     useEffect(() => {
         let mounted = true;
@@ -106,9 +92,7 @@ const ProtectedPage = ( { client, children }: Props ): any => {
             setIsCheckingAuth(true);
             const authenticated = await checkAuth();
 
-            if (!mounted) {
-                return;
-            }
+            if (!mounted) return;
 
             if (!authenticated) {
                 await Route.replace("/login");
@@ -117,17 +101,11 @@ const ProtectedPage = ( { client, children }: Props ): any => {
 
             setIsCheckingAuth(false);
         })();
+
         return () => {
             mounted = false;
         };
     }, [checkAuth, router.pathname]);
-
-    useEffect(() => {
-        const intervalId = setInterval(async function () {
-            await checkRefreshToken();
-        }, 1000*60*0.75)
-        return () => clearInterval(intervalId);
-    }, [checkRefreshToken]);
 
     if (isCheckingAuth || (!isAuth && !isPublicRoute(router.pathname))) return <LoadingPage />;
     return <>{children}</>;
@@ -137,8 +115,8 @@ export { useAuth, ProtectedPage };
 
 const LoadingPage = () => {
     return (
-        <Stack bg={"#fff"} justify={"center"} align={"center"} style={{width: "100%", height: "100vh"}}>
+        <Stack bg={"#fff"} justify={"center"} align={"center"} style={{ width: "100%", height: "100vh" }}>
             <Loader size="xl" variant="dots" />
         </Stack>
-    )
-}
+    );
+};

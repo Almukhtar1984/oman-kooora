@@ -20,6 +20,7 @@ import { useState } from "react";
 import useStore from "../../store/useStore";
 import {useRouter} from "next/router";
 import {useLogout} from "../../graphql";
+import { clearAuth } from "../../lib/helpers/authToken";
 
 type Props = {};
 
@@ -33,7 +34,7 @@ const Header = (props: Props) => {
     const onLogout = () => {
         logOut({
             onCompleted: () => {
-                useStore.setState({ token: undefined, isAuth: false, userData: {} });
+                clearAuth();
                 // Full reload drops Apollo's in-memory cache and any zombie
                 // tokens held by other code paths, so the next request truly
                 // starts from scratch.

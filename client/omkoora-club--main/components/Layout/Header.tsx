@@ -13,6 +13,7 @@ import { getTimeAgo } from "../../lib/helpers/Time"
 import { notifications } from '@mantine/notifications';
 import { format } from 'date-fns';
 import { getImageUrl } from "../../lib/helpers/image";
+import { clearAuth } from "../../lib/helpers/authToken";
 
 type Props = {};
 
@@ -47,7 +48,7 @@ const Header = (props: Props) => {
     const onLogout = () => {
         logOut({
             onCompleted: () => {
-                useStore.setState({ token: undefined, isAuth: false, userData: {} });
+                clearAuth();
                 // Full reload drops Apollo's in-memory cache and any zombie
                 // tokens held by other code paths, so the next request truly
                 // starts from scratch.
@@ -146,7 +147,7 @@ const Header = (props: Props) => {
         { path: '/messages', label: 'الرسائل', icon: <Inbox size={18} /> },
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={18} /> },
         { path: '/blog', label: 'الأخبار', icon: <Article size={18} /> },
-        { path: '/forms', label: 'الاستثمارات', icon: <FileText size={18} /> },
+        { path: '/forms', label: 'الاستمارات', icon: <FileText size={18} /> },
         { path: '/powers', label: 'الصلاحيات', icon: <ShieldLock size={18} /> },
         { path: '/monitor', label: 'المراقبة', icon: <Activity size={18} /> }, 
         { path: 'https://cheeryourteam.com/', label: 'شجع فريقك', icon: <BallFootball size={18} />, external: true },
