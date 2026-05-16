@@ -11,6 +11,8 @@ import Members from "./Members";
 import Technicals from "./Technicals";
 import Assembly from "./Assembly";
 import CardAssembly from "./CardAssembly";
+import LeaguePlayersCards from "./LeaguePlayersCards";
+import LeaguePlayersList from "./LeaguePlayersList";
 import dayjs from "dayjs";
 import "dayjs/locale/ar";
 import duration from "dayjs/plugin/duration";
@@ -36,6 +38,8 @@ root.render(
                     <Route path="/members/:id/:type" element={<Members />} />
                     <Route path="/technicals/:id/:type" element={<Technicals />} />
                     <Route path="/assembly/:id/:type" element={<Assembly />} />
+                    <Route path="/league-cards/:id" element={<LeaguePlayersCards />} />
+                    <Route path="/league-list/:id" element={<LeaguePlayersList />} />
                 </Routes>
             </HashRouter>
         </React.StrictMode>

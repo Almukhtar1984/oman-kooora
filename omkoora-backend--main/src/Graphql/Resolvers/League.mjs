@@ -198,6 +198,32 @@ export const resolvers = {
             }
         },
 
+        participatingPlayersByLeague: async (obj, {idLeague}, context, info) =>  {
+            try {
+                return await ParticipatingPlayers.findAll({
+                    include: [
+                        {
+                            model: ParticipatingTeams,
+                            as: 'participating_team',
+                            required: true,
+                            where: { id_league: idLeague },
+                            include: [
+                                { model: Team, as: 'team', include: [{ model: Club, as: 'club' }] }
+                            ]
+                        },
+                        {
+                            model: Players,
+                            as: 'player',
+                            include: [{ model: Person, as: 'person' }]
+                        }
+                    ]
+                })
+            } catch (error) {
+                logger.error("participatingPlayersByLeague error", error)
+                throw new ApolloError(error)
+            }
+        },
+
         allParticipatingTechnicalStaff: async (obj, {idParticipatingTeams}, context, info) =>  {
             try {
                 return await ParticipatingTechnicalStaff.findAll({

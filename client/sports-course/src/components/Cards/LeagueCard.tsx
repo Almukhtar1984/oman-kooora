@@ -18,7 +18,9 @@ import {
     IconEdit,
     IconHome,
     IconInfoCircle,
+    IconListDetails,
     IconPlus,
+    IconPrinter,
     IconTrash,
     IconTrophy,
     IconUsers,
@@ -27,6 +29,8 @@ import {
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { GiSoccerBall } from "react-icons/gi";
+
+import { printUrl } from "../../lib/config";
 
 type Props = {
     data: any;
@@ -404,6 +408,30 @@ export const LeagueCard = ({
                             >
                                 إضافة جهاز فني
                             </Menu.Item>
+                        )}
+
+                        {hasTeams && (
+                            <>
+                                <Menu.Divider />
+                                <Menu.Item
+                                    leftSection={<IconPrinter size={14} />}
+                                    component="a"
+                                    href={`${printUrl}/#/league-cards/${data?.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    طباعة بطاقات ID للمشاركين
+                                </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<IconListDetails size={14} />}
+                                    component="a"
+                                    href={`${printUrl}/#/league-list/${data?.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    طباعة قائمة المشاركين
+                                </Menu.Item>
+                            </>
                         )}
 
                         <Menu.Divider />
