@@ -14,7 +14,9 @@ export const typeDefs = gql`
         updateTechnicalApparatus (id: ID!, idPerson: ID!, content: contentTechnicalApparatus!): statusUpdate @auth(requires: user)
         
         changeStatusTechnicalApparatus (id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
-        
+
+        changeStatusTechnicalApparatusBulk (ids: [ID!]!, status: String!, note: String): bulkStatusResult #@auth(requires: user)
+
         deleteTechnicalApparatus ( id: ID! ): statusDelete @auth(requires: user)
     }
 

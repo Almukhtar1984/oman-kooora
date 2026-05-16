@@ -309,13 +309,13 @@ export const resolvers = {
         },
 
         changeStatusMember: async (obj, {id, status, note}, context, info) =>  {
-        
-            
+
+
             try {
 
                 let result = await Members.update({status, note}, { where: { id } })
-               
-                if(result[0] === 1 && (status == "accepted" || status == "rejected" ) ){    
+
+                if(result[0] === 1 && (status == "accepted" || status == "rejected" ) ){
                     let memeber = await Members.findByPk(id)
                     CreateNotificationTeam("memeber","update",memeber.id_team,memeber.id)
 
@@ -325,6 +325,33 @@ export const resolvers = {
                 }
             } catch (error) {
                 logger.error("")
+                throw new ApolloError(error)
+            }
+        },
+
+        changeStatusMembersBulk: async (obj, {ids, status, note}, context, info) =>  {
+            try {
+                if (!ids || ids.length === 0) {
+                    return { success: 0, total: 0 }
+                }
+
+                const patch = note !== undefined && note !== null ? {status, note} : {status}
+                const [affected] = await Members.update(patch, { where: { id: { [Op.in]: ids } } })
+
+                if (affected > 0 && (status === "accepted" || status === "rejected")) {
+                    const updated = await Members.findAll({ where: { id: { [Op.in]: ids } } })
+                    for (const m of updated) {
+                        try {
+                            CreateNotificationTeam("memeber", "update", m.id_team, m.id)
+                        } catch (e) {
+                            logger.error(`bulk member notification failed for ${m.id}: ${e.message}`)
+                        }
+                    }
+                }
+
+                return { success: affected, total: ids.length }
+            } catch (error) {
+                logger.error(`changeStatusMembersBulk error: ${error.message}`)
                 throw new ApolloError(error)
             }
         },

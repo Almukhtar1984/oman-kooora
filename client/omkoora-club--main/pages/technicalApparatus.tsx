@@ -5,11 +5,13 @@ import Head from "next/head";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
-import {useAllTeams, useAllTechnicals} from "../graphql";
+import {AllTechnicals, useAllTeams, useAllTechnicals, useChangeStatusTechnicalApparatusBulk} from "../graphql";
 import useStore from "../store/useStore";
 import {TechnicalsTable} from "../components/Tables";
 import {ChangeStatusTechnicalsModal, DeleteTechnicalModal, UpdateTechnicalModal, ChangeClassificationModal} from "../components/Modal";
 import { Select } from "@mantine/core";
+import {BulkActionToolbar, BulkStatusConfirmModal} from "../components/BulkSelection";
+import {Notyf} from "notyf";
 
 export default function TechnicalApparatus() {
     const userData = useStore((state: any) => state.userData);
@@ -35,6 +37,56 @@ export default function TechnicalApparatus() {
 
     const [getAllTechnicals, { loading, error, data: dataAllTechnicals }] = useAllTechnicals();
     const [getAllTeam, { data: dataAllTeams }] = useAllTeams();
+    const [changeStatusBulk, { loading: bulkLoading }] = useChangeStatusTechnicalApparatusBulk();
+
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [pageIds, setPageIds] = useState<string[]>([]);
+    const [bulkAction, setBulkAction] = useState<null | "accepted" | "rejected">(null);
+
+    const handleToggleSelect = React.useCallback((id: string) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+    }, []);
+    const handlePageItemsChange = React.useCallback((ids: string[]) => {
+        setPageIds(ids);
+    }, []);
+    const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+    const handleToggleSelectPage = (checked: boolean) => {
+        if (checked) {
+            setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+        } else {
+            setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+        }
+    };
+    const pendingIds = React.useMemo(
+        () => allTechnicalsSorting
+            .filter((it: any) => it?.status === "waiting" || it?.status === "waiting_club")
+            .map((it: any) => it.id),
+        [allTechnicalsSorting]
+    );
+    const handleSelectAllPending = () => setSelectedIds(pendingIds);
+    const handleClearSelection = () => setSelectedIds([]);
+
+    const handleConfirmBulk = (note: string) => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!bulkAction || selectedIds.length === 0) return;
+        changeStatusBulk({
+            variables: { ids: selectedIds, status: bulkAction, note: note || undefined },
+            refetchQueries: [AllTechnicals],
+            awaitRefetchQueries: true,
+        })
+            .then((res) => {
+                const r = res?.data?.changeStatusTechnicalApparatusBulk;
+                notyf.success(`تم ${bulkAction === "accepted" ? "قبول" : "رفض"} ${r?.success ?? 0} من أصل ${r?.total ?? selectedIds.length}`);
+                setSelectedIds([]);
+                setBulkAction(null);
+            })
+            .catch((e) => {
+                console.log(e);
+                notyf.error("حدث خطأ أثناء التحديث الجماعي");
+            });
+    };
 
     useEffect(() => {
         if (userData?.person?.clubManagement?.club?.id) {
@@ -204,6 +256,20 @@ export default function TechnicalApparatus() {
                     </Group>
                 </Box>
 
+                <BulkActionToolbar
+                    totalOnPage={pageIds.length}
+                    selectedCount={selectedIds.length}
+                    waitingCount={pendingIds.length}
+                    allOnPageSelected={allOnPageSelected}
+                    onToggleSelectPage={handleToggleSelectPage}
+                    onSelectAllPending={handleSelectAllPending}
+                    onAcceptSelected={() => setBulkAction("accepted")}
+                    onRejectSelected={() => setBulkAction("rejected")}
+                    onClearSelection={handleClearSelection}
+                    loading={bulkLoading}
+                    canChangeStatus={hasPermission("5")}
+                />
+
                 <TechnicalsTable
                     list={allTechnicalsSorting}
                     search={searchValue}
@@ -212,9 +278,13 @@ export default function TechnicalApparatus() {
                     setOpenDeleteModal={setOpenDeleteModal}
                     setSelectedRow={setSelectedData}
                     setNewStatus={setNewStatus}
-                    
+
                     hasPermission={hasPermission}
                     setOpenChangeClassificationModal={setOpenChangeClassificationModal}
+                    selectedIds={selectedIds}
+                    onToggleSelect={handleToggleSelect}
+                    onPageItemsChange={handlePageItemsChange}
+                    selectionEnabled={hasPermission("5")}
                 />
             </Container>
 
@@ -223,17 +293,26 @@ export default function TechnicalApparatus() {
 
             <UpdateTechnicalModal title="تعديل عضو الجهاز فني" opened={openEditModal} id={selectedData} onClose={() => setOpenEditModal(false)} />
             <DeleteTechnicalModal title="حذف عضو" opened={openDeleteModal} id={selectedData} onClose={() => setOpenDeleteModal(false)}/>
-            <ChangeClassificationModal 
-                opened={openChangeClassificationModal} 
-                onClose={() => setOpenChangeClassificationModal(false)} 
-                data={selectedData} 
-                fromType="technical" 
+            <ChangeClassificationModal
+                opened={openChangeClassificationModal}
+                onClose={() => setOpenChangeClassificationModal(false)}
+                data={selectedData}
+                fromType="technical"
                 idClub={userData?.person?.clubManagement?.club?.id}
                 onSuccess={() => {
                     if (userData?.person?.clubManagement?.club?.id) {
                         getAllTechnicals({variables: {idClub: userData?.person?.clubManagement?.club?.id}})
                     }
-                }} 
+                }}
+            />
+
+            <BulkStatusConfirmModal
+                opened={bulkAction !== null}
+                onClose={() => setBulkAction(null)}
+                count={selectedIds.length}
+                status={bulkAction || "accepted"}
+                loading={bulkLoading}
+                onConfirm={handleConfirmBulk}
             />
         </Box>
     );

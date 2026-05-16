@@ -1,5 +1,6 @@
 export * from "./useAddPlayer";
 export * from "./useChangeStatusPlayer";
+export * from "./useChangeStatusPlayersBulk";
 export * from "./useDeletePlayer";
 export * from "./useAllPlayers";
 export * from "./usePlayer";

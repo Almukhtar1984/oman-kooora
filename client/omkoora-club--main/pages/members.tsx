@@ -6,10 +6,12 @@ import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
 import { useMediaQuery } from "react-responsive";
-import {useAllMembers, useAllTeams} from "../graphql";
+import {AllMembers, useAllMembers, useAllTeams, useChangeStatusMembersBulk} from "../graphql";
 import useStore from "../store/useStore";
 import {MembersTable} from "../components/Tables";
 import {ChangeStatusMembersModal, DeleteMembersModal, UpdateMemberModal, ChangeClassificationModal} from "../components/Modal";
+import {BulkActionToolbar, BulkStatusConfirmModal} from "../components/BulkSelection";
+import {Notyf} from "notyf";
 
 import Players from "./players";
 import Technicals from "./technicalApparatus";
@@ -40,7 +42,59 @@ function MembersContent() {
 
     const [getAllMembers, { loading, error, data: dataAllMembers }] = useAllMembers();
     const [getAllTeam, { data: dataAllTeams }] = useAllTeams();
+    const [changeStatusBulk, { loading: bulkLoading }] = useChangeStatusMembersBulk();
     const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
+
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [pageIds, setPageIds] = useState<string[]>([]);
+    const [bulkAction, setBulkAction] = useState<null | "accepted" | "rejected">(null);
+
+    const handleToggleSelect = React.useCallback((id: string) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+    }, []);
+    const handlePageItemsChange = React.useCallback((ids: string[]) => {
+        setPageIds(ids);
+    }, []);
+    const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+    const handleToggleSelectPage = (checked: boolean) => {
+        if (checked) {
+            setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+        } else {
+            setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+        }
+    };
+    const pendingIds = React.useMemo(
+        () => allMembersSorting
+            .filter((it: any) => it?.status === "waiting" || it?.status === "waiting_club")
+            .map((it: any) => it.id),
+        [allMembersSorting]
+    );
+    const handleSelectAllPending = () => {
+        setSelectedIds(pendingIds);
+    };
+    const handleClearSelection = () => setSelectedIds([]);
+
+    const handleConfirmBulk = (note: string) => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!bulkAction || selectedIds.length === 0) return;
+        changeStatusBulk({
+            variables: { ids: selectedIds, status: bulkAction, note: note || undefined },
+            refetchQueries: [AllMembers],
+            awaitRefetchQueries: true,
+        })
+            .then((res) => {
+                const r = res?.data?.changeStatusMembersBulk;
+                notyf.success(`تم ${bulkAction === "accepted" ? "قبول" : "رفض"} ${r?.success ?? 0} من أصل ${r?.total ?? selectedIds.length}`);
+                setSelectedIds([]);
+                setBulkAction(null);
+            })
+            .catch((e) => {
+                console.log(e);
+                notyf.error("حدث خطأ أثناء التحديث الجماعي");
+            });
+    };
 
     useEffect(() => {
         if (userData?.person?.clubManagement?.club?.id) {
@@ -211,6 +265,20 @@ function MembersContent() {
                     </Group>
                 </Box>
 
+                <BulkActionToolbar
+                    totalOnPage={pageIds.length}
+                    selectedCount={selectedIds.length}
+                    waitingCount={pendingIds.length}
+                    allOnPageSelected={allOnPageSelected}
+                    onToggleSelectPage={handleToggleSelectPage}
+                    onSelectAllPending={handleSelectAllPending}
+                    onAcceptSelected={() => setBulkAction("accepted")}
+                    onRejectSelected={() => setBulkAction("rejected")}
+                    onClearSelection={handleClearSelection}
+                    loading={bulkLoading}
+                    canChangeStatus={hasPermission("5")}
+                />
+
                 <MembersTable
                     list={allMembersSorting}
                     search={searchValue}
@@ -219,9 +287,13 @@ function MembersContent() {
                     setOpenDeleteModal={setOpenDeleteModal}
                     setSelectedRow={setSelectedData}
                     setNewStatus={setNewStatus}
-                    
+
                     hasPermission={hasPermission}
                     setOpenChangeClassificationModal={setOpenChangeClassificationModal}
+                    selectedIds={selectedIds}
+                    onToggleSelect={handleToggleSelect}
+                    onPageItemsChange={handlePageItemsChange}
+                    selectionEnabled={hasPermission("5")}
                 />
             </Container>
 
@@ -230,17 +302,26 @@ function MembersContent() {
 
             <UpdateMemberModal title="تعديل عضو مجلس الأدارة" opened={openEditModal} id={selectedData} onClose={() => setOpenEditModal(false)}/>
             <DeleteMembersModal title="حذف عضو مجلس الأدارة" opened={openDeleteModal} id={selectedData} onClose={() => setOpenDeleteModal(false)}/>
-            <ChangeClassificationModal 
-                opened={openChangeClassificationModal} 
-                onClose={() => setOpenChangeClassificationModal(false)} 
-                data={selectedData} 
-                fromType="member" 
+            <ChangeClassificationModal
+                opened={openChangeClassificationModal}
+                onClose={() => setOpenChangeClassificationModal(false)}
+                data={selectedData}
+                fromType="member"
                 idClub={userData?.person?.clubManagement?.club?.id}
                 onSuccess={() => {
                     if (userData?.person?.clubManagement?.club?.id) {
                         getAllMembers({variables: {idClub: userData?.person?.clubManagement?.club?.id}})
                     }
-                }} 
+                }}
+            />
+
+            <BulkStatusConfirmModal
+                opened={bulkAction !== null}
+                onClose={() => setBulkAction(null)}
+                count={selectedIds.length}
+                status={bulkAction || "accepted"}
+                loading={bulkLoading}
+                onConfirm={handleConfirmBulk}
             />
         </Box>
     );

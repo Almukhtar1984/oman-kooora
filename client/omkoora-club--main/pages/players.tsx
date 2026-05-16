@@ -6,9 +6,11 @@ import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
 import {IconDatabaseOff} from "@tabler/icons-react";
-import {useAllPlayers, useAllTeams} from "../graphql";
+import {AllPlayers, useAllPlayers, useAllTeams, useChangeStatusPlayersBulk} from "../graphql";
 import useStore from "../store/useStore";
 import {PlayerCard1} from "../components/Card/PlayerCard";
+import {BulkActionToolbar, BulkStatusConfirmModal, SelectableCardWrapper} from "../components/BulkSelection";
+import {Notyf} from "notyf";
 import {
     AddAttachmentPlayerModal,
     ChangeStatusPlayersModal,
@@ -74,6 +76,10 @@ export default function Players() {
 
     const [getAllPlayers, { loading, error, data: dataAllPlayers }] = useAllPlayers();
     const [getAllTeam, { data: dataAllTeams }] = useAllTeams();
+    const [changeStatusBulk, { loading: bulkLoading }] = useChangeStatusPlayersBulk();
+
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [bulkAction, setBulkAction] = useState<null | "accepted" | "rejected">(null);
 
     useEffect(() => {
         if (userData?.person?.clubManagement?.club?.id) {
@@ -179,6 +185,49 @@ export default function Players() {
         )
         setAllPlayersSorting([...filterAllPlayers])
         setPage(1);
+    };
+
+    const handleToggleSelect = React.useCallback((id: string) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+    }, []);
+    const pageIds = React.useMemo(() => paginatedPlayers.map((p: any) => p.id), [paginatedPlayers]);
+    const allOnPageSelected = pageIds.length > 0 && pageIds.every((id: string) => selectedIds.includes(id));
+    const handleToggleSelectPage = (checked: boolean) => {
+        if (checked) {
+            setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+        } else {
+            setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+        }
+    };
+    const pendingIds = React.useMemo(
+        () => allPlayersSorting
+            .filter((it: any) => it?.status === "waiting" || it?.status === "waiting_club")
+            .map((it: any) => it.id),
+        [allPlayersSorting]
+    );
+    const handleSelectAllPending = () => setSelectedIds(pendingIds);
+    const handleClearSelection = () => setSelectedIds([]);
+
+    const handleConfirmBulk = (note: string) => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!bulkAction || selectedIds.length === 0) return;
+        changeStatusBulk({
+            variables: { ids: selectedIds, status: bulkAction, note: note || undefined },
+            refetchQueries: [AllPlayers],
+            awaitRefetchQueries: true,
+        })
+            .then((res) => {
+                const r = res?.data?.changeStatusPlayersBulk;
+                notyf.success(`تم ${bulkAction === "accepted" ? "قبول" : "رفض"} ${r?.success ?? 0} من أصل ${r?.total ?? selectedIds.length}`);
+                setSelectedIds([]);
+                setBulkAction(null);
+            })
+            .catch((e) => {
+                console.log(e);
+                notyf.error("حدث خطأ أثناء التحديث الجماعي");
+            });
     };
 
     const handleEdit = (data: any) => { setSelectedData(data.id); setOpenEditModal(true); };
@@ -303,13 +352,27 @@ export default function Players() {
                     </Group>
                 </Box>
 
+                <BulkActionToolbar
+                    totalOnPage={pageIds.length}
+                    selectedCount={selectedIds.length}
+                    waitingCount={pendingIds.length}
+                    allOnPageSelected={allOnPageSelected}
+                    onToggleSelectPage={handleToggleSelectPage}
+                    onSelectAllPending={handleSelectAllPending}
+                    onAcceptSelected={() => setBulkAction("accepted")}
+                    onRejectSelected={() => setBulkAction("rejected")}
+                    onClearSelection={handleClearSelection}
+                    loading={bulkLoading}
+                    canChangeStatus={hasPermission("5")}
+                />
+
                 <Box mih={400}>
                     {paginatedPlayers.length > 0 ? (
                         <>
                             <Grid gutter="md">
-                                {paginatedPlayers.map((item: any) => (
-                                    <Col key={item.id} xs={12} sm={6} md={4} lg={3}>
-                                        <PlayerCard1 
+                                {paginatedPlayers.map((item: any) => {
+                                    const card = (
+                                        <PlayerCard1
                                             data={item}
                                             hasPermission={hasPermission}
                                             onEdit={handleEdit}
@@ -330,8 +393,20 @@ export default function Players() {
                                                 setStatPlayerModal(true);
                                             }}
                                         />
-                                    </Col>
-                                ))}
+                                    );
+                                    return (
+                                        <Col key={item.id} xs={12} sm={6} md={4} lg={3}>
+                                            {hasPermission("5") ? (
+                                                <SelectableCardWrapper
+                                                    selected={selectedIds.includes(item.id)}
+                                                    onToggle={() => handleToggleSelect(item.id)}
+                                                >
+                                                    {card}
+                                                </SelectableCardWrapper>
+                                            ) : card}
+                                        </Col>
+                                    );
+                                })}
                             </Grid>
                             <Group position="center" mt="xl">
                                 <Pagination total={totalPages} value={page} onChange={setPage} />
@@ -409,11 +484,11 @@ export default function Players() {
                     setOpenEditPlayerModal={() => {}}
                 />}
 
-            <ChangeClassificationModal 
-                opened={openChangeClassificationModal} 
-                onClose={() => setOpenChangeClassificationModal(false)} 
-                data={selectedData} 
-                fromType="player" 
+            <ChangeClassificationModal
+                opened={openChangeClassificationModal}
+                onClose={() => setOpenChangeClassificationModal(false)}
+                data={selectedData}
+                fromType="player"
                 idClub={userData?.person?.clubManagement?.club?.id}
                 onSuccess={() => {
                     if (userData?.person?.clubManagement?.club?.id) {
@@ -421,7 +496,16 @@ export default function Players() {
                             variables: {idClub: userData?.person?.clubManagement?.club?.id}
                         })
                     }
-                }} 
+                }}
+            />
+
+            <BulkStatusConfirmModal
+                opened={bulkAction !== null}
+                onClose={() => setBulkAction(null)}
+                count={selectedIds.length}
+                status={bulkAction || "accepted"}
+                loading={bulkLoading}
+                onConfirm={handleConfirmBulk}
             />
         </Box>
     );

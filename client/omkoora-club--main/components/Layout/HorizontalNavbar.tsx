@@ -130,7 +130,7 @@ const HorizontalNavbar = () => {
         { path: '/messages', label: ' الرسائل', icon: <Inbox size={20} />, show: hasPermission("inbox", "1") },
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={20} />, show: hasPermission("meetings", "1") },
         { path: '/blog', label: 'الأخبار', icon: <Article size={20} />, show: hasPermission("blogs", "1") },
-        { path: '/forms', label: 'الاستثمارات', icon: <FileText size={20} />, show: hasPermission("forms", "1") },
+        { path: '/forms', label: 'الاستمارات', icon: <FileText size={20} />, show: hasPermission("forms", "1") },
         { path: '/powers', label: 'الصلاحيات', icon: <ShieldLock size={20} />, show: hasPermission("permissions", "1") },
         { path: '/monitor', label: 'المراقبة', icon: <Activity size={20} />, show: hasPermission("monitor", "1") },
         { path: 'https://cheeryourteam.com/', label: 'شجع فريقك', icon: <BallFootball size={20} />, external: true, show: true },

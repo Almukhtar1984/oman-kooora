@@ -118,6 +118,11 @@ const typeDefs = gql`
     type statusDelete {
         status: Boolean
     }
+
+    type bulkStatusResult {
+        success: Int
+        total: Int
+    }
 `;
 
 const resolvers = {

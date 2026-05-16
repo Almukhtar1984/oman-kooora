@@ -1,6 +1,7 @@
 export * from "./AddMember";
 export * from "./CreateMember";
 export * from "./ChangeStatusMember";
+export * from "./ChangeStatusMembersBulk";
 export * from "./DeleteMember";
 export * from "./AllMembers";
 export * from "./AllTeamManagers";

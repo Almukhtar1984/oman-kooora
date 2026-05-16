@@ -1,5 +1,6 @@
 export * from "./AddPlayer";
 export * from "./ChangeStatusPlayer";
+export * from "./ChangeStatusPlayersBulk";
 export * from "./UpdatePlayer";
 export * from "./DeletePlayer";
 export * from "./AllPlayers";

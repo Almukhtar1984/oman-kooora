@@ -25,6 +25,8 @@ export const typeDefs = gql`
 
         changeStatusPlayer (id: ID!, status: String!, note: String): statusUpdate #@auth(requires: user)
 
+        changeStatusPlayersBulk (ids: [ID!]!, status: String!, note: String): bulkStatusResult #@auth(requires: user)
+
         deletePlayer ( id: ID! ): statusDelete #@auth(requires: user)
 
         addAttachmentPlayer (idPlayer: ID!, attachments: [Upload!]): [AttachmentPlayer] #@auth(requires: user)

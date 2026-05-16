@@ -170,6 +170,22 @@ export const resolvers = {
             }
         },
 
+        changeStatusTechnicalApparatusBulk: async (obj, {ids, status, note}, context, info) =>  {
+            try {
+                if (!ids || ids.length === 0) {
+                    return { success: 0, total: 0 }
+                }
+
+                const patch = note !== undefined && note !== null ? {status, note} : {status}
+                const [affected] = await TechnicalApparatus.update(patch, { where: { id: { [Op.in]: ids } } })
+
+                return { success: affected, total: ids.length }
+            } catch (error) {
+                logger.error(`changeStatusTechnicalApparatusBulk error: ${error.message}`)
+                throw new ApolloError(error)
+            }
+        },
+
         deleteTechnicalApparatus: async (obj, {id}, context, info) =>  {
             try {
                 const technicalApparatus = await TechnicalApparatus.findByPk(id)
