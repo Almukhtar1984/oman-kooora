@@ -5,6 +5,36 @@ import {useAllPlayersClub, useAllPlayersTeam, useAllPlayersClubByClass, useAllPl
 import {useParams} from "react-router-dom";
 import dayjs from 'dayjs';
 
+// Exported for tests: computes a player's whole-year age from their date_birth.
+// Returns null when the date is missing or unparseable so callers can decide
+// how to treat such entries (we keep them in the result set).
+export const computeAgeYears = (dateBirth?: string): number | null => {
+    if (!dateBirth) return null;
+    const parsed = dayjs(dateBirth);
+    if (!parsed.isValid()) return null;
+    return dayjs().diff(parsed, "year");
+};
+
+// Exported for tests: returns true when a player matches the (op, age) filter.
+// `op` is ">" or "<"; `age` is a numeric string from the URL. Missing/zero age
+// disables the filter (everyone passes).
+export const matchesAgeFilter = (
+    player: any,
+    op?: string,
+    age?: string,
+): boolean => {
+    if (!op || !age || age === "0") return true;
+    const ageNumber = parseInt(age, 10);
+    if (!Number.isFinite(ageNumber)) return true;
+
+    const playerAge = computeAgeYears(player?.person?.date_birth);
+    if (playerAge === null) return true; // keep unknown-age players visible
+
+    if (op === ">") return playerAge >= ageNumber;
+    if (op === "<") return playerAge <= ageNumber;
+    return true;
+};
+
 export default function Players() {
     const {id, type, className, op, age} = useParams()
     const [getAllPlayersTeam] = useAllPlayersTeam();
@@ -64,19 +94,7 @@ export default function Players() {
     ])
 
     const filteredPlayers = useMemo(() => {
-        if (op !== undefined && op !== "" && age !== undefined && age !== "") {
-            if (op !== "" && age !== "0") {
-                return allPlayers.filter((item: any) => {
-                    if (op === ">") {
-                        return dayjs(item?.person?.date_birth).fromNow(true) >= age
-                    } else {
-                        return dayjs(item?.person?.date_birth).fromNow(true) <= age
-                    }
-                })
-            }
-        }
-
-        return allPlayers;
+        return allPlayers.filter((item: any) => matchesAgeFilter(item, op, age));
     }, [age, allPlayers, op]);
 
     return (
