@@ -12,6 +12,9 @@ interface VariableProps {
         startDate?: string;
         expiryDate?: string;
 
+        internalplayer?: number;
+        externalplayer?: number;
+
         id_club?: string;
     };
 }

@@ -43,7 +43,12 @@ export default (db, types) => {
         externalplayer: {
             type: types.INTEGER,
             allowNull: true,
-            defaultValue: 0    
+            defaultValue: 0
+        },
+        internalplayer: {
+            type: types.INTEGER,
+            allowNull: true,
+            defaultValue: 0
         }
     },{
         timestamps: true,

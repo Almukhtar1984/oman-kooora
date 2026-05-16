@@ -18,12 +18,27 @@ type Props = {
 export const AddLeague = (props: Props) => {
     const userData = useStore((state: any) => state.userData);
     const {getInputProps, reset, onSubmit} = useForm({
-        initialValues: {name: "", description: "", numberTeams: 0, numberGroups: 0, startDate: "", expiryDate: ""}
+        initialValues: {
+            name: "",
+            description: "",
+            numberTeams: "" as any,
+            numberGroups: "" as any,
+            internalplayer: "" as any,
+            externalplayer: "" as any,
+            startDate: "",
+            expiryDate: "",
+        }
     });
 
     const [createLeague] = useAddLeague();
 
-    const onFormSubmit = ({name, numberTeams, numberGroups, description, startDate, expiryDate}: any) => {
+    const toIntOrZero = (v: any) => {
+        if (v === "" || v === null || v === undefined) return 0;
+        const n = parseInt(String(v), 10);
+        return Number.isFinite(n) ? n : 0;
+    };
+
+    const onFormSubmit = ({name, numberTeams, numberGroups, internalplayer, externalplayer, description, startDate, expiryDate}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
         const idClub = userData?.person?.clubManagement?.club?.id;
 
@@ -31,8 +46,10 @@ export const AddLeague = (props: Props) => {
             variables: {
                 content: {
                     name,
-                    numberTeams: parseInt(numberTeams || "0"),
-                    numberGroups: parseInt(numberGroups || "0"),
+                    numberTeams: toIntOrZero(numberTeams),
+                    numberGroups: toIntOrZero(numberGroups),
+                    internalplayer: toIntOrZero(internalplayer),
+                    externalplayer: toIntOrZero(externalplayer),
                     description,
 
                     startDate: dayjs(startDate).format("YYYY-MM-DD"),
@@ -88,18 +105,35 @@ export const AddLeague = (props: Props) => {
                         </Col>
                         <Col span={6} >
                             <NumberInput
-                                placeholder="عدد الفرق"
+                                placeholder="عدد الفرق (اختياري)"
                                 label="عدد الفرق"
-                                withAsterisk
+                                min={0}
                                 {...getInputProps("numberTeams")}
                             />
                         </Col>
                         <Col span={6} >
                             <NumberInput
-                                placeholder="عدد المجموعات"
+                                placeholder="عدد المجموعات (اختياري)"
                                 label="عدد المجموعات"
-                                withAsterisk
+                                min={0}
                                 {...getInputProps("numberGroups")}
+                            />
+                        </Col>
+
+                        <Col span={6} >
+                            <NumberInput
+                                placeholder="اختياري"
+                                label="عدد اللاعبين المحترفين الداخليين المسموح بهم"
+                                min={0}
+                                {...getInputProps("internalplayer")}
+                            />
+                        </Col>
+                        <Col span={6} >
+                            <NumberInput
+                                placeholder="اختياري"
+                                label="عدد اللاعبين المحترفين الخارجيين المسموح بهم"
+                                min={0}
+                                {...getInputProps("externalplayer")}
                             />
                         </Col>
 

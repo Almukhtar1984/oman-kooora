@@ -12,6 +12,11 @@ export const AllLeagues = gql`
             startDate
             expiryDate
 
+            inscriptionStartDate
+            inscriptionExpiryDate
+            externalplayer
+            internalplayer
+
             participatingTeams {
                 id
                 group

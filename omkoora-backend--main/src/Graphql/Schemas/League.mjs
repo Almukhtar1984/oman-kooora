@@ -104,6 +104,7 @@ export const typeDefs = gql`
         inscriptionExpiryDate: String
 
         externalplayer: Int
+        internalplayer: Int
 
         participatingTeams: [ParticipatingTeams]
         matchs:          [Match]
@@ -131,6 +132,7 @@ export const typeDefs = gql`
 
         id_club:    ID
         externalplayer: Int
+        internalplayer: Int
     }
 
     type ParticipatingTeams {

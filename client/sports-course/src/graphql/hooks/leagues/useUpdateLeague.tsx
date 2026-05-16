@@ -6,12 +6,15 @@ interface VariableProps {
     id?:          string;
     content: {
         name: string;
-        numberTeams: string;
-        numberGroups: string;
+        numberTeams: number | string;
+        numberGroups: number | string;
         description: string;
 
         startDate?: string;
         expiryDate?: string;
+
+        internalplayer?: number;
+        externalplayer?: number;
     }
 }
 

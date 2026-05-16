@@ -17,23 +17,40 @@ type Props = {
 
 export const UpdateLeague = ({data, ...props}: Props) => {
     const {getInputProps, reset, onSubmit, setValues} = useForm({
-        initialValues: {name: "", description: "", numberTeams: 0, numberGroups: 0, startDate: "", expiryDate: ""}
+        initialValues: {
+            name: "",
+            description: "",
+            numberTeams: "" as any,
+            numberGroups: "" as any,
+            internalplayer: "" as any,
+            externalplayer: "" as any,
+            startDate: "",
+            expiryDate: "",
+        }
     });
 
     const [updateLeague] = useUpdateLeague();
+
+    const toIntOrZero = (v: any) => {
+        if (v === "" || v === null || v === undefined) return 0;
+        const n = parseInt(String(v), 10);
+        return Number.isFinite(n) ? n : 0;
+    };
 
     useEffect(() => {
         if (data !== null && props.opened) {
             setValues({
                 name: data.name,
                 description: data.description,
-                numberTeams: data.numberTeams,
-                numberGroups: data.numberGroups
+                numberTeams: data.numberTeams ?? "",
+                numberGroups: data.numberGroups ?? "",
+                internalplayer: data.internalplayer ?? "",
+                externalplayer: data.externalplayer ?? "",
             })
         }
     }, [data, props.opened, setValues])
 
-    const onFormSubmit = ({name, numberTeams, numberGroups, description, startDate, expiryDate}: any) => {
+    const onFormSubmit = ({name, numberTeams, numberGroups, internalplayer, externalplayer, description, startDate, expiryDate}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
         updateLeague({
@@ -41,8 +58,10 @@ export const UpdateLeague = ({data, ...props}: Props) => {
                 id: data.id,
                 content: {
                     name,
-                    numberTeams,
-                    numberGroups,
+                    numberTeams: toIntOrZero(numberTeams),
+                    numberGroups: toIntOrZero(numberGroups),
+                    internalplayer: toIntOrZero(internalplayer),
+                    externalplayer: toIntOrZero(externalplayer),
                     description,
 
                     startDate: dayjs(startDate).format("YYYY-MM-DD"),
@@ -97,18 +116,35 @@ export const UpdateLeague = ({data, ...props}: Props) => {
                         </Col>
                         <Col span={6} >
                             <NumberInput
-                                placeholder="عدد الفرق"
+                                placeholder="عدد الفرق (اختياري)"
                                 label="عدد الفرق"
-                                withAsterisk
+                                min={0}
                                 {...getInputProps("numberTeams")}
                             />
                         </Col>
                         <Col span={6} >
                             <NumberInput
-                                placeholder="عدد المجموعات"
+                                placeholder="عدد المجموعات (اختياري)"
                                 label="عدد المجموعات"
-                                withAsterisk
+                                min={0}
                                 {...getInputProps("numberGroups")}
+                            />
+                        </Col>
+
+                        <Col span={6} >
+                            <NumberInput
+                                placeholder="اختياري"
+                                label="عدد اللاعبين المحترفين الداخليين المسموح بهم"
+                                min={0}
+                                {...getInputProps("internalplayer")}
+                            />
+                        </Col>
+                        <Col span={6} >
+                            <NumberInput
+                                placeholder="اختياري"
+                                label="عدد اللاعبين المحترفين الخارجيين المسموح بهم"
+                                min={0}
+                                {...getInputProps("externalplayer")}
                             />
                         </Col>
 
