@@ -66,20 +66,23 @@ const styles = StyleSheet.create({
     headerBar: {
         backgroundColor: cardPalette.primary,
         color: "#ffffff",
-        paddingVertical: 4,
+        paddingVertical: 5,
         paddingHorizontal: 8,
-        flexDirection: "row-reverse",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "center",
     },
     headerTitle: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 700,
         color: "#ffffff",
+        textAlign: "center",
     },
     headerSubtitle: {
-        fontSize: 7,
+        fontSize: 8,
         color: "#cffafe",
+        textAlign: "center",
+        marginTop: 1,
     },
     accentStrip: {
         height: 2,
@@ -181,7 +184,7 @@ export const CardFrontPage = ({
                         gap: 6,
                     }}
                 >
-                    {/* Right column: photo + QR */}
+                    {/* Right column: photo + team logo below */}
                     <View
                         style={{
                             width: 78,
@@ -216,7 +219,7 @@ export const CardFrontPage = ({
                         )}
                     </View>
 
-                    {/* Left column: data rows */}
+                    {/* Left column: data rows + bottom logos row */}
                     <View
                         style={{
                             flex: 1,
@@ -236,10 +239,6 @@ export const CardFrontPage = ({
                                 }}
                             />
 
-                            <Text style={styles.label}>الفريق</Text>
-                            <Text style={styles.value}>{team?.name || "—"}</Text>
-                            <View style={{ height: 3 }} />
-
                             <Text style={styles.label}>تاريخ الميلاد</Text>
                             <Text style={styles.value}>{birthLine || "—"}</Text>
                             <View style={{ height: 3 }} />
@@ -248,6 +247,7 @@ export const CardFrontPage = ({
                             <Text style={styles.value}>{player?.person?.card_number || "—"}</Text>
                         </View>
 
+                        {/* Bottom logos / QR row — team logo is the visual anchor */}
                         <View
                             style={{
                                 flexDirection: "row-reverse",
@@ -256,18 +256,26 @@ export const CardFrontPage = ({
                                 marginTop: 3,
                             }}
                         >
+                            {team?.logo ? (
+                                <Image
+                                    style={{ width: 52, height: 52 }}
+                                    src={`${apiUrl}/images/${team.logo}`}
+                                />
+                            ) : (
+                                <View style={{ width: 52, height: 52 }} />
+                            )}
+                            {qrDataUrl ? (
+                                <Image style={{ width: 40, height: 40 }} src={qrDataUrl} />
+                            ) : (
+                                <View style={{ width: 40, height: 40 }} />
+                            )}
                             {club?.logo ? (
                                 <Image
-                                    style={{ width: 22, height: 22 }}
+                                    style={{ width: 30, height: 30 }}
                                     src={`${apiUrl}/images/${club.logo}`}
                                 />
                             ) : (
-                                <View style={{ width: 22, height: 22 }} />
-                            )}
-                            {qrDataUrl ? (
-                                <Image style={{ width: 36, height: 36 }} src={qrDataUrl} />
-                            ) : (
-                                <View style={{ width: 36, height: 36 }} />
+                                <View style={{ width: 30, height: 30 }} />
                             )}
                         </View>
                     </View>
