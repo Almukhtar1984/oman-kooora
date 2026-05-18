@@ -1,10 +1,19 @@
 import React, { useEffect, useState } from "react";
 
-import {Page, Text, Image, Document, StyleSheet, View, Font, PDFViewer} from "@react-pdf/renderer";
+import {
+    Page,
+    Text,
+    Image,
+    Document,
+    StyleSheet,
+    View,
+    Font,
+    PDFViewer,
+} from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import dayjs from "dayjs";
 
-import {apiUrl, printUrl} from "../../config";
+import { apiUrl, printUrl } from "../../config";
 
 interface Props {
     player?: any;
@@ -23,38 +32,92 @@ Font.register({
             fontStyle: "normal",
             fontWeight: 700,
         },
-    ]
+    ],
 });
+
+// Centralised palette so Card.tsx, LeagueCards.tsx and LeagueList.tsx stay in
+// visual sync. Cyan matches the league dashboard in sports-course.
+export const cardPalette = {
+    primary: "#0891b2",
+    primaryDark: "#0e7490",
+    primaryLight: "#cffafe",
+    accent: "#06b6d4",
+    textDark: "#1f2937",
+    textMuted: "#6b7280",
+    border: "#d1d5db",
+    surface: "#ffffff",
+    surfaceMuted: "#f9fafb",
+};
 
 const styles = StyleSheet.create({
     body: {
         fontFamily: "Montserrat-Arabic",
-        backgroundColor: "#fff",
-        fontSize: 12,
-        padding: 14,
+        backgroundColor: cardPalette.surface,
+        padding: 0,
     },
-
-    smFont: {
-        fontSize: 9,
-        color: "#888",
-    },
-
-    horizontalDivider: {
-        position: "absolute",
-        top: 0,
-        left: "50%",
-        height: "100%",
-        textAlign: "center",
-        borderLeft: "2px dashed #333",
-    },
-
-    verticalDivider: {
-        position: "absolute",
-        top: "50%",
-        left: 0,
+    card: {
         width: "100%",
-        textAlign: "center",
-        borderTop: "2px dashed #333",
+        height: "100%",
+        backgroundColor: cardPalette.surface,
+        borderWidth: 1,
+        borderColor: cardPalette.border,
+        borderStyle: "solid",
+    },
+    headerBar: {
+        backgroundColor: cardPalette.primary,
+        color: "#ffffff",
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        flexDirection: "row-reverse",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    headerTitle: {
+        fontSize: 9,
+        fontWeight: 700,
+        color: "#ffffff",
+    },
+    headerSubtitle: {
+        fontSize: 7,
+        color: "#cffafe",
+    },
+    accentStrip: {
+        height: 2,
+        backgroundColor: cardPalette.accent,
+    },
+    footerBar: {
+        backgroundColor: cardPalette.primaryDark,
+        color: "#ffffff",
+        paddingVertical: 3,
+        paddingHorizontal: 8,
+        flexDirection: "row-reverse",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    footerText: {
+        fontSize: 6,
+        color: "#cffafe",
+    },
+    label: {
+        fontSize: 6,
+        color: cardPalette.textMuted,
+        fontWeight: 700,
+    },
+    value: {
+        fontSize: 7,
+        color: cardPalette.textDark,
+        fontWeight: 500,
+    },
+    valueStrong: {
+        fontSize: 8,
+        color: cardPalette.textDark,
+        fontWeight: 700,
+    },
+    row: {
+        flexDirection: "row-reverse",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        marginBottom: 1,
     },
 });
 
@@ -83,6 +146,257 @@ export const generateQrDataUrl = async (text: string): Promise<string> => {
     }
 };
 
+// Front + back templates that LeagueCards.tsx can reuse so all ID cards stay
+// visually identical regardless of entry point.
+export const CardFrontPage = ({
+    qrDataUrl,
+    player,
+    headerTitle,
+    headerSubtitle,
+}: {
+    qrDataUrl: string;
+    player: any;
+    headerTitle?: string;
+    headerSubtitle?: string;
+}) => {
+    const fullName = buildFullName(player?.person);
+    const birthLine = formatBirthLine(player?.person?.date_birth);
+    const team = player?.team;
+    const club = team?.club;
+
+    return (
+        <Page orientation={"landscape"} style={styles.body} size={"A7"}>
+            <View style={styles.card}>
+                <View style={styles.headerBar}>
+                    <Text style={styles.headerTitle}>{headerTitle || "بطاقة لاعب"}</Text>
+                    <Text style={styles.headerSubtitle}>{headerSubtitle || team?.name || ""}</Text>
+                </View>
+                <View style={styles.accentStrip} />
+
+                <View
+                    style={{
+                        flex: 1,
+                        flexDirection: "row-reverse",
+                        padding: 6,
+                        gap: 6,
+                    }}
+                >
+                    {/* Right column: photo + QR */}
+                    <View
+                        style={{
+                            width: 78,
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                            gap: 4,
+                        }}
+                    >
+                        {player?.person?.personal_picture ? (
+                            <Image
+                                style={{
+                                    width: 70,
+                                    height: 78,
+                                    borderWidth: 1,
+                                    borderColor: cardPalette.primary,
+                                    borderStyle: "solid",
+                                }}
+                                src={`${apiUrl}/images/${player.person.personal_picture}`}
+                            />
+                        ) : (
+                            <View
+                                style={{
+                                    width: 70,
+                                    height: 78,
+                                    borderWidth: 1,
+                                    borderColor: cardPalette.border,
+                                    borderStyle: "solid",
+                                    backgroundColor: cardPalette.surfaceMuted,
+                                }}
+                            />
+                        )}
+                    </View>
+
+                    {/* Left column: data rows */}
+                    <View
+                        style={{
+                            flex: 1,
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            paddingVertical: 2,
+                        }}
+                    >
+                        <View>
+                            <Text style={styles.label}>الاسم الكامل</Text>
+                            <Text style={styles.valueStrong}>{fullName}</Text>
+                            <View
+                                style={{
+                                    height: 1,
+                                    backgroundColor: cardPalette.border,
+                                    marginVertical: 3,
+                                }}
+                            />
+
+                            <Text style={styles.label}>الفريق</Text>
+                            <Text style={styles.value}>{team?.name || "—"}</Text>
+                            <View style={{ height: 3 }} />
+
+                            <Text style={styles.label}>تاريخ الميلاد</Text>
+                            <Text style={styles.value}>{birthLine || "—"}</Text>
+                            <View style={{ height: 3 }} />
+
+                            <Text style={styles.label}>الرقم المدني</Text>
+                            <Text style={styles.value}>{player?.person?.card_number || "—"}</Text>
+                        </View>
+
+                        <View
+                            style={{
+                                flexDirection: "row-reverse",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                marginTop: 3,
+                            }}
+                        >
+                            {club?.logo ? (
+                                <Image
+                                    style={{ width: 22, height: 22 }}
+                                    src={`${apiUrl}/images/${club.logo}`}
+                                />
+                            ) : (
+                                <View style={{ width: 22, height: 22 }} />
+                            )}
+                            {qrDataUrl ? (
+                                <Image style={{ width: 36, height: 36 }} src={qrDataUrl} />
+                            ) : (
+                                <View style={{ width: 36, height: 36 }} />
+                            )}
+                        </View>
+                    </View>
+                </View>
+
+                <View style={styles.accentStrip} />
+                <View style={styles.footerBar}>
+                    <Text style={styles.footerText}>منصة طموح</Text>
+                    <Text style={styles.footerText}>omkooora.com</Text>
+                </View>
+            </View>
+        </Page>
+    );
+};
+
+export const CardBackPage = ({
+    player,
+    headerTitle,
+    headerSubtitle,
+}: {
+    player: any;
+    headerTitle?: string;
+    headerSubtitle?: string;
+}) => {
+    const team = player?.team;
+    const club = team?.club;
+
+    return (
+        <Page orientation={"landscape"} style={styles.body} size={"A7"}>
+            <View style={styles.card}>
+                <View style={styles.headerBar}>
+                    <Text style={styles.headerTitle}>{headerTitle || "بطاقة لاعب"}</Text>
+                    <Text style={styles.headerSubtitle}>{headerSubtitle || ""}</Text>
+                </View>
+                <View style={styles.accentStrip} />
+
+                <View
+                    style={{
+                        flex: 1,
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 8,
+                    }}
+                >
+                    <View
+                        style={{
+                            flexDirection: "row-reverse",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 18,
+                        }}
+                    >
+                        <View style={{ alignItems: "center" }}>
+                            {team?.logo ? (
+                                <Image
+                                    style={{ width: 64, height: 64 }}
+                                    src={`${apiUrl}/images/${team.logo}`}
+                                />
+                            ) : (
+                                <View
+                                    style={{
+                                        width: 64,
+                                        height: 64,
+                                        borderWidth: 1,
+                                        borderColor: cardPalette.border,
+                                        borderStyle: "solid",
+                                    }}
+                                />
+                            )}
+                            <Text
+                                style={{
+                                    fontSize: 7,
+                                    color: cardPalette.textDark,
+                                    fontWeight: 700,
+                                    marginTop: 3,
+                                }}
+                            >
+                                {team?.name || ""}
+                            </Text>
+                            <Text style={{ fontSize: 5, color: cardPalette.textMuted }}>
+                                فريق
+                            </Text>
+                        </View>
+
+                        <View style={{ alignItems: "center" }}>
+                            {club?.logo ? (
+                                <Image
+                                    style={{ width: 64, height: 64 }}
+                                    src={`${apiUrl}/images/${club.logo}`}
+                                />
+                            ) : (
+                                <View
+                                    style={{
+                                        width: 64,
+                                        height: 64,
+                                        borderWidth: 1,
+                                        borderColor: cardPalette.border,
+                                        borderStyle: "solid",
+                                    }}
+                                />
+                            )}
+                            <Text
+                                style={{
+                                    fontSize: 7,
+                                    color: cardPalette.textDark,
+                                    fontWeight: 700,
+                                    marginTop: 3,
+                                }}
+                            >
+                                {club?.name || ""}
+                            </Text>
+                            <Text style={{ fontSize: 5, color: cardPalette.textMuted }}>
+                                نادي
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+
+                <View style={styles.accentStrip} />
+                <View style={styles.footerBar}>
+                    <Text style={styles.footerText}>منصة طموح</Text>
+                    <Text style={styles.footerText}>omkooora.com</Text>
+                </View>
+            </View>
+        </Page>
+    );
+};
+
 const CardTemplate = ({ player }: Props) => {
     const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
@@ -100,8 +414,6 @@ const CardTemplate = ({ player }: Props) => {
         };
     }, [player?.id]);
 
-    // Don't try to render a PDF until we actually have player data — otherwise
-    // PDFViewer renders a card full of "undefined" strings.
     if (!player?.id) {
         return (
             <div data-testid="print-card-loading" style={{ padding: 24, textAlign: "center" }}>
@@ -110,104 +422,17 @@ const CardTemplate = ({ player }: Props) => {
         );
     }
 
-    const fullName = buildFullName(player?.person);
-    const birthLine = formatBirthLine(player?.person?.date_birth);
-
     return (
         <PDFViewer
             data-testid="print-card-pdfviewer"
             style={{ minHeight: "calc(100vh - 25px )", minWidth: "calc(100vw - 10px )" }}
         >
             <Document>
-                <Page orientation={"landscape"} style={styles.body} size={"A7"} >
-
-                    <View style={{display: "flex", flexDirection: "column", width: "100%", height: "100%", alignItems: "center", border: "1px solid #555", justifyContent: "space-between"}}>
-                        <View style={{display: "flex", flexDirection: "row", width: "100%", height: "3cm", alignItems: "center", justifyContent: "space-between"}}>
-                            {/* section 1 */}
-                            {qrDataUrl
-                                ? <Image
-                                    style={{ width: "20mm", height: "20mm", marginLeft: "5mm" }}
-                                    src={qrDataUrl}
-                                />
-                                : <View style={{ width: "20mm", height: "20mm", marginLeft: "5mm" }} />
-                            }
-
-                            {/* section 2 */}
-                            {player?.team?.club?.logo
-                                ? <Image style={{ width: "20mm", height: "20mm", marginRight: "5mm" }} src={`${apiUrl}/images/${player.team.club.logo}`} />
-                                : <View style={{ width: "20mm", height: "20mm", marginRight: "5mm" }} />
-                            }
-
-                        </View>
-
-                        <View style={{display: "flex", flexDirection: "row", width: "100%", height: "4cm", alignItems: "center", justifyContent: "space-between", padding: "0.5cm"}}>
-                            {/* section 1 */}
-                            <View style={{flex: 1}}>
-                                <View style={{display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "30mm"}}>
-                                    {/*logo*/}
-                                    {player?.person?.personal_picture
-                                        ? <Image style={{ width: "100%", height: "2.5cm" }} src={`${apiUrl}/images/${player.person.personal_picture}`} />
-                                        : <View style={{width: "100%", height: "2.5cm", border: "1px solid #555"}}/>
-                                    }
-
-                                </View>
-                            </View>
-
-                            {/* section 2 */}
-                            <View style={{flex: 2.5}}>
-                                <View style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-                                    <View style={{display: "flex", flexDirection: "row", justifyContent: "flex-end", alignItems: "center"}}>
-                                        <Text style={{fontSize: 7, fontWeight: 500, marginRight: 5}}>
-                                            {player?.team?.name || ""}
-                                        </Text>
-                                        <Text style={{fontSize: 7, fontWeight: 600}}>الفريق : </Text>
-                                    </View>
-                                    <View style={{display: "flex", flexDirection: "row", justifyContent: "flex-end", alignItems: "center"}}>
-                                        <Text style={{fontSize: 7, fontWeight: 500, marginRight: 5}}>
-                                            {fullName}
-                                        </Text>
-                                        <Text style={{fontSize: 7, fontWeight: 600}}>الاسم الكامل : </Text>
-                                    </View>
-                                    <View style={{display: "flex", flexDirection: "row", justifyContent: "flex-end", alignItems: "center"}}>
-                                        <Text style={{fontSize: 7, fontWeight: 500, marginRight: 5}}>
-                                            {birthLine}
-                                        </Text>
-                                        <Text style={{fontSize: 7, fontWeight: 600}}>تاريخ الميلاد : </Text>
-                                    </View>
-                                    <View style={{display: "flex", flexDirection: "row", justifyContent: "flex-end", alignItems: "center"}}>
-                                        <Text style={{fontSize: 7, fontWeight: 500, marginRight: 5}}>
-                                            {player?.person?.card_number || ""}
-                                        </Text>
-                                        <Text style={{fontSize: 7, fontWeight: 600}}>الرقم المدني : </Text>
-                                    </View>
-                                </View>
-                            </View>
-                        </View>
-                    </View>
-                </Page>
-                <Page orientation={"landscape"} style={styles.body} size={"A7"} >
-
-                    <View style={{display: "flex", flexDirection: "column", width: "100%", height: "100%", alignItems: "center", border: "1px solid #555", justifyContent: "center"}}>
-                        <View style={{display: "flex", flexDirection: "row", width: "100%", height: "3cm", alignItems: "center", justifyContent: "center"}}>
-                            {/* section 1 */}
-                            {player?.team?.logo
-                                ? <Image style={{ width: "30mm", height: "30mm" }} src={`${apiUrl}/images/${player.team.logo}`} />
-                                : <View style={{ width: "30mm", height: "30mm" }} />
-                            }
-                            <View style={{width: "1cm", height: "1cm"}}></View>
-                            {/* section 2 */}
-                            {player?.team?.club?.logo
-                                ? <Image style={{ width: "30mm", height: "30mm" }} src={`${apiUrl}/images/${player.team.club.logo}`} />
-                                : <View style={{ width: "30mm", height: "30mm" }} />
-                            }
-                        </View>
-
-                    </View>
-                </Page>
+                <CardFrontPage qrDataUrl={qrDataUrl} player={player} />
+                <CardBackPage player={player} />
             </Document>
         </PDFViewer>
     );
 };
 
-
-export default CardTemplate
+export default CardTemplate;

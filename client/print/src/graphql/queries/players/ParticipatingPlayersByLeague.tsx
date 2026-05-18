@@ -8,6 +8,10 @@ export const ParticipatingPlayersByLeague = gql`
             participating_team {
                 id
                 group
+                league {
+                    id
+                    name
+                }
                 team {
                     id
                     name

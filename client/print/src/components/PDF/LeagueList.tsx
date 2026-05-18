@@ -10,7 +10,7 @@ import {
     PDFViewer,
 } from "@react-pdf/renderer";
 
-import { buildFullName } from "./Card";
+import { buildFullName, cardPalette } from "./Card";
 
 interface ParticipatingPlayer {
     id: string;
@@ -46,33 +46,64 @@ const styles = StyleSheet.create({
         fontSize: 12,
         padding: "1cm",
     },
+    titleBar: {
+        backgroundColor: cardPalette.primary,
+        color: "#ffffff",
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        flexDirection: "row-reverse",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 4,
+    },
+    titleText: {
+        fontSize: 11,
+        color: "#ffffff",
+        fontWeight: 700,
+    },
+    subtitleText: {
+        fontSize: 8,
+        color: "#cffafe",
+    },
+    accentStrip: {
+        height: 2,
+        backgroundColor: cardPalette.accent,
+        marginBottom: 8,
+    },
     cell: {
-        border: "1px solid #555",
+        borderWidth: 1,
+        borderColor: cardPalette.border,
+        borderStyle: "solid",
         height: "1cm",
-        display: "flex",
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
     },
     cellText: {
         fontSize: 9,
         fontWeight: 400,
+        color: cardPalette.textDark,
     },
     headerCell: {
-        border: "1px solid #555",
+        borderWidth: 1,
+        borderColor: cardPalette.primaryDark,
+        borderStyle: "solid",
         height: "1cm",
-        display: "flex",
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#eee",
+        backgroundColor: cardPalette.primary,
     },
     headerText: {
         fontSize: 9,
-        fontWeight: 500,
+        fontWeight: 700,
+        color: "#ffffff",
     },
 });
 
 const LeagueList = ({ players }: Props) => {
     const safePlayers = players || [];
+    const leagueName = safePlayers[0]?.participating_team?.league?.name;
 
     return (
         <PDFViewer
@@ -81,47 +112,28 @@ const LeagueList = ({ players }: Props) => {
         >
             <Document>
                 <Page orientation={"portrait"} style={styles.body} size={"A4"} wrap={true}>
-                    <View
-                        style={{
-                            display: "flex",
-                            flexDirection: "row",
-                            width: "100%",
-                            height: "3cm",
-                            alignItems: "flex-start",
-                            justifyContent: "space-between",
-                        }}
-                    >
-                        <View style={{ flex: 2.5 }} />
-                        <View style={{ flex: 1 }}>
-                            <View
-                                style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    height: "18mm",
-                                    width: "18mm",
-                                }}
-                            >
-                                <Image style={{ width: "20mm", height: "20mm" }} src={"/logo.jpg"} />
-                            </View>
+                    <View style={styles.titleBar}>
+                        <View
+                            style={{
+                                flexDirection: "row-reverse",
+                                alignItems: "center",
+                                gap: 8,
+                            }}
+                        >
+                            <Image style={{ width: 24, height: 24 }} src={"/logo.jpg"} />
+                            <Text style={styles.titleText}>منصة طموح</Text>
+                        </View>
+                        <View style={{ alignItems: "flex-start" }}>
+                            <Text style={styles.titleText}>قائمة اللاعبين المشاركين</Text>
+                            {leagueName ? (
+                                <Text style={styles.subtitleText}>{leagueName}</Text>
+                            ) : null}
                         </View>
                     </View>
-
-                    <Text
-                        style={{
-                            fontSize: 12,
-                            fontWeight: 600,
-                            textAlign: "center",
-                            marginBottom: "0.4cm",
-                        }}
-                    >
-                        قائمة اللاعبين المشاركين في الدورة
-                    </Text>
+                    <View style={styles.accentStrip} />
 
                     <View
                         style={{
-                            display: "flex",
                             flexDirection: "row",
                             width: "100%",
                             alignItems: "center",
@@ -158,16 +170,19 @@ const LeagueList = ({ players }: Props) => {
                     {safePlayers.map((pp, index) => {
                         const player = pp.player;
                         const team = pp.participating_team?.team;
+                        const isStriped = index % 2 === 1;
                         return (
                             <View
                                 key={pp.id || index}
                                 style={{
-                                    display: "flex",
                                     flexDirection: "row",
                                     width: "100%",
                                     alignItems: "center",
                                     justifyContent: "space-between",
                                     padding: "0.1cm 0.2cm 0",
+                                    backgroundColor: isStriped
+                                        ? cardPalette.surfaceMuted
+                                        : "transparent",
                                 }}
                             >
                                 <View style={[styles.cell, { flex: 0.7 }]}>
