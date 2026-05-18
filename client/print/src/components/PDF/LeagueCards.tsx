@@ -3,7 +3,7 @@ import { Document, Font, PDFViewer } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 
 import { printUrl } from "../../config";
-import { CardBackPage, CardFrontPage } from "./Card";
+import { CardFrontPage } from "./Card";
 
 interface ParticipatingPlayer {
     id: string;
@@ -97,19 +97,13 @@ const LeagueCards = ({ players }: Props) => {
                     const leagueName = pp.participating_team?.league?.name;
                     const teamName = pp.participating_team?.team?.name;
                     return (
-                        <React.Fragment key={pp.id}>
-                            <CardFrontPage
-                                qrDataUrl={qrMap[pp.id] || ""}
-                                player={playerForCard(pp)}
-                                headerTitle={leagueName || "بطاقة لاعب"}
-                                headerSubtitle={teamName}
-                            />
-                            <CardBackPage
-                                player={playerForCard(pp)}
-                                headerTitle={leagueName || "بطاقة لاعب"}
-                                headerSubtitle={teamName}
-                            />
-                        </React.Fragment>
+                        <CardFrontPage
+                            key={pp.id}
+                            qrDataUrl={qrMap[pp.id] || ""}
+                            player={playerForCard(pp)}
+                            headerTitle={leagueName || "بطاقة لاعب"}
+                            headerSubtitle={teamName}
+                        />
                     );
                 })}
             </Document>
