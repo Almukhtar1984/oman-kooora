@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 
 import { apiUrl, printUrl } from "../config";
@@ -9,6 +9,8 @@ export interface PrintProgress {
     qrLoaded: number;
     qrTotal: number;
     ready: boolean;
+    bytesIn: number;
+    bytesOut: number;
 }
 
 export interface PrintAssets {
@@ -31,14 +33,55 @@ interface PlayerLike {
     } | null;
 }
 
-const IMAGE_CONCURRENCY = 6;
-const QR_BATCH_SIZE = 10;
+const IMAGE_CONCURRENCY = 8;
+const QR_BATCH_SIZE = 12;
 
-const fetchAsObjectUrl = async (url: string, signal: AbortSignal): Promise<string> => {
+// Target sizes are tuned to the actual on-card dimensions × 2 for retina
+// crispness. The originals coming from /images are often 1–3 MB DSLR photos
+// while the card prints them at 70×78 pt, so downscaling is a 10–20× memory
+// and PDF-size win for large leagues.
+const PHOTO_TARGET = { w: 280, h: 320, quality: 0.82 };
+const LOGO_TARGET = { w: 256, h: 256, quality: 0.85 };
+
+const fetchAsBlob = async (url: string, signal: AbortSignal): Promise<Blob> => {
     const res = await fetch(url, { signal, cache: "force-cache" });
     if (!res.ok) throw new Error(`status ${res.status}`);
-    const blob = await res.blob();
-    return URL.createObjectURL(blob);
+    return res.blob();
+};
+
+// Decode + downscale + re-encode an image blob to JPEG. Returns the resulting
+// blob plus its size so we can show "saved X MB" feedback. Falls back to the
+// original blob if the browser refuses to decode (e.g. SVG with foreignObject
+// or HEIF that the codec doesn't support).
+const downscaleBlob = async (
+    blob: Blob,
+    target: { w: number; h: number; quality: number },
+): Promise<Blob> => {
+    try {
+        if (blob.type === "image/svg+xml") return blob;
+        const bitmap = await createImageBitmap(blob).catch(() => null);
+        if (!bitmap) return blob;
+        const ratio = Math.min(target.w / bitmap.width, target.h / bitmap.height, 1);
+        const outW = Math.max(1, Math.round(bitmap.width * ratio));
+        const outH = Math.max(1, Math.round(bitmap.height * ratio));
+        const canvas = document.createElement("canvas");
+        canvas.width = outW;
+        canvas.height = outH;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+            bitmap.close?.();
+            return blob;
+        }
+        ctx.drawImage(bitmap, 0, 0, outW, outH);
+        bitmap.close?.();
+        const out: Blob | null = await new Promise((resolve) =>
+            canvas.toBlob(resolve, "image/jpeg", target.quality),
+        );
+        if (!out || out.size >= blob.size) return blob;
+        return out;
+    } catch {
+        return blob;
+    }
 };
 
 const runWithConcurrency = async <T,>(
@@ -64,25 +107,28 @@ const runWithConcurrency = async <T,>(
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /**
- * Pre-loads every distinct image (player photo, team logo, club logo) once and
- * generates QR codes in small batches. @react-pdf/renderer re-downloads images
- * even when the same URL repeats inside a Document, so deduplicating up-front
- * is the single biggest win for large leagues.
+ * Pre-loads every distinct image (player photo, team logo, club logo) once,
+ * downscales it via canvas to roughly card-display size, and generates QR
+ * codes in small batches. @react-pdf/renderer re-downloads images even when
+ * the same URL repeats inside a Document, so deduplicate + compress up-front
+ * is the single biggest win for leagues with 200–300+ participants.
  */
 export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets => {
     const safePlayers = useMemo(() => players || [], [players]);
 
-    const uniqueImageNames = useMemo(() => {
-        const set = new Set<string>();
+    // Walk the list once, recording which files are photos vs logos so we
+    // can pick the right downscale target per filename.
+    const imageJobs = useMemo(() => {
+        const map = new Map<string, "photo" | "logo">();
         for (const pp of safePlayers) {
             const photo = pp.player?.person?.personal_picture;
             const teamLogo = pp.participating_team?.team?.logo;
             const clubLogo = pp.participating_team?.team?.club?.logo;
-            if (photo) set.add(photo);
-            if (teamLogo) set.add(teamLogo);
-            if (clubLogo) set.add(clubLogo);
+            if (photo && !map.has(photo)) map.set(photo, "photo");
+            if (teamLogo && !map.has(teamLogo)) map.set(teamLogo, "logo");
+            if (clubLogo && !map.has(clubLogo)) map.set(clubLogo, "logo");
         }
-        return Array.from(set);
+        return Array.from(map.entries()).map(([name, kind]) => ({ name, kind }));
     }, [safePlayers]);
 
     const qrTargets = useMemo(() => {
@@ -98,7 +144,8 @@ export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets =
     const [qr, setQr] = useState<Record<string, string>>({});
     const [imagesLoaded, setImagesLoaded] = useState(0);
     const [qrLoaded, setQrLoaded] = useState(0);
-    const createdUrlsRef = useRef<string[]>([]);
+    const [bytesIn, setBytesIn] = useState(0);
+    const [bytesOut, setBytesOut] = useState(0);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -107,19 +154,26 @@ export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets =
         setQr({});
         setImagesLoaded(0);
         setQrLoaded(0);
+        setBytesIn(0);
+        setBytesOut(0);
 
         const nextImages: Record<string, string> = {};
 
-        const imageTasks = uniqueImageNames.map((name) => async () => {
+        const imageTasks = imageJobs.map(({ name, kind }) => async () => {
             try {
-                const url = await fetchAsObjectUrl(`${apiUrl}/images/${name}`, controller.signal);
-                if (controller.signal.aborted) {
-                    URL.revokeObjectURL(url);
-                    return;
-                }
+                const raw = await fetchAsBlob(`${apiUrl}/images/${name}`, controller.signal);
+                if (controller.signal.aborted) return;
+                const target = kind === "photo" ? PHOTO_TARGET : LOGO_TARGET;
+                const compressed = await downscaleBlob(raw, target);
+                if (controller.signal.aborted) return;
+                const url = URL.createObjectURL(compressed);
                 nextImages[name] = url;
                 localCreated.push(url);
+                setBytesIn((n) => n + raw.size);
+                setBytesOut((n) => n + compressed.size);
             } catch {
+                // Network or decode failed — fall back to the remote URL so the
+                // card still renders, it just won't get the compression benefit.
                 nextImages[name] = `${apiUrl}/images/${name}`;
             } finally {
                 if (!controller.signal.aborted) {
@@ -160,25 +214,26 @@ export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets =
 
         run();
 
-        createdUrlsRef.current = localCreated;
         return () => {
             controller.abort();
             for (const u of localCreated) URL.revokeObjectURL(u);
         };
-    }, [uniqueImageNames, qrTargets]);
+    }, [imageJobs, qrTargets]);
 
     const ready =
-        imagesLoaded >= uniqueImageNames.length && qrLoaded >= qrTargets.length;
+        imagesLoaded >= imageJobs.length && qrLoaded >= qrTargets.length;
 
     return {
         images,
         qr,
         progress: {
             imagesLoaded,
-            imagesTotal: uniqueImageNames.length,
+            imagesTotal: imageJobs.length,
             qrLoaded,
             qrTotal: qrTargets.length,
             ready,
+            bytesIn,
+            bytesOut,
         },
     };
 };

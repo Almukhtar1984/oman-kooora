@@ -4,6 +4,7 @@ import type { PrintProgress as PrintProgressData } from "../hooks/usePrintAssets
 interface Props {
     progress: PrintProgressData;
     label?: string;
+    totalPlayers?: number;
 }
 
 const barShell: React.CSSProperties = {
@@ -16,16 +17,28 @@ const barShell: React.CSSProperties = {
     marginTop: 12,
 };
 
-const PrintProgress: React.FC<Props> = ({ progress, label }) => {
+const formatMB = (bytes: number): string => {
+    if (bytes <= 0) return "0 ميغا";
+    const mb = bytes / (1024 * 1024);
+    if (mb < 0.1) return `${Math.round(bytes / 1024)} كيلو`;
+    return `${mb.toFixed(1)} ميغا`;
+};
+
+const PrintProgress: React.FC<Props> = ({ progress, label, totalPlayers }) => {
     const total = progress.imagesTotal + progress.qrTotal;
     const done = progress.imagesLoaded + progress.qrLoaded;
     const pct = total === 0 ? 100 : Math.round((done / total) * 100);
     const phase =
         progress.imagesLoaded < progress.imagesTotal
-            ? `تحميل الصور (${progress.imagesLoaded}/${progress.imagesTotal})`
+            ? `تحميل وضغط الصور (${progress.imagesLoaded}/${progress.imagesTotal})`
             : progress.qrLoaded < progress.qrTotal
               ? `توليد رموز QR (${progress.qrLoaded}/${progress.qrTotal})`
               : "تجهيز ملف PDF…";
+
+    const showSavings = progress.bytesIn > 0 && progress.bytesOut > 0;
+    const savedPct = showSavings
+        ? Math.max(0, Math.round(((progress.bytesIn - progress.bytesOut) / progress.bytesIn) * 100))
+        : 0;
 
     return (
         <div
@@ -43,6 +56,11 @@ const PrintProgress: React.FC<Props> = ({ progress, label }) => {
         >
             <div style={{ fontWeight: 600, fontSize: 16 }}>
                 {label || "جارٍ تجهيز البطاقات"}
+                {typeof totalPlayers === "number" && totalPlayers > 0 ? (
+                    <span style={{ color: "#6b7280", fontWeight: 400, marginRight: 6 }}>
+                        ({totalPlayers} لاعب)
+                    </span>
+                ) : null}
             </div>
             <div style={{ marginTop: 6, fontSize: 13, color: "#6b7280" }}>{phase}</div>
             <div style={barShell}>
@@ -56,6 +74,11 @@ const PrintProgress: React.FC<Props> = ({ progress, label }) => {
                 />
             </div>
             <div style={{ marginTop: 6, fontSize: 12, color: "#6b7280" }}>{pct}%</div>
+            {showSavings ? (
+                <div style={{ marginTop: 8, fontSize: 11, color: "#059669" }}>
+                    تم تقليل حجم الصور من {formatMB(progress.bytesIn)} إلى {formatMB(progress.bytesOut)} (-{savedPct}%)
+                </div>
+            ) : null}
         </div>
     );
 };

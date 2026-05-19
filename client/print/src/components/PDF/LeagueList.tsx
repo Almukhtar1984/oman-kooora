@@ -22,6 +22,7 @@ interface ParticipatingPlayer {
 
 interface Props {
     players?: ParticipatingPlayer[];
+    deferViewerAbove?: number;
 }
 
 Font.register({
@@ -102,10 +103,17 @@ const styles = StyleSheet.create({
     },
 });
 
-const LeagueList = ({ players }: Props) => {
+interface Props {
+    players?: ParticipatingPlayer[];
+    deferViewerAbove?: number;
+}
+
+const LeagueList = ({ players, deferViewerAbove = 150 }: Props) => {
     const safePlayers = useMemo(() => players || [], [players]);
     const leagueName = safePlayers[0]?.participating_team?.league?.name;
     const [downloading, setDownloading] = useState(false);
+    const heavy = safePlayers.length > deferViewerAbove;
+    const [showViewer, setShowViewer] = useState(!heavy);
 
     const docElement = useMemo(
         () => (
@@ -238,6 +246,71 @@ const LeagueList = ({ players }: Props) => {
             setDownloading(false);
         }
     };
+
+    // Heavy list ready screen: skip mounting PDFViewer (which paginates 300+
+    // rows internally) until the user asks for it.
+    if (heavy && !showViewer) {
+        return (
+            <div
+                data-testid="league-list-ready"
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100vh",
+                    direction: "rtl",
+                    fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif",
+                    color: "#1f2937",
+                    padding: 24,
+                    gap: 14,
+                }}
+            >
+                <div style={{ fontSize: 20, fontWeight: 700 }}>الملف جاهز</div>
+                <div style={{ color: "#6b7280", textAlign: "center" }}>
+                    قائمة {safePlayers.length} لاعب{leagueName ? ` — ${leagueName}` : ""}
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                    <button
+                        type="button"
+                        onClick={handleDownload}
+                        disabled={downloading}
+                        data-testid="league-list-download"
+                        style={{
+                            backgroundColor: "#0891b2",
+                            color: "#ffffff",
+                            border: "none",
+                            padding: "6px 14px",
+                            borderRadius: 6,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: downloading ? "wait" : "pointer",
+                            opacity: downloading ? 0.7 : 1,
+                        }}
+                    >
+                        {downloading ? "جارٍ التحميل…" : "تحميل PDF مباشرة"}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setShowViewer(true)}
+                        data-testid="league-list-show-viewer"
+                        style={{
+                            backgroundColor: "#ffffff",
+                            color: "#0891b2",
+                            border: "1px solid #0891b2",
+                            padding: "6px 14px",
+                            borderRadius: 6,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                        }}
+                    >
+                        عرض PDF داخل المتصفح
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
