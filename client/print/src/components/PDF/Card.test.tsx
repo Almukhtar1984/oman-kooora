@@ -33,6 +33,8 @@ import CardTemplate, {
     buildFullName,
     formatBirthLine,
     generateQrDataUrl,
+    CardFrontPage,
+    CardBackPage,
 } from "./Card";
 
 describe("Card helpers", () => {
@@ -171,5 +173,81 @@ describe("<CardTemplate />", () => {
             const qr = imgs[0];
             expect(qr.getAttribute("src")).toMatch(/^data:image\//);
         });
+    });
+});
+
+describe("CardFrontPage with preloaded images", () => {
+    const player = {
+        id: "p-1",
+        person: {
+            first_name: "أحمد",
+            tribe: "الكندي",
+            personal_picture: "photo.jpg",
+            card_number: "12345678",
+            date_birth: "2000-01-01",
+        },
+        team: {
+            id: "t-1",
+            name: "النهضة",
+            logo: "team.png",
+            club: { id: "c-1", name: "Club", logo: "club.png" },
+        },
+    };
+
+    it("uses preloaded Object URLs when supplied in the images map", () => {
+        render(
+            <CardFrontPage
+                qrDataUrl="data:image/png;base64,xxx"
+                player={player}
+                images={{
+                    "photo.jpg": "blob:fake/photo",
+                    "team.png": "blob:fake/team",
+                    "club.png": "blob:fake/club",
+                }}
+            />,
+        );
+        const srcs = screen
+            .getAllByTestId("pdf-image")
+            .map((el) => el.getAttribute("src"))
+            .filter(Boolean);
+        // Preloaded URLs win over the api.omkooora.com fallback.
+        expect(srcs).toContain("blob:fake/photo");
+        expect(srcs).toContain("blob:fake/team");
+        expect(srcs).toContain("blob:fake/club");
+        // And we never reach for the live API when a preloaded URL exists.
+        expect(srcs.some((s) => s && s.includes("api.omkooora.com"))).toBe(false);
+    });
+
+    it("falls back to the API URL when no preload entry exists for a file", () => {
+        render(
+            <CardFrontPage
+                qrDataUrl=""
+                player={player}
+                images={{ "photo.jpg": "blob:fake/photo" }}
+            />,
+        );
+        const srcs = screen
+            .getAllByTestId("pdf-image")
+            .map((el) => el.getAttribute("src"))
+            .filter(Boolean);
+        expect(srcs).toContain("blob:fake/photo");
+        // team.png + club.png weren't in the map → fall back to live API.
+        expect(srcs.some((s) => s && s.endsWith("/images/team.png"))).toBe(true);
+        expect(srcs.some((s) => s && s.endsWith("/images/club.png"))).toBe(true);
+    });
+
+    it("works the same on the back page", () => {
+        render(
+            <CardBackPage
+                player={player}
+                images={{ "team.png": "blob:fake/team", "club.png": "blob:fake/club" }}
+            />,
+        );
+        const srcs = screen
+            .getAllByTestId("pdf-image")
+            .map((el) => el.getAttribute("src"))
+            .filter(Boolean);
+        expect(srcs).toContain("blob:fake/team");
+        expect(srcs).toContain("blob:fake/club");
     });
 });

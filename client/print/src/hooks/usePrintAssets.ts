@@ -205,11 +205,13 @@ export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets =
                 );
                 for (const [ppId, url] of generated) nextQr[ppId] = url;
                 if (controller.signal.aborted) return;
+                // Publish the QR map *before* bumping the counter so `ready`
+                // (derived from qrLoaded) can never flip true with a stale map.
+                setQr({ ...nextQr });
                 setQrLoaded((n) => n + batch.length);
                 // Yield to the browser between batches so the UI stays responsive.
                 await sleep(0);
             }
-            if (!controller.signal.aborted) setQr({ ...nextQr });
         };
 
         run();

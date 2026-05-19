@@ -1,6 +1,22 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+beforeEach(() => {
+    // jsdom doesn't ship a 2D canvas context. usePrintAssets only invokes
+    // canvas-based downscaling when getContext returns something, so we hand
+    // it a no-op stub. The hook also gracefully falls back when fetch fails,
+    // which is what happens here in the LeagueCards tests (no fetch mock),
+    // so we end up exercising the "no compression" code path.
+    (HTMLCanvasElement.prototype as any).getContext = vi.fn(() => ({
+        drawImage: vi.fn(),
+    }));
+    (globalThis as any).createImageBitmap = vi.fn(async () => ({
+        width: 100,
+        height: 100,
+        close: () => {},
+    }));
+});
 
 // Same passthrough strategy as Card.test.tsx — react-pdf can't render
 // inside jsdom, so we drop in DOM stand-ins to assert on content.
@@ -114,6 +130,69 @@ describe("<LeagueCards />", () => {
     });
 });
 
+describe("<LeagueCards /> heavy-league ready screen", () => {
+    // Build N players sharing a few teams so dedupe still has work to do.
+    const buildPlayers = (n: number) =>
+        Array.from({ length: n }, (_, i) => ({
+            id: `pp-${i}`,
+            number: String(i),
+            player: {
+                id: `player-${i}`,
+                person: {
+                    first_name: "لاعب",
+                    second_name: String(i),
+                    card_number: String(10000 + i),
+                    date_birth: "2000-01-01",
+                },
+            },
+            participating_team: {
+                id: `pt-${i % 5}`,
+                team: { id: `t-${i % 5}`, name: `فريق ${i % 5}` },
+            },
+        }));
+
+    it("shows the ready screen instead of PDFViewer when league exceeds threshold", async () => {
+        // 5 players + deferViewerAbove=3 → heavy path triggers.
+        render(<LeagueCards players={buildPlayers(5)} deferViewerAbove={3} />);
+        await waitFor(() => {
+            expect(screen.getByTestId("league-cards-ready")).toBeInTheDocument();
+        });
+        expect(screen.queryByTestId("league-cards-pdfviewer")).not.toBeInTheDocument();
+        // Player count surfaces on the ready card.
+        expect(screen.getByText(/5 بطاقة لاعب/)).toBeInTheDocument();
+    });
+
+    it("offers both a direct download and an in-browser preview button", async () => {
+        render(<LeagueCards players={buildPlayers(5)} deferViewerAbove={3} />);
+        await waitFor(() => {
+            expect(screen.getByTestId("league-cards-download")).toBeInTheDocument();
+        });
+        expect(screen.getByTestId("league-cards-show-viewer")).toBeInTheDocument();
+    });
+
+    it("mounts the PDFViewer once the user clicks 'عرض PDF داخل المتصفح'", async () => {
+        render(<LeagueCards players={buildPlayers(5)} deferViewerAbove={3} />);
+        await waitFor(() => {
+            expect(screen.getByTestId("league-cards-show-viewer")).toBeInTheDocument();
+        });
+        fireEvent.click(screen.getByTestId("league-cards-show-viewer"));
+        await waitFor(() => {
+            expect(screen.getByTestId("league-cards-pdfviewer")).toBeInTheDocument();
+        });
+        // Ready screen should be gone now.
+        expect(screen.queryByTestId("league-cards-ready")).not.toBeInTheDocument();
+    });
+
+    it("keeps the immediate-PDFViewer path for light leagues", async () => {
+        // Default deferViewerAbove is 100; 2 players is well below it.
+        render(<LeagueCards players={samplePlayers} />);
+        await waitFor(() => {
+            expect(screen.getByTestId("league-cards-pdfviewer")).toBeInTheDocument();
+        });
+        expect(screen.queryByTestId("league-cards-ready")).not.toBeInTheDocument();
+    });
+});
+
 describe("<LeagueList />", () => {
     it("renders the table even when no players are passed", () => {
         render(<LeagueList players={[]} />);
@@ -130,5 +209,46 @@ describe("<LeagueList />", () => {
         // pp-2 has missing name parts; the row should compose without
         // 'undefined' tokens leaking through.
         expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
+    });
+
+    it("shows the ready screen instead of PDFViewer when above threshold", () => {
+        // 3 players + deferViewerAbove=2 → heavy path triggers.
+        const players = [samplePlayers[0], samplePlayers[1], {
+            ...samplePlayers[0],
+            id: "pp-3",
+            player: { ...samplePlayers[0].player, id: "p-3" },
+        }];
+        render(<LeagueList players={players} deferViewerAbove={2} />);
+        expect(screen.getByTestId("league-list-ready")).toBeInTheDocument();
+        expect(screen.queryByTestId("league-list-pdfviewer")).not.toBeInTheDocument();
+        expect(screen.getByText(/قائمة 3 لاعب/)).toBeInTheDocument();
+    });
+
+    it("offers a download + a 'show viewer' button on the ready screen", () => {
+        const players = Array.from({ length: 4 }, (_, i) => ({
+            ...samplePlayers[0],
+            id: `pp-${i}`,
+        }));
+        render(<LeagueList players={players} deferViewerAbove={2} />);
+        expect(screen.getByTestId("league-list-download")).toBeInTheDocument();
+        expect(screen.getByTestId("league-list-show-viewer")).toBeInTheDocument();
+    });
+
+    it("mounts the PDFViewer once the user opts in", () => {
+        const players = Array.from({ length: 4 }, (_, i) => ({
+            ...samplePlayers[0],
+            id: `pp-${i}`,
+        }));
+        render(<LeagueList players={players} deferViewerAbove={2} />);
+        fireEvent.click(screen.getByTestId("league-list-show-viewer"));
+        expect(screen.getByTestId("league-list-pdfviewer")).toBeInTheDocument();
+        expect(screen.queryByTestId("league-list-ready")).not.toBeInTheDocument();
+    });
+
+    it("keeps the immediate-viewer path for small lists", () => {
+        // Default deferViewerAbove is 150; 2 players is way below it.
+        render(<LeagueList players={samplePlayers} />);
+        expect(screen.getByTestId("league-list-pdfviewer")).toBeInTheDocument();
+        expect(screen.queryByTestId("league-list-ready")).not.toBeInTheDocument();
     });
 });
