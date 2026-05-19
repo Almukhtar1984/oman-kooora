@@ -13,7 +13,7 @@ export default function LeaguePlayersCards() {
         if (!id) return;
         getPlayers({
             variables: { idLeague: id },
-            fetchPolicy: "network-only",
+            fetchPolicy: "cache-first",
             onCompleted: ({ participatingPlayersByLeague }) => {
                 setPlayers(participatingPlayersByLeague || []);
                 setLoaded(true);

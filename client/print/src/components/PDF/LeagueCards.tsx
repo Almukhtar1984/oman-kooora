@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Document, Font, PDFViewer } from "@react-pdf/renderer";
-import QRCode from "qrcode";
+import React, { useMemo, useState } from "react";
+import { Document, Font, PDFViewer, pdf } from "@react-pdf/renderer";
 
-import { printUrl } from "../../config";
 import { CardFrontPage } from "./Card";
+import { usePrintAssets } from "../../hooks/usePrintAssets";
+import PrintProgress from "../PrintProgress";
 
 interface ParticipatingPlayer {
     id: string;
@@ -41,43 +41,32 @@ const playerForCard = (pp: ParticipatingPlayer) => ({
     team: pp.participating_team?.team,
 });
 
-const useQrMap = (players: ParticipatingPlayer[] | undefined) => {
-    const [map, setMap] = useState<Record<string, string>>({});
-
-    useEffect(() => {
-        let cancelled = false;
-        if (!players || players.length === 0) {
-            setMap({});
-            return;
-        }
-
-        Promise.all(
-            players.map(async (pp) => {
-                const playerId = pp?.player?.id;
-                if (!playerId) return [pp.id, ""] as const;
-                try {
-                    const url = await QRCode.toDataURL(`${printUrl}/#/${playerId}`, { margin: 2 });
-                    return [pp.id, url] as const;
-                } catch {
-                    return [pp.id, ""] as const;
-                }
-            }),
-        ).then((entries) => {
-            if (cancelled) return;
-            setMap(Object.fromEntries(entries));
-        });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [players]);
-
-    return map;
-};
-
 const LeagueCards = ({ players }: Props) => {
-    const qrMap = useQrMap(players);
-    const safePlayers = players || [];
+    const safePlayers = useMemo(() => players || [], [players]);
+    const { images, qr, progress } = usePrintAssets(safePlayers);
+    const [downloading, setDownloading] = useState(false);
+
+    const docElement = useMemo(
+        () => (
+            <Document>
+                {safePlayers.map((pp) => {
+                    const leagueName = pp.participating_team?.league?.name;
+                    const teamName = pp.participating_team?.team?.name;
+                    return (
+                        <CardFrontPage
+                            key={pp.id}
+                            qrDataUrl={qr[pp.id] || ""}
+                            player={playerForCard(pp)}
+                            headerTitle={leagueName || "بطاقة لاعب"}
+                            headerSubtitle={teamName}
+                            images={images}
+                        />
+                    );
+                })}
+            </Document>
+        ),
+        [safePlayers, qr, images],
+    );
 
     if (safePlayers.length === 0) {
         return (
@@ -87,27 +76,68 @@ const LeagueCards = ({ players }: Props) => {
         );
     }
 
+    if (!progress.ready) {
+        return <PrintProgress progress={progress} label="جارٍ تجهيز بطاقات اللاعبين" />;
+    }
+
+    const handleDownload = async () => {
+        if (downloading) return;
+        setDownloading(true);
+        try {
+            const blob = await pdf(docElement).toBlob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `players-cards-${new Date().toISOString().slice(0, 10)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     return (
-        <PDFViewer
-            data-testid="league-cards-pdfviewer"
-            style={{ minHeight: "calc(100vh - 25px )", minWidth: "calc(100vw - 10px )" }}
-        >
-            <Document>
-                {safePlayers.map((pp) => {
-                    const leagueName = pp.participating_team?.league?.name;
-                    const teamName = pp.participating_team?.team?.name;
-                    return (
-                        <CardFrontPage
-                            key={pp.id}
-                            qrDataUrl={qrMap[pp.id] || ""}
-                            player={playerForCard(pp)}
-                            headerTitle={leagueName || "بطاقة لاعب"}
-                            headerSubtitle={teamName}
-                        />
-                    );
-                })}
-            </Document>
-        </PDFViewer>
+        <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    padding: "6px 10px",
+                    gap: 8,
+                    backgroundColor: "#f9fafb",
+                    borderBottom: "1px solid #e5e7eb",
+                    direction: "rtl",
+                }}
+            >
+                <button
+                    type="button"
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    data-testid="league-cards-download"
+                    style={{
+                        backgroundColor: "#0891b2",
+                        color: "#ffffff",
+                        border: "none",
+                        padding: "6px 14px",
+                        borderRadius: 6,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: downloading ? "wait" : "pointer",
+                        opacity: downloading ? 0.7 : 1,
+                    }}
+                >
+                    {downloading ? "جارٍ التحميل…" : "تحميل PDF"}
+                </button>
+            </div>
+            <PDFViewer
+                data-testid="league-cards-pdfviewer"
+                style={{ flex: 1, width: "100%", border: "none" }}
+            >
+                {docElement}
+            </PDFViewer>
+        </div>
     );
 };
 

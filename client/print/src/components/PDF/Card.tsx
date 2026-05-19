@@ -149,6 +149,16 @@ export const generateQrDataUrl = async (text: string): Promise<string> => {
     }
 };
 
+// Resolves a raw image filename to either a preloaded Object URL or a fallback
+// remote URL. Used by both LeagueCards (bulk preload) and the single-card path.
+const resolveImageSrc = (
+    filename: string | null | undefined,
+    images?: Record<string, string>,
+): string | undefined => {
+    if (!filename) return undefined;
+    return images?.[filename] || `${apiUrl}/images/${filename}`;
+};
+
 // Front + back templates that LeagueCards.tsx can reuse so all ID cards stay
 // visually identical regardless of entry point.
 export const CardFrontPage = ({
@@ -156,16 +166,21 @@ export const CardFrontPage = ({
     player,
     headerTitle,
     headerSubtitle,
+    images,
 }: {
     qrDataUrl: string;
     player: any;
     headerTitle?: string;
     headerSubtitle?: string;
+    images?: Record<string, string>;
 }) => {
     const fullName = buildFullName(player?.person);
     const birthLine = formatBirthLine(player?.person?.date_birth);
     const team = player?.team;
     const club = team?.club;
+    const personalSrc = resolveImageSrc(player?.person?.personal_picture, images);
+    const teamLogoSrc = resolveImageSrc(team?.logo, images);
+    const clubLogoSrc = resolveImageSrc(club?.logo, images);
 
     return (
         <Page orientation={"landscape"} style={styles.body} size={"A7"}>
@@ -194,7 +209,7 @@ export const CardFrontPage = ({
                             gap: 4,
                         }}
                     >
-                        {player?.person?.personal_picture ? (
+                        {personalSrc ? (
                             <Image
                                 style={{
                                     width: 70,
@@ -203,7 +218,7 @@ export const CardFrontPage = ({
                                     borderColor: cardPalette.primary,
                                     borderStyle: "solid",
                                 }}
-                                src={`${apiUrl}/images/${player.person.personal_picture}`}
+                                src={personalSrc}
                             />
                         ) : (
                             <View
@@ -256,10 +271,10 @@ export const CardFrontPage = ({
                                 marginTop: 3,
                             }}
                         >
-                            {team?.logo ? (
+                            {teamLogoSrc ? (
                                 <Image
                                     style={{ width: 52, height: 52 }}
-                                    src={`${apiUrl}/images/${team.logo}`}
+                                    src={teamLogoSrc}
                                 />
                             ) : (
                                 <View style={{ width: 52, height: 52 }} />
@@ -269,10 +284,10 @@ export const CardFrontPage = ({
                             ) : (
                                 <View style={{ width: 40, height: 40 }} />
                             )}
-                            {club?.logo ? (
+                            {clubLogoSrc ? (
                                 <Image
                                     style={{ width: 30, height: 30 }}
-                                    src={`${apiUrl}/images/${club.logo}`}
+                                    src={clubLogoSrc}
                                 />
                             ) : (
                                 <View style={{ width: 30, height: 30 }} />
@@ -295,13 +310,17 @@ export const CardBackPage = ({
     player,
     headerTitle,
     headerSubtitle,
+    images,
 }: {
     player: any;
     headerTitle?: string;
     headerSubtitle?: string;
+    images?: Record<string, string>;
 }) => {
     const team = player?.team;
     const club = team?.club;
+    const teamLogoSrc = resolveImageSrc(team?.logo, images);
+    const clubLogoSrc = resolveImageSrc(club?.logo, images);
 
     return (
         <Page orientation={"landscape"} style={styles.body} size={"A7"}>
@@ -330,10 +349,10 @@ export const CardBackPage = ({
                         }}
                     >
                         <View style={{ alignItems: "center" }}>
-                            {team?.logo ? (
+                            {teamLogoSrc ? (
                                 <Image
                                     style={{ width: 64, height: 64 }}
-                                    src={`${apiUrl}/images/${team.logo}`}
+                                    src={teamLogoSrc}
                                 />
                             ) : (
                                 <View
@@ -362,10 +381,10 @@ export const CardBackPage = ({
                         </View>
 
                         <View style={{ alignItems: "center" }}>
-                            {club?.logo ? (
+                            {clubLogoSrc ? (
                                 <Image
                                     style={{ width: 64, height: 64 }}
-                                    src={`${apiUrl}/images/${club.logo}`}
+                                    src={clubLogoSrc}
                                 />
                             ) : (
                                 <View

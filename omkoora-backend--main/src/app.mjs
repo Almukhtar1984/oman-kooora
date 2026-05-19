@@ -61,10 +61,21 @@ let socket = null;
         app.use(cookieParser())
         app.use(expressUserAgent());
 
-        app.use('/images', express.static(path.join(__dirname, '../uploads')), (req, res) => {
-            // Fallback: If image not found locally, redirect to production
-            res.redirect(`https://api.omkooora.com/images${req.url}`);
-        });
+        app.use(
+            '/images',
+            express.static(path.join(__dirname, '../uploads'), {
+                maxAge: '30d',
+                immutable: true,
+                etag: true,
+                lastModified: true,
+                setHeaders: (res) => {
+                    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+                },
+            }),
+            (req, res) => {
+                res.redirect(`https://api.omkooora.com/images${req.url}`);
+            },
+        );
         app.get('/health', (req, res) => {
             res.status(200).json({ status: 'ok' });
         });

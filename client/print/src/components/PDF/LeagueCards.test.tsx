@@ -27,6 +27,7 @@ vi.mock("@react-pdf/renderer", () => {
         ),
         Font: { register: vi.fn() },
         StyleSheet: { create: (s: any) => s },
+        pdf: () => ({ toBlob: () => Promise.resolve(new Blob()) }),
     };
 });
 
@@ -82,15 +83,20 @@ describe("<LeagueCards />", () => {
         expect(screen.queryByTestId("league-cards-pdfviewer")).not.toBeInTheDocument();
     });
 
-    it("renders the PDFViewer when players are present", () => {
+    it("renders the PDFViewer when players are present", async () => {
         render(<LeagueCards players={samplePlayers} />);
-        expect(screen.getByTestId("league-cards-pdfviewer")).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByTestId("league-cards-pdfviewer")).toBeInTheDocument();
+        });
     });
 
-    it("does not render the literal string 'undefined' for sparse name parts", () => {
+    it("does not render the literal string 'undefined' for sparse name parts", async () => {
         // pp-2 is missing second_name + tribe — the front-card name row should
         // skip those gaps instead of stringifying `undefined`.
         render(<LeagueCards players={samplePlayers} />);
+        await waitFor(() => {
+            expect(screen.getByTestId("league-cards-pdfviewer")).toBeInTheDocument();
+        });
         expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
     });
 

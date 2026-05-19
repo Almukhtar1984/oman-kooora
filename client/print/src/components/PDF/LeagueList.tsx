@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
     Page,
     Text,
@@ -8,6 +8,7 @@ import {
     View,
     Font,
     PDFViewer,
+    pdf,
 } from "@react-pdf/renderer";
 
 import { buildFullName, cardPalette } from "./Card";
@@ -102,14 +103,12 @@ const styles = StyleSheet.create({
 });
 
 const LeagueList = ({ players }: Props) => {
-    const safePlayers = players || [];
+    const safePlayers = useMemo(() => players || [], [players]);
     const leagueName = safePlayers[0]?.participating_team?.league?.name;
+    const [downloading, setDownloading] = useState(false);
 
-    return (
-        <PDFViewer
-            data-testid="league-list-pdfviewer"
-            style={{ minHeight: "calc(100vh - 25px )", minWidth: "calc(100vw - 10px )" }}
-        >
+    const docElement = useMemo(
+        () => (
             <Document>
                 <Page orientation={"portrait"} style={styles.body} size={"A4"} wrap={true}>
                     <View style={styles.titleBar}>
@@ -218,7 +217,68 @@ const LeagueList = ({ players }: Props) => {
                     })}
                 </Page>
             </Document>
-        </PDFViewer>
+        ),
+        [safePlayers, leagueName],
+    );
+
+    const handleDownload = async () => {
+        if (downloading) return;
+        setDownloading(true);
+        try {
+            const blob = await pdf(docElement).toBlob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `players-list-${new Date().toISOString().slice(0, 10)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    padding: "6px 10px",
+                    gap: 8,
+                    backgroundColor: "#f9fafb",
+                    borderBottom: "1px solid #e5e7eb",
+                    direction: "rtl",
+                }}
+            >
+                <button
+                    type="button"
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    data-testid="league-list-download"
+                    style={{
+                        backgroundColor: "#0891b2",
+                        color: "#ffffff",
+                        border: "none",
+                        padding: "6px 14px",
+                        borderRadius: 6,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: downloading ? "wait" : "pointer",
+                        opacity: downloading ? 0.7 : 1,
+                    }}
+                >
+                    {downloading ? "جارٍ التحميل…" : "تحميل PDF"}
+                </button>
+            </div>
+            <PDFViewer
+                data-testid="league-list-pdfviewer"
+                style={{ flex: 1, width: "100%", border: "none" }}
+            >
+                {docElement}
+            </PDFViewer>
+        </div>
     );
 };
 
