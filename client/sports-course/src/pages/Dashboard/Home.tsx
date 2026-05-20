@@ -7,6 +7,7 @@ import {
     Pagination,
     Paper,
     SimpleGrid,
+    Skeleton,
     Stack,
     Text,
     TextInput,
@@ -75,7 +76,7 @@ export const Home = () => {
     const [activePage, setActivePage] = useState<number>(1);
 
     const idClub = userData?.person?.clubManagement?.club?.id;
-    const { data: dataAllLeagues } = useAllLeagues({
+    const { data: dataAllLeagues, loading: loadingAllLeagues } = useAllLeagues({
         variables: { idClub },
         skip: !idClub,
         fetchPolicy: "cache-and-network",
@@ -228,7 +229,28 @@ export const Home = () => {
             </Group>
 
             {/* Grid */}
-            {pageData.length > 0 ? (
+            {loadingAllLeagues && allLeagues.length === 0 ? (
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md" verticalSpacing="md">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <Paper key={i} withBorder radius="lg" p={0} style={{ overflow: "hidden" }}>
+                            <Skeleton height={60} radius={0} />
+                            <Box p="md">
+                                <Skeleton height={14} width="60%" mb={10} />
+                                <Skeleton height={10} width="40%" mb={16} />
+                                <Group gap={8} mb={10}>
+                                    <Skeleton height={48} style={{ flex: 1 }} radius="md" />
+                                    <Skeleton height={48} style={{ flex: 1 }} radius="md" />
+                                </Group>
+                                <Skeleton height={28} radius="md" mb={10} />
+                                <Group gap={6}>
+                                    <Skeleton height={18} width={90} radius="sm" />
+                                    <Skeleton height={18} width={80} radius="sm" />
+                                </Group>
+                            </Box>
+                        </Paper>
+                    ))}
+                </SimpleGrid>
+            ) : pageData.length > 0 ? (
                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md" verticalSpacing="md">
                     {pageData.map((row: any) => (
                         <LeagueCard

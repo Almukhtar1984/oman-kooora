@@ -1,5 +1,5 @@
-import { ActionIcon,Box,Grid,Group,Image,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
-import { IconDotsVertical,IconEdit } from "@tabler/icons-react";
+import { ActionIcon,Box,Center,Grid,Group,Image,Menu,Skeleton,Stack,Text,useMantineTheme } from "@mantine/core";
+import { IconDotsVertical,IconEdit,IconUserOff } from "@tabler/icons-react";
 import { useEffect,useState } from "react";
 import { useAllParticipatingPlayers } from "../../graphql";
 import { apiBaseUrl } from "../../lib/config";
@@ -15,20 +15,24 @@ type Props = {
 
 export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditParticipatingPlayersModal, ...props}: Props) => {
     const theme = useMantineTheme();
-    const [getAllParticipatingPlayers] = useAllParticipatingPlayers()
+    const [getAllParticipatingPlayers, { loading }] = useAllParticipatingPlayers()
 
     const [allParticipatingPlayers, setAllParticipatingPlayers] = useState<object[]>([]);
+    const [hasFetched, setHasFetched] = useState<boolean>(false);
 
     useEffect(() => {
         if (data && props.opened) {
+            setHasFetched(false);
             getAllParticipatingPlayers({
                 variables: {
                     idParticipatingTeams: data
                 },
                 fetchPolicy: "network-only",
                 onCompleted: ({allParticipatingPlayers}) => {
-                    setAllParticipatingPlayers([...allParticipatingPlayers])
-                }
+                    setAllParticipatingPlayers([...(allParticipatingPlayers || [])])
+                    setHasFetched(true)
+                },
+                onError: () => setHasFetched(true)
             })
         }
     }, [data, getAllParticipatingPlayers, props.opened]);
@@ -36,6 +40,7 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
     const closeModal = () => {
         props.onClose();
         setAllParticipatingPlayers([])
+        setHasFetched(false)
     };
 
     return (
@@ -50,8 +55,35 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
             }}
         >
             <Box style={({ colors }) => ({padding: 20})}>
-                {allParticipatingPlayers?.length >= 0
-                    ? <Grid gutter={20}>
+                {loading && (
+                    <Grid gutter={20}>
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <Col key={i} span={6}>
+                                <Box bg={theme.white} style={{ padding: 10 }}>
+                                    <Group wrap={"nowrap"} align="center">
+                                        <Skeleton height={50} width={50} circle />
+                                        <Stack gap={6} style={{ flex: 1 }}>
+                                            <Skeleton height={12} width="80%" />
+                                            <Skeleton height={10} width="60%" />
+                                            <Skeleton height={10} width="40%" />
+                                        </Stack>
+                                    </Group>
+                                </Box>
+                            </Col>
+                        ))}
+                    </Grid>
+                )}
+                {!loading && hasFetched && allParticipatingPlayers.length === 0 && (
+                    <Center py={40}>
+                        <Stack align="center" gap={6}>
+                            <IconUserOff size={40} color={theme.colors.gray[4]} />
+                            <Text fw={600} c="gray.6">لا يوجد لاعبون مسجلون لهذا الفريق</Text>
+                            <Text size="sm" c="gray.5">قم بإضافة لاعبين من قائمة الدورة.</Text>
+                        </Stack>
+                    </Center>
+                )}
+                {!loading && allParticipatingPlayers.length > 0 && (
+                    <Grid gutter={20}>
                         {allParticipatingPlayers?.map((item: any, index: number) => (
                             <Col key={index} span={6} >
                                 <Box bg={theme.white} style={({ colors }) => ({padding: 10})}>
@@ -99,8 +131,7 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
                             </Col>
                         ))}
                     </Grid>
-                    : null
-                }
+                )}
             </Box>
         </Modal>
     );

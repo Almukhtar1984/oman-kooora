@@ -26,6 +26,14 @@ dayjs.extend(relativeTime)
 const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement
 );
+const hideSplash = () => {
+    const w = window as any;
+    if (typeof w.__hideSplash === "function") {
+        w.__hideSplash();
+    }
+};
+// Hide on next animation frame so the first React paint replaces the splash gracefully.
+requestAnimationFrame(() => requestAnimationFrame(hideSplash));
 root.render(
     <ApolloProvider client={client}>
         <React.StrictMode>
