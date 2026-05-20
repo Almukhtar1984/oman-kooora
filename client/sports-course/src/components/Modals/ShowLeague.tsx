@@ -1,9 +1,26 @@
-import { ActionIcon,Box,Grid,Group,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
-import { IconDotsVertical,IconInfoCircle } from "@tabler/icons-react";
-import { useEffect,useState } from "react";
-import Modal,{ Props as ModalProps } from "./Modal";
-
-const {Col} = Grid
+import {
+    ActionIcon,
+    Avatar,
+    Badge,
+    Box,
+    Center,
+    Divider,
+    Group,
+    Menu,
+    Paper,
+    SimpleGrid,
+    Stack,
+    Text,
+    useMantineTheme,
+} from "@mantine/core";
+import {
+    IconDotsVertical,
+    IconUsers,
+    IconUserCog,
+    IconUsersGroup,
+} from "@tabler/icons-react";
+import { useEffect, useMemo, useState } from "react";
+import Modal, { Props as ModalProps } from "./Modal";
 
 type Props = {
     setSelectedData: (id: string) => void;
@@ -13,31 +30,56 @@ type Props = {
     setOpenShowParticipatingTechnicalStaffModal: (status: boolean) => void;
 } & ModalProps;
 
-export const ShowLeague = ({data, setSelectedData, setOpenShowParticipatingPlayersModal, setOpenShowParticipatingTechnicalStaffModal, ...props}: Props) => {
+// Color palette per group letter — keeps the look stable across renders.
+const GROUP_COLORS = ["cyan", "grape", "teal", "orange", "indigo", "pink", "lime", "violet"];
+const TEAM_COLORS = ["cyan", "teal", "grape", "indigo", "orange", "pink", "lime", "violet", "blue", "red"];
+
+const colorFor = (key: string, palette: string[]) => {
+    if (!key) return palette[0];
+    let sum = 0;
+    for (let i = 0; i < key.length; i++) sum = (sum + key.charCodeAt(i)) % 9973;
+    return palette[sum % palette.length];
+};
+
+const initials = (name?: string) => {
+    if (!name) return "?";
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "?";
+    const first = parts[0].charAt(0);
+    return first || "?";
+};
+
+export const ShowLeague = ({
+    data,
+    setSelectedData,
+    setOpenShowParticipatingPlayersModal,
+    setOpenShowParticipatingTechnicalStaffModal,
+    ...props
+}: Props) => {
     const theme = useMantineTheme();
-    const [groupedData, setGroupedData] = useState<any>([]);
+    const [groupedData, setGroupedData] = useState<any[][]>([]);
 
     useEffect(() => {
         if (data && props.opened) {
-            let groupedData = new Map();
-
-            for (let i = 0; i < data?.participatingTeams?.length; i++) {
-                const item = data?.participatingTeams?.[i]
-
-                if (groupedData.has(item.group)) {
-                    groupedData.get(item.group).push(item);
-                } else {
-                    groupedData.set(item.group, [item]);
-                }
+            const groups = new Map<string, any[]>();
+            for (let i = 0; i < (data?.participatingTeams?.length || 0); i++) {
+                const item = data.participatingTeams[i];
+                const g = item?.group || "—";
+                if (!groups.has(g)) groups.set(g, []);
+                groups.get(g)!.push(item);
             }
-
             setGroupedData(
-                Array.from(groupedData.values()).sort((a, b) => {
-                    return a[0].group.localeCompare(b[0].group);
-                })
-            )
+                Array.from(groups.values()).sort((a, b) =>
+                    String(a[0]?.group || "").localeCompare(String(b[0]?.group || ""))
+                )
+            );
         }
     }, [data, props.opened]);
+
+    const totalTeams = useMemo(
+        () => groupedData.reduce((acc, g) => acc + g.length, 0),
+        [groupedData]
+    );
 
     const closeModal = () => {
         props.onClose();
@@ -45,64 +87,189 @@ export const ShowLeague = ({data, setSelectedData, setOpenShowParticipatingPlaye
 
     return (
         <Modal
-            {...props} onClose={closeModal}
+            {...props}
+            onClose={closeModal}
+            size={"85%"}
             footer={<></>}
-
-            styles={{
-                body: {
-                    backgroundColor: theme.colors.gray[1]
-                }
-            }}
+            styles={{ body: { backgroundColor: theme.colors.gray[1] } }}
         >
-            <Box style={({ colors }) => ({padding: 20})}>
-                <Grid gutter={20}>
-                    {groupedData?.map((item: any, index: number) => (
-                        <Col key={item?.[0]?.group || index} span={4} >
-                            <Box bg={theme.white} style={({ colors }) => ({padding: 20})}>
-                                <Stack>
-                                    <Text ta={"center"} size={"sm"} fw={"bold"} color={theme.colors.gray[7]}>
-                                        {`المجموعة ${item[0].group}`}
-                                    </Text>
-                                    {item?.map((item2: any, index: number) => (
-                                        <Group key={index} justify={"space-around"} align={"center"}>
-                                            <Text size={"sm"} color={theme.colors.gray[5]}>
-                                                {`${item2.team?.name}`}
-                                            </Text>
+            <Box style={{ padding: 20 }}>
+                {/* Header summary */}
+                <Group justify="space-between" align="center" mb={16} wrap="wrap">
+                    <Group gap={10} align="center">
+                        <Avatar radius="md" size={36} color="cyan" variant="light">
+                            <IconUsersGroup size={20} />
+                        </Avatar>
+                        <Stack gap={2}>
+                            <Text fw={700} c={theme.colors.gray[8]}>توزيع الفرق على المجموعات</Text>
+                            <Text size="xs" c={theme.colors.gray[5]}>{data?.name || ""}</Text>
+                        </Stack>
+                    </Group>
 
-                                            <Menu shadow="md" width={200}>
-                                                <Menu.Target>
-                                                    <ActionIcon variant={"transparent"} color={"gray"}>
-                                                        <IconDotsVertical size="1rem" />
-                                                    </ActionIcon>
-                                                </Menu.Target>
+                    <Group gap={8}>
+                        <Badge variant="light" color="grape" radius="sm">
+                            {groupedData.length} مجموعات
+                        </Badge>
+                        <Badge variant="light" color="cyan" radius="sm">
+                            {totalTeams} فرق
+                        </Badge>
+                    </Group>
+                </Group>
 
-                                                <Menu.Dropdown>
-
-                                                    <Menu.Item
-                                                        leftSection={<IconInfoCircle size={14} />}
-                                                        onClick={() => {
-                                                            setSelectedData(item2?.id)
-                                                            setOpenShowParticipatingPlayersModal(true)
-                                                        }}
-                                                    >عرض اللاعبين</Menu.Item>
-
-                                                    <Menu.Item
-                                                        leftSection={<IconInfoCircle size={14} />}
-                                                        onClick={() => {
-                                                            setSelectedData(item2?.id)
-                                                            setOpenShowParticipatingTechnicalStaffModal(true)
-                                                        }}
-                                                    >عرض الجهاز الفني</Menu.Item>
-                                                </Menu.Dropdown>
-                                            </Menu>
+                {groupedData.length === 0 ? (
+                    <Center py={50}>
+                        <Stack align="center" gap={6}>
+                            <IconUsersGroup size={48} color={theme.colors.gray[4]} />
+                            <Text fw={600} c="gray.6">لا توجد مجموعات بعد</Text>
+                            <Text size="sm" c="gray.5">أضف الفرق المشاركة من قائمة البطولة.</Text>
+                        </Stack>
+                    </Center>
+                ) : (
+                    <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md" verticalSpacing="md">
+                        {groupedData.map((teams, gi) => {
+                            const groupName = teams[0]?.group || "—";
+                            const color = colorFor(groupName, GROUP_COLORS);
+                            return (
+                                <Paper
+                                    key={`g-${gi}`}
+                                    radius="lg"
+                                    withBorder
+                                    shadow="xs"
+                                    style={{ overflow: "hidden", background: "white" }}
+                                >
+                                    {/* Group header strip */}
+                                    <Box
+                                        style={{
+                                            background: `linear-gradient(135deg, var(--mantine-color-${color}-6) 0%, var(--mantine-color-${color}-4) 100%)`,
+                                            padding: "12px 14px",
+                                            color: "#fff",
+                                        }}
+                                    >
+                                        <Group justify="space-between" align="center" wrap="nowrap">
+                                            <Group gap={10} align="center">
+                                                <Box
+                                                    style={{
+                                                        width: 34,
+                                                        height: 34,
+                                                        borderRadius: 10,
+                                                        background: "rgba(255,255,255,0.22)",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        fontWeight: 800,
+                                                        fontSize: 16,
+                                                        backdropFilter: "blur(6px)",
+                                                    }}
+                                                >
+                                                    {groupName}
+                                                </Box>
+                                                <Stack gap={0}>
+                                                    <Text fw={700} size="sm">{`المجموعة ${groupName}`}</Text>
+                                                    <Text size="xs" opacity={0.9}>{teams.length} فرق</Text>
+                                                </Stack>
+                                            </Group>
                                         </Group>
-                                    ))}
-                                </Stack>
+                                    </Box>
 
-                            </Box>
-                        </Col>
-                    ))}
-                </Grid>
+                                    {/* Teams list */}
+                                    <Stack gap={0}>
+                                        {teams.map((row: any, ti: number) => {
+                                            const teamName = row?.team?.name || "—";
+                                            const clubName = row?.team?.club?.name || "";
+                                            const teamColor = colorFor(teamName, TEAM_COLORS);
+                                            return (
+                                                <Box key={row?.id || ti}>
+                                                    {ti > 0 && <Divider />}
+                                                    <Group
+                                                        wrap="nowrap"
+                                                        justify="space-between"
+                                                        align="center"
+                                                        px={12}
+                                                        py={10}
+                                                        gap={8}
+                                                        style={{
+                                                            transition: "background-color .15s ease",
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            (e.currentTarget as HTMLElement).style.backgroundColor =
+                                                                theme.colors.gray[0];
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                                                        }}
+                                                    >
+                                                        <Group gap={10} align="center" wrap="nowrap" style={{ minWidth: 0, flex: 1 }}>
+                                                            <Text
+                                                                size="xs"
+                                                                fw={700}
+                                                                c="gray.5"
+                                                                style={{ width: 18, textAlign: "center" }}
+                                                            >
+                                                                {ti + 1}
+                                                            </Text>
+                                                            <Avatar
+                                                                size={34}
+                                                                radius="md"
+                                                                color={teamColor}
+                                                                variant="light"
+                                                            >
+                                                                {initials(teamName)}
+                                                            </Avatar>
+                                                            <Stack gap={0} style={{ minWidth: 0 }}>
+                                                                <Text
+                                                                    size="sm"
+                                                                    fw={600}
+                                                                    c={theme.colors.gray[8]}
+                                                                    lineClamp={1}
+                                                                    title={teamName}
+                                                                >
+                                                                    {teamName}
+                                                                </Text>
+                                                                {clubName && (
+                                                                    <Text size="xs" c="gray.5" lineClamp={1}>
+                                                                        {clubName}
+                                                                    </Text>
+                                                                )}
+                                                            </Stack>
+                                                        </Group>
+
+                                                        <Menu shadow="md" width={220} position="bottom-end" withArrow>
+                                                            <Menu.Target>
+                                                                <ActionIcon variant="subtle" color="gray" radius="md">
+                                                                    <IconDotsVertical size={16} />
+                                                                </ActionIcon>
+                                                            </Menu.Target>
+                                                            <Menu.Dropdown>
+                                                                <Menu.Item
+                                                                    leftSection={<IconUsers size={14} />}
+                                                                    onClick={() => {
+                                                                        setSelectedData(row?.id);
+                                                                        setOpenShowParticipatingPlayersModal(true);
+                                                                    }}
+                                                                >
+                                                                    عرض اللاعبين
+                                                                </Menu.Item>
+                                                                <Menu.Item
+                                                                    leftSection={<IconUserCog size={14} />}
+                                                                    onClick={() => {
+                                                                        setSelectedData(row?.id);
+                                                                        setOpenShowParticipatingTechnicalStaffModal(true);
+                                                                    }}
+                                                                >
+                                                                    عرض الجهاز الفني
+                                                                </Menu.Item>
+                                                            </Menu.Dropdown>
+                                                        </Menu>
+                                                    </Group>
+                                                </Box>
+                                            );
+                                        })}
+                                    </Stack>
+                                </Paper>
+                            );
+                        })}
+                    </SimpleGrid>
+                )}
             </Box>
         </Modal>
     );
