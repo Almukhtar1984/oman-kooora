@@ -1567,7 +1567,7 @@ export const resolvers = {
         },
         updateScorerMatch: async (obj, {content}, context, info) =>  {
             try {
-                let result = 0
+                let touched = 0
 
                 for (let i = 0; i < content.length; i++) {
                     const row = content[i]
@@ -1576,17 +1576,16 @@ export const resolvers = {
                         const id = row.id
                         delete row.id
 
-                        let resultRow = await ScorerMatch.update({...row}, { where: { id } })
-                        result = resultRow[0] === 1 ? result + 1 : result
+                        const resultRow = await ScorerMatch.update({...row}, { where: { id } })
+                        if (resultRow[0] >= 1) touched += 1
                     } else {
                         await ScorerMatch.create(row)
+                        touched += 1
                     }
                 }
 
-          
-
                 return {
-                    status: result[0] >= 1
+                    status: touched >= 1
                 }
 
             } catch (error) {
@@ -1596,6 +1595,15 @@ export const resolvers = {
 
         createArbitre: async (_, { id_match, Arbitre1, Arbitre2, Arbitre3, Arbitre4 }) => {
             try {
+              const existing = await Arbitres.findOne({ where: { id_match } });
+              if (existing) {
+                existing.Arbitre1 = Arbitre1;
+                existing.Arbitre2 = Arbitre2;
+                existing.Arbitre3 = Arbitre3;
+                existing.Arbitre4 = Arbitre4;
+                await existing.save();
+                return existing;
+              }
               const newArbitre = await Arbitres.create({
                 id_match,
                 Arbitre1,

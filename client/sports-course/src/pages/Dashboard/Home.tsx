@@ -16,8 +16,8 @@ import {
 import { IconPlus, IconSearch, IconTrophy } from "@tabler/icons-react";
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-AddLeague,AddManOfMatch,AddMatch,AddMatchCard,AddMatchResult,AddParticipating,AddParticipatingPlayers,AddParticipatingTechnicalStaff,AddScorerMatch,DeleteLeague,DeleteMatch,ShowLeague,ShowMatch,ShowParticipatingPlayers,ShowParticipatingTechnicalStaff,UpdateLeague,UpdateManOfMatch,UpdateMatch,
-UpdateMatchResult,UpdateParticipating,UpdateParticipatingPlayers,UpdateScorerMatch
+AddLeague,AddManOfMatch,AddMatch,AddMatchCard,AddMatchResult,AddParticipating,AddParticipatingPlayers,AddParticipatingTechnicalStaff,AddScorerMatch,DeleteLeague,DeleteMatch,LeagueStats,ManageReferees,ShowLeague,ShowMatch,ShowParticipatingPlayers,ShowParticipatingTechnicalStaff,UpdateLeague,UpdateManOfMatch,UpdateMatch,
+UpdateMatchResult,UpdateMatchStateModal,UpdateParticipating,UpdateParticipatingPlayers,UpdateScorerMatch
 } from "../../components/Modals";
 import { LeagueCard } from "../../components/Cards";
 import { useAllLeagues } from "../../graphql";
@@ -59,10 +59,15 @@ export const Home = () => {
     const [openAddParticipatingTechnicalStaffModal, setOpenAddParticipatingTechnicalStaffModal] = useState<boolean>(false);
     const [openShowParticipatingTechnicalStaffModal, setOpenShowParticipatingTechnicalStaffModal] = useState<boolean>(false);
 
+    const [openManageRefereesModal, setOpenManageRefereesModal] = useState<boolean>(false);
+    const [openUpdateMatchStateModal, setOpenUpdateMatchStateModal] = useState<boolean>(false);
+    const [openLeagueStatsModal, setOpenLeagueStatsModal] = useState<boolean>(false);
+
     const [searchValue, setSearchValue] = useState<string>("");
     const [selectedDataId, setSelectedDataId] = useState<string | null>(null);
     const [selectedDataFallback, setSelectedDataFallback] = useState<any>({});
     const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+    const [selectedParticipatingTeamId, setSelectedParticipatingTeamId] = useState<string | null>(null);
     const [selectedPlayer, setSelectedPlayer] = useState<any>("");
 
     const [allLeagues, setAllLeagues] = useState<any[]>([]);
@@ -132,6 +137,16 @@ export const Home = () => {
         }
     };
 
+    const setSelectedParticipatingTeam = (rowOrId: any) => {
+        if (rowOrId && typeof rowOrId === "object" && rowOrId.id) {
+            setSelectedParticipatingTeamId(rowOrId.id);
+        } else if (typeof rowOrId === "string") {
+            setSelectedParticipatingTeamId(rowOrId);
+        } else {
+            setSelectedParticipatingTeamId(null);
+        }
+    };
+
     const totalPages = Math.max(1, Math.ceil(allLeaguesSorting.length / PAGE_SIZE));
     const pageData = useMemo(() => {
         const start = (activePage - 1) * PAGE_SIZE;
@@ -141,6 +156,7 @@ export const Home = () => {
     // unified handlers
     const handleShowMatches = (row: any) => { setSelectedData(row); setOpenShowMatchsModal(true); };
     const handleShowGroups = (row: any) => { setSelectedData(row); setOpenShowGroupsModal(true); };
+    const handleShowStats = (row: any) => { setSelectedData(row); setOpenLeagueStatsModal(true); };
     const handleAddMatch = (row: any) => { setSelectedData(row); setOpenAddMatchModal(true); };
     const handleAddParticipating = (row: any) => { setSelectedData(row); setOpenAddParticipatingModal(true); };
     const handleEditParticipating = (row: any) => { setSelectedData(row); setOpenEditParticipatingModal(true); };
@@ -220,6 +236,7 @@ export const Home = () => {
                             data={row}
                             onShowMatches={handleShowMatches}
                             onShowGroups={handleShowGroups}
+                            onShowStats={handleShowStats}
                             onAddMatch={handleAddMatch}
                             onAddParticipating={handleAddParticipating}
                             onEditParticipating={handleEditParticipating}
@@ -274,7 +291,7 @@ export const Home = () => {
                 data={selectedData}
                 onClose={() => setOpenShowGroupsModal(false)}
 
-                setSelectedData={setSelectedMatch}
+                setSelectedData={setSelectedParticipatingTeam}
                 setOpenShowParticipatingPlayersModal={setOpenShowParticipatingPlayersModal}
                 setOpenShowParticipatingTechnicalStaffModal={setOpenShowParticipatingTechnicalStaffModal}
             />
@@ -297,6 +314,9 @@ export const Home = () => {
 
                 setOpenAddScorerModal={setOpenAddScorerModal}
                 setOpenUpdateScorerModal={setOpenUpdateScorerModal}
+
+                setOpenManageRefereesModal={setOpenManageRefereesModal}
+                setOpenUpdateMatchStateModal={setOpenUpdateMatchStateModal}
             />
 
             <AddMatch title="إضافة مباراة" data={selectedData} opened={openAddMatchModal} onClose={() => setOpenAddMatchModal(false)}/>
@@ -314,7 +334,7 @@ export const Home = () => {
             <UpdateParticipatingPlayers title="تعديل لاعبين للفريق" data={selectedPlayer} opened={openEditParticipatingPlayersModal} onClose={() => setOpenEditParticipatingPlayersModal(false)}/>
             <ShowParticipatingPlayers
                 title="عرض لاعبين الفريق"
-                data={selectedMatch}
+                data={selectedParticipatingTeamId}
                 opened={openShowParticipatingPlayersModal}
                 onClose={() => setOpenShowParticipatingPlayersModal(false)}
 
@@ -327,7 +347,7 @@ export const Home = () => {
 
             <ShowParticipatingTechnicalStaff
                 title="عرض جهاز فني"
-                data={selectedMatch}
+                data={selectedParticipatingTeamId}
                 opened={openShowParticipatingTechnicalStaffModal}
                 onClose={() => setOpenShowParticipatingTechnicalStaffModal(false)}
 
@@ -345,6 +365,27 @@ export const Home = () => {
                 data={selectedMatch}
                 opened={openUpdateScorerModal}
                 onClose={() => setOpenUpdateScorerModal(false)}
+            />
+
+            <ManageReferees
+                title="إدارة الحكام"
+                data={selectedMatch}
+                opened={openManageRefereesModal}
+                onClose={() => setOpenManageRefereesModal(false)}
+            />
+
+            <UpdateMatchStateModal
+                title="حالة المباراة"
+                data={selectedMatch}
+                opened={openUpdateMatchStateModal}
+                onClose={() => setOpenUpdateMatchStateModal(false)}
+            />
+
+            <LeagueStats
+                title="إحصائيات البطولة"
+                data={selectedData}
+                opened={openLeagueStatsModal}
+                onClose={() => setOpenLeagueStatsModal(false)}
             />
         </Container>
     )

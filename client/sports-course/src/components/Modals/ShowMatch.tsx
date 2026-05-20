@@ -1,7 +1,13 @@
-import { ActionIcon,Box,Divider,Grid,Group,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
-import { IconDotsVertical,IconEdit,IconPlus,IconTrash } from "@tabler/icons-react";
+import { ActionIcon,Badge,Box,Divider,Grid,Group,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
+import { IconClock,IconDotsVertical,IconEdit,IconPlus,IconTrash,IconUserShield } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import Modal,{ Props as ModalProps } from "./Modal";
+
+const STATE_LABEL: Record<string, { label: string; color: string }> = {
+    "before-start": { label: "قبل البداية", color: "gray" },
+    "playing":      { label: "جارية",       color: "green" },
+    "end":          { label: "منتهية",      color: "red" },
+};
 
 const {Col} = Grid
 
@@ -20,9 +26,12 @@ type Props = {
 
     setOpenAddScorerModal: (status: boolean) => void;
     setOpenUpdateScorerModal: (status: boolean) => void;
+
+    setOpenManageRefereesModal: (status: boolean) => void;
+    setOpenUpdateMatchStateModal: (status: boolean) => void;
 } & ModalProps;
 
-export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  setOpenEditMatchResultModal, setOpenEditMatchModal, setOpenDeleteMatchModal, setOpenAddMatchCardModal, setOpenAddManOfMatchModal, setOpenEditManOfMatchModal, setOpenAddScorerModal, setOpenUpdateScorerModal, ...props}: Props) => {
+export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  setOpenEditMatchResultModal, setOpenEditMatchModal, setOpenDeleteMatchModal, setOpenAddMatchCardModal, setOpenAddManOfMatchModal, setOpenEditManOfMatchModal, setOpenAddScorerModal, setOpenUpdateScorerModal, setOpenManageRefereesModal, setOpenUpdateMatchStateModal, ...props}: Props) => {
     const theme = useMantineTheme();
 
     const closeModal = () => {
@@ -49,21 +58,27 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                 <Box bg={theme.white} style={({ colors }) => ({padding: 20})}>
                                     <Group justify={"space-between"} align="flex-start" wrap="nowrap">
                                         <Stack gap={5} w={"100%"}>
+                                            <Group justify={"space-between"} align="center" wrap="nowrap">
+                                                <Badge
+                                                    size="sm"
+                                                    radius="sm"
+                                                    variant="light"
+                                                    color={STATE_LABEL[item?.matchState]?.color || "gray"}
+                                                    leftSection={<IconClock size={11} />}
+                                                >
+                                                    {STATE_LABEL[item?.matchState]?.label || "—"}
+                                                </Badge>
+                                                <Group gap={6} align="center">
+                                                    <Text size={"12px"} c={theme.colors.gray[6]}>{dayjs(item?.date).format("YYYY-MM-DD")}</Text>
+                                                    <Text size={"12px"} c={theme.colors.gray[4]}>•</Text>
+                                                    <Text size={"12px"} c={theme.colors.gray[6]}>{dayjs(item?.date).format("HH:mm")}</Text>
+                                                </Group>
+                                            </Group>
+
                                             <Group justify={"space-around"} align="center">
                                                 <Text size={"sm"} c={theme.colors.gray[5]}>{item?.firstTeam?.team?.name}</Text>
                                                 <Text ta={"center"} size={"sm"} fw={"bold"} color={theme.colors.gray[7]}>ضد</Text>
                                                 <Text size={"sm"} c={theme.colors.gray[5]}>{item?.secondTeam?.team?.name}</Text>
-                                            </Group>
-
-                                            <Group justify={"space-around"} align="center">
-                                                <Stack gap={5}>
-                                                    <Text dir={"rtl"} ta={"center"} size={"14px"} color={theme.colors.gray[7]}>
-                                                        {dayjs(item?.date).format("YYYY-MM-DD")}
-                                                    </Text>
-                                                    <Text dir={"rtl"} ta={"center"} size={"13px"} color={theme.colors.gray[7]}>
-                                                        {dayjs(item?.date).format("HH:mm")}
-                                                        </Text>
-                                                </Stack>
                                             </Group>
 
                                             <Group justify={"space-around"} align="center">
@@ -97,6 +112,24 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                                     }
                                                 </Stack>
                                             </Group>
+
+                                            {(item?.arbitre?.Arbitre1 || item?.arbitre?.Arbitre2 || item?.arbitre?.Arbitre3 || item?.arbitre?.Arbitre4) && (
+                                                <>
+                                                    <Divider my={4} />
+                                                    <Group gap={6} align="center" wrap="wrap">
+                                                        <IconUserShield size={12} color={theme.colors.gray[5]} />
+                                                        <Text size={"11px"} c={theme.colors.gray[5]}>طاقم التحكيم:</Text>
+                                                        {[item?.arbitre?.Arbitre1, item?.arbitre?.Arbitre2, item?.arbitre?.Arbitre3, item?.arbitre?.Arbitre4]
+                                                            .filter((n: string) => n && n.trim().length > 0)
+                                                            .map((n: string, i: number) => (
+                                                                <Badge key={i} size="xs" radius="sm" variant="default" color="gray">
+                                                                    {n}
+                                                                </Badge>
+                                                            ))
+                                                        }
+                                                    </Group>
+                                                </>
+                                            )}
                                         </Stack>
                                         <Stack h={"100%"} gap={0} justify="flex-start">
                                             <Menu shadow="md" width={200}>
@@ -168,7 +201,23 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                                         : null
                                                     }
 
-                                                    
+                                                    <Divider />
+                                                    <Menu.Item
+                                                        leftSection={<IconUserShield size={14} />}
+                                                        onClick={() => {
+                                                            setSelectedData(item)
+                                                            setOpenManageRefereesModal(true)
+                                                        }}
+                                                    >{item?.arbitre?.id ? "تعديل الحكام" : "إضافة الحكام"}</Menu.Item>
+
+                                                    <Menu.Item
+                                                        leftSection={<IconClock size={14} />}
+                                                        onClick={() => {
+                                                            setSelectedData(item)
+                                                            setOpenUpdateMatchStateModal(true)
+                                                        }}
+                                                    >حالة المباراة</Menu.Item>
+
                                                     <Divider />
                                                     <Menu.Item
                                                         leftSection={<IconEdit size={14} />}

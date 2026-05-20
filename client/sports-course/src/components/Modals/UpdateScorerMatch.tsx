@@ -32,6 +32,7 @@ export const UpdateScorerMatch = ({data, ...props}: Props) => {
         if (data !== null && props.opened) {
             getAllScorerMatch({
                 variables: {idMatch: data.id},
+                fetchPolicy: "network-only",
                 onCompleted: ({allScorerMatch}) => {
                     let newScorersMatch = []
                     for (let i = 0; i < allScorerMatch.length; i++) {
@@ -59,6 +60,7 @@ export const UpdateScorerMatch = ({data, ...props}: Props) => {
                 variables: {
                     idParticipatingTeams: data?.firstTeam?.id
                 },
+                fetchPolicy: "network-only",
                 onCompleted: ({allParticipatingPlayers}) => {
                     let newAllPlayers: { label: string, value: string }[] = []
 
@@ -79,6 +81,7 @@ export const UpdateScorerMatch = ({data, ...props}: Props) => {
                 variables: {
                     idParticipatingTeams: data?.secondTeam?.id
                 },
+                fetchPolicy: "network-only",
                 onCompleted: ({allParticipatingPlayers}) => {
                     let newAllPlayers: { label: string, value: string }[] = []
 
@@ -106,16 +109,34 @@ export const UpdateScorerMatch = ({data, ...props}: Props) => {
     const onFormSubmit = ({scorersMatch}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
+        const cleaned = (scorersMatch || [])
+            .filter((row: any) => row?.id_participating_player && row?.id_participating_team && row?.time !== "")
+            .map((row: any) => ({
+                ...(row.id ? { id: row.id } : {}),
+                id_match: data?.id,
+                id_participating_player: row.id_participating_player,
+                id_participating_team: row.id_participating_team,
+                time: String(row.time),
+            }));
+
+        if (cleaned.length === 0) {
+            notyf.error("لا توجد بيانات صالحة للحفظ");
+            return;
+        }
+
         updateScorerMatch({
             variables: {
-                content: scorersMatch
+                content: cleaned
             },
             refetchQueries: [AllLeagues],
+            awaitRefetchQueries: true,
             onCompleted: () => {
                 closeModal();
                 notyf.success("تم تعديل الهدافين")
             },
-            onError: () => void 0
+            onError: (err) => {
+                notyf.error(err?.message || "فشل تعديل الهدافين")
+            }
         })
     };
 

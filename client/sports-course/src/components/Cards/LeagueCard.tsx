@@ -14,6 +14,7 @@ import {
 } from "@mantine/core";
 import {
     IconCalendar,
+    IconChartBar,
     IconDotsVertical,
     IconEdit,
     IconHome,
@@ -37,6 +38,7 @@ type Props = {
 
     onShowMatches: (row: any) => void;
     onShowGroups: (row: any) => void;
+    onShowStats: (row: any) => void;
     onAddMatch: (row: any) => void;
     onAddParticipating: (row: any) => void;
     onEditParticipating: (row: any) => void;
@@ -106,6 +108,7 @@ export const LeagueCard = ({
     data,
     onShowMatches,
     onShowGroups,
+    onShowStats,
     onAddMatch,
     onAddParticipating,
     onEditParticipating,
@@ -325,6 +328,20 @@ export const LeagueCard = ({
                         </Tooltip>
                     )}
 
+                    {(hasTeams || hasMatches) && (
+                        <Tooltip label="إحصائيات البطولة" withArrow>
+                            <ActionIcon
+                                variant="light"
+                                color="orange"
+                                size="lg"
+                                radius="md"
+                                onClick={() => onShowStats(data)}
+                            >
+                                <IconChartBar size={"1.15rem"} />
+                            </ActionIcon>
+                        </Tooltip>
+                    )}
+
                     {!hasTeams && (
                         <Tooltip label="إضافة فرق" withArrow>
                             <ActionIcon
@@ -362,6 +379,15 @@ export const LeagueCard = ({
                                 onClick={() => onShowMatches(data)}
                             >
                                 عرض المباريات
+                            </Menu.Item>
+                        )}
+
+                        {(hasTeams || hasMatches) && (
+                            <Menu.Item
+                                leftSection={<IconChartBar size={14} />}
+                                onClick={() => onShowStats(data)}
+                            >
+                                إحصائيات البطولة
                             </Menu.Item>
                         )}
 
