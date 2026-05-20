@@ -100,14 +100,23 @@ export const LeagueStats = ({ data, ...props }: Props) => {
         getTopGoal({
             variables: { leagueId },
             fetchPolicy: "network-only",
-            onCompleted: ({ calculateGoalPlayer }) => setScorers([...(calculateGoalPlayer || [])]),
+            onCompleted: ({ calculateGoalPlayer }) =>
+                setScorers((calculateGoalPlayer || []).filter((s: any) => s && s.PlayerID)),
         });
         getCards({
             variables: { leagueId },
             fetchPolicy: "network-only",
             onCompleted: ({ getCardsByLeague }) => {
-                setYellowCards([...(getCardsByLeague?.yellowCards || [])].sort((a, b) => b.count - a.count));
-                setRedCards([...(getCardsByLeague?.redCards || [])].sort((a, b) => b.count - a.count));
+                setYellowCards(
+                    [...(getCardsByLeague?.yellowCards || [])]
+                        .filter((c: any) => c)
+                        .sort((a, b) => b.count - a.count)
+                );
+                setRedCards(
+                    [...(getCardsByLeague?.redCards || [])]
+                        .filter((c: any) => c)
+                        .sort((a, b) => b.count - a.count)
+                );
             },
         });
     }, [data, props.opened, getRanking, getTopGoal, getCards]);
@@ -277,15 +286,16 @@ export const LeagueStats = ({ data, ...props }: Props) => {
                                     </Table.Thead>
                                     <Table.Tbody>
                                         {scorers.map((s, i) => {
-                                            const p = s.PlayerID?.player?.person;
+                                            if (!s) return null;
+                                            const p = s?.PlayerID?.player?.person;
                                             const name = [p?.first_name, p?.second_name, p?.third_name, p?.tribe].filter(Boolean).join(" ");
                                             return (
-                                                <Table.Tr key={`${s.PlayerID?.id}-${i}`}>
+                                                <Table.Tr key={`${s?.PlayerID?.id || i}-${i}`}>
                                                     <Table.Td>{i + 1}</Table.Td>
                                                     <Table.Td>{name || "—"}</Table.Td>
-                                                    <Table.Td>{s.team}</Table.Td>
+                                                    <Table.Td>{s?.team}</Table.Td>
                                                     <Table.Td ta="center">
-                                                        <Badge size="sm" variant="light" color="green">{s.Goal}</Badge>
+                                                        <Badge size="sm" variant="light" color="green">{s?.Goal ?? 0}</Badge>
                                                     </Table.Td>
                                                 </Table.Tr>
                                             );
