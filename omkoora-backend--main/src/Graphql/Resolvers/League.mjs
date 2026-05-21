@@ -1173,37 +1173,44 @@ export const resolvers = {
 
         createParticipatingTeams: async (obj, {content}, context, info) =>  {
             try {
-                return await ParticipatingTeams.bulkCreate(content)
+                const rows = (content || []).filter((row) => row && row.id_team && row.id_team !== "" && row.id_league)
+                if (rows.length === 0) return []
+                return await ParticipatingTeams.bulkCreate(rows)
 
             } catch (error) {
                 console.log(error)
-                // logger.error("")
                 throw new ApolloError(error)
             }
         },
         updateParticipatingTeams: async (obj, {id, content}, context, info) =>  {
             try {
-                let result = 0
+                let touched = 0
 
-                for (let i = 0; i < content.length; i++) {
+                for (let i = 0; i < (content || []).length; i++) {
                     const row = content[i]
+                    // Skip placeholder rows that the modal pre-fills before the
+                    // user has chosen a team — without this guard a single
+                    // empty row throws and aborts the whole loop.
+                    const isPlaceholder = !row.id_team || row.id_team === ""
+                    if (isPlaceholder && (!row.id || row.id === "")) continue
 
                     if (row.id && row.id !== "") {
                         const id = row.id
                         delete row.id
 
-                        let resultRow = await ParticipatingTeams.update({...row}, { where: { id } })
-                        result = resultRow[0] === 1 ? result + 1 : result
+                        const resultRow = await ParticipatingTeams.update({...row}, { where: { id } })
+                        if (resultRow[0] >= 1) touched += 1
                     } else {
                         await ParticipatingTeams.create(row)
+                        touched += 1
                     }
                 }
 
                 return {
-                    status: result[0] >= 1
+                    status: touched >= 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error("updateParticipatingTeams failed", error)
                 throw new ApolloError(error)
             }
         },
@@ -1589,6 +1596,14 @@ export const resolvers = {
                     status: touched >= 1
                 }
 
+            } catch (error) {
+                throw new ApolloError(error)
+            }
+        },
+        deleteScorerMatch: async (obj, {id}, context, info) =>  {
+            try {
+                const removed = await ScorerMatch.destroy({ where: { id } })
+                return { status: removed >= 1 }
             } catch (error) {
                 throw new ApolloError(error)
             }

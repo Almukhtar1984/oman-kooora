@@ -84,6 +84,42 @@ assert(
     "createArbitre looks up an existing row by id_match before creating"
 );
 
+console.log(`${c.cyan}▶ deleteScorerMatch resolver exists${c.reset}`);
+const deleteScorerBody = sliceResolver("deleteScorerMatch");
+assert(deleteScorerBody !== "", "deleteScorerMatch resolver is registered");
+assert(
+    /ScorerMatch\.destroy\(\s*\{\s*where:\s*\{\s*id\s*\}\s*\}\s*\)/.test(deleteScorerBody),
+    "deleteScorerMatch deletes by id"
+);
+
+// Also verify the schema declares it.
+const schemaSrc = readFileSync(
+    resolve(__dirname, "..", "src", "Graphql", "Schemas", "League.mjs"),
+    "utf8"
+);
+assert(
+    /deleteScorerMatch\s*\(\s*id:\s*ID!\s*\)\s*:\s*statusDelete/.test(schemaSrc),
+    "schema declares deleteScorerMatch(id: ID!): statusDelete"
+);
+
+console.log(`${c.cyan}▶ createParticipatingTeams skips placeholder rows${c.reset}`);
+const createTeamsBody = sliceResolver("createParticipatingTeams");
+assert(
+    /\.filter\(/.test(createTeamsBody) && /id_team/.test(createTeamsBody),
+    "createParticipatingTeams filters rows missing id_team before bulkCreate"
+);
+
+console.log(`${c.cyan}▶ updateParticipatingTeams status return + placeholder skip${c.reset}`);
+const updateTeamsBody = sliceResolver("updateParticipatingTeams");
+assert(
+    !/status:\s*result\[0\]\s*>=\s*1/.test(updateTeamsBody),
+    "updateParticipatingTeams no longer returns status: result[0] >= 1"
+);
+assert(
+    /isPlaceholder|continue/.test(updateTeamsBody),
+    "updateParticipatingTeams skips placeholder rows instead of crashing the loop"
+);
+
 if (failures > 0) {
     console.log(`${c.red}\n${failures} check(s) failed.${c.reset}`);
     process.exit(1);

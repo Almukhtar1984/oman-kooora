@@ -75,6 +75,7 @@ export const typeDefs = gql`
 
         createScorerMatch (content: contentScorerMatch!): ScorerMatch #@auth(requires: user)
         updateScorerMatch (content: [contentUpdateScorerMatch!]): statusUpdate #@auth(requires: user)
+        deleteScorerMatch (id: ID!): statusDelete #@auth(requires: user)
 
 
         createParticipatingPlayersMatch (content: [contentParticipatingPlayerMatch]!): [ParticipatingPlayersMatch!] #@auth(requires: user)

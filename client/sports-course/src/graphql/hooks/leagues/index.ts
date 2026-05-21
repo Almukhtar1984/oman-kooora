@@ -11,6 +11,7 @@ export * from "./useUpdateMatchState";
 export * from "./useGetRanking";
 export * from "./useTopGoal";
 export * from "./useCardsByLeague";
+export * from "./useDeleteScorerMatch";
 export * from "./useAllParticipatingPlayers";
 export * from "./useAllParticipatingTechnicalStaff";
 export * from "./useAllScorerMatch";

@@ -79,16 +79,29 @@ export const AddParticipating = ({data, ...props}: Props) => {
     const onFormSubmit = ({teams}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
+        // Skip the placeholder rows the modal pre-fills up to numberTeams —
+        // without this guard the backend bulkCreate would reject the whole
+        // batch on the first row with empty id_team/group.
+        const cleaned = (teams || []).filter((t: any) => t?.id_team && t?.group && t?.id_league)
+
+        if (cleaned.length === 0) {
+            notyf.error("اختر النادي والفريق والمجموعة لصف واحد على الأقل")
+            return
+        }
+
         createParticipatingTeams({
             variables: {
-                content: teams
+                content: cleaned
             },
             refetchQueries: [AllLeagues],
+            awaitRefetchQueries: false,
             onCompleted: () => {
                 closeModal();
                 notyf.success("تم اضافة الفرق")
             },
-            onError: () => void 0
+            onError: (err) => {
+                notyf.error(err?.message || "فشل إضافة الفرق")
+            }
         })
     };
 

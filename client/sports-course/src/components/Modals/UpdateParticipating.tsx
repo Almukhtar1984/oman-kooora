@@ -97,16 +97,32 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
     const onFormSubmit = ({teams}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
+        // Keep existing rows (they always have an id) and skip the
+        // placeholder rows pre-filled up to numberTeams that the user never
+        // touched — sending them as empty causes the backend insert to fail.
+        const cleaned = (teams || []).filter((t: any) => {
+            if (t?.id) return true
+            return t?.id_team && t?.group && t?.id_league
+        })
+
+        if (cleaned.length === 0) {
+            notyf.error("لا توجد بيانات للحفظ")
+            return
+        }
+
         updateParticipatingTeams({
             variables: {
-                content: teams
+                content: cleaned
             },
             refetchQueries: [AllLeagues],
+            awaitRefetchQueries: false,
             onCompleted: () => {
                 closeModal();
                 notyf.success("تم تعديل الدورة")
             },
-            onError: () => void 0
+            onError: (err) => {
+                notyf.error(err?.message || "فشل تعديل الدورة")
+            }
         })
     };
 
