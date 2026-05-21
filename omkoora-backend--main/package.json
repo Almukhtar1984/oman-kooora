@@ -8,7 +8,8 @@
     "test:schema-bulk": "node tests/test-schema-bulk.mjs",
     "test:bulk-status": "node tests/test-bulk-change-status.mjs",
     "test:team-flow": "node tests/test-team-flow.mjs",
-    "test:add-manager": "node tests/test-add-manager-flow.mjs"
+    "test:add-manager": "node tests/test-add-manager-flow.mjs",
+    "test:participating-resolvers": "node tests/test-participating-resolvers.mjs"
   },
   "keywords": [],
   "author": "",

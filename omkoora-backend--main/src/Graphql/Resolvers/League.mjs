@@ -1520,7 +1520,7 @@ export const resolvers = {
         },
         updateParticipatingTechnicalStaff: async (obj, {content}, context, info) =>  {
             try {
-                let result = 0
+                let touched = 0
 
                 for (let i = 0; i < content.length; i++) {
                     const row = content[i]
@@ -1529,18 +1529,19 @@ export const resolvers = {
                         const id = row.id
                         delete row.id
 
-                        let resultRow = await ParticipatingTechnicalStaff.update({...row}, { where: { id } })
-                        result = resultRow[0] === 1 ? result + 1 : result
+                        const resultRow = await ParticipatingTechnicalStaff.update({...row}, { where: { id } })
+                        if (resultRow[0] >= 1) touched += 1
                     } else {
                         await ParticipatingTechnicalStaff.create(row)
+                        touched += 1
                     }
                 }
 
                 return {
-                    status: result[0] >= 1
+                    status: touched >= 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error("updateParticipatingTechnicalStaff failed", error)
                 throw new ApolloError(error)
             }
         },
