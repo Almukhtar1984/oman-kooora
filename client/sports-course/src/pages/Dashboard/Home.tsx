@@ -17,7 +17,7 @@ import {
 import { IconPlus, IconSearch, IconTrophy } from "@tabler/icons-react";
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-AddLeague,AddManOfMatch,AddMatch,AddMatchCard,AddMatchResult,AddParticipating,AddParticipatingPlayers,AddParticipatingTechnicalStaff,AddScorerMatch,DeleteLeague,DeleteMatch,LeagueStats,ManageReferees,ShowLeague,ShowMatch,ShowParticipatingPlayers,ShowParticipatingTechnicalStaff,UpdateLeague,UpdateManOfMatch,UpdateMatch,
+AddLeague,AddManOfMatch,AddMatch,AddMatchCard,AddMatchResult,AddParticipating,AddParticipatingPlayers,AddParticipatingTechnicalStaff,AddScorerMatch,DeleteLeague,DeleteMatch,LeagueStats,ManageMatchCards,ManageMatchLineup,ManageReferees,ShowLeague,ShowMatch,ShowParticipatingPlayers,ShowParticipatingTechnicalStaff,UpdateLeague,UpdateManOfMatch,UpdateMatch,
 UpdateMatchResult,UpdateMatchStateModal,UpdateParticipating,UpdateParticipatingPlayers,UpdateScorerMatch
 } from "../../components/Modals";
 import { LeagueCard } from "../../components/Cards";
@@ -63,6 +63,9 @@ export const Home = () => {
     const [openManageRefereesModal, setOpenManageRefereesModal] = useState<boolean>(false);
     const [openUpdateMatchStateModal, setOpenUpdateMatchStateModal] = useState<boolean>(false);
     const [openLeagueStatsModal, setOpenLeagueStatsModal] = useState<boolean>(false);
+
+    const [openManageMatchCardsModal, setOpenManageMatchCardsModal] = useState<boolean>(false);
+    const [openManageMatchLineupModal, setOpenManageMatchLineupModal] = useState<boolean>(false);
 
     const [searchValue, setSearchValue] = useState<string>("");
     const [selectedDataId, setSelectedDataId] = useState<string | null>(null);
@@ -339,6 +342,9 @@ export const Home = () => {
 
                 setOpenManageRefereesModal={setOpenManageRefereesModal}
                 setOpenUpdateMatchStateModal={setOpenUpdateMatchStateModal}
+
+                setOpenManageMatchCardsModal={setOpenManageMatchCardsModal}
+                setOpenManageMatchLineupModal={setOpenManageMatchLineupModal}
             />
 
             <AddMatch title="إضافة مباراة" data={selectedData} opened={openAddMatchModal} onClose={() => setOpenAddMatchModal(false)}/>
@@ -408,6 +414,20 @@ export const Home = () => {
                 data={selectedData}
                 opened={openLeagueStatsModal}
                 onClose={() => setOpenLeagueStatsModal(false)}
+            />
+
+            <ManageMatchCards
+                title="تعديل البطاقات"
+                data={selectedMatch}
+                opened={openManageMatchCardsModal}
+                onClose={() => setOpenManageMatchCardsModal(false)}
+            />
+
+            <ManageMatchLineup
+                title="قائمة الفريقين"
+                data={selectedMatch}
+                opened={openManageMatchLineupModal}
+                onClose={() => setOpenManageMatchLineupModal(false)}
             />
         </Container>
     )

@@ -1,5 +1,5 @@
 import { ActionIcon,Badge,Box,Divider,Grid,Group,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
-import { IconClock,IconDotsVertical,IconEdit,IconPlus,IconTrash,IconUserShield } from "@tabler/icons-react";
+import { IconCards,IconClock,IconDotsVertical,IconEdit,IconFriends,IconPlus,IconTrash,IconUserShield } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import Modal,{ Props as ModalProps } from "./Modal";
 
@@ -29,9 +29,12 @@ type Props = {
 
     setOpenManageRefereesModal: (status: boolean) => void;
     setOpenUpdateMatchStateModal: (status: boolean) => void;
+
+    setOpenManageMatchCardsModal: (status: boolean) => void;
+    setOpenManageMatchLineupModal: (status: boolean) => void;
 } & ModalProps;
 
-export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  setOpenEditMatchResultModal, setOpenEditMatchModal, setOpenDeleteMatchModal, setOpenAddMatchCardModal, setOpenAddManOfMatchModal, setOpenEditManOfMatchModal, setOpenAddScorerModal, setOpenUpdateScorerModal, setOpenManageRefereesModal, setOpenUpdateMatchStateModal, ...props}: Props) => {
+export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  setOpenEditMatchResultModal, setOpenEditMatchModal, setOpenDeleteMatchModal, setOpenAddMatchCardModal, setOpenAddManOfMatchModal, setOpenEditManOfMatchModal, setOpenAddScorerModal, setOpenUpdateScorerModal, setOpenManageRefereesModal, setOpenUpdateMatchStateModal, setOpenManageMatchCardsModal, setOpenManageMatchLineupModal, ...props}: Props) => {
     const theme = useMantineTheme();
 
     const closeModal = () => {
@@ -164,6 +167,24 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                                             setOpenAddMatchCardModal(true)
                                                         }}
                                                     >اضافة بطاقات</Menu.Item>
+
+                                                    {(item?.firstTeamCards?.length > 0 || item?.secondTeamCards?.length > 0) && (
+                                                        <Menu.Item
+                                                            leftSection={<IconCards size={14} />}
+                                                            onClick={() => {
+                                                                setSelectedData(item)
+                                                                setOpenManageMatchCardsModal(true)
+                                                            }}
+                                                        >تعديل البطاقات</Menu.Item>
+                                                    )}
+
+                                                    <Menu.Item
+                                                        leftSection={<IconFriends size={14} />}
+                                                        onClick={() => {
+                                                            setSelectedData(item)
+                                                            setOpenManageMatchLineupModal(true)
+                                                        }}
+                                                    >قائمة الفريقين</Menu.Item>
 
                                                     {(item?.manOfMatch === null || item?.manOfMatch === "")
                                                         ? <Menu.Item

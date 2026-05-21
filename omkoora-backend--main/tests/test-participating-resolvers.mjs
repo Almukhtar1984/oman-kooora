@@ -31,13 +31,15 @@ const src = readFileSync(
 console.log(`${c.cyan}▶ allParticipatingTechnicalStaff resolver${c.reset}`);
 
 // Slice out the resolver body so the assertions are scoped — otherwise
-// matches in unrelated resolvers would mask real regressions.
+// matches in unrelated resolvers would mask real regressions. Tolerates
+// optional whitespace around the colon (some entries are `name : async …`).
 const sliceResolver = (name) => {
-    const startIdx = src.indexOf(`${name}: async`);
-    if (startIdx === -1) return "";
+    const re = new RegExp(`${name}\\s*:\\s*async`);
+    const m = src.match(re);
+    if (!m || m.index === undefined) return "";
     // Naive but reliable: take ~40 lines after the opening — enough to
     // cover the body of any of these read-side resolvers.
-    return src.slice(startIdx, startIdx + 1500);
+    return src.slice(m.index, m.index + 1500);
 };
 
 const techBody = sliceResolver("allParticipatingTechnicalStaff");
@@ -118,6 +120,37 @@ assert(
 assert(
     /isPlaceholder|continue/.test(updateTeamsBody),
     "updateParticipatingTeams skips placeholder rows instead of crashing the loop"
+);
+
+console.log(`${c.cyan}▶ match-card mutations are still wired${c.reset}`);
+const updateMatchCardBody = sliceResolver("updateMatchCard");
+const deleteMatchCardBody = sliceResolver("deleteMatchCard");
+assert(updateMatchCardBody !== "", "updateMatchCard resolver exists");
+assert(
+    /MatchCard\.update\(/.test(updateMatchCardBody),
+    "updateMatchCard calls MatchCard.update"
+);
+assert(deleteMatchCardBody !== "", "deleteMatchCard resolver exists");
+assert(
+    /MatchCard\.destroy\(/.test(deleteMatchCardBody),
+    "deleteMatchCard calls MatchCard.destroy"
+);
+
+console.log(`${c.cyan}▶ lineup (ParticipatingPlayersMatch) mutations are wired${c.reset}`);
+for (const fn of [
+    "createParticipatingPlayersMatch",
+    "updateParticipatingPlayersMatch",
+    "deleteParticipatingPlayersMatch",
+    "updateParticipatingPlayerMatchSub",
+]) {
+    const body = sliceResolver(fn);
+    assert(body !== "", `${fn} resolver exists`);
+}
+
+assert(
+    /firstTeamParticipatingPlayersMatch:\s*\[ParticipatingPlayersMatch\]/.test(schemaSrc) &&
+        /secondTeamParticipatingPlayersMatch:\s*\[ParticipatingPlayersMatch\]/.test(schemaSrc),
+    "Match type exposes firstTeam/secondTeam ParticipatingPlayersMatch fields"
 );
 
 if (failures > 0) {
