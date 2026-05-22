@@ -1175,8 +1175,43 @@ export const resolvers = {
             try {
                 const rows = (content || []).filter((row) => row && row.id_team && row.id_team !== "" && row.id_league)
                 if (rows.length === 0) return []
-                return await ParticipatingTeams.bulkCreate(rows)
+                const created = await ParticipatingTeams.bulkCreate(rows)
 
+                // Auto-import the team's accepted technical staff so the
+                // league dashboard's "عرض جهاز فني" modal isn't empty
+                // for newly enrolled teams. Wrapped in its own try/catch:
+                // a failure here must not roll back the team enrolment.
+                try {
+                    const teamIds = [...new Set(created.map((pt) => pt.id_team).filter(Boolean))]
+                    if (teamIds.length > 0) {
+                        const staff = await TechnicalApparatus.findAll({
+                            where: { id_team: { [Op.in]: teamIds }, status: 'accepted' },
+                            attributes: ['id', 'id_team']
+                        })
+                        const staffByTeam = new Map()
+                        for (const s of staff) {
+                            const list = staffByTeam.get(s.id_team) || []
+                            list.push(s.id)
+                            staffByTeam.set(s.id_team, list)
+                        }
+                        const staffRows = []
+                        for (const pt of created) {
+                            for (const idTech of (staffByTeam.get(pt.id_team) || [])) {
+                                staffRows.push({
+                                    id_participating_team: pt.id,
+                                    id_technical_apparatus: idTech
+                                })
+                            }
+                        }
+                        if (staffRows.length > 0) {
+                            await ParticipatingTechnicalStaff.bulkCreate(staffRows)
+                        }
+                    }
+                } catch (e) {
+                    logger.error("createParticipatingTeams: auto-import technical staff failed", e)
+                }
+
+                return created
             } catch (error) {
                 console.log(error)
                 throw new ApolloError(error)

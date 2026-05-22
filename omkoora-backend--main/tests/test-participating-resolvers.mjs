@@ -33,13 +33,14 @@ console.log(`${c.cyan}▶ allParticipatingTechnicalStaff resolver${c.reset}`);
 // Slice out the resolver body so the assertions are scoped — otherwise
 // matches in unrelated resolvers would mask real regressions. Tolerates
 // optional whitespace around the colon (some entries are `name : async …`).
-const sliceResolver = (name) => {
+const sliceResolver = (name, length = 1500) => {
     const re = new RegExp(`${name}\\s*:\\s*async`);
     const m = src.match(re);
     if (!m || m.index === undefined) return "";
-    // Naive but reliable: take ~40 lines after the opening — enough to
-    // cover the body of any of these read-side resolvers.
-    return src.slice(m.index, m.index + 1500);
+    // Naive but reliable: take ~N chars after the opening — enough to
+    // cover the body of any of these read-side resolvers. Bump `length`
+    // for resolvers whose body grew past the default window.
+    return src.slice(m.index, m.index + length);
 };
 
 const techBody = sliceResolver("allParticipatingTechnicalStaff");
@@ -105,10 +106,40 @@ assert(
 );
 
 console.log(`${c.cyan}▶ createParticipatingTeams skips placeholder rows${c.reset}`);
-const createTeamsBody = sliceResolver("createParticipatingTeams");
+// Body is large because it auto-imports technical staff after bulkCreate.
+const createTeamsBody = sliceResolver("createParticipatingTeams", 3500);
 assert(
     /\.filter\(/.test(createTeamsBody) && /id_team/.test(createTeamsBody),
     "createParticipatingTeams filters rows missing id_team before bulkCreate"
+);
+
+console.log(`${c.cyan}▶ createParticipatingTeams auto-imports technical staff${c.reset}`);
+// Regression: without this, club.omkooora shows the team's staff but the
+// league dashboard's "عرض جهاز فني" modal stays empty for newly
+// enrolled teams because ParticipatingTechnicalStaff is never populated.
+assert(
+    /TechnicalApparatus\.findAll/.test(createTeamsBody),
+    "createParticipatingTeams looks up TechnicalApparatus for the created teams"
+);
+assert(
+    /status:\s*['"]accepted['"]/.test(createTeamsBody),
+    "auto-import filters by status: 'accepted' (skips rejected/waiting)"
+);
+assert(
+    /ParticipatingTechnicalStaff\.bulkCreate/.test(createTeamsBody),
+    "auto-import bulkCreates ParticipatingTechnicalStaff join rows"
+);
+assert(
+    /id_participating_team[\s\S]{0,120}id_technical_apparatus/.test(createTeamsBody),
+    "join rows carry both id_participating_team and id_technical_apparatus"
+);
+// The inner failure must not abort the outer mutation — partial failure
+// where the team is enrolled but staff import throws would be worse than
+// just logging and continuing.
+const innerTry = createTeamsBody.match(/try\s*\{[\s\S]*?TechnicalApparatus\.findAll[\s\S]*?\}\s*catch/);
+assert(
+    !!innerTry,
+    "auto-import is wrapped in its own try/catch so a failure doesn't roll back the team enrolment"
 );
 
 console.log(`${c.cyan}▶ updateParticipatingTeams status return + placeholder skip${c.reset}`);
