@@ -96,6 +96,17 @@ export const LeagueCard = ({
                                     {dayjs(data?.inscriptionExpiryDate).isAfter(dayjs()) ? "مفتوح" : "متوقف"}
                                 </Text>
                             </Text>
+                            {team?.status && team.status !== "waiting" && (
+                                <Badge
+                                    size="xs"
+                                    radius="sm"
+                                    color={team.status === "accepted" ? "green" : "red"}
+                                    variant="filled"
+                                    style={{ marginTop: 4, width: "fit-content" }}
+                                >
+                                    {team.status === "accepted" ? "مشاركة مقبولة" : "تم رفض الانضمام"}
+                                </Badge>
+                            )}
                         </Flex>
                     </Flex>
                     <Menu

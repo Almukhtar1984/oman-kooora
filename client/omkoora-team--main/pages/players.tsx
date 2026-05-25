@@ -21,7 +21,7 @@ import {
     ConvertPlayerToTechnicalModal,
     FreePlayerModal
 } from "../components/Modal";
-import {useAllPlayers} from "../graphql";
+import {useAllPlayers, useTeam} from "../graphql";
 import useStore from "../store/useStore";
 import {PlayersTable,PlayersTableMobile} from "../components/Tables";
 import { useMediaQuery } from "react-responsive";
@@ -60,6 +60,20 @@ export default function Players() {
     const [permissions, setPermissions] = useState([]);
 
     const [getAllPlayers, { loading, error, data: dataAllPlayers }] = useAllPlayers();
+
+    // Live team-add-player gate. CURRENT_USER is only refetched on route change,
+    // so the cached enableAddPlayer can be stale if the club toggles it while the
+    // team manager is sitting on this page. Poll the team directly so the UI
+    // matches the server before the manager hits "Add Player".
+    const { data: teamLiveData } = useTeam({
+        variables: { id: userData?.person?.member?.team?.id },
+        skip: !userData?.person?.member?.team?.id,
+        fetchPolicy: "network-only",
+        pollInterval: 30000,
+    });
+    const enableAddPlayer = teamLiveData?.team
+        ? !!teamLiveData.team.enableAddPlayer
+        : !!userData?.person?.member?.team?.enableAddPlayer;
 
     useEffect(() => {
         if (userData?.person?.member?.team?.id) {
@@ -153,7 +167,7 @@ export default function Players() {
                 <title>طموح</title>
             </Head>
             <Container size={"xl"}>
-                {!userData?.person?.member?.team?.enableAddPlayer
+                {!enableAddPlayer
                     ? <Alert variant="light" color="yellow">قام النادي بتوقيف اضافة اللاعبين</Alert>
                     : null
                 }
@@ -176,7 +190,7 @@ export default function Players() {
                                 </Button>
                                 : null
                             }
-                            {hasPermission("2") && userData?.person?.member?.team?.enableAddPlayer
+                            {hasPermission("2") && enableAddPlayer
                                 ? <Button
                                             rightIcon={<Plus size={16} strokeWidth="3" />}
                                             sx={{ fontWeight: 500 }}

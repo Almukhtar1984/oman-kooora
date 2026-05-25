@@ -2,7 +2,7 @@ import {Box, Button, Group, Text, useMantineTheme} from "@mantine/core";
 import { Calendar, Check, X } from "tabler-icons-react";
 import React, {useState} from "react";
 import Modal, { Props as ModalProps } from "./Modal";
-import {useAccepteParticipatingTeams, useDeleteMember, useRejecteParticipatingTeams , useUpdateParticipatingTeams} from "../../graphql";
+import {AllLeaguesTeam, useAccepteParticipatingTeams, useDeleteMember, useRejecteParticipatingTeams , useUpdateParticipatingTeams} from "../../graphql";
 import {Notyf} from "notyf";
 type Props = {
     id?: any;
@@ -22,14 +22,15 @@ export const TeamParticipationAccptedModal = ({ id,SelectedParticipationTeam, ..
             variables: {
                 id: SelectedParticipationTeam.id
             },
-            //refetchQueries: [AllLeagues],
+            refetchQueries: [AllLeaguesTeam],
             onCompleted: () => {
                 closeModal();
                 notyf?.success("تم رفض الانضمام")
-                
+
             },
             onError: ({graphQLErrors}) => {
-                console.log(false)
+                console.log(graphQLErrors)
+                notyf?.error("فشل رفض الانضمام")
             }
         })
     };
@@ -38,14 +39,15 @@ export const TeamParticipationAccptedModal = ({ id,SelectedParticipationTeam, ..
             variables: {
                 id: SelectedParticipationTeam.id
             },
-            //refetchQueries: [AllLeagues],
+            refetchQueries: [AllLeaguesTeam],
             onCompleted: () => {
                 closeModal();
                 notyf?.success("تم قبول الانضمام")
-                
+
             },
             onError: ({graphQLErrors}) => {
-                console.log(false)
+                console.log(graphQLErrors)
+                notyf?.error("فشل قبول الانضمام")
             }
         })
     };
