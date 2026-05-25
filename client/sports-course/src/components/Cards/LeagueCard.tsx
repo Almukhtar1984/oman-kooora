@@ -71,6 +71,12 @@ const getStatus = (data: any) => {
     return { label: "متوقف", color: "red" };
 };
 
+export const isLeagueEnded = (data: any): boolean => {
+    const expiry = data?.expiryDate ? dayjs(data.expiryDate) : null;
+    if (!expiry || !expiry.isValid()) return false;
+    return dayjs().isAfter(expiry.endOf("day"));
+};
+
 const StatBox = ({
     value,
     label,
@@ -119,6 +125,7 @@ export const LeagueCard = ({
 }: Props) => {
     const theme = useMantineTheme();
     const status = getStatus(data);
+    const ended = isLeagueEnded(data);
     const hasTeams = !!(data?.participatingTeams && data.participatingTeams.length > 0);
     const hasMatches = !!(data?.matchs && data.matchs.length > 0);
 
@@ -195,14 +202,20 @@ export const LeagueCard = ({
                         </Box>
                     </Flex>
 
-                    <Badge
-                        color={status.color}
-                        variant="filled"
-                        radius="sm"
-                        style={{ flexShrink: 0 }}
-                    >
-                        {status.label}
-                    </Badge>
+                    <Group gap={6} style={{ flexShrink: 0 }}>
+                        {ended && (
+                            <Badge color="gray" variant="filled" radius="sm">
+                                منتهية
+                            </Badge>
+                        )}
+                        <Badge
+                            color={status.color}
+                            variant="filled"
+                            radius="sm"
+                        >
+                            {status.label}
+                        </Badge>
+                    </Group>
                 </Flex>
             </Box>
 
@@ -342,7 +355,7 @@ export const LeagueCard = ({
                         </Tooltip>
                     )}
 
-                    {!hasTeams && (
+                    {!hasTeams && !ended && (
                         <Tooltip label="إضافة فرق" withArrow>
                             <ActionIcon
                                 variant="light"
@@ -391,9 +404,9 @@ export const LeagueCard = ({
                             </Menu.Item>
                         )}
 
-                        {(hasTeams || hasMatches) && <Menu.Divider />}
+                        {(hasTeams || hasMatches) && !ended && <Menu.Divider />}
 
-                        {hasTeams && (
+                        {hasTeams && !ended && (
                             <Menu.Item
                                 leftSection={<IconPlus size={14} />}
                                 onClick={() => onAddMatch(data)}
@@ -402,7 +415,7 @@ export const LeagueCard = ({
                             </Menu.Item>
                         )}
 
-                        {hasTeams ? (
+                        {!ended && (hasTeams ? (
                             <Menu.Item
                                 leftSection={<IconEdit size={14} />}
                                 onClick={() => onEditParticipating(data)}
@@ -416,9 +429,9 @@ export const LeagueCard = ({
                             >
                                 إضافة فرق
                             </Menu.Item>
-                        )}
+                        ))}
 
-                        {hasTeams && (
+                        {hasTeams && !ended && (
                             <Menu.Item
                                 leftSection={<IconPlus size={14} />}
                                 onClick={() => onAddParticipatingPlayers(data)}
@@ -427,7 +440,7 @@ export const LeagueCard = ({
                             </Menu.Item>
                         )}
 
-                        {hasTeams && (
+                        {hasTeams && !ended && (
                             <Menu.Item
                                 leftSection={<IconPlus size={14} />}
                                 onClick={() => onAddParticipatingTechnicalStaff(data)}
@@ -460,22 +473,26 @@ export const LeagueCard = ({
                             </>
                         )}
 
-                        <Menu.Divider />
+                        {!ended && (
+                            <>
+                                <Menu.Divider />
 
-                        <Menu.Item
-                            leftSection={<IconEdit size={14} />}
-                            onClick={() => onEdit(data)}
-                        >
-                            تعديل
-                        </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<IconEdit size={14} />}
+                                    onClick={() => onEdit(data)}
+                                >
+                                    تعديل
+                                </Menu.Item>
 
-                        <Menu.Item
-                            color="red"
-                            leftSection={<IconTrash size={14} />}
-                            onClick={() => onDelete(data)}
-                        >
-                            حذف
-                        </Menu.Item>
+                                <Menu.Item
+                                    color="red"
+                                    leftSection={<IconTrash size={14} />}
+                                    onClick={() => onDelete(data)}
+                                >
+                                    حذف
+                                </Menu.Item>
+                            </>
+                        )}
                     </Menu.Dropdown>
                 </Menu>
             </Flex>

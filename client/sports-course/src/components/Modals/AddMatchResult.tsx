@@ -33,9 +33,11 @@ export const AddMatchResult = ({data, ...props}: Props) => {
             refetchQueries: [AllLeagues],
             onCompleted: () => {
                 closeModal();
-                notyf.success("تم اضافة الدورة")
+                notyf.success("تم إضافة النتيجة")
             },
-            onError: () => void 0
+            onError: (err) => {
+                notyf.error(err?.message || "فشل إضافة النتيجة")
+            }
         })
     };
 

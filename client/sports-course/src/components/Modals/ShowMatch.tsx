@@ -1,7 +1,15 @@
 import { ActionIcon,Badge,Box,Divider,Grid,Group,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
-import { IconCards,IconClock,IconDotsVertical,IconEdit,IconFriends,IconPlus,IconTrash,IconUserShield } from "@tabler/icons-react";
+import { IconCards,IconClock,IconDotsVertical,IconEdit,IconFriends,IconPlus,IconStar,IconTrash,IconUserShield } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import Modal,{ Props as ModalProps } from "./Modal";
+
+const formatPlayerName = (person: any) =>
+    [person?.first_name, person?.second_name, person?.third_name, person?.tribe]
+        .filter(Boolean)
+        .join(" ") || "—";
+
+const cardsForSide = (cards: any[] | undefined, type: "yellow" | "red") =>
+    (cards || []).filter((c) => c?.type === type);
 
 const STATE_LABEL: Record<string, { label: string; color: string }> = {
     "before-start": { label: "قبل البداية", color: "gray" },
@@ -115,6 +123,50 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                                     }
                                                 </Stack>
                                             </Group>
+
+                                            {(item?.firstTeamCards?.length > 0 || item?.secondTeamCards?.length > 0) && (
+                                                <>
+                                                    <Divider my={4} />
+                                                    <Grid gutter={6}>
+                                                        <Col span={6}>
+                                                            <Stack gap={3}>
+                                                                {[...cardsForSide(item?.firstTeamCards, "yellow"), ...cardsForSide(item?.firstTeamCards, "red")].map((c: any, i: number) => (
+                                                                    <Group key={`f-${i}`} gap={4} align="center" wrap="nowrap">
+                                                                        <IconCards size={11} color={c.type === "red" ? theme.colors.red[6] : theme.colors.yellow[6]} />
+                                                                        <Badge size="xs" radius="sm" variant="filled" color={c.type === "red" ? "red" : "yellow"}>
+                                                                            {c.type === "red" ? "حمراء" : "صفراء"}
+                                                                        </Badge>
+                                                                        <Text size={"11px"} c={theme.colors.gray[6]}>{c?.player}</Text>
+                                                                        {c?.date && <Text size={"11px"} c={theme.colors.gray[5]}>د.{c.date}</Text>}
+                                                                    </Group>
+                                                                ))}
+                                                            </Stack>
+                                                        </Col>
+                                                        <Col span={6}>
+                                                            <Stack gap={3}>
+                                                                {[...cardsForSide(item?.secondTeamCards, "yellow"), ...cardsForSide(item?.secondTeamCards, "red")].map((c: any, i: number) => (
+                                                                    <Group key={`s-${i}`} gap={4} align="center" wrap="nowrap">
+                                                                        <IconCards size={11} color={c.type === "red" ? theme.colors.red[6] : theme.colors.yellow[6]} />
+                                                                        <Badge size="xs" radius="sm" variant="filled" color={c.type === "red" ? "red" : "yellow"}>
+                                                                            {c.type === "red" ? "حمراء" : "صفراء"}
+                                                                        </Badge>
+                                                                        <Text size={"11px"} c={theme.colors.gray[6]}>{c?.player}</Text>
+                                                                        {c?.date && <Text size={"11px"} c={theme.colors.gray[5]}>د.{c.date}</Text>}
+                                                                    </Group>
+                                                                ))}
+                                                            </Stack>
+                                                        </Col>
+                                                    </Grid>
+                                                </>
+                                            )}
+
+                                            {item?.manOfMatch && (
+                                                <Group gap={6} align="center" mt={4}>
+                                                    <IconStar size={12} color={theme.colors.yellow[6]} />
+                                                    <Text size={"11px"} c={theme.colors.gray[6]}>رجل المباراة:</Text>
+                                                    <Badge size="xs" radius="sm" variant="light" color="yellow">{item.manOfMatch}</Badge>
+                                                </Group>
+                                            )}
 
                                             {(item?.arbitre?.Arbitre1 || item?.arbitre?.Arbitre2 || item?.arbitre?.Arbitre3 || item?.arbitre?.Arbitre4) && (
                                                 <>

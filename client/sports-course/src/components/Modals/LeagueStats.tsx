@@ -7,6 +7,7 @@ import {
     Grid,
     Group,
     Paper,
+    Select,
     SimpleGrid,
     Stack,
     Table,
@@ -68,6 +69,165 @@ type CardRow = {
     team?: { id: string; name: string };
 };
 
+type CardIncident = {
+    opponent: string;
+    minute?: string;
+    matchType?: string;
+    matchDate?: string;
+};
+
+const MATCH_TYPE_LABELS: Record<string, string> = {
+    "groups": "دوري المجموعات",
+    "league-16": "دوري الستة عشر",
+    "league-8": "دوري الثمانية",
+    "quarter-finals": "ربع النهائي",
+    "semi-finals": "نصف النهائي",
+    "final": "النهائي",
+};
+
+export const STAGE_OPTIONS = [
+    { value: "all", label: "كل المراحل" },
+    { value: "groups", label: "المجموعات" },
+    { value: "league-16", label: "دور الـ16" },
+    { value: "league-8", label: "دور الـ8" },
+    { value: "quarter-finals", label: "ربع النهائي" },
+    { value: "semi-finals", label: "نصف النهائي (دور الـ4)" },
+    { value: "final", label: "النهائي" },
+];
+
+export const matchTypeLabel = (t?: string) => (t && MATCH_TYPE_LABELS[t]) || t || "";
+
+export const computeStageScorers = (matches: any[], stage: string): Scorer[] => {
+    if (!matches) return [];
+    const filtered = stage === "all" ? matches : matches.filter((m) => m?.type === stage);
+    const tally = new Map<string, { team: string; goals: number; player: any }>();
+
+    const bump = (entries: any[] | undefined, teamName: string) => {
+        for (const s of entries || []) {
+            const key = s?.participating_player?.id;
+            if (!key) continue;
+            const existing = tally.get(key);
+            if (existing) existing.goals++;
+            else tally.set(key, { team: teamName, goals: 1, player: s.participating_player });
+        }
+    };
+
+    for (const m of filtered) {
+        bump(m?.firstTeamScorersMatch, m?.firstTeam?.team?.name || "—");
+        bump(m?.secondTeamScorersMatch, m?.secondTeam?.team?.name || "—");
+    }
+
+    return Array.from(tally.values())
+        .map((e) => ({
+            team: e.team,
+            Goal: e.goals,
+            PlayerID: {
+                id: e.player?.id,
+                number: e.player?.number,
+                player: e.player?.player,
+            },
+        }))
+        .sort((a, b) => b.Goal - a.Goal);
+};
+
+export const computeStageCards = (
+    matches: any[],
+    stage: string
+): { yellowCards: CardRow[]; redCards: CardRow[] } => {
+    if (!matches) return { yellowCards: [], redCards: [] };
+    const filtered = stage === "all" ? matches : matches.filter((m) => m?.type === stage);
+    const yellowMap = new Map<string, CardRow>();
+    const redMap = new Map<string, CardRow>();
+
+    const ingest = (card: any, side: any) => {
+        if (!card?.player) return;
+        const teamId = side?.team?.id;
+        const key = `${card.player}::${teamId}`;
+        const row: CardRow = {
+            player: card.player,
+            count: 1,
+            team: { id: teamId, name: side?.team?.name },
+        };
+        if (card.type === "red") {
+            if (redMap.has(key)) redMap.get(key)!.count++;
+            else redMap.set(key, row);
+        } else if (card.type === "yellow") {
+            if (yellowMap.has(key)) yellowMap.get(key)!.count++;
+            else yellowMap.set(key, row);
+        }
+    };
+
+    for (const m of filtered) {
+        for (const c of m?.firstTeamCards || []) ingest(c, m?.firstTeam);
+        for (const c of m?.secondTeamCards || []) ingest(c, m?.secondTeam);
+    }
+
+    // Mirror the backend rule (Resolvers/League.mjs getCardsByLeague): a red
+    // card on a player suppresses any yellow rows for that same player+team,
+    // regardless of match order.
+    for (const key of redMap.keys()) yellowMap.delete(key);
+
+    return {
+        yellowCards: Array.from(yellowMap.values()).sort((a, b) => b.count - a.count),
+        redCards: Array.from(redMap.values()).sort((a, b) => b.count - a.count),
+    };
+};
+
+export const computeFinalPlacements = (matches: any[]) => {
+    if (!matches) return null;
+    const finalMatch = matches.find((m) => m?.type === "final" && m?.matchState === "end");
+    if (!finalMatch) return null;
+
+    const first = finalMatch.firstTeamGoal ?? 0;
+    const second = finalMatch.secondTeamGoal ?? 0;
+    if (first === second) {
+        // Draw — without penalty data we can't infer winner; surface ambiguous result.
+        return { winner: null, runnerUp: null, finalMatch };
+    }
+    const winner = first > second ? finalMatch.firstTeam?.team : finalMatch.secondTeam?.team;
+    const runnerUp = first > second ? finalMatch.secondTeam?.team : finalMatch.firstTeam?.team;
+    return { winner, runnerUp, finalMatch };
+};
+
+export const collectIncidents = (
+    matches: any[],
+    playerName: string,
+    teamId: string | undefined,
+    cardType: "yellow" | "red"
+): CardIncident[] => {
+    const out: CardIncident[] = [];
+    if (!matches || !teamId) return out;
+
+    for (const m of matches) {
+        const firstPtId = m?.firstTeam?.id;
+        const secondPtId = m?.secondTeam?.id;
+        const firstName = m?.firstTeam?.team?.name || "—";
+        const secondName = m?.secondTeam?.team?.name || "—";
+
+        for (const c of m?.firstTeamCards || []) {
+            if (c?.player === playerName && c?.type === cardType && firstPtId === teamId) {
+                out.push({
+                    opponent: secondName,
+                    minute: c?.date,
+                    matchType: m?.type,
+                    matchDate: m?.date,
+                });
+            }
+        }
+        for (const c of m?.secondTeamCards || []) {
+            if (c?.player === playerName && c?.type === cardType && secondPtId === teamId) {
+                out.push({
+                    opponent: firstName,
+                    minute: c?.date,
+                    matchType: m?.type,
+                    matchDate: m?.date,
+                });
+            }
+        }
+    }
+    return out;
+};
+
 const sortRanking = (a: Ranking, b: Ranking) => {
     if (b.points !== a.points) return b.points - a.points;
     const gdA = (a.goalsFor || 0) - (a.goalsAgainst || 0);
@@ -83,6 +243,7 @@ export const LeagueStats = ({ data, ...props }: Props) => {
     const [scorers, setScorers] = useState<Scorer[]>([]);
     const [yellowCards, setYellowCards] = useState<CardRow[]>([]);
     const [redCards, setRedCards] = useState<CardRow[]>([]);
+    const [selectedStage, setSelectedStage] = useState<string>("all");
 
     const [getRanking, { loading: loadingRanking }] = useGetRanking();
     const [getTopGoal, { loading: loadingGoals }] = useTopGoal();
@@ -160,6 +321,26 @@ export const LeagueStats = ({ data, ...props }: Props) => {
     }, [data]);
     const remainingMatches = Math.max(0, totalMatches - playedMatches);
 
+    // Per-stage breakdown (client-side). When "all" is selected we keep the
+    // server-aggregated lists; for any specific stage we recompute from the
+    // matches embedded in the league payload.
+    const matchesForStage = useMemo(() => {
+        const all = data?.matchs || [];
+        return selectedStage === "all" ? all : all.filter((m: any) => m?.type === selectedStage);
+    }, [data, selectedStage]);
+
+    const displayedScorers = useMemo(() => {
+        if (selectedStage === "all") return scorers;
+        return computeStageScorers(data?.matchs || [], selectedStage);
+    }, [scorers, data, selectedStage]);
+
+    const displayedCards = useMemo(() => {
+        if (selectedStage === "all") return { yellowCards, redCards };
+        return computeStageCards(data?.matchs || [], selectedStage);
+    }, [yellowCards, redCards, data, selectedStage]);
+
+    const placements = useMemo(() => computeFinalPlacements(data?.matchs || []), [data]);
+
     const closeModal = () => props.onClose();
 
     return (
@@ -205,6 +386,44 @@ export const LeagueStats = ({ data, ...props }: Props) => {
                     <OverviewCard color="grape" icon={<IconTrophy size={18} />} label="مجموع المباريات" value={totalMatches} />
                 </SimpleGrid>
 
+                {placements && (placements.winner || placements.runnerUp) && (
+                    <Paper withBorder radius="md" p="md" mb={16} bg="white">
+                        <Group gap={10} mb={10}>
+                            <ThemeIcon size={28} radius="md" variant="light" color="yellow">
+                                <IconTrophy size={16} />
+                            </ThemeIcon>
+                            <Text fw={700} c={theme.colors.gray[8]}>نتائج المراكز</Text>
+                        </Group>
+                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                            <Paper withBorder radius="md" p="sm" bg="yellow.0">
+                                <Group gap={8}>
+                                    <Badge color="yellow" size="lg" radius="sm">المركز الأول</Badge>
+                                    <Text fw={700}>{placements.winner?.name || "— تعادل في النهائي —"}</Text>
+                                </Group>
+                            </Paper>
+                            <Paper withBorder radius="md" p="sm" bg="gray.0">
+                                <Group gap={8}>
+                                    <Badge color="gray" size="lg" radius="sm">المركز الثاني</Badge>
+                                    <Text fw={700}>{placements.runnerUp?.name || "— تعادل في النهائي —"}</Text>
+                                </Group>
+                            </Paper>
+                        </SimpleGrid>
+                    </Paper>
+                )}
+
+                <Group justify="space-between" align="center" mb={12} wrap="wrap">
+                    <Text fw={600} c={theme.colors.gray[7]} size="sm">تصفية حسب المرحلة</Text>
+                    <Select
+                        data={STAGE_OPTIONS}
+                        value={selectedStage}
+                        onChange={(v) => setSelectedStage(v || "all")}
+                        size="sm"
+                        w={220}
+                        allowDeselect={false}
+                        aria-label="مرحلة البطولة"
+                    />
+                </Group>
+
                 <Tabs defaultValue="standings" color="cyan" keepMounted={false}>
                     <Tabs.List>
                         <Tabs.Tab value="standings" leftSection={<IconTrophy size={14} />}>الترتيب</Tabs.Tab>
@@ -214,6 +433,13 @@ export const LeagueStats = ({ data, ...props }: Props) => {
                     </Tabs.List>
 
                     <Tabs.Panel value="standings" pt="md">
+                        {selectedStage !== "all" && selectedStage !== "groups" && (
+                            <Paper withBorder radius="md" p="sm" mb={10} bg="yellow.0">
+                                <Text size="xs" c="gray.7">
+                                    الترتيب يخص دور المجموعات فقط — الجدول أدناه ثابت بغض النظر عن المرحلة المختارة
+                                </Text>
+                            </Paper>
+                        )}
                         {loadingRanking && <LoadingRow text="جاري حساب الترتيب…" />}
                         {!loadingRanking && groupedRanking.length === 0 && <EmptyRow text="لا توجد بيانات ترتيب بعد" />}
 
@@ -272,9 +498,9 @@ export const LeagueStats = ({ data, ...props }: Props) => {
 
                     <Tabs.Panel value="scorers" pt="md">
                         <Paper withBorder radius="md" p="md" bg="white">
-                            {loadingGoals && <LoadingRow text="جاري جلب الهدافين…" />}
-                            {!loadingGoals && scorers.length === 0 && <EmptyRow text="لا يوجد هدافون بعد" />}
-                            {!loadingGoals && scorers.length > 0 && (
+                            {loadingGoals && selectedStage === "all" && <LoadingRow text="جاري جلب الهدافين…" />}
+                            {!loadingGoals && displayedScorers.length === 0 && <EmptyRow text="لا يوجد هدافون بعد" />}
+                            {!loadingGoals && displayedScorers.length > 0 && (
                                 <Table striped highlightOnHover withRowBorders={false} verticalSpacing={6} fz="sm">
                                     <Table.Thead>
                                         <Table.Tr>
@@ -285,7 +511,7 @@ export const LeagueStats = ({ data, ...props }: Props) => {
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
-                                        {scorers.map((s, i) => {
+                                        {displayedScorers.map((s, i) => {
                                             if (!s) return null;
                                             const p = s?.PlayerID?.player?.person;
                                             const name = [p?.first_name, p?.second_name, p?.third_name, p?.tribe].filter(Boolean).join(" ");
@@ -307,11 +533,23 @@ export const LeagueStats = ({ data, ...props }: Props) => {
                     </Tabs.Panel>
 
                     <Tabs.Panel value="yellow" pt="md">
-                        <CardsTable rows={yellowCards} color="yellow" loading={loadingCards} />
+                        <CardsTable
+                            rows={displayedCards.yellowCards}
+                            color="yellow"
+                            cardType="yellow"
+                            matches={matchesForStage}
+                            loading={loadingCards && selectedStage === "all"}
+                        />
                     </Tabs.Panel>
 
                     <Tabs.Panel value="red" pt="md">
-                        <CardsTable rows={redCards} color="red" loading={loadingCards} />
+                        <CardsTable
+                            rows={displayedCards.redCards}
+                            color="red"
+                            cardType="red"
+                            matches={matchesForStage}
+                            loading={loadingCards && selectedStage === "all"}
+                        />
                     </Tabs.Panel>
                 </Tabs>
             </Box>
@@ -331,7 +569,19 @@ const OverviewCard = ({ color, icon, label, value }: { color: string; icon: Reac
     </Paper>
 );
 
-const CardsTable = ({ rows, color, loading }: { rows: CardRow[]; color: "yellow" | "red"; loading: boolean }) => (
+const CardsTable = ({
+    rows,
+    color,
+    cardType,
+    matches,
+    loading,
+}: {
+    rows: CardRow[];
+    color: "yellow" | "red";
+    cardType: "yellow" | "red";
+    matches: any[];
+    loading: boolean;
+}) => (
     <Paper withBorder radius="md" p="md" bg="white">
         {loading && <LoadingRow text="جاري جلب البطاقات…" />}
         {!loading && rows.length === 0 && <EmptyRow text="لا توجد بطاقات" />}
@@ -344,20 +594,49 @@ const CardsTable = ({ rows, color, loading }: { rows: CardRow[]; color: "yellow"
                         <Table.Th>الفريق</Table.Th>
                         <Table.Th ta="center">رقم</Table.Th>
                         <Table.Th ta="center">العدد</Table.Th>
+                        <Table.Th>المباريات</Table.Th>
                     </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
-                    {rows.map((r, i) => (
-                        <Table.Tr key={`${r.team?.id}-${r.player}-${i}`}>
-                            <Table.Td>{i + 1}</Table.Td>
-                            <Table.Td>{r.player}</Table.Td>
-                            <Table.Td>{r.team?.name}</Table.Td>
-                            <Table.Td ta="center">{r.number || "—"}</Table.Td>
-                            <Table.Td ta="center">
-                                <Badge size="sm" variant="light" color={color}>{r.count}</Badge>
-                            </Table.Td>
-                        </Table.Tr>
-                    ))}
+                    {rows.map((r, i) => {
+                        const incidents = collectIncidents(matches, r.player, r.team?.id, cardType);
+                        return (
+                            <Table.Tr key={`${r.team?.id}-${r.player}-${i}`}>
+                                <Table.Td>{i + 1}</Table.Td>
+                                <Table.Td>{r.player}</Table.Td>
+                                <Table.Td>{r.team?.name}</Table.Td>
+                                <Table.Td ta="center">{r.number || "—"}</Table.Td>
+                                <Table.Td ta="center">
+                                    <Badge size="sm" variant="light" color={color}>{r.count}</Badge>
+                                </Table.Td>
+                                <Table.Td>
+                                    {incidents.length === 0 ? (
+                                        <Text size="xs" c="gray.5">—</Text>
+                                    ) : (
+                                        <Group gap={6} wrap="wrap">
+                                            {incidents.map((inc, j) => {
+                                                const parts: string[] = [`ضد ${inc.opponent}`];
+                                                if (inc.minute) parts.push(`د.${inc.minute}`);
+                                                const typeLabel = matchTypeLabel(inc.matchType);
+                                                if (typeLabel) parts.push(typeLabel);
+                                                return (
+                                                    <Badge
+                                                        key={j}
+                                                        size="sm"
+                                                        variant="outline"
+                                                        color={color}
+                                                        radius="sm"
+                                                    >
+                                                        {parts.join(" — ")}
+                                                    </Badge>
+                                                );
+                                            })}
+                                        </Group>
+                                    )}
+                                </Table.Td>
+                            </Table.Tr>
+                        );
+                    })}
                 </Table.Tbody>
             </Table>
         )}

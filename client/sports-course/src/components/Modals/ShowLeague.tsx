@@ -81,6 +81,15 @@ export const ShowLeague = ({
         [groupedData]
     );
 
+    const statusCounts = useMemo(() => {
+        const all = data?.participatingTeams || [];
+        return {
+            accepted: all.filter((t: any) => t?.status === "accepted").length,
+            waiting: all.filter((t: any) => !t?.status || t?.status === "waiting").length,
+            rejected: all.filter((t: any) => t?.status === "rejected").length,
+        };
+    }, [data]);
+
     const closeModal = () => {
         props.onClose();
     };
@@ -113,6 +122,21 @@ export const ShowLeague = ({
                         <Badge variant="light" color="cyan" radius="sm">
                             {totalTeams} فرق
                         </Badge>
+                        {statusCounts.accepted > 0 && (
+                            <Badge variant="light" color="green" radius="sm">
+                                مقبولة: {statusCounts.accepted}
+                            </Badge>
+                        )}
+                        {statusCounts.waiting > 0 && (
+                            <Badge variant="light" color="yellow" radius="sm">
+                                بانتظار: {statusCounts.waiting}
+                            </Badge>
+                        )}
+                        {statusCounts.rejected > 0 && (
+                            <Badge variant="light" color="red" radius="sm">
+                                مرفوضة: {statusCounts.rejected}
+                            </Badge>
+                        )}
                     </Group>
                 </Group>
 
@@ -177,8 +201,16 @@ export const ShowLeague = ({
                                             const teamName = row?.team?.name || "—";
                                             const clubName = row?.team?.club?.name || "";
                                             const teamColor = colorFor(teamName, TEAM_COLORS);
+                                            const status = row?.status || "waiting";
+                                            const isRejected = status === "rejected";
+                                            const isWaiting = status === "waiting";
                                             return (
-                                                <Box key={row?.id || ti}>
+                                                <Box
+                                                    key={row?.id || ti}
+                                                    style={{
+                                                        backgroundColor: isRejected ? "var(--mantine-color-red-0)" : undefined,
+                                                    }}
+                                                >
                                                     {ti > 0 && <Divider />}
                                                     <Group
                                                         wrap="nowrap"
@@ -191,6 +223,7 @@ export const ShowLeague = ({
                                                             transition: "background-color .15s ease",
                                                         }}
                                                         onMouseEnter={(e) => {
+                                                            if (isRejected) return;
                                                             (e.currentTarget as HTMLElement).style.backgroundColor =
                                                                 theme.colors.gray[0];
                                                         }}
@@ -202,7 +235,7 @@ export const ShowLeague = ({
                                                             <Text
                                                                 size="xs"
                                                                 fw={700}
-                                                                c="gray.5"
+                                                                c={isRejected ? "red.7" : "gray.5"}
                                                                 style={{ width: 18, textAlign: "center" }}
                                                             >
                                                                 {ti + 1}
@@ -210,23 +243,32 @@ export const ShowLeague = ({
                                                             <Avatar
                                                                 size={34}
                                                                 radius="md"
-                                                                color={teamColor}
+                                                                color={isRejected ? "red" : teamColor}
                                                                 variant="light"
                                                             >
                                                                 {initials(teamName)}
                                                             </Avatar>
                                                             <Stack gap={0} style={{ minWidth: 0 }}>
-                                                                <Text
-                                                                    size="sm"
-                                                                    fw={600}
-                                                                    c={theme.colors.gray[8]}
-                                                                    lineClamp={1}
-                                                                    title={teamName}
-                                                                >
-                                                                    {teamName}
-                                                                </Text>
+                                                                <Group gap={6} align="center" wrap="nowrap">
+                                                                    <Text
+                                                                        size="sm"
+                                                                        fw={600}
+                                                                        c={isRejected ? "red.8" : theme.colors.gray[8]}
+                                                                        td={isRejected ? "line-through" : undefined}
+                                                                        lineClamp={1}
+                                                                        title={teamName}
+                                                                    >
+                                                                        {teamName}
+                                                                    </Text>
+                                                                    {isRejected && (
+                                                                        <Badge size="xs" color="red" variant="filled" radius="sm">مرفوضة</Badge>
+                                                                    )}
+                                                                    {isWaiting && (
+                                                                        <Badge size="xs" color="yellow" variant="light" radius="sm">بانتظار</Badge>
+                                                                    )}
+                                                                </Group>
                                                                 {clubName && (
-                                                                    <Text size="xs" c="gray.5" lineClamp={1}>
+                                                                    <Text size="xs" c={isRejected ? "red.6" : "gray.5"} lineClamp={1}>
                                                                         {clubName}
                                                                     </Text>
                                                                 )}

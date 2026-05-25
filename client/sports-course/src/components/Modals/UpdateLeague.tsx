@@ -24,8 +24,10 @@ export const UpdateLeague = ({data, ...props}: Props) => {
             numberGroups: "" as any,
             internalplayer: "" as any,
             externalplayer: "" as any,
-            startDate: "",
-            expiryDate: "",
+            startDate: "" as any,
+            expiryDate: "" as any,
+            inscriptionStartDate: "" as any,
+            inscriptionExpiryDate: "" as any,
         }
     });
 
@@ -37,6 +39,18 @@ export const UpdateLeague = ({data, ...props}: Props) => {
         return Number.isFinite(n) ? n : 0;
     };
 
+    const toDateOrEmpty = (v: any) => {
+        if (!v) return "";
+        const d = dayjs(v);
+        return d.isValid() ? d.toDate() : "";
+    };
+
+    const formatDateOrEmpty = (v: any) => {
+        if (!v) return "";
+        const d = dayjs(v);
+        return d.isValid() ? d.format("YYYY-MM-DD") : "";
+    };
+
     useEffect(() => {
         if (data !== null && props.opened) {
             setValues({
@@ -46,11 +60,15 @@ export const UpdateLeague = ({data, ...props}: Props) => {
                 numberGroups: data.numberGroups ?? "",
                 internalplayer: data.internalplayer ?? "",
                 externalplayer: data.externalplayer ?? "",
+                startDate: toDateOrEmpty(data.startDate),
+                expiryDate: toDateOrEmpty(data.expiryDate),
+                inscriptionStartDate: toDateOrEmpty(data.inscriptionStartDate),
+                inscriptionExpiryDate: toDateOrEmpty(data.inscriptionExpiryDate),
             })
         }
     }, [data, props.opened, setValues])
 
-    const onFormSubmit = ({name, numberTeams, numberGroups, internalplayer, externalplayer, description, startDate, expiryDate}: any) => {
+    const onFormSubmit = ({name, numberTeams, numberGroups, internalplayer, externalplayer, description, startDate, expiryDate, inscriptionStartDate, inscriptionExpiryDate}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
         updateLeague({
@@ -64,8 +82,10 @@ export const UpdateLeague = ({data, ...props}: Props) => {
                     externalplayer: toIntOrZero(externalplayer),
                     description,
 
-                    startDate: dayjs(startDate).format("YYYY-MM-DD"),
-                    expiryDate: dayjs(expiryDate).format("YYYY-MM-DD")
+                    startDate: formatDateOrEmpty(startDate),
+                    expiryDate: formatDateOrEmpty(expiryDate),
+                    inscriptionStartDate: formatDateOrEmpty(inscriptionStartDate),
+                    inscriptionExpiryDate: formatDateOrEmpty(inscriptionExpiryDate),
                 }
             },
             refetchQueries: [AllLeagues],
@@ -151,8 +171,8 @@ export const UpdateLeague = ({data, ...props}: Props) => {
 
                         <Col span={6} >
                             <DateInput
-                                placeholder="تاريخ البداية"
-                                label="تاريخ البداية"
+                                placeholder="تاريخ بداية البطولة"
+                                label="تاريخ بداية البطولة"
                                 valueFormat={"YYYY-MM-DD"}
                                 withAsterisk
                                 {...getInputProps("startDate")}
@@ -160,11 +180,30 @@ export const UpdateLeague = ({data, ...props}: Props) => {
                         </Col>
                         <Col span={6} >
                             <DateInput
-                                placeholder="تاريخ النهاية"
-                                label="تاريخ النهاية"
+                                placeholder="تاريخ نهاية البطولة"
+                                label="تاريخ نهاية البطولة"
                                 valueFormat={"YYYY-MM-DD"}
                                 withAsterisk
                                 {...getInputProps("expiryDate")}
+                            />
+                        </Col>
+
+                        <Col span={6} >
+                            <DateInput
+                                placeholder="تاريخ بداية التسجيل"
+                                label="تاريخ بداية التسجيل"
+                                valueFormat={"YYYY-MM-DD"}
+                                withAsterisk
+                                {...getInputProps("inscriptionStartDate")}
+                            />
+                        </Col>
+                        <Col span={6} >
+                            <DateInput
+                                placeholder="تاريخ نهاية التسجيل"
+                                label="تاريخ نهاية التسجيل"
+                                valueFormat={"YYYY-MM-DD"}
+                                withAsterisk
+                                {...getInputProps("inscriptionExpiryDate")}
                             />
                         </Col>
                     </Grid>

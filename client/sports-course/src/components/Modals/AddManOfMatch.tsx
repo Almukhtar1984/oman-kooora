@@ -32,9 +32,11 @@ export const AddManOfMatch = ({data, ...props}: Props) => {
             refetchQueries: [AllLeagues],
             onCompleted: () => {
                 closeModal();
-                notyf.success("تم اضافة رجل المباراة")
+                notyf.success("تم إضافة رجل المباراة")
             },
-            onError: () => void 0
+            onError: (err) => {
+                notyf.error(err?.message || "فشل إضافة رجل المباراة")
+            }
         })
     };
 

@@ -3,7 +3,7 @@ import { useForm } from "@mantine/form";
 import { IconCheck,IconX } from "@tabler/icons-react";
 import { Notyf } from "notyf";
 import { useEffect,useState } from "react";
-import { AllLeagues,useAllClub,useUpdateParticipatingTeams } from "../../graphql";
+import { AllLeagues,useAllTeams,useUpdateParticipatingTeams } from "../../graphql";
 import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
@@ -21,18 +21,14 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
     const {getInputProps, reset, onSubmit, values, insertListItem} = useForm({
         initialValues: {teams: []}
     });
-    const [allClubs, setAllClubs] = useState<{ label: string, value: string }[]>([]);
-    const [club, setClub] = useState<(string | null) []>([]);
-    const [allTeams, setAllTeams] = useState<{ label: string, value: string }[][]>([]);
+    const [allTeams, setAllTeams] = useState<{ label: string, value: string }[]>([]);
 
-    const [getAllClubs, {data: dataAllClub}] = useAllClub();
+    const [getAllTeams] = useAllTeams();
 
     const [updateParticipatingTeams] = useUpdateParticipatingTeams();
 
-
     useEffect(() => {
         if (data !== null && props.opened) {
-            let allClubs = []
             for (let i = 0; i < data.participatingTeams.length; i++) {
                 const participatingTeam = data.participatingTeams[i]
                 insertListItem("teams", {
@@ -41,9 +37,7 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
                     id_team: participatingTeam?.team?.id,
                     id_league: data.id
                 })
-                allClubs.push(participatingTeam?.team?.club?.id)
             }
-            setClub(allClubs)
 
             const subParticipatingTeams = data.numberTeams - data.participatingTeams.length
             for (let i = 0; i < subParticipatingTeams; i++) {
@@ -54,45 +48,25 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
 
     useEffect(() => {
         if (props.opened) {
-            getAllClubs({
+            getAllTeams({
                 fetchPolicy: "cache-and-network",
-                onCompleted: ({allClub}) => {
-                    let newAllClubs: { label: string, value: string }[] = []
-                    for (let i = 0; i < allClub.length; i++) {
-                        const club = allClub[i]
+                onCompleted: ({allTeams}) => {
+                    const newAllTeams: { label: string, value: string }[] = []
+                    for (let i = 0; i < allTeams.length; i++) {
+                        const team = allTeams[i]
+                        const categoryLabel = category?.[team?.category - 1]
+                        const clubName = team?.club?.name
+                        const suffix = [clubName, categoryLabel].filter(Boolean).join(" - ")
+                        const label = suffix ? `${team.name} (${suffix})` : team.name
 
-                        newAllClubs.push({value: club.id, label: `${club.name}`})
+                        newAllTeams.push({value: team.id, label})
                     }
 
-                    setAllClubs([...newAllClubs])
+                    setAllTeams(newAllTeams)
                 }
             })
         }
-    }, [getAllClubs, props.opened])
-
-    useEffect(() => {
-        if (props.opened && dataAllClub?.allClub?.length >= 0) {
-            let newAllClubs: { label: string, value: string }[] = []
-
-            for (let i = 0; i < club.length; i++) {
-                const idClub = club[i]
-
-                const teamsClub = dataAllClub.allClub.filter((item: any) => item.id === idClub)
-                let newAllTeamsClub: { label: string, value: string }[] = []
-
-                if (teamsClub.length > 0) {
-                    for (let j = 0; j < teamsClub[0].teams.length; j++) {
-                        const team = teamsClub[0].teams[j]
-                        newAllTeamsClub.push({value: team.id, label: `${team.name} - ${category?.[team?.category - 1]}`})
-                    }
-
-                    setAllTeams((prevState) => [...prevState, newAllTeamsClub])
-                }
-            }
-
-            setAllClubs([...newAllClubs])
-        }
-    }, [club, dataAllClub, props.opened])
+    }, [getAllTeams, props.opened])
 
     const onFormSubmit = ({teams}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
@@ -126,27 +100,6 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
         })
     };
 
-    const onChangeClub = (value: string | null, index: number) => {
-        let allClubs: (string | null) [] = [...club]
-        allClubs.splice(index, 1, value)
-        setClub(allClubs)
-
-        const teamsClub = dataAllClub.allClub.filter((item: any) => item.id === value)
-        let newAllTeamsClub: { label: string, value: string }[] = []
-
-        if (teamsClub.length > 0) {
-            for (let i = 0; i < teamsClub[0].teams.length; i++) {
-                const team = teamsClub[0].teams[i]
-
-                newAllTeamsClub.push({value: team.id, label: `${team.name} - ${category?.[team?.category - 1]}`})
-            }
-
-            let newAllTeams = [...allTeams]
-            newAllTeams.splice(index, 1, newAllTeamsClub)
-            setAllTeams(newAllTeams)
-        }
-    }
-
     const closeModal = () => {
         props.onClose();
         reset();
@@ -171,22 +124,14 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
                         {values.teams.map((item, index) => (
                             <Col span={12} key={index} >
                                 <Grid gutter={20}>
-                                    <Col span={4} >
-                                        <Select
-                                            label={`اسم النادي`}
-                                            placeholder="اختر النادي"
-                                            withAsterisk
-                                            data={allClubs}
-                                            value={club[index]}
-                                            onChange={(value) => onChangeClub(value, index)}
-                                        />
-                                    </Col>
-                                    <Col span={5} >
+                                    <Col span={9} >
                                         <Select
                                             label={`اسم الفريق ${index+1}`}
                                             placeholder="اختر الفريق"
                                             withAsterisk
-                                            data={allTeams[index]}
+                                            searchable
+                                            nothingFoundMessage="لا توجد نتائج"
+                                            data={allTeams}
                                             {...getInputProps(`teams.${index}.id_team`)}
                                         />
                                     </Col>

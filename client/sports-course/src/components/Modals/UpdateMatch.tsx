@@ -72,7 +72,9 @@ export const UpdateMatch = ({data, dataLeague, ...props}: Props) => {
                 closeModal();
                 notyf.success("تم تعديل المباراة")
             },
-            onError: () => void 0
+            onError: (err) => {
+                notyf.error(err?.message || "فشل تعديل المباراة")
+            }
         })
     };
 

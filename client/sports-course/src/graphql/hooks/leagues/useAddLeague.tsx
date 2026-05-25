@@ -12,6 +12,9 @@ interface VariableProps {
         startDate?: string;
         expiryDate?: string;
 
+        inscriptionStartDate?: string;
+        inscriptionExpiryDate?: string;
+
         internalplayer?: number;
         externalplayer?: number;
 

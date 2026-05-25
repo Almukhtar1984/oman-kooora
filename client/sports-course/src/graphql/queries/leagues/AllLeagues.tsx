@@ -20,12 +20,13 @@ export const AllLeagues = gql`
             participatingTeams {
                 id
                 group
-                
+                status
+
                 league {
                     id
                     name
                 }
-                
+
                 team {
                     id
                     name

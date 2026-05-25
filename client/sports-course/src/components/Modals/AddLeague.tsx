@@ -27,6 +27,8 @@ export const AddLeague = (props: Props) => {
             externalplayer: "" as any,
             startDate: "",
             expiryDate: "",
+            inscriptionStartDate: "",
+            inscriptionExpiryDate: "",
         }
     });
 
@@ -38,7 +40,13 @@ export const AddLeague = (props: Props) => {
         return Number.isFinite(n) ? n : 0;
     };
 
-    const onFormSubmit = ({name, numberTeams, numberGroups, internalplayer, externalplayer, description, startDate, expiryDate}: any) => {
+    const formatDateOrEmpty = (v: any) => {
+        if (!v) return "";
+        const d = dayjs(v);
+        return d.isValid() ? d.format("YYYY-MM-DD") : "";
+    };
+
+    const onFormSubmit = ({name, numberTeams, numberGroups, internalplayer, externalplayer, description, startDate, expiryDate, inscriptionStartDate, inscriptionExpiryDate}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
         const idClub = userData?.person?.clubManagement?.club?.id;
 
@@ -52,8 +60,10 @@ export const AddLeague = (props: Props) => {
                     externalplayer: toIntOrZero(externalplayer),
                     description,
 
-                    startDate: dayjs(startDate).format("YYYY-MM-DD"),
-                    expiryDate: dayjs(expiryDate).format("YYYY-MM-DD"),
+                    startDate: formatDateOrEmpty(startDate),
+                    expiryDate: formatDateOrEmpty(expiryDate),
+                    inscriptionStartDate: formatDateOrEmpty(inscriptionStartDate),
+                    inscriptionExpiryDate: formatDateOrEmpty(inscriptionExpiryDate),
                     id_club: idClub
                 }
             },
@@ -139,8 +149,8 @@ export const AddLeague = (props: Props) => {
 
                         <Col span={6} >
                             <DateInput
-                                placeholder="تاريخ البداية"
-                                label="تاريخ البداية"
+                                placeholder="تاريخ بداية البطولة"
+                                label="تاريخ بداية البطولة"
                                 valueFormat={"YYYY-MM-DD"}
                                 withAsterisk
                                 {...getInputProps("startDate")}
@@ -148,11 +158,30 @@ export const AddLeague = (props: Props) => {
                         </Col>
                         <Col span={6} >
                             <DateInput
-                                placeholder="تاريخ النهاية"
-                                label="تاريخ النهاية"
+                                placeholder="تاريخ نهاية البطولة"
+                                label="تاريخ نهاية البطولة"
                                 valueFormat={"YYYY-MM-DD"}
                                 withAsterisk
                                 {...getInputProps("expiryDate")}
+                            />
+                        </Col>
+
+                        <Col span={6} >
+                            <DateInput
+                                placeholder="تاريخ بداية التسجيل"
+                                label="تاريخ بداية التسجيل"
+                                valueFormat={"YYYY-MM-DD"}
+                                withAsterisk
+                                {...getInputProps("inscriptionStartDate")}
+                            />
+                        </Col>
+                        <Col span={6} >
+                            <DateInput
+                                placeholder="تاريخ نهاية التسجيل"
+                                label="تاريخ نهاية التسجيل"
+                                valueFormat={"YYYY-MM-DD"}
+                                withAsterisk
+                                {...getInputProps("inscriptionExpiryDate")}
                             />
                         </Col>
                     </Grid>
