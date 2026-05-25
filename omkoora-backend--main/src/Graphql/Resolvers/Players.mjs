@@ -459,6 +459,16 @@ export const resolvers = {
     Mutation: {
         createPlayer: async (obj, { content }, context, info) => {
             try {
+                if (content.id_team) {
+                    const team = await Team.findByPk(content.id_team);
+                    if (team && team.enableAddPlayer === false) {
+                        return new ApolloError(
+                            "إضافة اللاعبين متوقفة لهذا الفريق من قبل النادي",
+                            "ADD_PLAYER_DISABLED"
+                        );
+                    }
+                }
+
                 const onePerson = await Person.findOne({
                     where: {
                         [Op.or]: [
@@ -467,7 +477,7 @@ export const resolvers = {
                         ]
                     }
                 });
-        
+
                 if (onePerson && onePerson !== null) {
                     if (onePerson.card_number === content.person.card_number) {
                         return new ApolloError("card number already exists", "CARD_NUMBER_ALREADY_EXISTS");
@@ -475,7 +485,7 @@ export const resolvers = {
                         return new ApolloError("phone number already exists", "PHONE_NUMBER_ALREADY_EXISTS");
                     }
                 }
-        
+
                 const nationalID = content.nationalID;
                 const nationalIDBack = content.nationalIDBack;
                 const parentApproval = content.parentApproval;
