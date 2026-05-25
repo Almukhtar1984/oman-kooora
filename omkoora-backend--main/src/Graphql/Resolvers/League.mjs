@@ -5,11 +5,73 @@ import logger from "../../Config/logger.mjs";
 import { Op } from 'sequelize';
 import {
     Team, League, Match, ParticipatingTeams, MatchCard, ParticipatingPlayers,ParticipatingPlayersMatch,
-    Players, ParticipatingTechnicalStaff, TechnicalApparatus, ScorerMatch, Club, Arbitres,Person,Penalty
+    Players, ParticipatingTechnicalStaff, TechnicalApparatus, ScorerMatch, Club, Arbitres,Person,Penalty,
+    User
 } from '../../Models/index.mjs';
+import { hashPassword, alreadyExistUser } from '../../Helpers/index.mjs';
 
 
 dotenv.config();
+
+// Role "4" = league admin (مسؤول دورة). Has add/edit access scoped to
+// their own league but is not allowed to delete anything.
+const LEAGUE_ADMIN_ROLE = "4";
+const assertNotLeagueAdmin = (context) => {
+    const role = context?.user?.role;
+    if (role === LEAGUE_ADMIN_ROLE) {
+        throw new ApolloError("League admin is not allowed to perform this operation", "FORBIDDEN_ROLE");
+    }
+};
+
+const upsertLeagueAdmin = async (idLeague, email, password) => {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!normalizedEmail) throw new ApolloError("Email is required", "EMAIL_REQUIRED");
+
+    const league = await League.findByPk(idLeague);
+    if (!league) throw new ApolloError("League not found", "LEAGUE_NOT_FOUND");
+
+    let user = null;
+    if (league.id_user) {
+        user = await User.findByPk(league.id_user);
+    }
+
+    if (user) {
+        if (user.email !== normalizedEmail) {
+            const taken = await User.findOne({ where: { email: normalizedEmail } });
+            if (taken && taken.id !== user.id) {
+                throw new ApolloError("Email already used by another account", "EMAIL_TAKEN");
+            }
+            user.email = normalizedEmail;
+        }
+        if (password && password !== "") {
+            user.password = await hashPassword(password);
+        }
+        user.role = LEAGUE_ADMIN_ROLE;
+        user.activation = true;
+        user.email_verify = true;
+        await user.save();
+    } else {
+        const exists = await alreadyExistUser(normalizedEmail);
+        if (exists !== false) {
+            throw new ApolloError(exists.message || "Email already used", exists.code || "EMAIL_TAKEN");
+        }
+        if (!password || password === "") {
+            throw new ApolloError("Password is required for a new account", "PASSWORD_REQUIRED");
+        }
+        const hashed = await hashPassword(password);
+        user = await User.create({
+            email: normalizedEmail,
+            password: hashed,
+            role: LEAGUE_ADMIN_ROLE,
+            activation: true,
+            email_verify: true,
+        });
+        league.id_user = user.id;
+        await league.save();
+    }
+
+    return { league, user };
+};
 
 export const resolvers = {
     Query: {
@@ -88,6 +150,12 @@ export const resolvers = {
 
         allLeagues: async (obj, {idClub}, context, info) =>  {
             try {
+                // League admins (role "4") only see their own league regardless of idClub.
+                if (context?.user?.role === LEAGUE_ADMIN_ROLE) {
+                    return await League.findAll({
+                        where: { id_user: context.user.id }
+                    })
+                }
                 return await League.findAll({
                     where: {
                         id_club: idClub
@@ -736,6 +804,15 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
+        user: async ({id_user}, {}, context, info) =>  {
+            if (!id_user) return null;
+            try {
+                return await User.findByPk(id_user)
+            } catch (error) {
+                logger.error("")
+                throw new ApolloError(error)
+            }
+        },
     },
 
     ParticipatingTeams: {
@@ -1133,38 +1210,76 @@ export const resolvers = {
     Mutation: {
         createLeague: async (obj, {content}, context, info) =>  {
             try {
-                return await League.create({
-                    ...content
-                })
+                const { adminEmail, adminPassword, ...rest } = content || {}
+                const league = await League.create({ ...rest })
 
+                if (adminEmail && adminEmail !== "") {
+                    await upsertLeagueAdmin(league.id, adminEmail, adminPassword)
+                }
+
+                return await League.findByPk(league.id)
             } catch (error) {
                 console.log(error)
-                // logger.error("")
                 throw new ApolloError(error)
             }
         },
         updateLeague: async (obj, {id, content}, context, info) =>  {
             try {
-                let result = await League.update({
-                    ...content
-                }, { where: { id } })
+                const { adminEmail, adminPassword, ...rest } = content || {}
+                let result = await League.update({ ...rest }, { where: { id } })
+
+                if (adminEmail && adminEmail !== "") {
+                    await upsertLeagueAdmin(id, adminEmail, adminPassword)
+                }
 
                 return {
-                    status: result[0] === 1
+                    status: result[0] === 1 || (adminEmail && adminEmail !== "")
                 }
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
             }
         },
+        setLeagueAdmin: async (obj, {idLeague, email, password}, context, info) => {
+            try {
+                assertNotLeagueAdmin(context) // league admin can't reassign their own login
+                const { league } = await upsertLeagueAdmin(idLeague, email, password)
+                return await League.findByPk(league.id)
+            } catch (error) {
+                if (error instanceof ApolloError) throw error
+                logger.error("setLeagueAdmin error")
+                throw new ApolloError(error)
+            }
+        },
+        clearLeagueAdmin: async (obj, {idLeague}, context, info) => {
+            try {
+                assertNotLeagueAdmin(context)
+                const league = await League.findByPk(idLeague)
+                if (!league) throw new ApolloError("League not found", "LEAGUE_NOT_FOUND")
+                const previousUserId = league.id_user
+                league.id_user = null
+                await league.save()
+                if (previousUserId) {
+                    // Remove the orphan login so the email can be reused.
+                    await User.destroy({ where: { id: previousUserId } })
+                }
+                return { status: true }
+            } catch (error) {
+                if (error instanceof ApolloError) throw error
+                logger.error("clearLeagueAdmin error")
+                throw new ApolloError(error)
+            }
+        },
         deleteLeague: async (obj, {id}, context, info) =>  {
             try {
+                assertNotLeagueAdmin(context)
                 const league = await League.destroy({ where: { id } })
 
                 return {
                     status: league === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1251,12 +1366,14 @@ export const resolvers = {
         },
         deleteParticipatingTeams: async (obj, {id}, context, info) =>  {
             try {
+                assertNotLeagueAdmin(context)
                 const league = await ParticipatingTeams.destroy({ where: { id } })
 
                 return {
                     status: league === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1315,12 +1432,14 @@ export const resolvers = {
 
         deleteMatch: async (obj, {id}, context, info) =>  {
             try {
+                assertNotLeagueAdmin(context)
                 const league = await Match.destroy({ where: { id } })
 
                 return {
                     status: league === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1390,12 +1509,14 @@ export const resolvers = {
         deleteMatchCard: async (obj, {id}, context, info) =>  {
 
             try {
+                assertNotLeagueAdmin(context)
                 const league = await MatchCard.destroy({ where: { id } })
 
                 return {
                     status: league === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1440,12 +1561,14 @@ export const resolvers = {
         },
         deleteParticipatingPlayers: async (obj, {id}, context, info) =>  {
             try {
+                assertNotLeagueAdmin(context)
                 const result = await ParticipatingPlayers.destroy({ where: { id } })
 
                 return {
                     status: result === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1537,14 +1660,16 @@ export const resolvers = {
             },
           
         deleteParticipatingPlayersMatch: async (obj, {id}, context, info) =>  {
-       
+
             try {
+                assertNotLeagueAdmin(context)
                 const result = await ParticipatingPlayersMatch.destroy({ where: { id } })
 
                 return {
                     status: result === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1589,12 +1714,14 @@ export const resolvers = {
         },
         deleteParticipatingTechnicalStaff: async (obj, {id}, context, info) =>  {
             try {
+                assertNotLeagueAdmin(context)
                 const result = await ParticipatingTechnicalStaff.destroy({ where: { id } })
 
                 return {
                     status: result === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1637,9 +1764,11 @@ export const resolvers = {
         },
         deleteScorerMatch: async (obj, {id}, context, info) =>  {
             try {
+                assertNotLeagueAdmin(context)
                 const removed = await ScorerMatch.destroy({ where: { id } })
                 return { status: removed >= 1 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 throw new ApolloError(error)
             }
         },

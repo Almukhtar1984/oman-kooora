@@ -19,6 +19,9 @@ interface VariableProps {
         externalplayer?: number;
 
         id_club?: string;
+
+        adminEmail?: string;
+        adminPassword?: string;
     };
 }
 

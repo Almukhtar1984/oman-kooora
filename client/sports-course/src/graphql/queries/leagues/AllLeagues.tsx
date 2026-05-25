@@ -17,6 +17,11 @@ export const AllLeagues = gql`
             externalplayer
             internalplayer
 
+            user {
+                id
+                email
+            }
+
             participatingTeams {
                 id
                 group

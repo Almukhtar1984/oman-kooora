@@ -79,9 +79,13 @@ export const Home = () => {
     const [activePage, setActivePage] = useState<number>(1);
 
     const idClub = userData?.person?.clubManagement?.club?.id;
+    const isLeagueAdmin = userData?.role === "4";
+
+    // League admins (role 4) don't belong to a club — the resolver scopes the
+    // query to leagues where id_user === requester.id, so skip the idClub gate.
     const { data: dataAllLeagues, loading: loadingAllLeagues } = useAllLeagues({
-        variables: { idClub },
-        skip: !idClub,
+        variables: isLeagueAdmin ? {} : { idClub },
+        skip: !isLeagueAdmin && !idClub,
         fetchPolicy: "cache-and-network",
         notifyOnNetworkStatusChange: true,
     });
@@ -207,15 +211,17 @@ export const Home = () => {
                         </Box>
                     </Group>
 
-                    <Button
-                        rightSection={<IconPlus size={16} />}
-                        onClick={() => setOpenAddModal(true)}
-                        variant="white"
-                        color="cyan"
-                        radius="md"
-                    >
-                        إضافة دورة
-                    </Button>
+                    {!isLeagueAdmin && (
+                        <Button
+                            rightSection={<IconPlus size={16} />}
+                            onClick={() => setOpenAddModal(true)}
+                            variant="white"
+                            color="cyan"
+                            radius="md"
+                        >
+                            إضافة دورة
+                        </Button>
+                    )}
                 </Group>
             </Paper>
 
@@ -259,6 +265,7 @@ export const Home = () => {
                         <LeagueCard
                             key={row.id}
                             data={row}
+                            canDelete={!isLeagueAdmin}
                             onShowMatches={handleShowMatches}
                             onShowGroups={handleShowGroups}
                             onShowStats={handleShowStats}

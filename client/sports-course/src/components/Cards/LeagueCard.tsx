@@ -35,6 +35,7 @@ import { printUrl } from "../../lib/config";
 
 type Props = {
     data: any;
+    canDelete?: boolean;
 
     onShowMatches: (row: any) => void;
     onShowGroups: (row: any) => void;
@@ -112,6 +113,7 @@ const StatBox = ({
 
 export const LeagueCard = ({
     data,
+    canDelete = true,
     onShowMatches,
     onShowGroups,
     onShowStats,
@@ -484,13 +486,15 @@ export const LeagueCard = ({
                                     تعديل
                                 </Menu.Item>
 
-                                <Menu.Item
-                                    color="red"
-                                    leftSection={<IconTrash size={14} />}
-                                    onClick={() => onDelete(data)}
-                                >
-                                    حذف
-                                </Menu.Item>
+                                {canDelete && (
+                                    <Menu.Item
+                                        color="red"
+                                        leftSection={<IconTrash size={14} />}
+                                        onClick={() => onDelete(data)}
+                                    >
+                                        حذف
+                                    </Menu.Item>
+                                )}
                             </>
                         )}
                     </Menu.Dropdown>

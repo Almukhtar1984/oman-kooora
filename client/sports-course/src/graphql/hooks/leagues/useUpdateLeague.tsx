@@ -18,6 +18,9 @@ interface VariableProps {
 
         internalplayer?: number;
         externalplayer?: number;
+
+        adminEmail?: string;
+        adminPassword?: string;
     }
 }
 

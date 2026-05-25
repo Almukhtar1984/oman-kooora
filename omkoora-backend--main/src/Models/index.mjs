@@ -250,6 +250,10 @@ Permission.belongsTo(User, { foreignKey: { name: 'id_user' }, onDelete: 'CASCADE
 Club.hasOne(League, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 League.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
+// User 1 * League (league admin login — role "4")
+User.hasOne(League, { foreignKey: { name: 'id_user', allowNull: true }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+League.belongsTo(User, { foreignKey: { name: 'id_user', allowNull: true }, onDelete: 'SET NULL', onUpdate: 'CASCADE' });
+
 // League 1 * ParticipatingTeams
 League.hasOne(ParticipatingTeams, { foreignKey: { name: 'id_league' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 ParticipatingTeams.belongsTo(League, { foreignKey: { name: 'id_league' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });

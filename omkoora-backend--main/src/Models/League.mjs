@@ -49,6 +49,10 @@ export default (db, types) => {
             type: types.INTEGER,
             allowNull: true,
             defaultValue: 0
+        },
+        id_user: {
+            type: types.UUID,
+            allowNull: true
         }
     },{
         timestamps: true,

@@ -35,3 +35,5 @@ export * from "./useUpdateParticipatingPlayers";
 export * from "./useUpdateParticipatingTeams";
 export * from "./useUpdateParticipatingTechnicalStaff";
 export * from "./useUpdateScorerMatch";
+export * from "./useSetLeagueAdmin";
+export * from "./useClearLeagueAdmin";

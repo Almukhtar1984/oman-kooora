@@ -91,7 +91,9 @@ export const typeDefs = gql`
 
         freePlayer(id: ID!): statusUpdate
         updateMatchState(id: ID!, state: String!): statusUpdate
-        
+
+        setLeagueAdmin(idLeague: ID!, email: String!, password: String): League!
+        clearLeagueAdmin(idLeague: ID!): statusUpdate
     }
 
     type League {
@@ -113,14 +115,15 @@ export const typeDefs = gql`
         matchs:          [Match]
 
         club:           Club
+        user:           User
 
         createdAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         updatedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         deletedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
     }
-    
 
-    
+
+
     input contentLeague {
         name:    String
         numberTeams:    Int
@@ -129,13 +132,16 @@ export const typeDefs = gql`
 
         startDate:    String
         expiryDate:    String
-        
+
         inscriptionStartDate: String
         inscriptionExpiryDate: String
 
         id_club:    ID
         externalplayer: Int
         internalplayer: Int
+
+        adminEmail:     String
+        adminPassword:  String
     }
 
     type ParticipatingTeams {

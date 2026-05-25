@@ -1,7 +1,7 @@
-import { Box,Button,Grid,Group,NumberInput,Textarea,TextInput } from "@mantine/core";
+import { Alert,Box,Button,Divider,Grid,Group,NumberInput,PasswordInput,Text,Textarea,TextInput } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
-import { IconCheck,IconX } from "@tabler/icons-react";
+import { IconCheck,IconLock,IconMail,IconUserShield,IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { Notyf } from "notyf";
 import { AllLeagues,useAddLeague } from "../../graphql";
@@ -9,6 +9,8 @@ import useStore from "../../store/useStore";
 import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Props = {
     setSelectedData?: (id: string) => void;
@@ -29,6 +31,26 @@ export const AddLeague = (props: Props) => {
             expiryDate: "",
             inscriptionStartDate: "",
             inscriptionExpiryDate: "",
+            adminEmail: "",
+            adminPassword: "",
+        },
+        validate: {
+            adminEmail: (value, values) => {
+                const email = (value || "").trim();
+                const pw = (values as any).adminPassword || "";
+                if (!email && !pw) return null;
+                if (!email) return "البريد الإلكتروني مطلوب لإنشاء الحساب";
+                if (!EMAIL_PATTERN.test(email)) return "صيغة البريد الإلكتروني غير صحيحة";
+                return null;
+            },
+            adminPassword: (value, values) => {
+                const email = ((values as any).adminEmail || "").trim();
+                const pw = value || "";
+                if (!email && !pw) return null;
+                if (!pw) return "كلمة المرور مطلوبة لإنشاء الحساب";
+                if (pw.length < 8) return "كلمة المرور يجب أن تكون 8 أحرف على الأقل";
+                return null;
+            },
         }
     });
 
@@ -46,9 +68,11 @@ export const AddLeague = (props: Props) => {
         return d.isValid() ? d.format("YYYY-MM-DD") : "";
     };
 
-    const onFormSubmit = ({name, numberTeams, numberGroups, internalplayer, externalplayer, description, startDate, expiryDate, inscriptionStartDate, inscriptionExpiryDate}: any) => {
+    const onFormSubmit = ({name, numberTeams, numberGroups, internalplayer, externalplayer, description, startDate, expiryDate, inscriptionStartDate, inscriptionExpiryDate, adminEmail, adminPassword}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
         const idClub = userData?.person?.clubManagement?.club?.id;
+        const trimmedEmail = (adminEmail || "").trim().toLowerCase();
+        const trimmedPassword = adminPassword || "";
 
         createLeague({
             variables: {
@@ -64,7 +88,8 @@ export const AddLeague = (props: Props) => {
                     expiryDate: formatDateOrEmpty(expiryDate),
                     inscriptionStartDate: formatDateOrEmpty(inscriptionStartDate),
                     inscriptionExpiryDate: formatDateOrEmpty(inscriptionExpiryDate),
-                    id_club: idClub
+                    id_club: idClub,
+                    ...(trimmedEmail && trimmedPassword ? { adminEmail: trimmedEmail, adminPassword: trimmedPassword } : {})
                 }
             },
             refetchQueries: [AllLeagues],
@@ -72,7 +97,12 @@ export const AddLeague = (props: Props) => {
                 closeModal();
                 notyf.success("تم اضافة الدورة")
             },
-            onError: () => void 0
+            onError: ({ graphQLErrors }) => {
+                const code = graphQLErrors?.[0]?.extensions?.code as string | undefined;
+                if (code === "EMAIL_TAKEN") {
+                    notyf.error("البريد الإلكتروني مستعمل من قبل حساب آخر")
+                }
+            }
         })
     };
 
@@ -182,6 +212,43 @@ export const AddLeague = (props: Props) => {
                                 valueFormat={"YYYY-MM-DD"}
                                 withAsterisk
                                 {...getInputProps("inscriptionExpiryDate")}
+                            />
+                        </Col>
+
+                        <Col span={12}>
+                            <Divider
+                                my={4}
+                                labelPosition="center"
+                                label={
+                                    <Group gap={6} c="cyan.7">
+                                        <IconUserShield size={16} />
+                                        <Text fw={600} size="sm">حساب دخول مسؤول الدورة (اختياري)</Text>
+                                    </Group>
+                                }
+                            />
+                        </Col>
+                        <Col span={12}>
+                            <Alert color="gray" variant="light" radius="md" py={8}>
+                                <Text size="xs" c="gray.7">
+                                    عند إدخال البريد وكلمة المرور سيتم إنشاء حساب دخول مستقل لمسؤول هذه الدورة. الحساب يستطيع التعديل والإضافة فقط (بدون حذف)، ويرى دورته فقط بعد تسجيل الدخول.
+                                </Text>
+                            </Alert>
+                        </Col>
+                        <Col span={6}>
+                            <TextInput
+                                placeholder="البريد الإلكتروني"
+                                label="البريد الإلكتروني"
+                                leftSection={<IconMail size={14} />}
+                                type="email"
+                                {...getInputProps("adminEmail")}
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <PasswordInput
+                                placeholder="كلمة المرور (8 أحرف على الأقل)"
+                                label="كلمة المرور"
+                                leftSection={<IconLock size={14} />}
+                                {...getInputProps("adminPassword")}
                             />
                         </Col>
                     </Grid>
