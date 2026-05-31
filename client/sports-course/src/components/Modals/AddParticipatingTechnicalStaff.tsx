@@ -1,6 +1,6 @@
-import { ActionIcon,Box,Button,Grid,Group,Select,Tooltip } from "@mantine/core";
+import { ActionIcon,Alert,Box,Button,Grid,Group,Select,Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconCheck,IconPlus,IconTrash,IconX } from "@tabler/icons-react";
+import { IconAlertCircle,IconCheck,IconPlus,IconTrash,IconX } from "@tabler/icons-react";
 import { Notyf } from "notyf";
 import { useEffect,useState } from "react";
 import { AllLeagues,useAddParticipatingTechnicalStaff,useAllTechnicals } from "../../graphql";
@@ -33,7 +33,9 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
 
     const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
-    const [getAllTechnicals] = useAllTechnicals();
+    const [getAllTechnicals, { loading: techsLoading }] = useAllTechnicals();
+
+    const noStaffForTeam = !!participatingTeam && !techsLoading && allTechnicals.length === 0;
 
     useEffect(() => {
         if (data !== null && props.opened) {
@@ -72,6 +74,11 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
                             })
                         }
                         setAllTechnicals([...newAllTechnicals])
+                    },
+                    onError: (err) => {
+                        console.error("allTechnicalApparatus query failed", err);
+                        notyf.error("تعذّر جلب الجهاز الفني للفريق");
+                        setAllTechnicals([]);
                     }
                 })
             }
@@ -133,6 +140,10 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
             notyf.error("اختر الفريق أولاً");
             return;
         }
+        if (noStaffForTeam) {
+            notyf.error("لا يوجد جهاز فني مسجل لهذا الفريق — سجّله من إدارة النادي أولاً");
+            return;
+        }
         insertListItem('technicals', {
             id_technical_apparatus: "",
             id_participating_team: participatingTeam
@@ -190,13 +201,18 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
                                     style={{width: "100%"}}
                                 />
 
-                                <Tooltip label={participatingTeam ? "اضافة عضو الجهاز الفني" : "اختر الفريق أولاً"} >
+                                <Tooltip label={
+                                    !participatingTeam ? "اختر الفريق أولاً" :
+                                    techsLoading ? "جاري تحميل الجهاز الفني..." :
+                                    noStaffForTeam ? "لا يوجد جهاز فني مسجل لهذا الفريق" :
+                                    "اضافة عضو الجهاز الفني"
+                                } >
                                     <ActionIcon
                                         size={36}
                                         variant={"filled"}
                                         color={"teal"}
                                         onClick={addItem}
-                                        disabled={!participatingTeam}
+                                        disabled={!participatingTeam || techsLoading || noStaffForTeam}
                                         aria-label="اضافة عضو الجهاز الفني"
                                     >
                                         <IconPlus size="1.125rem" />
@@ -204,6 +220,14 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
                                 </Tooltip>
                             </Group>
                         </Col>
+
+                        {noStaffForTeam && (
+                            <Col span={12}>
+                                <Alert color="orange" icon={<IconAlertCircle size={16} />}>
+                                    لا يوجد جهاز فني مسجل لهذا الفريق. سجّله من إدارة النادي قبل ربطه بالبطولة.
+                                </Alert>
+                            </Col>
+                        )}
 
                         {values.technicals.map((item, index) => (
                             <Col span={12} key={index}>
@@ -215,6 +239,8 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
                                                 placeholder="اختر عضو الجهاز الفني"
                                                 withAsterisk
                                                 data={allTechnicals}
+                                                searchable
+                                                nothingFoundMessage="لا يوجد جهاز فني مطابق"
                                                 {...getInputProps(`technicals.${index}.id_technical_apparatus`)}
                                                 style={{width: "100%"}}
                                             />
