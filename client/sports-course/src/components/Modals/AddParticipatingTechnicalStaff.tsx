@@ -14,16 +14,24 @@ type Props = {
 } & ModalProps;
 
 export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
-    const {getInputProps, reset, onSubmit, values, insertListItem, removeListItem} = useForm({
+    const {getInputProps, reset, onSubmit, values, insertListItem, removeListItem, setFieldValue} = useForm({
         initialValues: {
-            technicals: []
+            technicals: [] as { id_technical_apparatus: string; id_participating_team: string | null }[]
+        },
+        validate: {
+            technicals: {
+                id_technical_apparatus: (value: string) =>
+                    value && value.trim() !== "" ? null : "مطلوب"
+            }
         }
     });
     const [createParticipatingTechnicalStaff] = useAddParticipatingTechnicalStaff();
     const [allTeams, setAllTeams] = useState<{ label: string, value: string }[]>([]);
     const [allTechnicals, setAllTechnicals] = useState<{ label: string, value: string }[]>([]);
 
-    const [participatingTeam, setParticipatingTeam] = useState<string | null>("");
+    const [participatingTeam, setParticipatingTeam] = useState<string | null>(null);
+
+    const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
     const [getAllTechnicals] = useAllTechnicals();
 
@@ -31,7 +39,7 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
         if (data !== null && props.opened) {
             let newAllTeams: { label: string, value: string }[] = []
 
-            const participatingTeams = data?.participatingTeams
+            const participatingTeams = data?.participatingTeams || []
 
             for (let i = 0; i < participatingTeams.length; i++) {
                 const item = participatingTeams[i]
@@ -44,8 +52,8 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
 
 
     useEffect(() => {
-        if (props.opened) {
-            const teamParticipating = data?.participatingTeams?.filter((item: any) => item.id === participatingTeam)
+        if (props.opened && participatingTeam) {
+            const teamParticipating = (data?.participatingTeams || []).filter((item: any) => item.id === participatingTeam)
 
             if (teamParticipating.length > 0) {
                 getAllTechnicals({
@@ -71,15 +79,37 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
     }, [data?.participatingTeams, getAllTechnicals, participatingTeam, props.opened])
 
     const onFormSubmit = ({technicals}: any) => {
-        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!participatingTeam) {
+            notyf.error("اختر الفريق أولاً");
+            return;
+        }
 
-        let newTechnicals = []
-        for (let i = 0; i < technicals.length; i++) {
-            const technical = technicals[i]
-            newTechnicals.push({
-                id_technical_apparatus: technical.id_technical_apparatus,
-                id_participating_team: technical.id_participating_team
-            })
+        // Re-stamp every row with the current team (defensive against stale values)
+        // and drop rows missing either FK.
+        const stamped = (technicals || [])
+            .map((t: any) => ({
+                id_technical_apparatus: t?.id_technical_apparatus,
+                id_participating_team: participatingTeam,
+            }))
+            .filter((t: any) => t.id_participating_team && t.id_technical_apparatus);
+
+        if (stamped.length === 0) {
+            notyf.error("أضف عضواً واحداً على الأقل");
+            return;
+        }
+
+        // Dedupe by id_technical_apparatus within this submit.
+        const seen = new Set<string>();
+        const newTechnicals: { id_technical_apparatus: string; id_participating_team: string }[] = [];
+        for (const row of stamped) {
+            if (seen.has(row.id_technical_apparatus)) continue;
+            seen.add(row.id_technical_apparatus);
+            newTechnicals.push(row);
+        }
+
+        if (newTechnicals.length !== stamped.length) {
+            notyf.error("لا يمكن إضافة نفس العضو مرتين");
+            return;
         }
 
         createParticipatingTechnicalStaff({
@@ -89,17 +119,30 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
             refetchQueries: [AllLeagues],
             onCompleted: () => {
                 closeModal();
-                notyf.success("تم اضافة الفرق")
+                notyf.success("تم إضافة الجهاز الفني")
             },
-            onError: () => void 0
+            onError: (err) => {
+                console.error("createParticipatingTechnicalStaff failed", err);
+                notyf.error(err?.message || "تعذّر حفظ الجهاز الفني");
+            }
         })
     };
 
     const addItem = () => {
+        if (!participatingTeam) {
+            notyf.error("اختر الفريق أولاً");
+            return;
+        }
         insertListItem('technicals', {
             id_technical_apparatus: "",
             id_participating_team: participatingTeam
         })
+    }
+
+    const onTeamChange = (value: string | null) => {
+        setParticipatingTeam(value);
+        setFieldValue('technicals', []);
+        setAllTechnicals([]);
     }
 
     const removeItem = (index: number) => {
@@ -121,7 +164,12 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
                 <Box py={16} px={20} bg="slate.0">
                     <Group justify={"left"} gap={"xs"}>
                         <Button variant="outline" rightSection={<IconX size={15} />} bg="white" onClick={closeModal}>إلغاء</Button>
-                        <Button rightSection={<IconCheck size={15} />} type="submit" form="submit_form">تأكيد</Button>
+                        <Button
+                            rightSection={<IconCheck size={15} />}
+                            type="submit"
+                            form="submit_form"
+                            disabled={!participatingTeam || values.technicals.length === 0}
+                        >تأكيد</Button>
                     </Group>
                 </Box>
             }
@@ -137,13 +185,20 @@ export const AddParticipatingTechnicalStaff = ({data, ...props}: Props) => {
                                     withAsterisk
                                     data={allTeams}
                                     value={participatingTeam}
-                                    onChange={setParticipatingTeam}
+                                    onChange={onTeamChange}
 
                                     style={{width: "100%"}}
                                 />
 
-                                <Tooltip label={"اضافة عضو الجهاز الفني"} >
-                                    <ActionIcon size={36} variant={"filled"} color={"teal"} onClick={addItem}>
+                                <Tooltip label={participatingTeam ? "اضافة عضو الجهاز الفني" : "اختر الفريق أولاً"} >
+                                    <ActionIcon
+                                        size={36}
+                                        variant={"filled"}
+                                        color={"teal"}
+                                        onClick={addItem}
+                                        disabled={!participatingTeam}
+                                        aria-label="اضافة عضو الجهاز الفني"
+                                    >
                                         <IconPlus size="1.125rem" />
                                     </ActionIcon>
                                 </Tooltip>

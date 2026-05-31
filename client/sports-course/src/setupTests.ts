@@ -16,3 +16,10 @@ class ResizeObserverPolyfill {
     disconnect() {}
 }
 (globalThis as any).ResizeObserver = (globalThis as any).ResizeObserver || ResizeObserverPolyfill;
+
+// jsdom doesn't implement scrollIntoView. Mantine's Combobox/Select calls it
+// after option selection to keep the active item in view; the missing
+// method surfaces as an uncaught TypeError in a setTimeout callback.
+if (!(window as any).HTMLElement.prototype.scrollIntoView) {
+    (window as any).HTMLElement.prototype.scrollIntoView = function () {};
+}

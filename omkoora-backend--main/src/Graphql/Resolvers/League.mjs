@@ -1679,10 +1679,17 @@ export const resolvers = {
 
         createParticipatingTechnicalStaff: async (obj, {content}, context, info) =>  {
             try {
-                return await ParticipatingTechnicalStaff.bulkCreate(content)
-
+                const filtered = (content || []).filter(
+                    (r) => r?.id_participating_team && r?.id_technical_apparatus
+                );
+                if (filtered.length === 0) {
+                    logger.error("createParticipatingTechnicalStaff: empty content after filtering")
+                    throw new ApolloError("لا توجد بيانات صالحة لإضافتها")
+                }
+                return await ParticipatingTechnicalStaff.bulkCreate(filtered)
             } catch (error) {
-                throw new ApolloError(error)
+                logger.error("createParticipatingTechnicalStaff failed", error)
+                throw new ApolloError(error?.message || "createParticipatingTechnicalStaff failed")
             }
         },
         updateParticipatingTechnicalStaff: async (obj, {content}, context, info) =>  {
