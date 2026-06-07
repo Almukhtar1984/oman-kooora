@@ -27,8 +27,6 @@ const TEAM_ID = "pteam-001";
 const staffRow = (overrides: any = {}) => ({
     __typename: "ParticipatingTechnicalStaff",
     id: "staff-1",
-    startDate: null,
-    expiryDate: null,
     participating_team: {
         __typename: "ParticipatingTeams",
         id: TEAM_ID,
@@ -86,6 +84,15 @@ const renderModal = (mocks: any[], dataProp: any = TEAM_ID, opened = true) =>
     );
 
 describe("ShowParticipatingTechnicalStaff", () => {
+    test("regression: query must NOT request startDate/expiryDate (removed from schema)", () => {
+        // These fields were dropped from the ParticipatingTechnicalStaff schema
+        // type. Requesting them makes the whole query fail GraphQL validation, so
+        // the staff list silently comes back empty. Guard against re-adding them.
+        const src = (AllParticipatingTechnicalStaff as any).loc?.source?.body ?? "";
+        expect(src).not.toContain("startDate");
+        expect(src).not.toContain("expiryDate");
+    });
+
     test("queries with the right idParticipatingTeams variable and renders staff name", async () => {
         const mocks = [
             {

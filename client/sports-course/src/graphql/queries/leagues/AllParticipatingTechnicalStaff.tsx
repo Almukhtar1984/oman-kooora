@@ -4,8 +4,6 @@ export const AllParticipatingTechnicalStaff = gql`
     query AllParticipatingTechnicalStaff($idParticipatingTeams: ID) {
         allParticipatingTechnicalStaff(idParticipatingTeams: $idParticipatingTeams) {
             id
-            startDate
-            expiryDate
             participating_team {
                 id
                 group
