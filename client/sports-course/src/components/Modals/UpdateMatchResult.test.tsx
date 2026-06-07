@@ -24,15 +24,16 @@ beforeAll(() => {
 
 const MATCH_ID = "match-1";
 
-const matchData = () => ({
+const matchData = (overrides: any = {}) => ({
     id: MATCH_ID,
     firstTeamGoal: 2,
     secondTeamGoal: 1,
     firstTeam: { id: "pt-1", team: { id: "t1", name: "نادي دماء" } },
     secondTeam: { id: "pt-2", team: { id: "t2", name: "نادي عوف" } },
+    ...overrides,
 });
 
-const renderModal = (mocks: any[] = []) =>
+const renderModal = (mocks: any[] = [], data: any = matchData()) =>
     render(
         <MockedProvider mocks={mocks} addTypename={false}>
             <MemoryRouter>
@@ -42,7 +43,7 @@ const renderModal = (mocks: any[] = []) =>
                             title="تعديل النتيجة"
                             opened={true}
                             onClose={() => {}}
-                            data={matchData()}
+                            data={data}
                         />
                     </MantineProvider>
                 </DirectionProvider>
@@ -79,7 +80,8 @@ describe("UpdateMatchResult modal", () => {
                     query: UpdateMatchMutation,
                     variables: {
                         id: MATCH_ID,
-                        content: { firstTeamGoal: 3, secondTeamGoal: 1 },
+                        // Not a draw → explicit penalty: null clears any stored shootout.
+                        content: { firstTeamGoal: 3, secondTeamGoal: 1, penalty: null },
                     },
                 },
                 result: () => {
@@ -104,5 +106,117 @@ describe("UpdateMatchResult modal", () => {
         await waitFor(() => {
             expect(received).toBe("matched");
         });
+    });
+
+    test("shows the penalty section prefilled when the match was decided on penalties", async () => {
+        renderModal(
+            [],
+            matchData({
+                firstTeamGoal: 1,
+                secondTeamGoal: 1,
+                penalty: { id: "pen-1", firstTeamPenalty: 5, secondTeamPenalty: 4 },
+            })
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("ضربات الترجيح")).toBeInTheDocument();
+        });
+        expect(screen.getByDisplayValue("5")).toBeInTheDocument();
+        expect(screen.getByDisplayValue("4")).toBeInTheDocument();
+    });
+
+    test("hides the penalty section when the score is not level", async () => {
+        renderModal();
+
+        await waitFor(() => {
+            expect(screen.getByDisplayValue("2")).toBeInTheDocument();
+        });
+        expect(screen.queryByText("ضربات الترجيح")).not.toBeInTheDocument();
+    });
+
+    test("submits the shootout result alongside a drawn score", async () => {
+        let received: any = null;
+
+        const mocks = [
+            {
+                request: {
+                    query: UpdateMatchMutation,
+                    variables: {
+                        id: MATCH_ID,
+                        content: {
+                            firstTeamGoal: 1,
+                            secondTeamGoal: 1,
+                            penalty: { firstTeamPenalty: 5, secondTeamPenalty: 3 },
+                        },
+                    },
+                },
+                result: () => {
+                    received = "matched";
+                    return { data: { updateMatch: { status: true } } };
+                },
+            },
+        ];
+
+        renderModal(
+            mocks,
+            matchData({
+                firstTeamGoal: 1,
+                secondTeamGoal: 1,
+                penalty: { id: "pen-1", firstTeamPenalty: 5, secondTeamPenalty: 3 },
+            })
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("ضربات الترجيح")).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: /تأكيد/ }));
+
+        await waitFor(() => {
+            expect(received).toBe("matched");
+        });
+    });
+
+    test("blocks submission when the shootout itself is tied", async () => {
+        let received: any = null;
+
+        const mocks = [
+            {
+                request: {
+                    query: UpdateMatchMutation,
+                    variables: {
+                        id: MATCH_ID,
+                        content: {
+                            firstTeamGoal: 1,
+                            secondTeamGoal: 1,
+                            penalty: { firstTeamPenalty: 4, secondTeamPenalty: 4 },
+                        },
+                    },
+                },
+                result: () => {
+                    received = "matched";
+                    return { data: { updateMatch: { status: true } } };
+                },
+            },
+        ];
+
+        renderModal(
+            mocks,
+            matchData({
+                firstTeamGoal: 1,
+                secondTeamGoal: 1,
+                penalty: { id: "pen-1", firstTeamPenalty: 4, secondTeamPenalty: 4 },
+            })
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("ضربات الترجيح")).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: /تأكيد/ }));
+
+        // Give the (rejected) mutation a chance to fire — it must not.
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        expect(received).toBe(null);
     });
 });

@@ -181,7 +181,19 @@ export const computeFinalPlacements = (matches: any[]) => {
     const first = finalMatch.firstTeamGoal ?? 0;
     const second = finalMatch.secondTeamGoal ?? 0;
     if (first === second) {
-        // Draw — without penalty data we can't infer winner; surface ambiguous result.
+        // Draw — decided by the penalty shootout when one was recorded.
+        const firstPen = finalMatch.penalty?.firstTeamPenalty;
+        const secondPen = finalMatch.penalty?.secondTeamPenalty;
+        if (
+            typeof firstPen === "number" &&
+            typeof secondPen === "number" &&
+            firstPen !== secondPen
+        ) {
+            const winner = firstPen > secondPen ? finalMatch.firstTeam?.team : finalMatch.secondTeam?.team;
+            const runnerUp = firstPen > secondPen ? finalMatch.secondTeam?.team : finalMatch.firstTeam?.team;
+            return { winner, runnerUp, finalMatch };
+        }
+        // No (or tied) shootout data — surface ambiguous result.
         return { winner: null, runnerUp: null, finalMatch };
     }
     const winner = first > second ? finalMatch.firstTeam?.team : finalMatch.secondTeam?.team;

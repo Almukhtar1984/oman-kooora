@@ -103,6 +103,17 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                                 <Text size={"lg"} ta={"center"} c={theme.colors.gray[7]} fw={"bold"}>{item?.secondTeamGoal}</Text>
                                             </Group>
 
+                                            {item?.penalty && (
+                                                <Group justify={"center"} align="center" gap={8}>
+                                                    <Badge size="sm" radius="sm" variant="light" color="grape">
+                                                        ضربات الترجيح
+                                                    </Badge>
+                                                    <Text size={"13px"} fw={"bold"} c={theme.colors.gray[7]}>
+                                                        {item.penalty.firstTeamPenalty} - {item.penalty.secondTeamPenalty}
+                                                    </Text>
+                                                </Group>
+                                            )}
+
                                             <Group justify={"space-between"} align="center" wrap="nowrap">
                                                 <Stack gap={5} align="flex-start">
                                                     {item?.firstTeamScorersMatch?.length > 0 ?

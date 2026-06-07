@@ -216,4 +216,36 @@ describe("computeFinalPlacements", () => {
         expect(out.winner).toBe(null);
         expect(out.runnerUp).toBe(null);
     });
+
+    test("resolves a drawn final from the penalty shootout", () => {
+        const matches = [
+            makeMatch({
+                type: "final",
+                matchState: "end",
+                firstTeamGoal: 1,
+                secondTeamGoal: 1,
+                penalty: { id: "pen-1", firstTeamPenalty: 3, secondTeamPenalty: 5 },
+            }),
+        ];
+
+        const out = computeFinalPlacements(matches)!;
+        expect(out.winner?.name).toBe("نادي عوف"); // secondTeam won the shootout
+        expect(out.runnerUp?.name).toBe("نادي دماء");
+    });
+
+    test("keeps the drawn final ambiguous when the recorded shootout is tied", () => {
+        const matches = [
+            makeMatch({
+                type: "final",
+                matchState: "end",
+                firstTeamGoal: 1,
+                secondTeamGoal: 1,
+                penalty: { id: "pen-1", firstTeamPenalty: 4, secondTeamPenalty: 4 },
+            }),
+        ];
+
+        const out = computeFinalPlacements(matches)!;
+        expect(out.winner).toBe(null);
+        expect(out.runnerUp).toBe(null);
+    });
 });

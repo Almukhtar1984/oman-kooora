@@ -115,6 +115,24 @@ describe("ShowMatch inline match details", () => {
         renderShowMatch([buildMatch({ manOfMatch: "" })]);
         expect(screen.queryByText("رجل المباراة:")).not.toBeInTheDocument();
     });
+
+    test("renders the penalty shootout result when one was recorded", () => {
+        renderShowMatch([
+            buildMatch({
+                firstTeamGoal: 1,
+                secondTeamGoal: 1,
+                penalty: { id: "pen-1", firstTeamPenalty: 5, secondTeamPenalty: 4 },
+            }),
+        ]);
+
+        expect(screen.getByText("ضربات الترجيح")).toBeInTheDocument();
+        expect(screen.getByText("5 - 4")).toBeInTheDocument();
+    });
+
+    test("omits the penalty row when the match had no shootout", () => {
+        renderShowMatch([buildMatch({})]);
+        expect(screen.queryByText("ضربات الترجيح")).not.toBeInTheDocument();
+    });
 });
 
 describe("ShowMatch end-of-tournament lock", () => {

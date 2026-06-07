@@ -1492,26 +1492,30 @@ export const resolvers = {
                 // 1. Update the match
                 const result = await Match.update(matchFields, { where: { id } });
 
-                // 2. Handle penalty logic
-                const existingPenalty = await Penalty.findOne({ where: { id_match: id } });
+                // 2. Handle penalty logic — an omitted (undefined) penalty
+                // means "don't touch the stored shootout" so partial updates
+                // (man of the match, date, teams...) can't wipe it. Passing
+                // an explicit null clears it (e.g. result is no longer a draw).
+                if (penalty !== undefined) {
+                    const existingPenalty = await Penalty.findOne({ where: { id_match: id } });
 
-                if (penalty) {
-                const { firstTeamPenalty, secondTeamPenalty } = penalty;
+                    if (penalty) {
+                        const { firstTeamPenalty, secondTeamPenalty } = penalty;
 
-                const hasValidPenalty =
-                    typeof firstTeamPenalty === 'number' &&
-                    typeof secondTeamPenalty === 'number';
+                        const hasValidPenalty =
+                            typeof firstTeamPenalty === 'number' &&
+                            typeof secondTeamPenalty === 'number';
 
-                if (hasValidPenalty) {
-                    if (existingPenalty) {
-                    await existingPenalty.update({ firstTeamPenalty, secondTeamPenalty });
-                    } else {
-                    await Penalty.create({ id_match: id, firstTeamPenalty, secondTeamPenalty });
+                        if (hasValidPenalty) {
+                            if (existingPenalty) {
+                                await existingPenalty.update({ firstTeamPenalty, secondTeamPenalty });
+                            } else {
+                                await Penalty.create({ id_match: id, firstTeamPenalty, secondTeamPenalty });
+                            }
+                        }
+                    } else if (existingPenalty) {
+                        await existingPenalty.destroy();
                     }
-                }
-                } else if (existingPenalty) {
-                // If no penalty is passed but one exists, delete it
-                await existingPenalty.destroy();
                 }
 
                 return {

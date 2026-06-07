@@ -65,6 +65,8 @@ export const UpdateMatch = ({data, dataLeague, ...props}: Props) => {
                     type,
                     first_team,
                     second_team
+                    // penalty deliberately omitted: the backend leaves the
+                    // stored shootout untouched unless it's explicitly set.
                 }
             },
             refetchQueries: [AllLeagues],

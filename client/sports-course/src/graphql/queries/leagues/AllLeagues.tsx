@@ -53,6 +53,12 @@ export const AllLeagues = gql`
                 manOfMatch
                 matchState
 
+                penalty {
+                    id
+                    firstTeamPenalty
+                    secondTeamPenalty
+                }
+
                 arbitre {
                     id
                     Arbitre1
