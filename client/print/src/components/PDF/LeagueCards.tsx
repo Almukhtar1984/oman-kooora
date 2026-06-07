@@ -12,8 +12,27 @@ interface ParticipatingPlayer {
     player?: any;
 }
 
+// Display strings so the same component prints player AND technical-staff
+// cards — only the wording changes, the card layout stays identical.
+export interface CardsLabels {
+    empty: string;
+    preparing: string;
+    unit: string;
+    filePrefix: string;
+    headerFallback: string;
+}
+
+const PLAYER_LABELS: CardsLabels = {
+    empty: "لا يوجد لاعبون مشاركون في هذه الدورة بعد.",
+    preparing: "جارٍ تجهيز بطاقات اللاعبين",
+    unit: "بطاقة لاعب",
+    filePrefix: "players-cards",
+    headerFallback: "بطاقة لاعب",
+};
+
 interface Props {
     players?: ParticipatingPlayer[];
+    labels?: CardsLabels;
     // Above this player count the component defers mounting PDFViewer until the
     // user explicitly clicks "عرض PDF" — for 200–300+ players the viewer alone
     // can cost hundreds of MB of memory.
@@ -43,6 +62,8 @@ const playerForCard = (pp: ParticipatingPlayer) => ({
     id: pp.player?.id,
     person: pp.player?.person,
     team: pp.participating_team?.team,
+    // Set on technical-staff envelopes (TeamStaffCards) — renders a "الصفة" row.
+    occupation: pp.player?.occupation,
 });
 
 const toolbarStyle: React.CSSProperties = {
@@ -73,7 +94,7 @@ const secondaryBtn: React.CSSProperties = {
     border: "1px solid #0891b2",
 };
 
-const LeagueCards = ({ players, deferViewerAbove = 100 }: Props) => {
+const LeagueCards = ({ players, labels = PLAYER_LABELS, deferViewerAbove = 100 }: Props) => {
     const safePlayers = useMemo(() => players || [], [players]);
     const { images, qr, progress } = usePrintAssets(safePlayers);
     const [downloading, setDownloading] = useState(false);
@@ -92,7 +113,7 @@ const LeagueCards = ({ players, deferViewerAbove = 100 }: Props) => {
                             key={pp.id}
                             qrDataUrl={qr[pp.id] || ""}
                             player={playerForCard(pp)}
-                            headerTitle={leagueName || "بطاقة لاعب"}
+                            headerTitle={leagueName || labels.headerFallback}
                             headerSubtitle={teamName}
                             images={images}
                         />
@@ -106,7 +127,7 @@ const LeagueCards = ({ players, deferViewerAbove = 100 }: Props) => {
     if (safePlayers.length === 0) {
         return (
             <div data-testid="league-cards-empty" style={{ padding: 24, textAlign: "center" }}>
-                لا يوجد لاعبون مشاركون في هذه الدورة بعد.
+                {labels.empty}
             </div>
         );
     }
@@ -115,7 +136,7 @@ const LeagueCards = ({ players, deferViewerAbove = 100 }: Props) => {
         return (
             <PrintProgress
                 progress={progress}
-                label="جارٍ تجهيز بطاقات اللاعبين"
+                label={labels.preparing}
                 totalPlayers={safePlayers.length}
             />
         );
@@ -129,7 +150,7 @@ const LeagueCards = ({ players, deferViewerAbove = 100 }: Props) => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `players-cards-${new Date().toISOString().slice(0, 10)}.pdf`;
+            a.download = `${labels.filePrefix}-${new Date().toISOString().slice(0, 10)}.pdf`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -163,7 +184,7 @@ const LeagueCards = ({ players, deferViewerAbove = 100 }: Props) => {
                     الملف جاهز
                 </div>
                 <div style={{ color: "#6b7280", textAlign: "center" }}>
-                    {safePlayers.length} بطاقة لاعب — {progress.imagesTotal} صورة موحّدة
+                    {safePlayers.length} {labels.unit} — {progress.imagesTotal} صورة موحّدة
                 </div>
                 <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
                     <button

@@ -1,6 +1,6 @@
 import { MockedProvider } from "@apollo/client/testing";
 import { DirectionProvider, MantineProvider } from "@mantine/core";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 import { AllParticipatingTechnicalStaff } from "../../graphql";
@@ -120,6 +120,35 @@ describe("ShowParticipatingTechnicalStaff", () => {
         await waitFor(() => {
             expect(screen.getByText(/لا يوجد جهاز فني مسجل/)).toBeInTheDocument();
         });
+    });
+
+    test("offers a print-all button that opens the staff-cards print route", async () => {
+        const openSpy = vi.fn();
+        const originalOpen = window.open;
+        window.open = openSpy as any;
+
+        const mocks = [
+            {
+                request: {
+                    query: AllParticipatingTechnicalStaff,
+                    variables: { idParticipatingTeams: TEAM_ID },
+                },
+                result: { data: { allParticipatingTechnicalStaff: [staffRow()] } },
+            },
+        ];
+
+        renderModal(mocks);
+
+        await waitFor(() => {
+            expect(screen.getByText("طباعة بطاقات الجهاز الفني")).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByText("طباعة بطاقات الجهاز الفني"));
+
+        expect(openSpy).toHaveBeenCalledTimes(1);
+        expect(String(openSpy.mock.calls[0][0])).toContain(`/#/team-staff-cards/${TEAM_ID}/all`);
+
+        window.open = originalOpen;
     });
 
     test("does NOT fire the query while the modal is closed", async () => {

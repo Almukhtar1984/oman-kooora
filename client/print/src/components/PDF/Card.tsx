@@ -254,6 +254,14 @@ export const CardFrontPage = ({
                                 }}
                             />
 
+                            {player?.occupation ? (
+                                <>
+                                    <Text style={styles.label}>الصفة</Text>
+                                    <Text style={styles.value}>{player.occupation}</Text>
+                                    <View style={{ height: 3 }} />
+                                </>
+                            ) : null}
+
                             <Text style={styles.label}>تاريخ الميلاد</Text>
                             <Text style={styles.value}>{birthLine || "—"}</Text>
                             <View style={{ height: 3 }} />

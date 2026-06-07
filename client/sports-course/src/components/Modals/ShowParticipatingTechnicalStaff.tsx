@@ -1,8 +1,8 @@
-import { Box,Center,Grid,Group,Image,Skeleton,Stack,Text,useMantineTheme } from "@mantine/core";
-import { IconUserOff } from "@tabler/icons-react";
+import { ActionIcon,Box,Button,Center,Grid,Group,Image,Menu,Skeleton,Stack,Text,useMantineTheme } from "@mantine/core";
+import { IconDotsVertical,IconPrinter,IconUserOff } from "@tabler/icons-react";
 import { useEffect,useState } from "react";
 import { useAllParticipatingTechnicalStaff } from "../../graphql";
-import { apiBaseUrl } from "../../lib/config";
+import { apiBaseUrl, printUrl } from "../../lib/config";
 import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
@@ -40,6 +40,18 @@ export const ShowParticipatingTechnicalStaff = ({data, setSelectedData, ...props
         props.onClose();
         setAllParticipatingTechnicalStaff([])
         setHasFetched(false)
+    };
+
+    const handlePrintAll = () => {
+        if (!data) return;
+        const url = `${printUrl}/#/team-staff-cards/${data}/all`;
+        window.open(url, "_blank", "noopener,noreferrer");
+    };
+
+    const handlePrintOne = (id: string) => {
+        if (!data || !id) return;
+        const url = `${printUrl}/#/team-staff-cards/${data}/${id}`;
+        window.open(url, "_blank", "noopener,noreferrer");
     };
 
     return (
@@ -81,30 +93,64 @@ export const ShowParticipatingTechnicalStaff = ({data, setSelectedData, ...props
                     </Center>
                 )}
                 {!loading && allParticipatingTechnicalStaff.length > 0 && (
-                    <Grid gutter={20}>
-                        {allParticipatingTechnicalStaff?.map((item: any, index: number) => (
-                            <Col key={index} span={6} >
-                                <Box bg={theme.white} style={({ colors }) => ({padding: 10})}>
-                                    <Group wrap={"nowrap"} justify={"space-between"} align="flex-start">
-                                        <Group wrap={"nowrap"} justify={"flex-start"} align={"center"}>
-                                            <Stack justify={"center"} h={"100%"}>
-                                                <Image src={`${apiBaseUrl}/images/${item?.technicalApparatus?.person?.personal_picture}`} w={50} h={50} />
-                                            </Stack>
+                    <>
+                        <Group justify="flex-end" mb={12}>
+                            <Button
+                                size="xs"
+                                variant="light"
+                                leftSection={<IconPrinter size={15} />}
+                                onClick={handlePrintAll}
+                            >
+                                طباعة بطاقات الجهاز الفني
+                            </Button>
+                        </Group>
+                        <Grid gutter={20}>
+                            {allParticipatingTechnicalStaff?.map((item: any, index: number) => (
+                                <Col key={index} span={6} >
+                                    <Box bg={theme.white} style={({ colors }) => ({padding: 10})}>
+                                        <Group wrap={"nowrap"} justify={"space-between"} align="flex-start">
+                                            <Group wrap={"nowrap"} justify={"flex-start"} align={"center"}>
+                                                <Stack justify={"center"} h={"100%"}>
+                                                    <Image src={`${apiBaseUrl}/images/${item?.technicalApparatus?.person?.personal_picture}`} w={50} h={50} />
+                                                </Stack>
 
-                                            <Stack gap={5} justify={"center"} align="flex-start">
-                                                <Text size={"14px"} c={theme.colors.gray[6]}>
-                                                    {`${item?.technicalApparatus?.person?.first_name} ${item?.technicalApparatus?.person?.second_name} ${item?.technicalApparatus?.person?.third_name} ${item?.technicalApparatus?.person?.tribe} (${item?.technicalApparatus?.person?.card_number})`}
-                                                </Text>
-                                                <Text size={"14px"} c={theme.colors.gray[6]}>
-                                                    {`${item?.technicalApparatus?.person?.date_birth}`}
-                                                </Text>
+                                                <Stack gap={5} justify={"center"} align="flex-start">
+                                                    <Text size={"14px"} c={theme.colors.gray[6]}>
+                                                        {`${item?.technicalApparatus?.person?.first_name} ${item?.technicalApparatus?.person?.second_name} ${item?.technicalApparatus?.person?.third_name} ${item?.technicalApparatus?.person?.tribe} (${item?.technicalApparatus?.person?.card_number})`}
+                                                    </Text>
+                                                    <Text size={"14px"} c={theme.colors.gray[6]}>
+                                                        {`${item?.technicalApparatus?.person?.date_birth}`}
+                                                    </Text>
+                                                    {item?.technicalApparatus?.occupation && (
+                                                        <Text size={"12px"} c={theme.colors.gray[5]}>
+                                                            {item.technicalApparatus.occupation}
+                                                        </Text>
+                                                    )}
+                                                </Stack>
+                                            </Group>
+
+                                            <Stack justify={"flex-start"} h={"100%"}>
+                                                <Menu shadow="md" width={230}>
+                                                    <Menu.Target>
+                                                        <ActionIcon variant={"transparent"} color={"gray"} size={"sm"}>
+                                                            <IconDotsVertical size="0.9rem" />
+                                                        </ActionIcon>
+                                                    </Menu.Target>
+
+                                                    <Menu.Dropdown>
+                                                        <Menu.Item
+                                                            leftSection={<IconPrinter size={14} />}
+                                                            onClick={() => handlePrintOne(item?.id)}
+                                                        >طباعة بطاقة هذا العضو</Menu.Item>
+                                                    </Menu.Dropdown>
+                                                </Menu>
                                             </Stack>
                                         </Group>
-                                    </Group>
-                                </Box>
-                            </Col>
-                        ))}
-                    </Grid>
+                                    </Box>
+                                </Col>
+                            ))}
+                        </Grid>
+                    </>
                 )}
             </Box>
         </Modal>
