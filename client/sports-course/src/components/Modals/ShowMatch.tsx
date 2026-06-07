@@ -1,6 +1,7 @@
 import { ActionIcon,Badge,Box,Divider,Grid,Group,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
 import { IconCards,IconClock,IconDotsVertical,IconEdit,IconFriends,IconPlus,IconStar,IconTrash,IconUserShield } from "@tabler/icons-react";
 import dayjs from "dayjs";
+import { isLeagueEnded } from "../Cards/LeagueCard";
 import Modal,{ Props as ModalProps } from "./Modal";
 
 const formatPlayerName = (person: any) =>
@@ -44,6 +45,10 @@ type Props = {
 
 export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  setOpenEditMatchResultModal, setOpenEditMatchModal, setOpenDeleteMatchModal, setOpenAddMatchCardModal, setOpenAddManOfMatchModal, setOpenEditManOfMatchModal, setOpenAddScorerModal, setOpenUpdateScorerModal, setOpenManageRefereesModal, setOpenUpdateMatchStateModal, setOpenManageMatchCardsModal, setOpenManageMatchLineupModal, ...props}: Props) => {
     const theme = useMantineTheme();
+
+    // Once the league's expiryDate passes, the tournament is read-only:
+    // hide every match edit action (the backend rejects them anyway).
+    const ended = isLeagueEnded(data);
 
     const closeModal = () => {
         props.onClose();
@@ -186,7 +191,7 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                                 </>
                                             )}
                                         </Stack>
-                                        <Stack h={"100%"} gap={0} justify="flex-start">
+                                        {!ended && <Stack h={"100%"} gap={0} justify="flex-start">
                                             <Menu shadow="md" width={200}>
                                                 <Menu.Target>
                                                     <ActionIcon variant={"transparent"} color={"gray"}>
@@ -309,7 +314,7 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                                     >حذف</Menu.Item>
                                                 </Menu.Dropdown>
                                             </Menu>
-                                        </Stack>
+                                        </Stack>}
                                     </Group>
                                 </Box>
                             </Col>

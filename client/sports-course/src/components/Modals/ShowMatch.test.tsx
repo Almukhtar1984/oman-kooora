@@ -1,7 +1,7 @@
 import { DirectionProvider, MantineProvider } from "@mantine/core";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeAll, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { ShowMatch } from "./ShowMatch";
 
 beforeAll(() => {
@@ -39,7 +39,7 @@ const buildMatch = (overrides: any) => ({
     ...overrides,
 });
 
-const renderShowMatch = (matches: any[]) =>
+const renderShowMatch = (matches: any[], leagueOverrides: any = {}) =>
     render(
         <MemoryRouter>
             <DirectionProvider initialDirection="rtl">
@@ -48,7 +48,7 @@ const renderShowMatch = (matches: any[]) =>
                         title="عرض المباريات"
                         opened={true}
                         onClose={noop}
-                        data={{ id: "L1", matchs: matches }}
+                        data={{ id: "L1", matchs: matches, ...leagueOverrides }}
                         setSelectedData={noop}
                         setOpenEditMatchModal={noop}
                         setOpenDeleteMatchModal={noop}
@@ -114,5 +114,33 @@ describe("ShowMatch inline match details", () => {
     test("omits the man of the match row when manOfMatch is empty", () => {
         renderShowMatch([buildMatch({ manOfMatch: "" })]);
         expect(screen.queryByText("رجل المباراة:")).not.toBeInTheDocument();
+    });
+});
+
+describe("ShowMatch end-of-tournament lock", () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    const hasMenuTrigger = () =>
+        screen
+            .getAllByRole("button")
+            .some((b) => (b as HTMLElement).querySelector("svg.tabler-icon-dots-vertical"));
+
+    test("hides the match edit menu once the league has ended", () => {
+        // Fake only Date: freezing real timers breaks Mantine transitions.
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2026-09-01T12:00:00Z"));
+
+        renderShowMatch([buildMatch({})], { expiryDate: "2026-08-01" });
+        expect(hasMenuTrigger()).toBe(false);
+    });
+
+    test("keeps the match edit menu while the league is still active", () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2026-07-01T12:00:00Z"));
+
+        renderShowMatch([buildMatch({})], { expiryDate: "2026-08-01" });
+        expect(hasMenuTrigger()).toBe(true);
     });
 });

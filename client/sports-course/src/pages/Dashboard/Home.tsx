@@ -21,6 +21,7 @@ AddLeague,AddManOfMatch,AddMatch,AddMatchCard,AddMatchResult,AddParticipating,Ad
 UpdateMatchResult,UpdateMatchStateModal,UpdateParticipating,UpdateParticipatingPlayers,UpdateScorerMatch
 } from "../../components/Modals";
 import { LeagueCard } from "../../components/Cards";
+import { isLeagueEnded } from "../../components/Cards/LeagueCard";
 import { useAllLeagues } from "../../graphql";
 import { searchSortedData,sortedData } from "../../lib/helpers/sort";
 import useStore from "../../store/useStore";
@@ -370,6 +371,7 @@ export const Home = () => {
             <ShowParticipatingPlayers
                 title="عرض لاعبين الفريق"
                 data={selectedParticipatingTeamId}
+                leagueEnded={isLeagueEnded(selectedData)}
                 opened={openShowParticipatingPlayersModal}
                 onClose={() => setOpenShowParticipatingPlayersModal(false)}
 

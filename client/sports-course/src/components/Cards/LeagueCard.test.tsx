@@ -146,36 +146,50 @@ describe("LeagueCard end-of-tournament lock", () => {
     });
 
     test("shows منتهية badge when the tournament has ended", () => {
-        vi.useFakeTimers();
+        // Fake only Date: freezing real timers blocks Mantine's menu
+        // transition, which keeps the dropdown from ever rendering.
+        vi.useFakeTimers({ toFake: ["Date"] });
         vi.setSystemTime(new Date("2026-09-01T12:00:00Z"));
 
         renderCard({ ...baseLeague, expiryDate: "2026-08-01" });
         expect(screen.getByText("منتهية")).toBeInTheDocument();
     });
 
-    test("hides 'تعديل' and 'حذف' menu items once ended", () => {
-        vi.useFakeTimers();
+    test("hides 'تعديل' and 'حذف' menu items once ended", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
         vi.setSystemTime(new Date("2026-09-01T12:00:00Z"));
 
-        renderCard({ ...baseLeague, expiryDate: "2026-08-01" });
+        renderCard({
+            ...baseLeague,
+            expiryDate: "2026-08-01",
+            participatingTeams: [{ id: "PT1" }],
+        });
         openMenu();
+
+        // Wait for the dropdown — read-only items stay visible once ended,
+        // which also proves the menu actually opened.
+        expect(await screen.findByText("عرض المجموعات")).toBeInTheDocument();
 
         // These mutate the tournament, so they must be gone once it's ended.
         expect(screen.queryByText("تعديل")).not.toBeInTheDocument();
         expect(screen.queryByText("حذف")).not.toBeInTheDocument();
-        // No teams yet either, so the "إضافة فرق" inline action must also disappear.
+        expect(screen.queryByText("إضافة مباراة")).not.toBeInTheDocument();
+        expect(screen.queryByText("تعديل الفرق")).not.toBeInTheDocument();
+        expect(screen.queryByText("إضافة لاعبين")).not.toBeInTheDocument();
+        expect(screen.queryByText("إضافة جهاز فني")).not.toBeInTheDocument();
         expect(screen.queryByText("إضافة فرق")).not.toBeInTheDocument();
     });
 
-    test("keeps edit/delete actions visible while the tournament is still active", () => {
-        vi.useFakeTimers();
+    test("keeps edit/delete actions visible while the tournament is still active", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
         vi.setSystemTime(new Date("2026-07-01T12:00:00Z"));
 
         renderCard({ ...baseLeague, expiryDate: "2026-08-01" });
         expect(screen.queryByText("منتهية")).not.toBeInTheDocument();
 
         openMenu();
-        expect(screen.getByText("تعديل")).toBeInTheDocument();
+        // The dropdown mounts asynchronously (floating-ui), so wait for it.
+        expect(await screen.findByText("تعديل")).toBeInTheDocument();
         expect(screen.getByText("حذف")).toBeInTheDocument();
     });
 });

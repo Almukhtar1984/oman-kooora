@@ -9,11 +9,13 @@ const {Col} = Grid
 
 type Props = {
     data?: any;
+    // true when the league's expiryDate passed — players become read-only
+    leagueEnded?: boolean;
     setSelectedData: (id: any) => void;
     setOpenEditParticipatingPlayersModal: (status: boolean) => void;
 } & ModalProps;
 
-export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditParticipatingPlayersModal, ...props}: Props) => {
+export const ShowParticipatingPlayers = ({data, leagueEnded = false, setSelectedData, setOpenEditParticipatingPlayersModal, ...props}: Props) => {
     const theme = useMantineTheme();
     const [getAllParticipatingPlayers, { loading }] = useAllParticipatingPlayers()
 
@@ -193,13 +195,15 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
                                                         </Menu.Target>
 
                                                         <Menu.Dropdown>
-                                                            <Menu.Item
-                                                                leftSection={<IconEdit size={14} />}
-                                                                onClick={() => {
-                                                                    setSelectedData(item)
-                                                                    setOpenEditParticipatingPlayersModal(true)
-                                                                }}
-                                                            >تعديل اللاعب</Menu.Item>
+                                                            {!leagueEnded && (
+                                                                <Menu.Item
+                                                                    leftSection={<IconEdit size={14} />}
+                                                                    onClick={() => {
+                                                                        setSelectedData(item)
+                                                                        setOpenEditParticipatingPlayersModal(true)
+                                                                    }}
+                                                                >تعديل اللاعب</Menu.Item>
+                                                            )}
                                                             <Menu.Item
                                                                 leftSection={<IconPrinter size={14} />}
                                                                 onClick={() => {

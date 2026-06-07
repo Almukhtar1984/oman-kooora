@@ -23,6 +23,82 @@ const assertNotLeagueAdmin = (context) => {
     }
 };
 
+// A league becomes read-only once its expiryDate day has passed: every
+// mutation that touches league data (matches, teams, players, staff,
+// cards, scorers, referees...) is rejected so a finished tournament
+// can't be altered. Mirrors isLeagueEnded() in the dashboard client.
+const LEAGUE_ENDED_MESSAGE = "البطولة منتهية — لا يمكن تعديل أي بيانات تابعة لها";
+
+const isLeagueEnded = (league) => {
+    const raw = league?.expiryDate;
+    if (!raw || raw === "") return false;
+    const expiry = new Date(raw);
+    if (isNaN(expiry.getTime())) return false;
+    expiry.setHours(23, 59, 59, 999);
+    return new Date() > expiry;
+};
+
+const toIdList = (value) =>
+    [...new Set((Array.isArray(value) ? value : [value]).filter((v) => v && v !== ""))];
+
+const assertLeaguesNotEnded = async (leagueIds) => {
+    const ids = toIdList(leagueIds);
+    if (ids.length === 0) return;
+    const leagues = await League.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'expiryDate'] });
+    if (leagues.some(isLeagueEnded)) {
+        throw new ApolloError(LEAGUE_ENDED_MESSAGE, "LEAGUE_ENDED");
+    }
+};
+
+const assertMatchesLeagueNotEnded = async (matchIds) => {
+    const ids = toIdList(matchIds);
+    if (ids.length === 0) return;
+    const rows = await Match.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'id_league'] });
+    await assertLeaguesNotEnded(rows.map((r) => r.id_league));
+};
+
+const assertMatchCardsLeagueNotEnded = async (cardIds) => {
+    const ids = toIdList(cardIds);
+    if (ids.length === 0) return;
+    const rows = await MatchCard.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'id_match'] });
+    await assertMatchesLeagueNotEnded(rows.map((r) => r.id_match));
+};
+
+const assertParticipatingTeamsLeagueNotEnded = async (participatingTeamIds) => {
+    const ids = toIdList(participatingTeamIds);
+    if (ids.length === 0) return;
+    const rows = await ParticipatingTeams.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'id_league'] });
+    await assertLeaguesNotEnded(rows.map((r) => r.id_league));
+};
+
+const assertParticipatingPlayersLeagueNotEnded = async (participatingPlayerIds) => {
+    const ids = toIdList(participatingPlayerIds);
+    if (ids.length === 0) return;
+    const rows = await ParticipatingPlayers.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'id_participating_team'] });
+    await assertParticipatingTeamsLeagueNotEnded(rows.map((r) => r.id_participating_team));
+};
+
+const assertPlayersMatchLeagueNotEnded = async (playersMatchIds) => {
+    const ids = toIdList(playersMatchIds);
+    if (ids.length === 0) return;
+    const rows = await ParticipatingPlayersMatch.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'id_match'] });
+    await assertMatchesLeagueNotEnded(rows.map((r) => r.id_match));
+};
+
+const assertTechnicalStaffLeagueNotEnded = async (staffIds) => {
+    const ids = toIdList(staffIds);
+    if (ids.length === 0) return;
+    const rows = await ParticipatingTechnicalStaff.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'id_participating_team'] });
+    await assertParticipatingTeamsLeagueNotEnded(rows.map((r) => r.id_participating_team));
+};
+
+const assertScorersLeagueNotEnded = async (scorerIds) => {
+    const ids = toIdList(scorerIds);
+    if (ids.length === 0) return;
+    const rows = await ScorerMatch.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'id_match'] });
+    await assertMatchesLeagueNotEnded(rows.map((r) => r.id_match));
+};
+
 const upsertLeagueAdmin = async (idLeague, email, password) => {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     if (!normalizedEmail) throw new ApolloError("Email is required", "EMAIL_REQUIRED");
@@ -1225,6 +1301,12 @@ export const resolvers = {
         },
         updateLeague: async (obj, {id, content}, context, info) =>  {
             try {
+                // League admins can't touch an ended league at all; the super
+                // admin keeps access to the league record itself as an escape
+                // hatch (e.g. to fix a wrong expiryDate).
+                if (context?.user?.role === LEAGUE_ADMIN_ROLE) {
+                    await assertLeaguesNotEnded(id)
+                }
                 const { adminEmail, adminPassword, ...rest } = content || {}
                 let result = await League.update({ ...rest }, { where: { id } })
 
@@ -1236,6 +1318,7 @@ export const resolvers = {
                     status: result[0] === 1 || (adminEmail && adminEmail !== "")
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1290,6 +1373,7 @@ export const resolvers = {
             try {
                 const rows = (content || []).filter((row) => row && row.id_team && row.id_team !== "" && row.id_league)
                 if (rows.length === 0) return []
+                await assertLeaguesNotEnded(rows.map((r) => r.id_league))
                 const created = await ParticipatingTeams.bulkCreate(rows)
 
                 // Auto-import the team's accepted technical staff so the
@@ -1328,12 +1412,16 @@ export const resolvers = {
 
                 return created
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 console.log(error)
                 throw new ApolloError(error)
             }
         },
         updateParticipatingTeams: async (obj, {id, content}, context, info) =>  {
             try {
+                await assertParticipatingTeamsLeagueNotEnded((content || []).map((r) => r?.id))
+                await assertLeaguesNotEnded((content || []).map((r) => r?.id_league))
+
                 let touched = 0
 
                 for (let i = 0; i < (content || []).length; i++) {
@@ -1360,6 +1448,7 @@ export const resolvers = {
                     status: touched >= 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("updateParticipatingTeams failed", error)
                 throw new ApolloError(error)
             }
@@ -1367,6 +1456,7 @@ export const resolvers = {
         deleteParticipatingTeams: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                await assertParticipatingTeamsLeagueNotEnded(id)
                 const league = await ParticipatingTeams.destroy({ where: { id } })
 
                 return {
@@ -1381,9 +1471,11 @@ export const resolvers = {
 
         createMatch: async (obj, {content}, context, info) =>  {
             try {
+                await assertLeaguesNotEnded(content?.id_league)
                 return await Match.create({...content})
 
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
@@ -1393,6 +1485,7 @@ export const resolvers = {
             console.log('content:', content);
 
             try {
+                await assertMatchesLeagueNotEnded(id)
                 // Extract penalty from content to avoid it being included in Match.update
                 const { penalty, ...matchFields } = content;
 
@@ -1425,6 +1518,7 @@ export const resolvers = {
                 status: result[0] === 1
                 };
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("Error updating match:", error);
                 throw new ApolloError(error.message || "Error while updating match");
             }
@@ -1433,6 +1527,7 @@ export const resolvers = {
         deleteMatch: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                await assertMatchesLeagueNotEnded(id)
                 const league = await Match.destroy({ where: { id } })
 
                 return {
@@ -1448,7 +1543,9 @@ export const resolvers = {
         createMatchCard: async (obj, { content }, context, info) => {
             try {
                 const { date, type, player, id_team, id_match } = content;
-        
+
+                await assertMatchesLeagueNotEnded(id_match);
+
                 // 1. Find ParticipatingPlayers with this number & team
                 const participatingPlayer = await ParticipatingPlayers.findOne({
                     where: {
@@ -1489,6 +1586,7 @@ export const resolvers = {
         
                 return matchCard;
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 console.error("createMatchCard error:", error);
                 throw new ApolloError(error.message || "UNEXPECTED_ERROR");
             }
@@ -1496,12 +1594,14 @@ export const resolvers = {
         ,
         updateMatchCard: async (obj, {id, content}, context, info) =>  {
             try {
+                await assertMatchCardsLeagueNotEnded(id)
                 let result = await MatchCard.update({...content}, { where: { id } })
 
                 return {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1510,6 +1610,7 @@ export const resolvers = {
 
             try {
                 assertNotLeagueAdmin(context)
+                await assertMatchCardsLeagueNotEnded(id)
                 const league = await MatchCard.destroy({ where: { id } })
 
                 return {
@@ -1524,17 +1625,22 @@ export const resolvers = {
 
         createParticipatingPlayers: async (obj, {content}, context, info) =>  {
             try {
+                await assertParticipatingTeamsLeagueNotEnded((content || []).map((r) => r?.id_participating_team))
                 return await ParticipatingPlayers.bulkCreate(content)
 
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 console.log(error)
                 // logger.error("")
                 throw new ApolloError(error)
             }
         },
-        
+
         updateParticipatingPlayers: async (obj, {content}, context, info) =>  {
             try {
+                await assertParticipatingPlayersLeagueNotEnded((content || []).map((r) => r?.id))
+                await assertParticipatingTeamsLeagueNotEnded((content || []).map((r) => r?.id_participating_team))
+
                 let result = 0
 
                 for (let i = 0; i < content.length; i++) {
@@ -1555,6 +1661,7 @@ export const resolvers = {
                     status: result[0] >= 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("")
                 throw new ApolloError(error)
             }
@@ -1562,6 +1669,7 @@ export const resolvers = {
         deleteParticipatingPlayers: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                await assertParticipatingPlayersLeagueNotEnded(id)
                 const result = await ParticipatingPlayers.destroy({ where: { id } })
 
                 return {
@@ -1580,6 +1688,8 @@ export const resolvers = {
 
           
             try {
+              await assertMatchesLeagueNotEnded(content.map((item) => item?.id_match));
+
               // Step 1: Get all existing player-match entries
               const existingRecords = await ParticipatingPlayersMatch.findAll({
                 where: {
@@ -1605,17 +1715,21 @@ export const resolvers = {
           
               // Step 4: Bulk insert
               return await ParticipatingPlayersMatch.bulkCreate(finalToCreate);
-          
+
             } catch (error) {
+              if (error instanceof ApolloError) throw error
               console.log(error);
               throw new ApolloError(error);
             }
           },
-             
+
 
         updateParticipatingPlayersMatch : async (obj, { content }, context, info) => {
-           
+
             try {
+                await assertPlayersMatchLeagueNotEnded((content || []).map((r) => r?.id));
+                await assertMatchesLeagueNotEnded((content || []).map((r) => r?.id_match));
+
                 let result = 0;
         
                 for (let i = 0; i < content.length; i++) {
@@ -1637,32 +1751,36 @@ export const resolvers = {
                     status: result >= 1
                 };
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 console.error("Error updating ParticipatingPlayersMatch:", error);
                 throw new ApolloError("Failed to update ParticipatingPlayersMatch");
             }
         },
-        
+
         updateParticipatingPlayerMatchSub: async (_, { id, sub }) => {
-    
+
               try {
+                await assertPlayersMatchLeagueNotEnded(id);
                 const match = await ParticipatingPlayersMatch.findByPk(id);
                 if (!match) {
                   return { status: false };
                 }
-                match.starter = !match.starter 
+                match.starter = !match.starter
                 match.sub = sub;
                 await match.save();
-                
+
                 return { status: true };
               } catch (error) {
+                if (error instanceof ApolloError) throw error
                 return { status: false };
               }
             },
-          
+
         deleteParticipatingPlayersMatch: async (obj, {id}, context, info) =>  {
 
             try {
                 assertNotLeagueAdmin(context)
+                await assertPlayersMatchLeagueNotEnded(id)
                 const result = await ParticipatingPlayersMatch.destroy({ where: { id } })
 
                 return {
@@ -1686,14 +1804,19 @@ export const resolvers = {
                     logger.error("createParticipatingTechnicalStaff: empty content after filtering")
                     throw new ApolloError("لا توجد بيانات صالحة لإضافتها")
                 }
+                await assertParticipatingTeamsLeagueNotEnded(filtered.map((r) => r.id_participating_team))
                 return await ParticipatingTechnicalStaff.bulkCreate(filtered)
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("createParticipatingTechnicalStaff failed", error)
                 throw new ApolloError(error?.message || "createParticipatingTechnicalStaff failed")
             }
         },
         updateParticipatingTechnicalStaff: async (obj, {content}, context, info) =>  {
             try {
+                await assertTechnicalStaffLeagueNotEnded((content || []).map((r) => r?.id))
+                await assertParticipatingTeamsLeagueNotEnded((content || []).map((r) => r?.id_participating_team))
+
                 let touched = 0
 
                 for (let i = 0; i < content.length; i++) {
@@ -1715,6 +1838,7 @@ export const resolvers = {
                     status: touched >= 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("updateParticipatingTechnicalStaff failed", error)
                 throw new ApolloError(error)
             }
@@ -1722,6 +1846,7 @@ export const resolvers = {
         deleteParticipatingTechnicalStaff: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                await assertTechnicalStaffLeagueNotEnded(id)
                 const result = await ParticipatingTechnicalStaff.destroy({ where: { id } })
 
                 return {
@@ -1736,14 +1861,19 @@ export const resolvers = {
         
         createScorerMatch: async (obj, {content}, context, info) =>  {
             try {
+                await assertMatchesLeagueNotEnded(content?.id_match)
                 return await ScorerMatch.create(content)
 
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 throw new ApolloError(error)
             }
         },
         updateScorerMatch: async (obj, {content}, context, info) =>  {
             try {
+                await assertScorersLeagueNotEnded((content || []).map((r) => r?.id))
+                await assertMatchesLeagueNotEnded((content || []).map((r) => r?.id_match))
+
                 let touched = 0
 
                 for (let i = 0; i < content.length; i++) {
@@ -1766,12 +1896,14 @@ export const resolvers = {
                 }
 
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 throw new ApolloError(error)
             }
         },
         deleteScorerMatch: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                await assertScorersLeagueNotEnded(id)
                 const removed = await ScorerMatch.destroy({ where: { id } })
                 return { status: removed >= 1 }
             } catch (error) {
@@ -1782,6 +1914,7 @@ export const resolvers = {
 
         createArbitre: async (_, { id_match, Arbitre1, Arbitre2, Arbitre3, Arbitre4 }) => {
             try {
+              await assertMatchesLeagueNotEnded(id_match);
               const existing = await Arbitres.findOne({ where: { id_match } });
               if (existing) {
                 existing.Arbitre1 = Arbitre1;
@@ -1800,6 +1933,7 @@ export const resolvers = {
               });
               return newArbitre;
             } catch (error) {
+              if (error instanceof ApolloError) throw error
               throw new ApolloError('Failed to create arbitre', error);
             }
         },
@@ -1807,30 +1941,34 @@ export const resolvers = {
         
         accepteParticipatingTeams: async (obj, { id }, context, info) => {
             try {
+                await assertParticipatingTeamsLeagueNotEnded(id);
                 const result = await ParticipatingTeams.update(
                     { status: 'accepted' },
                     { where: { id } }
                 );
-        
+
                 return {
                     status: result[0] >= 1
                 };
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("Error accepting participating team:", error);
                 throw new ApolloError(error.message);
             }
         },
         rejecteParticipatingTeams: async (obj, { id }, context, info) => {
             try {
+                await assertParticipatingTeamsLeagueNotEnded(id);
                 const result = await ParticipatingTeams.update(
                     { status: 'rejected' },
                     { where: { id } }
                 );
-        
+
                 return {
                     status: result[0] >= 1
                 };
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error("Error rejecting participating team:", error);
                 throw new ApolloError(error.message);
             }
@@ -1850,6 +1988,10 @@ export const resolvers = {
               const league = await League.findByPk(leagueId);
               if (!league) {
                 throw new Error("League not found.");
+              }
+
+              if (isLeagueEnded(league)) {
+                throw new ApolloError(LEAGUE_ENDED_MESSAGE, "LEAGUE_ENDED");
               }
           
               const { startDate, expiryDate } = league;
@@ -1944,6 +2086,7 @@ export const resolvers = {
                 message: createdMatches.length,
               };
             } catch (error) {
+              if (error instanceof ApolloError) throw error
               console.error("Error creating matches:", error);
               throw new ApolloError("Failed to create matches. Please try again later.");
             }
@@ -1970,6 +2113,8 @@ export const resolvers = {
                 throw new ApolloError("Match not found");
                 }
 
+                await assertLeaguesNotEnded(match.id_league);
+
                 const allowedStates = ['before-start', 'playing', 'end'];
                 if (!allowedStates.includes(state)) {
                 throw new ApolloError("Invalid state value. Allowed: before-start, playing, end");
@@ -1980,6 +2125,7 @@ export const resolvers = {
 
                 return { status: true };
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 console.error("Error updating match state:", error);
                 throw new ApolloError(error.message || "Failed to update match state");
             }
