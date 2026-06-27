@@ -4,7 +4,7 @@ export const typeDefs = gql`
 
     extend type Query {
         stadium(id: ID): Stadium #@auth(requires: user)
-        allStadiumsTeam(idTeam: ID): [Stadium!] #@auth(requires: user)
+        allStadiumsTeam(idTeam: ID): [Stadium!] @auth(requires: user)
         allStadiums: [Stadium!] #@auth(requires: user)
         allReservations(idStadium: ID): [Reservations]
         reservationsByTeam(idTeam: ID!): [Reservations!]
@@ -20,10 +20,10 @@ export const typeDefs = gql`
 
         createReservations(content: contentReservations!): Reservations! #@auth(requires: user)
         # New mutation to update reservation status
-        updateReservationStatus(id: ID!, status: String!): statusUpdate #@auth(requires: user)
+        updateReservationStatus(id: ID!, status: String!): statusUpdate @auth(requires: user)
         
         # New mutation to delete a reservation
-        deleteReservation(id: ID!): statusDelete #@auth(requires: user)
+        deleteReservation(id: ID!): statusDelete @auth(requires: user)
     }
 
     type Stadium {

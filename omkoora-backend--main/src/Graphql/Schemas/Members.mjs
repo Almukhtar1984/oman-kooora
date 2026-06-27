@@ -5,24 +5,24 @@ export const typeDefs = gql`
     extend type Query {
         member(id: ID): Member #@auth(requires: user)
         allMembers(idTeam: ID): [Member!] #@auth(requires: user)
-        allMembersHasAccount(idTeam: ID): [Member!] #@auth(requires: user)
-        allMembersClub(idClub: ID): [Member!] #@auth(requires: user)
+        allMembersHasAccount(idTeam: ID): [Member!] @auth(requires: user)
+        allMembersClub(idClub: ID): [Member!] @auth(requires: user)
     }
 
     extend type Mutation {
         createMember(content: contentMember!): Member! #@auth(requires: user)
         
-        createAdminMember(content: contentAdminMember!): Member! #@auth(requires: user)
+        createAdminMember(content: contentAdminMember!): Member! @auth(requires: user)
 
-        updateAdminMember(id: ID!, idPerson: ID!, content: contentAdminMember!): statusUpdate #@auth(requires: user)
+        updateAdminMember(id: ID!, idPerson: ID!, content: contentAdminMember!): statusUpdate @auth(requires: user)
 
-        updateMember (id: ID!, idPerson: ID!, content: contentMember!): statusUpdate #@auth(requires: user)
+        updateMember (id: ID!, idPerson: ID!, content: contentMember!): statusUpdate @auth(requires: user)
 
-        changeStatusMember (id: ID!, status: String!, note: String): statusUpdate #@auth(requires: user)
+        changeStatusMember (id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
 
-        changeStatusMembersBulk (ids: [ID!]!, status: String!, note: String): bulkStatusResult #@auth(requires: user)
+        changeStatusMembersBulk (ids: [ID!]!, status: String!, note: String): bulkStatusResult @auth(requires: user)
 
-        deleteMember ( id: ID! ): statusDelete #@auth(requires: user)
+        deleteMember ( id: ID! ): statusDelete @auth(requires: user)
 
         changeMemberClassification(
             id: ID!,

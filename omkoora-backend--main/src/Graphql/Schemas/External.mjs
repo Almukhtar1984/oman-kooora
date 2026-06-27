@@ -2,7 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const typeDefs = gql`
     extend type Query {
-        Home: Home #@auth(requires: user)
+        Home: Home @auth(requires: user)
     }
 
     type Home { 

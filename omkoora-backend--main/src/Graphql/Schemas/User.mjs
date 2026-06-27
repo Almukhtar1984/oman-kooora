@@ -6,10 +6,13 @@ export const typeDefs = gql`
         user(id: ID): User @auth(requires: user)
         allUser: [User!] @auth(requires: user)
         
-        person(cardNumber: String): Person #@auth(requires: user)
+        person(cardNumber: String): Person @auth(requires: user)
         personExternal(cardNumber: String, phone: String): Person
         currentUser: User! @auth(requires: user)
         refreshToken: AuthUser
+        # Short-lived access token for the token-less print app. The caller must
+        # already be authenticated; the print tab carries this token in its URL.
+        printToken: String! @auth(requires: user)
     }
 
     extend type Mutation {
@@ -18,7 +21,7 @@ export const typeDefs = gql`
         createUser(content: contentUser!): User!
 
         addPersonImage (id: ID, image: Upload): Image @auth(requires: user)
-        deletePerson(id: ID!): statusDelete #@auth(requires: user)
+        deletePerson(id: ID!): statusDelete @auth(requires: user)
 
         updateUser (id: ID!, content: contentUser!): statusUpdate @auth(requires: user)
 

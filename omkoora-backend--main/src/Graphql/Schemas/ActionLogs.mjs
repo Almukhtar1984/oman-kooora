@@ -2,7 +2,7 @@ import {gql} from "apollo-server-express";
 
 export const typeDefs = gql`
     extend type Query {
-        ActionLog(id: ID!): ActionLog #@auth(requires: user)
+        ActionLog(id: ID!): ActionLog @auth(requires: user)
         allActionLogs: [ActionLog!] @auth(requires: user)
         allActionLogsClub(idClub: ID!): [ActionLog!] @auth(requires: user)
     }

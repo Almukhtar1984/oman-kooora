@@ -96,6 +96,29 @@ let socket = null;
             playground: shouldEnableGraphqlTools,
             introspection: shouldEnableGraphqlTools,
             debug: !isProduction,
+            formatError: (formattedError) => {
+                // Log the full error server-side for diagnostics regardless of env.
+                logger.error(`GraphQL error: ${formattedError.message}`);
+
+                if (!isProduction) {
+                    return formattedError;
+                }
+
+                // Client-safe errors carry an explicit, non-internal code:
+                // auth failures (UNAUTHENTICATED), validation, and the app's own
+                // coded ApolloErrors (e.g. LEAGUE_ENDED, EMAIL_REQUIRED).
+                const code = formattedError.extensions?.code;
+                if (code && code !== 'INTERNAL_SERVER_ERROR') {
+                    return formattedError;
+                }
+
+                // Mask everything else. Most resolvers do `throw new ApolloError(error)`,
+                // which would otherwise leak raw error messages / internals to clients.
+                return {
+                    message: 'Internal server error',
+                    extensions: { code: 'INTERNAL_SERVER_ERROR' },
+                };
+            },
             csrfPrevention: true,
             allowBatchedHttpRequests: false,
             // validationRules: [

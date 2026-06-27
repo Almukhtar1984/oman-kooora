@@ -3,22 +3,22 @@ import {gql} from "apollo-server-express";
 export const typeDefs = gql`
 
     extend type Query {
-        expense(id: ID): Expense #@auth(requires: user)
-        allExpensesClub(idClub: ID): [Expense!] #@auth(requires: user)
-        allExpensesTeam(idTeam: ID): [Expense!] #@auth(requires: user)
+        expense(id: ID): Expense @auth(requires: user)
+        allExpensesClub(idClub: ID): [Expense!] @auth(requires: user)
+        allExpensesTeam(idTeam: ID): [Expense!] @auth(requires: user)
         expenseSummary(idClub: ID, idTeam: ID): ExpenseSummary!
     }
 
     extend type Mutation {
-        createExpense (content: contentExpense!): Expense! #@auth(requires: user)
+        createExpense (content: contentExpense!): Expense! @auth(requires: user)
 
 
-        updateExpense (id: ID!, content: contentExpense!): statusUpdate #@auth(requires: user)
+        updateExpense (id: ID!, content: contentExpense!): statusUpdate @auth(requires: user)
 
         updateSessionId(id: ID!, session_id: String!): statusUpdate
 
 
-        deleteExpense ( id: ID! ): statusDelete #@auth(requires: user)
+        deleteExpense ( id: ID! ): statusDelete @auth(requires: user)
     }
 
     type Expense {

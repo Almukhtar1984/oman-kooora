@@ -10,7 +10,7 @@ export const typeDefs = gql`
     extend type Mutation {
         createClubManagement(content: contentClubManagement!): ClubManagement! @auth(requires: user)
 
-        updateClubManagement (id: ID!, idPerson: ID!, content: contentClubManagement!): statusUpdate #@auth(requires: user)
+        updateClubManagement (id: ID!, idPerson: ID!, content: contentClubManagement!): statusUpdate @auth(requires: user)
 
         deleteClubManagement ( id: ID! ): statusDelete @auth(requires: user)
     }

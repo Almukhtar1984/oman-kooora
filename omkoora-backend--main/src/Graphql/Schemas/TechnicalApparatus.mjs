@@ -5,7 +5,7 @@ export const typeDefs = gql`
     extend type Query {
         technicalApparatus(id: ID): TechnicalApparatus @auth(requires: user)
         allTechnicalApparatus(idTeam: ID): [TechnicalApparatus!] #@auth(requires: user)
-        allTechnicalApparatusClub(idClub: ID): [TechnicalApparatus!] #@auth(requires: user)
+        allTechnicalApparatusClub(idClub: ID): [TechnicalApparatus!] @auth(requires: user)
     }
 
     extend type Mutation {
@@ -15,7 +15,7 @@ export const typeDefs = gql`
         
         changeStatusTechnicalApparatus (id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
 
-        changeStatusTechnicalApparatusBulk (ids: [ID!]!, status: String!, note: String): bulkStatusResult #@auth(requires: user)
+        changeStatusTechnicalApparatusBulk (ids: [ID!]!, status: String!, note: String): bulkStatusResult @auth(requires: user)
 
         deleteTechnicalApparatus ( id: ID! ): statusDelete @auth(requires: user)
     }

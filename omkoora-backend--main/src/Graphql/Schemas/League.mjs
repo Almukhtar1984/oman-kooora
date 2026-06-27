@@ -2,12 +2,12 @@ import {gql} from "apollo-server-express";
 
 export const typeDefs = gql`
     extend type Query {
-        league(id: ID): League #@auth(requires: user)
-        allLeagues(idClub: ID): [League!] #@auth(requires: user)
-        allLeaguesTeam(idTeam: ID): [League!] #@auth(requires: user)
-        leagueFull(id: ID): League #@auth(requires: user)
+        league(id: ID): League @auth(requires: user)
+        allLeagues(idClub: ID): [League!] @auth(requires: user)
+        allLeaguesTeam(idTeam: ID): [League!] @auth(requires: user)
+        leagueFull(id: ID): League @auth(requires: user)
         allLeaguesExternal: [League!]
-        getMatch(id: ID) : Match #@auth(requires: user)
+        getMatch(id: ID) : Match @auth(requires: user)
 
         allParticipatingPlayers(idParticipatingTeams: ID): [ParticipatingPlayers!] #@auth(requires: user)
 
@@ -20,7 +20,7 @@ export const typeDefs = gql`
         calculatePoints(leagueId: ID!): [TeamPoints]
 
         calculateGoalPlayer(leagueId: ID!) :[TopGoalPlayer]
-        ExternalMatch(id: ID!): MatchExternal #@auth(requires: user)
+        ExternalMatch(id: ID!): MatchExternal @auth(requires: user)
         GetParticipatingPlayer(id: ID!): ParticipatingPlayers
         getCardsByLeague(leagueId: ID!): LeagueCards
         countExternalPlayers(idTeam: ID!, idLeague: ID!): Int
@@ -30,61 +30,61 @@ export const typeDefs = gql`
     }
 
     extend type Mutation {
-        createLeague(content: contentLeague!): League! #@auth(requires: user)
+        createLeague(content: contentLeague!): League! @auth(requires: user)
 
-        updateLeague (id: ID!, content: contentLeague!): statusUpdate #@auth(requires: user)
+        updateLeague (id: ID!, content: contentLeague!): statusUpdate @auth(requires: user)
 
-        deleteLeague ( id: ID! ): statusDelete #@auth(requires: user)
+        deleteLeague ( id: ID! ): statusDelete @auth(requires: user)
 
 
-        createParticipatingTeams (content: [contentParticipatingTeams]!): [ParticipatingTeams!] #@auth(requires: user)
+        createParticipatingTeams (content: [contentParticipatingTeams]!): [ParticipatingTeams!] @auth(requires: user)
 
-        updateParticipatingTeams (content: [contentUpdateParticipatingTeams]!): statusUpdate #@auth(requires: user)
+        updateParticipatingTeams (content: [contentUpdateParticipatingTeams]!): statusUpdate @auth(requires: user)
 
-        deleteParticipatingTeams (id: ID!): statusDelete #@auth(requires: user)
+        deleteParticipatingTeams (id: ID!): statusDelete @auth(requires: user)
 
         accepteParticipatingTeams (id: ID!): statusUpdate
         rejecteParticipatingTeams (id: ID!): statusUpdate
 
-        createMatch (content: contentMatch!): Match! #@auth(requires: user)
+        createMatch (content: contentMatch!): Match! @auth(requires: user)
 
-        updateMatch (id: ID!, content: UpdateMatchInput!): statusUpdate #@auth(requires: user)
+        updateMatch (id: ID!, content: UpdateMatchInput!): statusUpdate @auth(requires: user)
 
-        deleteMatch (id: ID!): statusDelete #@auth(requires: user)
-
-
-        createMatchCard (content: contentMatchCard!): MatchCard! #@auth(requires: user)
-
-        updateMatchCard (id: ID!, content: contentMatchCard!): statusUpdate #@auth(requires: user)
-
-        deleteMatchCard (id: ID!): statusDelete #@auth(requires: user)
+        deleteMatch (id: ID!): statusDelete @auth(requires: user)
 
 
-        createParticipatingPlayers (content: [contentParticipatingPlayers]!): [ParticipatingPlayers!] #@auth(requires: user)
+        createMatchCard (content: contentMatchCard!): MatchCard! @auth(requires: user)
 
-        updateParticipatingPlayers (content: [contentUpdateParticipatingPlayers]!): statusUpdate #@auth(requires: user)
+        updateMatchCard (id: ID!, content: contentMatchCard!): statusUpdate @auth(requires: user)
 
-        deleteParticipatingPlayers (id: ID!): statusDelete #@auth(requires: user)
+        deleteMatchCard (id: ID!): statusDelete @auth(requires: user)
+
+
+        createParticipatingPlayers (content: [contentParticipatingPlayers]!): [ParticipatingPlayers!] @auth(requires: user)
+
+        updateParticipatingPlayers (content: [contentUpdateParticipatingPlayers]!): statusUpdate @auth(requires: user)
+
+        deleteParticipatingPlayers (id: ID!): statusDelete @auth(requires: user)
         
 
-        createParticipatingTechnicalStaff (content: [contentParticipatingTechnicalStaff]!): [ParticipatingTechnicalStaff!] #@auth(requires: user)
+        createParticipatingTechnicalStaff (content: [contentParticipatingTechnicalStaff]!): [ParticipatingTechnicalStaff!] @auth(requires: user)
 
-        updateParticipatingTechnicalStaff (content: [contentUpdateParticipatingTechnicalStaff]!): statusUpdate #@auth(requires: user)
+        updateParticipatingTechnicalStaff (content: [contentUpdateParticipatingTechnicalStaff]!): statusUpdate @auth(requires: user)
 
-        deleteParticipatingTechnicalStaff (id: ID!): statusDelete #@auth(requires: user)
+        deleteParticipatingTechnicalStaff (id: ID!): statusDelete @auth(requires: user)
 
-        createScorerMatch (content: contentScorerMatch!): ScorerMatch #@auth(requires: user)
-        updateScorerMatch (content: [contentUpdateScorerMatch!]): statusUpdate #@auth(requires: user)
-        deleteScorerMatch (id: ID!): statusDelete #@auth(requires: user)
+        createScorerMatch (content: contentScorerMatch!): ScorerMatch @auth(requires: user)
+        updateScorerMatch (content: [contentUpdateScorerMatch!]): statusUpdate @auth(requires: user)
+        deleteScorerMatch (id: ID!): statusDelete @auth(requires: user)
 
 
-        createParticipatingPlayersMatch (content: [contentParticipatingPlayerMatch]!): [ParticipatingPlayersMatch!] #@auth(requires: user)
+        createParticipatingPlayersMatch (content: [contentParticipatingPlayerMatch]!): [ParticipatingPlayersMatch!] @auth(requires: user)
         
-        updateParticipatingPlayersMatch (content: [contentUpdateParticipatingPlayersMatch]!): statusUpdate #@auth(requires: user)
-        deleteParticipatingPlayersMatch (id: ID!): statusDelete #@auth(requires: user)
+        updateParticipatingPlayersMatch (content: [contentUpdateParticipatingPlayersMatch]!): statusUpdate @auth(requires: user)
+        deleteParticipatingPlayersMatch (id: ID!): statusDelete @auth(requires: user)
         updateParticipatingPlayerMatchSub(id: ID!, sub: Boolean!): statusUpdate
 
-        createArbitre (id_match: ID!, Arbitre1: String!, Arbitre2: String!, Arbitre3: String!, Arbitre4: String!): Arbitres #@auth(requires: user)
+        createArbitre (id_match: ID!, Arbitre1: String!, Arbitre2: String!, Arbitre3: String!, Arbitre4: String!): Arbitres @auth(requires: user)
 
 
         generatMatches(leagueId: ID!, type: Int!): statusUpdate!

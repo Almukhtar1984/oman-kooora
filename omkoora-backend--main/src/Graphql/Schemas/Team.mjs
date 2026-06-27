@@ -3,15 +3,15 @@ import {gql} from "apollo-server-express";
 export const typeDefs = gql`
 
     extend type Query {
-        team(id: ID): Team #@auth(requires: user)
+        team(id: ID): Team @auth(requires: user)
         allTeam(idClub: ID): [Team!] #@auth(requires: user)
         allTeams: [Team!] #@auth(requires: user)
-        statisticsTeam(idTeam: ID): StatisticsTeam
-        statisticsClub(idClub: ID): StatisticsClub
+        statisticsTeam(idTeam: ID): StatisticsTeam @auth(requires: user)
+        statisticsClub(idClub: ID): StatisticsClub @auth(requires: user)
     }
 
     extend type Mutation {
-        createTeam(content: contentTeam!): Team! #@auth(requires: user)
+        createTeam(content: contentTeam!): Team! @auth(requires: user)
 
         # Atomic team+manager creation. Use this from the club "add team" form
         # so a failure on the manager side rolls the team back too, avoiding

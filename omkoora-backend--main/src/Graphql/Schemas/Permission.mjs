@@ -3,17 +3,17 @@ import {gql} from "apollo-server-express";
 export const typeDefs = gql`
 
     extend type Query {
-        permission(id: ID): Permission #@auth(requires: user)
-        allPermissionsClub(idClub: ID): [Permission!] #@auth(requires: user)
-        allPermissionsTeam(idTeam: ID): [Permission!] #@auth(requires: user)
+        permission(id: ID): Permission @auth(requires: user)
+        allPermissionsClub(idClub: ID): [Permission!] @auth(requires: user)
+        allPermissionsTeam(idTeam: ID): [Permission!] @auth(requires: user)
     }
 
     extend type Mutation {
-        createPermission (content: contentPermission!): Permission! #@auth(requires: user)
+        createPermission (content: contentPermission!): Permission! @auth(requires: user)
 
-        updatePermission (id: ID!, content: contentPermission!): statusUpdate #@auth(requires: user)
+        updatePermission (id: ID!, content: contentPermission!): statusUpdate @auth(requires: user)
 
-        deletePermission ( id: ID! ): statusDelete #@auth(requires: user)
+        deletePermission ( id: ID! ): statusDelete @auth(requires: user)
     }
 
     type Permission {
