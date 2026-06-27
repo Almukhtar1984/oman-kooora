@@ -5,6 +5,7 @@ import Head from "next/head";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
+import {openPrint} from "../lib/helpers/openPrint";
 import { useMediaQuery } from "react-responsive";
 import {AllMembers, useAllMembers, useAllTeams, useChangeStatusMembersBulk} from "../graphql";
 import useStore from "../store/useStore";
@@ -256,6 +257,7 @@ function MembersContent() {
                                             component={"a"}
                                             href={`https://print.omkooora.com/#/members/${item?.id}/team`}
                                             target={"_blank"}
+                                            onClick={(e) => { e.preventDefault(); openPrint(`/members/${item?.id}/team`); }}
                                         >{item?.name}</Menu.Item>
                                     ))}
                                 </Menu.Dropdown>

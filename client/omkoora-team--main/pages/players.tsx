@@ -5,6 +5,7 @@ import Head from "next/head";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
+import {openPrint} from "../lib/helpers/openPrint";
 import {
     AddAttachmentPlayerModal,
     AddImagePlayersModal,
@@ -185,6 +186,7 @@ export default function Players() {
                                     component={"a"}
                                     href={`https://print.omkooora.com/#/players/${userData?.person?.member?.team?.id}/team`}
                                     target={"_blank"}
+                                    onClick={(e) => { e.preventDefault(); openPrint(`/players/${userData?.person?.member?.team?.id}/team`); }}
                                 >
                                     طباعة قائمة اللاعبين
                                 </Button>

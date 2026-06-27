@@ -114,6 +114,25 @@ export const resolvers = {
             }
         },
 
+        // Mint a fresh, short-lived access token for the print app. The print
+        // frontend sends no Authorization header of its own, so an authenticated
+        // dashboard requests this token and hands it to the print tab via URL.
+        // Intentionally issued without an `aud` so it is accepted from the print
+        // origin (which is not in the per-app origin map). Kept short-lived (15m)
+        // to bound exposure since it travels in a URL.
+        printToken: async (obj, args, { isAuth, user }, info) => {
+            try {
+                if (!isAuth || !user) {
+                    return new AuthenticationError("You must be the authenticated user to get this information");
+                }
+                const token = await AuthToken({ id: user.id }, 0.25);
+                return token.replace(/^Bearer\s+/i, "");
+            } catch (error) {
+                logger.error(`Print token error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
         refreshToken: async (obj, args, context, info) => {
             const { refreshToken, appKey } = context;
             try {

@@ -1,6 +1,7 @@
 import { Box, Grid, Group, useMantineTheme, Stack, Text, Divider, Button } from "@mantine/core";
 import { IconX, IconArrowBigLeft, IconArrowBigRight,IconPrinter } from "@tabler/icons-react";
 import Modal, { Props as ModalProps } from "./Modal";
+import { openPrint } from "../../lib/helpers/openPrint";
 import { useEffect } from "react";
 
 const { Col } = Grid;
@@ -84,6 +85,7 @@ export const ShowPlayerListModal = ({ dataMatch, onClose, opened }: Props) => {
               component={"a"}
               href={`https://print.omkooora.com/#/matchplayerlist/${dataMatch?.id}`}
               target={"_blank"}
+              onClick={(e) => { e.preventDefault(); openPrint(`/matchplayerlist/${dataMatch?.id}`); }}
               ><IconPrinter size={18} />
                   طباعة القائمة
               </Button>

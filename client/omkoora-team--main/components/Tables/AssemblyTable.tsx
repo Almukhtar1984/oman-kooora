@@ -3,6 +3,7 @@ import {ActionIcon, Badge, Group, Menu, Stack, Text,Select } from '@mantine/core
 import {DotsVertical, Id, CalendarStats, Printer,InfoCircle,SortAscending, SortDescending,X,Check,Edit} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
+import {openPrint} from "../../lib/helpers/openPrint";
 import {getImageUrl} from "../../lib/helpers/image";
 import dayjs from "dayjs";
 import { useMediaQuery } from "@mantine/hooks";
@@ -117,11 +118,12 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
                             ? <Menu.Item icon={<CalendarStats size={14} />} onClick={() => openModelRenew(item)} >تجديد الاشتراك</Menu.Item>
                             : null
                         }
-                        <Menu.Item 
+                        <Menu.Item
                             component={"a"}
                             icon={<Printer size={18} />}
                             href={`https://print.omkooora.com/#/assembly-card/${item?.id}`}
                             target={"_blank"}
+                            onClick={(e) => { e.preventDefault(); openPrint(`/assembly-card/${item?.id}`); }}
                         >طباعة البطاقة</Menu.Item>
                     </Menu.Dropdown>
                 </Menu>
@@ -256,11 +258,12 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
                             ? <Menu.Item icon={<CalendarStats size={14} />} onClick={() => openModelRenew(item)} >تجديد الاشتراك</Menu.Item>
                             : null
                         }
-                        <Menu.Item 
+                        <Menu.Item
                             component={"a"}
                             icon={<Printer size={18} />}
                             href={`https://print.omkooora.com/#/assembly-card/${item?.id}`}
                             target={"_blank"}
+                            onClick={(e) => { e.preventDefault(); openPrint(`/assembly-card/${item?.id}`); }}
                         >طباعة البطاقة</Menu.Item>
                     </Menu.Dropdown>
               </Menu>

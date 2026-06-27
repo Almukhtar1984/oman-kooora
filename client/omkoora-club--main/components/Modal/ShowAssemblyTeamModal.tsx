@@ -3,6 +3,7 @@ import {Check, ChevronDown, Printer, Search, X} from "tabler-icons-react";
 import React, {useEffect, useState} from "react";
 import Modal, { Props as ModalProps } from "./Modal";
 import {AllBlog, AllPlayers, useAllAssembly, useAllAssemblyTeam, useAllTeams, useDeleteBlog} from "../../graphql";
+import {openPrint} from "../../lib/helpers/openPrint";
 import useStore from "../../store/useStore";
 import {AssemblyTableTeam} from "../Tables";
 
@@ -112,6 +113,7 @@ export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
                         component={"a"}
                         href={`https://print.omkooora.com/#/assembly/${team}/team`}
                         target={"_blank"}
+                        onClick={(e) => { e.preventDefault(); openPrint(`/assembly/${team}/team`); }}
                     >
                         طباعة القائمة
                     </Button>

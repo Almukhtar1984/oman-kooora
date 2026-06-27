@@ -8,6 +8,7 @@ import {ActionIcon, Badge, Checkbox, Group, Menu, Pagination, Select, Stack, Tex
 import {DotsVertical, Check, X, Id, FileCertificate, History, EditCircle, Printer, Trash, Paperclip, Upload, ChartDots,XboxX,InfoCircle, ArrowsLeftRight} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
+import {openPrint} from "../../lib/helpers/openPrint";
 import {Filter} from "tabler-icons-react";
 
 import {Table, Header, HeaderRow, Body, Row, HeaderCell, Cell,} from "@table-library/react-table-library/table";
@@ -481,6 +482,7 @@ export const PlayersTableMobile = ({ list, search, setOpenEditModal, setOpenVeri
                       icon={<Printer size={18} />}
                       href={`https://print.omkooora.com/#/${item?.id}`}
                       target={'_blank'}
+                      onClick={(e) => { e.preventDefault(); openPrint(`/${item?.id}`); }}
                     >
                       طباعة البطاقة
                     </Menu.Item>

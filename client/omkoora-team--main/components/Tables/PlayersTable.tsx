@@ -11,6 +11,7 @@ import {Filter} from "tabler-icons-react";
 import dayjs from "dayjs";
 import {useEffect, useState} from "react";
 import { Modal } from "@mantine/core";
+import { openPrint } from "../../lib/helpers/openPrint";
 
 const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
@@ -470,6 +471,7 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                             component={"a"} icon={<Printer size={18} />}
                                                             href={`https://print.omkooora.com/#/${item?.id}`}
                                                             target={"_blank"}
+                                                            onClick={(e) => { e.preventDefault(); openPrint(`/${item?.id}`); }}
                                                         >طباعة البطاقة</Menu.Item>
                                                         : null
                                                     }

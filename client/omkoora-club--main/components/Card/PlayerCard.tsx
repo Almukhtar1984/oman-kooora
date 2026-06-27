@@ -6,6 +6,7 @@ import { Box, Flex, Text, Badge, Menu, ActionIcon, Group, Tooltip, Avatar, Stack
 import { DotsVertical, EditCircle, Trash, Id, Paperclip, Upload, ChartDots, XboxX, History, Eye, Check, X, ArrowsLeftRight, Printer, LockOpen } from 'tabler-icons-react';
 import { GiPlayerPrevious as GiPlayerPreviousIcon, GiPlayerNext as GiPlayerNextIcon } from "react-icons/gi";
 import { getImageUrl } from '../../lib/helpers/image';
+import { openPrint } from '../../lib/helpers/openPrint';
 
 export interface PlayerData {
   id: string;
@@ -224,6 +225,7 @@ export function PlayerCard1({
                         icon={<Printer size={14} />}
                         href={`https://print.omkooora.com/#/${data?.id}`}
                         target="_blank"
+                        onClick={(e) => { e.preventDefault(); openPrint(`/${data?.id}`); }}
                       >
                         طباعة البطاقة
                       </Menu.Item>

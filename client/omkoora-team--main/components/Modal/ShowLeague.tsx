@@ -3,6 +3,7 @@ import { IconDotsVertical, IconInfoCircle,IconPrinter } from "@tabler/icons-reac
 import React, { useEffect, useState } from "react";
 import Modal, { Props as ModalProps } from "./Modal";
 import useStore from "../../store/useStore";
+import { openPrint } from "../../lib/helpers/openPrint";
 import { useGetRanking, useTopGoal,useCardsByLeague } from "../../graphql";
 
 type Props = {
@@ -107,6 +108,7 @@ export const ShowLeague = ({ data, setSelectedData, setOpenShowParticipatingPlay
         component={"a"}
         href={`https://print.omkooora.com/#/league/${data?.id}`}
         target={"_blank"}
+        onClick={(e) => { e.preventDefault(); openPrint(`/league/${data?.id}`); }}
         ><IconPrinter size={18} />
             طباعة الاحصائيات
         </Button>

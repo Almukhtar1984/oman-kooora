@@ -5,6 +5,7 @@ import Head from "next/head";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
+import {openPrint} from "../lib/helpers/openPrint";
 import {AllTechnicals, useAllTeams, useAllTechnicals, useChangeStatusTechnicalApparatusBulk} from "../graphql";
 import useStore from "../store/useStore";
 import {TechnicalsTable} from "../components/Tables";
@@ -247,6 +248,7 @@ export default function TechnicalApparatus() {
                                             component={"a"}
                                             href={`https://print.omkooora.com/#/technicals/${item?.id}/team`}
                                             target={"_blank"}
+                                            onClick={(e) => { e.preventDefault(); openPrint(`/technicals/${item?.id}/team`); }}
                                         >{item?.name}</Menu.Item>
                                     ))}
                                 </Menu.Dropdown>

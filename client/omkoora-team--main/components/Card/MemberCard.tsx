@@ -7,6 +7,7 @@ import {
 import dayjs from 'dayjs';
 import { useTheme } from '@emotion/react';
 import { getImageUrl } from '../../lib/helpers/image';
+import { openPrint } from '../../lib/helpers/openPrint';
 
 interface MemberCardProps {
     data: any;
@@ -303,7 +304,7 @@ export const MemberCard = ({
                                                     {hasPermission("4") && <Menu.Item icon={<X size={14} color="red" />} color="red" onClick={() => onDelete && onDelete(data?.id)}>حذف</Menu.Item>}
                                                     {!isAssemblyApproved && <Menu.Item icon={<CalendarStats size={14} />} onClick={() => onRenewSubscription && onRenewSubscription(data)}>تجديد الاشتراك</Menu.Item>}
                                                     {hasPermission("8") && (
-                                                        <Menu.Item component="a" icon={<Printer size={14} />} href={`https://print.omkooora.com/#/${data?.id}`} target="_blank">طباعة البطاقة</Menu.Item>
+                                                        <Menu.Item component="a" icon={<Printer size={14} />} href={`https://print.omkooora.com/#/${data?.id}`} target="_blank" onClick={(e) => { e.preventDefault(); openPrint(`/${data?.id}`); }}>طباعة البطاقة</Menu.Item>
                                                     )}
                                                 </>
                                             ) : type === 'player' && status === 'accepted' ? (
@@ -343,7 +344,7 @@ export const MemberCard = ({
                                             )}
 
                                             {hasPermission("8") && type !== 'assembly' && (
-                                                <Menu.Item component="a" icon={<Printer size={14} />} href={`https://print.omkooora.com/#/${data?.id}`} target="_blank">طباعة البطاقة</Menu.Item>
+                                                <Menu.Item component="a" icon={<Printer size={14} />} href={`https://print.omkooora.com/#/${data?.id}`} target="_blank" onClick={(e) => { e.preventDefault(); openPrint(`/${data?.id}`); }}>طباعة البطاقة</Menu.Item>
                                             )}
                                         </Menu.Dropdown>
                                     </Menu>

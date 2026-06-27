@@ -3,6 +3,7 @@ import { Printer} from "tabler-icons-react";
 import {IconDotsVertical, IconEdit,IconPrinter} from "@tabler/icons-react";
 import Modal, { Props as ModalProps } from "./Modal";
 import useStore from "../../store/useStore";
+import {openPrint} from "../../lib/helpers/openPrint";
 import dayjs from "dayjs";
 import {useAllParticipatingPlayers} from "../../graphql";
 import React, {useEffect, useState} from "react";
@@ -75,6 +76,7 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
                 component={"a"}
                 href={`https://print.omkooora.com/#/Participating/${data}/player`}
                 target={"_blank"}
+                onClick={(e) => { e.preventDefault(); openPrint(`/Participating/${data}/player`); }}
                 ><IconPrinter size={18} />
                     طباعة القائمة
                 </Button>
@@ -124,6 +126,7 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
                                                     component={"a"} icon={<Printer size={18} />}
                                                     href={`https://print.omkooora.com/#/participating-player/${item?.id}`}
                                                     target={"_blank"}
+                                                    onClick={(e) => { e.preventDefault(); openPrint(`/participating-player/${item?.id}`); }}
                                                 >طباعة البطاقة</Menu.Item>
                                                 </Menu.Dropdown>
                                             </Menu>

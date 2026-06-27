@@ -3,6 +3,7 @@ import { Check, X } from "tabler-icons-react";
 import React, { useEffect, useState } from "react";
 import Modal, { Props as ModalProps } from "./Modal";
 import {AllBlog, useAllTeams, useDeleteBlog} from "../../graphql";
+import {openPrint} from "../../lib/helpers/openPrint";
 import { useForm } from "@mantine/form";
 import useStore from "../../store/useStore";
 import { useRouter } from "next/router";
@@ -63,7 +64,7 @@ export const PrintModal = ({ data, ...props }: Props) => {
                             component={"a"}
                             href={`https://print.omkooora.com/#/players/${values.team}/team/${values.class_name}/${age2Check}/${ageCheck === "" ? "0" : ageCheck}`}
                             target={"_blank"}
-                            onClick={closeModal}
+                            onClick={(e) => { e.preventDefault(); openPrint(`/players/${values.team}/team/${values.class_name}/${age2Check}/${ageCheck === "" ? "0" : ageCheck}`); closeModal(); }}
                         >طباعة</Button>
                     </Group>
                 </Box>

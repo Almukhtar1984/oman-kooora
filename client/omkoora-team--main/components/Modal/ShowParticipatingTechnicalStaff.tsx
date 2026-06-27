@@ -3,6 +3,7 @@ import {IconDotsVertical, IconEdit} from "@tabler/icons-react";
 import { Printer} from "tabler-icons-react";
 import Modal, { Props as ModalProps } from "./Modal";
 import useStore from "../../store/useStore";
+import {openPrint} from "../../lib/helpers/openPrint";
 import dayjs from "dayjs";
 import {useAllParticipatingTechnicalStaff} from "../../graphql";
 import React, {useEffect, useState} from "react";
@@ -87,6 +88,7 @@ export const ShowParticipatingTechnicalStaff = ({data, setSelectedData, ...props
                                             component={"a"} icon={<Printer size={18} />}
                                             href={`https://print.omkooora.com/#/participating-staff/${item?.id}`}
                                             target={"_blank"}
+                                            onClick={(e) => { e.preventDefault(); openPrint(`/participating-staff/${item?.id}`); }}
                                         >طباعة البطاقة</Menu.Item>
                                         </Menu.Dropdown>
                                     </Menu>
