@@ -33,3 +33,7 @@ jobs:
           if [ -n "$files" ]; then
             echo "$files" | xargs node --check
           fi
+
+      - name: Loan flow guards
+        working-directory: omkoora-backend--main
+        run: npm run test:loan-flow
