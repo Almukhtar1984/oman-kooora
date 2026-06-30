@@ -119,6 +119,7 @@ const linksSide: {link: string, label: string, icon: Icon}[] = [
     {link: "/members", label: "مجلس الأدارة", icon: Users},
     {link: "/technicalApparatus", label: "الجهاز الفني", icon: Users},
     {link: "/players", label: "اللاعبين", icon: BallFootball},
+    {link: "/players_loan", label: "إعارة اللاعبين", icon: GiPlayerNext as unknown as Icon},
     {link: "/assembly", label: "الجمعية العمومية", icon: Users},
     {link: "/requests", label: "شكاوى وطلبات واقتراحات اللاعبين", icon: AlertCircle},
     {link: "/inbox", label: "صندوق الوارد", icon: Inbox},
@@ -295,6 +296,22 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                             }}
                         >
                             <BallFootball color={theme.colors.blue[6]} size={24} />
+                        </a>
+                    </Tooltip>
+                    : null
+                }
+                {hasPermission("players", "1")
+                    ? <Tooltip label={"إعارة اللاعبين"} position={"left"}>
+                        <a
+                            className={cx(classes.link, { [classes.linkActive]: "/players_loan" === router.pathname })}
+                            href={"/players_loan"}
+                            onClick={(event) => {
+                                event.preventDefault()
+                                router.push("/players_loan")
+                                toggleSideBar()
+                            }}
+                        >
+                            <GiPlayerNext color={theme.colors.blue[6]} size={24} />
                         </a>
                     </Tooltip>
                     : null
