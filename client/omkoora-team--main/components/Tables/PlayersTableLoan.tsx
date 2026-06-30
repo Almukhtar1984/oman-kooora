@@ -88,20 +88,19 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
                 <Group>
                     <Menu shadow="md" width={200} position={"bottom"}>
                         <Menu.Target>
-                            <ActionIcon disabled={item?.status !== "waiting_club_1" && item?.status !== "waiting_team"} color="gray" variant="light" >
+                            <ActionIcon disabled={item?.status !== "waiting" && item?.status !== "accepted"} color="gray" variant="light" >
                                 <DotsVertical size={18} />
                             </ActionIcon>
                         </Menu.Target>
 
                         <Menu.Dropdown>
-                            {item?.status == "waiting_club_1" && item?.team_to?.id === idTeam
-                                ? <Menu.Item icon={<X size={14} />} onClick={() => openModelUpdate(item, "rejected")} >رفض</Menu.Item>
-                                : item?.status == "waiting_team" && item?.team_to?.id === idTeam
-                                    ? <>
-                                        <Menu.Item icon={<X size={14} />} onClick={() => openModelUpdate(item, "rejected")} >رفض</Menu.Item>
-                                        <Menu.Item icon={<Check size={14} />} onClick={() => openModelUpdate(item, "waiting_club_1")} >قبول</Menu.Item>
-                                    </>
-                                    : null
+                            {/* The receiving team accepts or rejects an incoming loan request. */}
+                            {item?.status == "waiting" && item?.team_to?.id === idTeam
+                                ? <>
+                                    <Menu.Item icon={<X size={14} />} onClick={() => openModelUpdate(item, "rejected")} >رفض</Menu.Item>
+                                    <Menu.Item icon={<Check size={14} />} onClick={() => openModelUpdate(item, "accepted")} >قبول</Menu.Item>
+                                </>
+                                : null
                             }
 
                             {new Date(item?.date_end) > new Date() && item?.status == "accepted"
@@ -116,11 +115,10 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
                 </Group>
             )
         },
-        {label: 'حالة الانتقال', renderCell: (item) => (
-            item?.status == "accepted" ? <Badge fw={500} color="teal">مقبول من النادي</Badge>
+        {label: 'حالة الطلب', renderCell: (item) => (
+            item?.status == "accepted" ? <Badge fw={500} color="teal">مقبول</Badge>
                 : item?.status == "rejected" ? <Badge fw={500} color="red">مرفوض</Badge>
-                    : item?.status == "waiting_club_1" ? <Badge fw={500} color="teal">مقبول من الفريق</Badge>
-                        : <Badge fw={500} color="yellow">قيد الانتظار</Badge>
+                    : <Badge fw={500} color="yellow">قيد الانتظار</Badge>
         )},
         {label: 'إسم الفريق القديم', renderCell: (item) => `${item?.team_from?.name}`  },
         {label: 'إسم الفريق الجديد', renderCell: (item) => `${item?.team_to?.name}`  },

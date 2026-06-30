@@ -110,31 +110,44 @@ export const CreateNotificationTeam = async (Category , FunctionType ,id_team,id
                 BodyText = `تم ${FunctionType === true ? "تفعيل" : "توقيف"} الفريق من طرف النادي`;
                 break
 
+            case "loan":
+                let loanName = await getPName("player", id_Player)
+                if (FunctionType === "request") {
+                    BodyText = "لديك طلب إعارة جديد للاعب " + loanName + " بانتظار القبول أو الرفض"
+                } else if (FunctionType === "accepted") {
+                    BodyText = "تم قبول طلب إعارة اللاعب " + loanName
+                } else if (FunctionType === "rejected") {
+                    BodyText = "تم رفض طلب إعارة اللاعب " + loanName
+                } else if (FunctionType === "returned") {
+                    BodyText = "انتهت مدة إعارة اللاعب " + loanName + " وعاد إلى فريقه الأصلي"
+                }
+                break
+
             case "message":
                 return
-                
+
         }
         const notification = await Notification.create({
             //id_club : team.id_club,
             body : BodyText,
             id_team:  id_team,
-    
+
         });
         const socketServer = getSocketServerInstance();
                await socketServer.sendNewNotification('team',id_team, notification);
                //await socketServer.sendNewNotification('club',team.id_club, notification);
-    
-    
+
+
     }
-        
+
     catch (error) {
         console.error("Error occurred:", error);
         return;
     }
 
 
-    
-    
+
+
 }
 
 

@@ -1,35 +1,38 @@
-
-import { Transfer, Players } from '../Models/index.mjs'; // Adjust the path to your models
+import { Transfer, Players } from '../Models/index.mjs';
 import { Op } from 'sequelize';
+import { CreateNotificationTeam } from '../Helpers/index.mjs';
 
-// Function to check and clean up expired transfers
+// Return loaned players to their original team once the loan period ends.
 export async function cleanUp() {
     try {
-        // Find all transfers where date_end is in the past and not soft deleted
-        const expiredTransfers = await Transfer.findAll({
+        // Only accepted loans whose end date has already passed get returned.
+        const expiredLoans = await Transfer.findAll({
             where: {
+                transition_type: 'loan',
+                status: 'accepted',
                 date_end: { [Op.lt]: new Date() },
                 deletedAt: null
             },
             paranoid: false
         });
 
-        for (const transfer of expiredTransfers) {
-            // Update player's team based on the transfer details
-            let player = await Players.findByPk(transfer.id_player);
+        for (const loan of expiredLoans) {
+            const player = await Players.findByPk(loan.id_player);
             if (player) {
-                await player.update({ id_team: transfer.id_team_to });
+                // Send the player back to the team that originally owned them.
+                await player.update({ id_team: loan.id_team_from });
+
+                // Notify both the original and the borrowing team.
+                await CreateNotificationTeam("loan", "returned", loan.id_team_from, loan.id_player);
+                await CreateNotificationTeam("loan", "returned", loan.id_team_to, loan.id_player);
             }
 
-            // Soft delete the transfer
-            await transfer.destroy();
+            // Soft delete the finished loan record.
+            await loan.destroy();
         }
 
-        console.log(`Cleaned up ${expiredTransfers.length} expired transfers.`);
+        console.log(`Returned ${expiredLoans.length} expired loan(s) to their original teams.`);
     } catch (error) {
-        console.error("Error cleaning up expired transfers", error);
+        console.error("Error returning expired loans", error);
     }
 }
-
-
-

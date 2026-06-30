@@ -479,11 +479,15 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
                                                         ? <Menu.Item icon={<LockOpen size={18} />} onClick={() => openModelFree(item?.id)} >تحريح اللاعب</Menu.Item>
                                                         : null
                                                     }
-                                                    {item?.status === "accepted" && item?.type === "internal" 
+                                                    {item?.status === "accepted" && item?.type === "internal"
                                                         ? <Menu.Item icon={<TransferOut size={18} />} onClick={() => openModelConvert(item?.id)} >نقل للجهاز الفني</Menu.Item>
                                                         : null
                                                     }
-                                              
+                                                    {item?.status === "accepted"
+                                                        ? <Menu.Item icon={<TransferOut size={18} />} onClick={() => openModelLoan(item?.id)} >إعارة اللاعب</Menu.Item>
+                                                        : null
+                                                    }
+
 
                                                     {item?.status !== "accepted" && item?.status !== "waiting_club"
                                                         ? <Menu.Item icon={<Trash size={18} />} onClick={() => openModelDelete(item?.id)} >حذف</Menu.Item>

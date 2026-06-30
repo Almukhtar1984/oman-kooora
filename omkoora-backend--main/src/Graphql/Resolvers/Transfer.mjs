@@ -7,6 +7,7 @@ import { v4 as UUID } from 'uuid';
 import logger from "../../Config/logger.mjs";
 
 import {Transfer, Players, Team, Club} from '../../Models/index.mjs';
+import {CreateNotificationTeam} from "../../Helpers/index.mjs";
 
 
 dotenv.config();
@@ -126,10 +127,18 @@ export const resolvers = {
             try {
                 let transfer = await Transfer.create(content)
 
+                const isLoan = content.transition_type === "loan"
+
                 if (content.status === "accepted") {
                     await Players.update({id_team: content.id_team_to}, { where: { id: content.id_player } })
-                } else if (transfer && content.id_player) {
+                } else if (transfer && content.id_player && !isLoan) {
                     await Players.update({status: "waiting"}, { where: { id: content.id_player } })
+                }
+
+                // A pending loan request notifies the receiving team so it can
+                // accept or reject it from its loans page.
+                if (isLoan && content.status !== "accepted" && content.id_team_to) {
+                    await CreateNotificationTeam("loan", "request", content.id_team_to, content.id_player)
                 }
 
                 return transfer
@@ -141,16 +150,34 @@ export const resolvers = {
 
         updateTransfer: async (obj, {id, content}, context, info) =>  {
             try {
+                const transfer = await Transfer.findByPk(id)
+                if (!transfer) {
+                    return { status: false }
+                }
+
                 let result = await Transfer.update({status: content.status}, { where: { id } })
 
-
                 if (result[0] === 1) {
-                    if (content.status === "accepted") {
-                        await Transfer.update({id_team_to: content.id_team_to, id_club_to: null}, { where: { id } })
+                    const isLoan = transfer.transition_type === "loan"
+                    // Fall back to the stored transfer ids so the move works even
+                    // when the client only sends the new status.
+                    const idPlayer = content.id_player || transfer.id_player
+                    const idTeamTo = content.id_team_to || transfer.id_team_to
 
-                        await Players.update({status: "accepted", id_team: content.id_team_to}, { where: { id: content.id_player } })
+                    if (content.status === "accepted") {
+                        await Transfer.update({id_team_to: idTeamTo, id_club_to: null}, { where: { id } })
+
+                        await Players.update({status: "accepted", id_team: idTeamTo}, { where: { id: idPlayer } })
+
+                        if (isLoan) {
+                            await CreateNotificationTeam("loan", "accepted", transfer.id_team_from, idPlayer)
+                        }
                     } else if (content.status === "rejected") {
-                        await Players.update({status: "accepted"}, { where: { id: content.id_player } })
+                        await Players.update({status: "accepted"}, { where: { id: idPlayer } })
+
+                        if (isLoan) {
+                            await CreateNotificationTeam("loan", "rejected", transfer.id_team_from, idPlayer)
+                        }
                     }
                 }
 

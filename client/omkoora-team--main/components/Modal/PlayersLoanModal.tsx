@@ -129,7 +129,7 @@ export const PlayersLoanModal = ({id, data, opened, ...props}: Props) => {
         createTransfer({
             variables: {
                 content: {
-                    status: "waiting_team",
+                    status: "waiting",
                     type: type ? "external" : "internal",
                     id_player: data?.id || id,
                     id_team_from: idTeam,

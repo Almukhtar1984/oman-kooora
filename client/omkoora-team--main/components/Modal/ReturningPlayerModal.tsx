@@ -30,7 +30,7 @@ export const ReturningPlayerModal = ({ data, ...props }: Props) => {
         createTransfer({
             variables: {
                 content: {
-                    status: "waiting_team",
+                    status: "waiting",
                     type: data?.type,
                     id_player: data?.player?.id,
                     id_team_from: data?.team_to?.id,

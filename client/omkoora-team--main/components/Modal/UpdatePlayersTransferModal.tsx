@@ -13,12 +13,14 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
     const {register, handleSubmit, control, watch, reset, formState: { errors },} = useForm();
     const [updateTransfer] = useUpdateTransfer();
 
-    const onSubmit = ({note}: any) => {
+    const onSubmit = () => {
         updateTransfer({
             variables: {
                 id: data?.id,
                 content: {
-                    status: data?.status
+                    status: data?.status,
+                    id_player: data?.player?.id,
+                    id_team_to: data?.team_to?.id,
                 }
             },
             refetchQueries: [AllTransferTeam]
@@ -51,10 +53,10 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
             }
         >
             <Stack align={"center"} justify={"center"}>
-                {data?.status === "waiting_club_1"
-                    ? <Text size={"xl"} my={30} mx={"auto"}>هل انت متأكد من قبول انتقال هذا اللاعب إليكم؟</Text>
+                {data?.status === "accepted"
+                    ? <Text size={"xl"} my={30} mx={"auto"}>هل انت متأكد من قبول إعارة هذا اللاعب إليكم؟</Text>
                     : data?.status === "rejected"
-                        ? <Text size={"xl"} my={30} mx={"auto"}>هل انت متأكد من رفض انتقال هذا اللاعب إليكم؟</Text>
+                        ? <Text size={"xl"} my={30} mx={"auto"}>هل انت متأكد من رفض إعارة هذا اللاعب؟</Text>
                         : null
                 }
             </Stack>

@@ -1,6 +1,7 @@
 export * from "./MembersTable";
 export * from "./TechnicalsTable";
 export * from "./PlayersTable";
+export * from "./PlayersTableLoan";
 export * from "./AssemblyTable";
 export * from "./RequestsTable";
 export * from "./InboxTable";
