@@ -43,8 +43,8 @@ export const typeDefs = gql`
 
         deleteParticipatingTeams (id: ID!): statusDelete @auth(requires: user)
 
-        accepteParticipatingTeams (id: ID!): statusUpdate
-        rejecteParticipatingTeams (id: ID!): statusUpdate
+        accepteParticipatingTeams (id: ID!): statusUpdate @auth(requires: user)
+        rejecteParticipatingTeams (id: ID!): statusUpdate @auth(requires: user)
 
         createMatch (content: contentMatch!): Match! @auth(requires: user)
 
@@ -82,15 +82,15 @@ export const typeDefs = gql`
         
         updateParticipatingPlayersMatch (content: [contentUpdateParticipatingPlayersMatch]!): statusUpdate @auth(requires: user)
         deleteParticipatingPlayersMatch (id: ID!): statusDelete @auth(requires: user)
-        updateParticipatingPlayerMatchSub(id: ID!, sub: Boolean!): statusUpdate
+        updateParticipatingPlayerMatchSub(id: ID!, sub: Boolean!): statusUpdate @auth(requires: user)
 
         createArbitre (id_match: ID!, Arbitre1: String!, Arbitre2: String!, Arbitre3: String!, Arbitre4: String!): Arbitres @auth(requires: user)
 
 
-        generatMatches(leagueId: ID!, type: Int!): statusUpdate!
+        generatMatches(leagueId: ID!, type: Int!): statusUpdate! @auth(requires: user)
 
-        freePlayer(id: ID!): statusUpdate
-        updateMatchState(id: ID!, state: String!): statusUpdate
+        freePlayer(id: ID!): statusUpdate @auth(requires: user)
+        updateMatchState(id: ID!, state: String!): statusUpdate @auth(requires: user)
 
         setLeagueAdmin(idLeague: ID!, email: String!, password: String): League!
         clearLeagueAdmin(idLeague: ID!): statusUpdate

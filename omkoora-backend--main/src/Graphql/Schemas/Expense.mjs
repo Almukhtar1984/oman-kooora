@@ -15,7 +15,7 @@ export const typeDefs = gql`
 
         updateExpense (id: ID!, content: contentExpense!): statusUpdate @auth(requires: user)
 
-        updateSessionId(id: ID!, session_id: String!): statusUpdate
+        updateSessionId(id: ID!, session_id: String!): statusUpdate @auth(requires: user)
 
 
         deleteExpense ( id: ID! ): statusDelete @auth(requires: user)

@@ -12,9 +12,9 @@ export const typeDefs = gql`
     }
 
     extend type Mutation {
-        createSanction(content: contentSanction!): Sanction!
-        updateSanction(id: ID!, content: contentSanction!): statusUpdate
-        deleteSanction(id: ID!): statusDelete
+        createSanction(content: contentSanction!): Sanction! @auth(requires: user)
+        updateSanction(id: ID!, content: contentSanction!): statusUpdate @auth(requires: user)
+        deleteSanction(id: ID!): statusDelete @auth(requires: user)
     }
 
     type Sanction {

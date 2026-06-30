@@ -18,7 +18,7 @@ export const typeDefs = gql`
     extend type Mutation {
         authenticateUser(content: loginInfo): AuthUser!
 
-        createUser(content: contentUser!): User!
+        createUser(content: contentUser!): User! @auth(requires: user)
 
         addPersonImage (id: ID, image: Upload): Image @auth(requires: user)
         deletePerson(id: ID!): statusDelete @auth(requires: user)
@@ -35,7 +35,7 @@ export const typeDefs = gql`
         forgetPassword(email: String): statusUpdate!
         changePassword(content: contentChangePassword): statusUpdate!
 
-        activeUser (id: ID!, activation: Boolean): statusUpdate!
+        activeUser (id: ID!, activation: Boolean): statusUpdate! @auth(requires: user)
         logOut: statusDelete
 
         resetTeamPassword(idTeam: ID!): ResetTeamPasswordPayload!

@@ -36,7 +36,7 @@ export const typeDefs = gql`
             class: String,
             membership_date: String,
             membership_date_end: String
-        ): Member
+        ): Member @auth(requires: user)
     }
 
     type Member {

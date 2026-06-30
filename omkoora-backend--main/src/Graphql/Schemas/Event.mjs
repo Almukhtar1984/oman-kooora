@@ -8,9 +8,9 @@ export const typeDefs = gql`
     }
 
     extend type Mutation {
-        createEvent(content: contentEvent!): Event!
-        updateEvent(id: ID!, content: contentEvent!): statusUpdate
-        deleteEvent(id: ID!): statusDelete
+        createEvent(content: contentEvent!): Event! @auth(requires: user)
+        updateEvent(id: ID!, content: contentEvent!): statusUpdate @auth(requires: user)
+        deleteEvent(id: ID!): statusDelete @auth(requires: user)
     }
 
     type Event {

@@ -108,7 +108,7 @@ const typeDefs = gql`
 
     type Mutation {
         _empty: String
-        singleUpload(file: Upload): File
+        singleUpload(file: Upload): File @auth(requires: user)
     }
 
     type statusUpdate {
