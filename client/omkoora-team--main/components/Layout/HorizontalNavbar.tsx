@@ -14,7 +14,7 @@ import {
     Moneybag,
     InfoCircle,
 } from "tabler-icons-react";
-import { GiAbstract042, GiTrophyCup } from "react-icons/gi";
+import { GiAbstract042, GiTrophyCup, GiPlayerNext } from "react-icons/gi";
 import useStore from "../../store/useStore";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -122,6 +122,7 @@ const HorizontalNavbar = () => {
 
     const navItems = [
         { path: '/', label: 'الرئيسية', icon: <Home size={20} />, show: true },
+        { path: '/players_loan', label: 'إعارة اللاعبين', icon: <GiPlayerNext size={20} />, show: hasPermission("players", "1") },
         { path: '/requests' , label: 'الطلبات', icon: <InfoCircle size={18} /> , show: true  },
         { path: '/messages', label: 'الرسائل', icon: <Inbox size={20} />, show: hasPermission("inbox", "1") || hasPermission("outbox", "1") },
         { path: 'expenses' , label: 'المصروفات', icon: <Moneybag size={18} /> , show : true},

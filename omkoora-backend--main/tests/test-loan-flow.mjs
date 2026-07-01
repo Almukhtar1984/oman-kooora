@@ -154,16 +154,32 @@ console.log(`${c.cyan}▶ Team app — loans page${c.reset}`);
     assert(/id_team_to:\s*data\?\.team_to\?\.id/.test(modal), "accept/reject sends id_team_to");
 }
 
-// ── Team app: discoverability (roster button + sidebar + barrel) ─────────────
+// ── Team app: discoverability (nav + loan button + barrel) ───────────────────
 console.log(`${c.cyan}▶ Team app — discoverability${c.reset}`);
 {
+    // The rendered top nav is HorizontalNavbar (Layout renders it, NOT Sidebar).
+    const layout = read(TEAM, "components", "Layout", "Layout.tsx");
+    assert(/HorizontalNavbar/.test(layout), "Layout renders HorizontalNavbar (the real nav)");
+
+    const nav = read(TEAM, "components", "Layout", "HorizontalNavbar.tsx");
+    assert(/path:\s*['"]\/players_loan['"]/.test(nav), "HorizontalNavbar links to /players_loan");
+    assert(/إعارة اللاعبين/.test(nav), "nav shows the loan label");
+
+    // The player card the user actually manages players from must offer the loan
+    // action, wired to the onLoanPlayer handler the page passes down.
+    const card = read(TEAM, "components", "Card", "MemberCard.tsx");
+    assert(/إعارة اللاعب/.test(card) && /onLoanPlayer\s*&&\s*onLoanPlayer\(data\)/.test(card),
+        "MemberCard has an 'إعارة اللاعب' action wired to onLoanPlayer");
+
+    // The home page renders MemberCard and passes a working loan handler + modal.
+    const home = read(TEAM, "pages", "index.tsx");
+    assert(/onLoanPlayer=\{handleLoanPlayer\}/.test(home), "home page passes the loan handler to cards");
+    assert(/PlayersLoanModal/.test(home), "home page mounts the loan modal");
+
+    // The /players page table also exposes the action.
     const roster = read(TEAM, "components", "Tables", "PlayersTable.tsx");
     assert(/إعارة اللاعب/.test(roster) && /openModelLoan\(item\?\.id\)/.test(roster),
-        "roster has an 'إعارة اللاعب' action");
-
-    const sidebar = read(TEAM, "components", "Layout", "Sidebar.tsx");
-    assert(/["']\/players_loan["']/.test(sidebar), "sidebar links to /players_loan");
-    assert(/إعارة اللاعبين/.test(sidebar), "sidebar shows the loan label");
+        "players-page table has an 'إعارة اللاعب' action");
 
     const barrel = read(TEAM, "components", "Tables", "index.ts");
     assert(/PlayersTableLoan/.test(barrel), "PlayersTableLoan is exported from the Tables barrel");

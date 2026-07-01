@@ -4,6 +4,7 @@ import {
     DotsVertical, EditCircle, Trash, Id, Paperclip, Upload, ChartDots,
     XboxX, History, Printer, Check, X, CalendarStats, Phone, Mail, MapPin, Target, LayoutDashboard, Briefcase, Medal, FileCertificate, Eye, ArrowsLeftRight, LockOpen
 } from 'tabler-icons-react';
+import { GiPlayerNext } from 'react-icons/gi';
 import dayjs from 'dayjs';
 import { useTheme } from '@emotion/react';
 import { getImageUrl } from '../../lib/helpers/image';
@@ -314,6 +315,7 @@ export const MemberCard = ({
                                                     {hasPermission("3") && <Menu.Item icon={<Paperclip size={14} />} onClick={() => onAddAttachment && onAddAttachment(data?.id)}>إضافة مرفقات</Menu.Item>}
                                                     {hasPermission("1") && <Menu.Item icon={<ChartDots size={14} />} onClick={() => onStatPlayer && onStatPlayer(data?.id)}>احصائيات اللاعب</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<ArrowsLeftRight size={14} />} onClick={() => onChangeClassification && onChangeClassification(data)}>تغيير التصنيف</Menu.Item>}
+                                                    {hasPermission("2") && <Menu.Item icon={<GiPlayerNext size={14} />} onClick={() => onLoanPlayer && onLoanPlayer(data)}>إعارة اللاعب</Menu.Item>}
                                                     {hasPermission("2") && <Menu.Item icon={<LockOpen size={14} />} onClick={() => onFreePlayer && onFreePlayer(data?.id)}>تحرير اللاعب</Menu.Item>}
                                                 </>
                                             ) : type === 'player' ? (
