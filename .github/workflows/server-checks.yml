@@ -37,3 +37,7 @@ jobs:
       - name: Loan flow guards
         working-directory: omkoora-backend--main
         run: npm run test:loan-flow
+
+      - name: Participating player search guards
+        working-directory: omkoora-backend--main
+        run: npm run test:player-search

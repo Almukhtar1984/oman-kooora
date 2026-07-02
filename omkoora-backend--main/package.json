@@ -10,7 +10,8 @@
     "test:team-flow": "node tests/test-team-flow.mjs",
     "test:add-manager": "node tests/test-add-manager-flow.mjs",
     "test:participating-resolvers": "node tests/test-participating-resolvers.mjs",
-    "test:loan-flow": "node tests/test-loan-flow.mjs"
+    "test:loan-flow": "node tests/test-loan-flow.mjs",
+    "test:player-search": "node tests/test-participating-player-search.mjs"
   },
   "keywords": [],
   "author": "",
