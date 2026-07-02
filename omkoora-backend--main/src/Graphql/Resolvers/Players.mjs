@@ -9,6 +9,7 @@ import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
 import {createWriteStream, promises as fsPromises } from "fs";
+import {saveUpload} from "../../Helpers/Upload.mjs";
 import { match } from 'assert';
 import {isIdentical} from "../../Helpers/isIdentical.mjs"
 import {CreateNotificationClub} from "../../Helpers/index.mjs"
@@ -814,33 +815,25 @@ export const resolvers = {
 
         addAttachmentPlayer: async (obj, {idPlayer, attachments}, context, info) =>  {
             try {
-                const allAttachments = await attachments
+                if (!idPlayer) throw new ApolloError("معرف اللاعب مطلوب", "PLAYER_REQUIRED");
 
-                let allResult = []
-                if (allAttachments && allAttachments.length > 0) {
-                    for (let index = 0; index < allAttachments.length; index++) {
-                        const { createReadStream, filename, mimetype, encoding } = await allAttachments[index];
-                        const listType = ["JPEG", "JPG", "PNG", "PDF", "DOC", "DOCX", "XLS", "XLSX", "PPT", "PPTX", "CSV", "ZIP"]
-    
-                        const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-    
-                        if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-    
-                        let uniqName = `${UUID()}.${fileType}`;
-                        const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-    
-                        const stream = createReadStream();
-                        await stream.pipe( createWriteStream(pathName) );
-    
-                        const result = await AttachmentPerson.create({id_player: idPlayer, content: uniqName})
+                const uploads = attachments || [];
+                const allResult = [];
 
-                        allResult.push(result)
-                    }
+                // Await each file to disk BEFORE moving to the next: graphql-upload
+                // needs the streams consumed in order, and we must not create the
+                // DB row until the bytes are actually written.
+                for (const upload of uploads) {
+                    const storedName = await saveUpload(upload);
+                    const result = await AttachmentPerson.create({ id_player: idPlayer, content: storedName });
+                    allResult.push(result);
                 }
 
-                return allResult
+                return allResult;
             } catch (error) {
-                throw new ApolloError(error)
+                if (error instanceof ApolloError) throw error;
+                logger.error(`addAttachmentPlayer failed: ${error?.message}`);
+                throw new ApolloError(error?.message || "فشل إضافة المرفقات", "ATTACHMENT_UPLOAD_FAILED");
             }
         },
 

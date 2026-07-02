@@ -41,3 +41,7 @@ jobs:
       - name: Participating player search guards
         working-directory: omkoora-backend--main
         run: npm run test:player-search
+
+      - name: Attachment upload guards
+        working-directory: omkoora-backend--main
+        run: npm run test:attachment-upload

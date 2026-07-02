@@ -25,14 +25,19 @@ export const AddAttachmentPlayerModal = (props: Props) => {
     const [load, setLoade] = useState(false);
 
     const onSubmit = () => {
-        setLoade(true)
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
-        console.log({
-            attachments: attachments,
-            idPlayer: props.id
-        });
-        
+        if (!attachments.length) {
+            notyf.open({ message: "يرجى اختيار ملف واحد على الأقل", type: "error", duration: 6000 });
+            return;
+        }
+        if (!props.id) {
+            notyf.open({ message: "تعذّر تحديد اللاعب", type: "error", duration: 6000 });
+            return;
+        }
+
+        setLoade(true)
+
         createAttachmentPlayer({
             variables: {
                 attachments: attachments,
@@ -40,11 +45,14 @@ export const AddAttachmentPlayerModal = (props: Props) => {
             },
             refetchQueries: [AllPlayers],
             onCompleted: () => {
+                setLoade(false)
+                notyf.success("تم إضافة المرفقات بنجاح");
                 closeModal();
             },
-            onError: ({graphQLErrors}) => {
+            onError: (error) => {
                 setLoade(false)
-                notyf.open({message: "فشل اضافة المرفقات", type:"error", duration: 10000});
+                const message = error?.graphQLErrors?.[0]?.message || "فشل اضافة المرفقات";
+                notyf.open({message, type:"error", duration: 10000});
             }
         })
     };
