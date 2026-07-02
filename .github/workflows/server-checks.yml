@@ -45,3 +45,7 @@ jobs:
       - name: Attachment upload guards
         working-directory: omkoora-backend--main
         run: npm run test:attachment-upload
+
+      - name: Player card action guards
+        working-directory: omkoora-backend--main
+        run: npm run test:card-actions

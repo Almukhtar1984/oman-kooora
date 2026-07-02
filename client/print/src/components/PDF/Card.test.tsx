@@ -110,6 +110,24 @@ describe("<CardTemplate />", () => {
         expect(screen.queryByTestId("print-card-pdfviewer")).not.toBeInTheDocument();
     });
 
+    it("keeps showing loading only while the query is still in flight", () => {
+        render(<CardTemplate player={undefined} loaded={false} />);
+        expect(screen.getByTestId("print-card-loading")).toBeInTheDocument();
+    });
+
+    it("shows a not-found message once the query finished with no player", () => {
+        render(<CardTemplate player={undefined} loaded={true} />);
+        expect(screen.getByTestId("print-card-notfound")).toBeInTheDocument();
+        // The bug was an ENDLESS loading spinner — make sure it is gone.
+        expect(screen.queryByTestId("print-card-loading")).not.toBeInTheDocument();
+    });
+
+    it("shows an error message when the query failed", () => {
+        render(<CardTemplate player={undefined} error={true} loaded={true} />);
+        expect(screen.getByTestId("print-card-error")).toBeInTheDocument();
+        expect(screen.queryByTestId("print-card-loading")).not.toBeInTheDocument();
+    });
+
     it("renders the PDFViewer once the player has an id", () => {
         render(
             <CardTemplate

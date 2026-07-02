@@ -12,7 +12,8 @@
     "test:participating-resolvers": "node tests/test-participating-resolvers.mjs",
     "test:loan-flow": "node tests/test-loan-flow.mjs",
     "test:player-search": "node tests/test-participating-player-search.mjs",
-    "test:attachment-upload": "node tests/test-attachment-upload.mjs"
+    "test:attachment-upload": "node tests/test-attachment-upload.mjs",
+    "test:card-actions": "node tests/test-player-card-actions.mjs"
   },
   "keywords": [],
   "author": "",

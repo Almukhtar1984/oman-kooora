@@ -36,9 +36,20 @@ async function fetchPrintToken(): Promise<string | null> {
  */
 export async function openPrint(path: string): Promise<void> {
     if (typeof window === "undefined") return;
+
+    const normalized = path && path.startsWith("/") ? path : `/${path || ""}`;
+
+    // Guard against opening the print app with a missing id (e.g. "/undefined"),
+    // which would just leave the print tab stuck with no card to load.
+    const firstSegment = normalized.split("?")[0].replace(/^\/+/, "").split("/")[0];
+    if (!firstSegment || firstSegment === "undefined" || firstSegment === "null") {
+        // eslint-disable-next-line no-console
+        console.warn("openPrint: missing target id — print tab not opened");
+        return;
+    }
+
     // Open synchronously so the browser treats it as a user-initiated popup.
     const win = window.open("", "_blank");
-    const normalized = path.startsWith("/") ? path : `/${path}`;
 
     const token = await fetchPrintToken();
     const sep = normalized.includes("?") ? "&" : "?";

@@ -6,7 +6,7 @@ import {useParams} from "react-router-dom";
 
 function App() {
   const {id} = useParams()
-  const [getPlayer, { data: dataPlayer }] = usePlayer();
+  const [getPlayer, { data: dataPlayer, loading, error, called }] = usePlayer();
 
 
   useEffect(() => {
@@ -19,7 +19,11 @@ function App() {
   }, [getPlayer, id])
 
   return (
-    <CardTemplate player={dataPlayer?.player as any} />
+    <CardTemplate
+      player={dataPlayer?.player as any}
+      error={Boolean(error)}
+      loaded={called && !loading}
+    />
   );
 }
 

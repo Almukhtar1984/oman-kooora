@@ -17,7 +17,19 @@ import { apiUrl, printUrl } from "../../config";
 
 interface Props {
     player?: any;
+    // Query lifecycle so the card can show a real state instead of an
+    // endless "loading" spinner when the request fails or finds nothing.
+    error?: boolean;
+    loaded?: boolean; // the query finished (called && !loading)
 }
+
+const statusMessageStyle: React.CSSProperties = {
+    padding: 24,
+    textAlign: "center",
+    fontFamily: "sans-serif",
+    fontSize: 16,
+    color: "#374151",
+};
 
 Font.register({
     family: "Montserrat-Arabic",
@@ -432,7 +444,7 @@ export const CardBackPage = ({
     );
 };
 
-const CardTemplate = ({ player }: Props) => {
+const CardTemplate = ({ player, error, loaded }: Props) => {
     const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
     useEffect(() => {
@@ -450,8 +462,22 @@ const CardTemplate = ({ player }: Props) => {
     }, [player?.id]);
 
     if (!player?.id) {
+        if (error) {
+            return (
+                <div data-testid="print-card-error" style={statusMessageStyle}>
+                    تعذّر تحميل بطاقة اللاعب. تحقق من الاتصال بالإنترنت أو من صلاحية الوصول ثم أعد المحاولة.
+                </div>
+            );
+        }
+        if (loaded) {
+            return (
+                <div data-testid="print-card-notfound" style={statusMessageStyle}>
+                    لم يتم العثور على بيانات هذا اللاعب.
+                </div>
+            );
+        }
         return (
-            <div data-testid="print-card-loading" style={{ padding: 24, textAlign: "center" }}>
+            <div data-testid="print-card-loading" style={statusMessageStyle}>
                 جارٍ تحميل بطاقة اللاعب…
             </div>
         );
