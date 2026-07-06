@@ -27,8 +27,9 @@ export const typeDefs = gql`
         getCardsByLeague(leagueId: ID!): LeagueCards
         countExternalPlayers(idTeam: ID!, idLeague: ID!): Int
         GetParticipatingStaff(id: ID!): ParticipatingTechnicalStaff
-        getAllMatchesGroupedByType(leagueId: ID!): [MatchGroupByType!] 
+        getAllMatchesGroupedByType(leagueId: ID!): [MatchGroupByType!]
         getCardsByLeagueGroupedByMatchType(leagueId: ID!): [MatchCardGroupByType]
+        yellowCardAlerts(leagueId: ID!): [YellowCardAlert]
     }
 
     extend type Mutation {
@@ -443,6 +444,22 @@ export const typeDefs = gql`
             number: String
             count: Int
             team: Team
+        }
+
+        # A player who was booked (yellow) in two consecutive team fixtures —
+        # surfaced to the organiser. matches holds the two back-to-back games.
+        type YellowCardAlert {
+            player: String
+            number: String
+            team: Team
+            yellowCount: Int
+            matches: [YellowCardMatch]
+        }
+        type YellowCardMatch {
+            id: ID
+            date: String
+            firstTeam: String
+            secondTeam: String
         }
 
         type MatchCardGroupByType {

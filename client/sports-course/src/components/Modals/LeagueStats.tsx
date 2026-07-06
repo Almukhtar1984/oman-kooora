@@ -17,6 +17,7 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import {
+    IconAlertTriangle,
     IconCards,
     IconChartBar,
     IconExternalLink,
@@ -33,6 +34,7 @@ import {
     useCardsByLeague,
     useGetRanking,
     useTopGoal,
+    useYellowCardAlerts,
 } from "../../graphql";
 import Modal, { Props as ModalProps } from "./Modal";
 
@@ -255,11 +257,13 @@ export const LeagueStats = ({ data, ...props }: Props) => {
     const [scorers, setScorers] = useState<Scorer[]>([]);
     const [yellowCards, setYellowCards] = useState<CardRow[]>([]);
     const [redCards, setRedCards] = useState<CardRow[]>([]);
+    const [yellowAlerts, setYellowAlerts] = useState<any[]>([]);
     const [selectedStage, setSelectedStage] = useState<string>("all");
 
     const [getRanking, { loading: loadingRanking }] = useGetRanking();
     const [getTopGoal, { loading: loadingGoals }] = useTopGoal();
     const [getCards, { loading: loadingCards }] = useCardsByLeague();
+    const [getYellowAlerts] = useYellowCardAlerts();
 
     useEffect(() => {
         if (!data?.id || !props.opened) return;
@@ -292,7 +296,13 @@ export const LeagueStats = ({ data, ...props }: Props) => {
                 );
             },
         });
-    }, [data, props.opened, getRanking, getTopGoal, getCards]);
+        getYellowAlerts({
+            variables: { leagueId },
+            fetchPolicy: "network-only",
+            onCompleted: ({ yellowCardAlerts }) => setYellowAlerts([...(yellowCardAlerts || [])].filter(Boolean)),
+            onError: () => setYellowAlerts([]),
+        });
+    }, [data, props.opened, getRanking, getTopGoal, getCards, getYellowAlerts]);
 
     // Group teams by group letter, fallback to participatingTeams.group for teams without records yet
     const groupedRanking = useMemo(() => {
@@ -435,6 +445,56 @@ export const LeagueStats = ({ data, ...props }: Props) => {
                         aria-label="مرحلة البطولة"
                     />
                 </Group>
+
+                {yellowAlerts.length > 0 && (
+                    <Paper
+                        withBorder
+                        radius="md"
+                        mb="md"
+                        p="md"
+                        style={{ backgroundColor: "#fffbeb", borderColor: "#f59e0b" }}
+                    >
+                        <Group gap={8} mb={8} align="center">
+                            <ThemeIcon color="yellow" variant="light" radius="xl" size="md">
+                                <IconAlertTriangle size={16} />
+                            </ThemeIcon>
+                            <Text fw={700} c="#92400e">
+                                تنبيه: لاعبون حصلوا على بطاقتين صفراوين في مباراتين متتاليتين ({yellowAlerts.length})
+                            </Text>
+                        </Group>
+                        <Stack gap={6}>
+                            {yellowAlerts.map((a: any, i: number) => (
+                                <Box
+                                    key={i}
+                                    p="xs"
+                                    style={{ backgroundColor: "#fff", borderRadius: 6, border: "1px solid #fde68a" }}
+                                >
+                                    <Group justify="space-between" wrap="wrap" gap={6}>
+                                        <Group gap={8} align="center">
+                                            <Text fw={600} size="sm">
+                                                {a.player}
+                                                {a.number ? ` (#${a.number})` : ""}
+                                            </Text>
+                                            {a.team?.name && (
+                                                <Badge color="gray" variant="light" size="sm" radius="sm">
+                                                    {a.team.name}
+                                                </Badge>
+                                            )}
+                                        </Group>
+                                        <Badge color="yellow" variant="filled" size="sm" radius="sm">
+                                            {a.yellowCount} بطاقة صفراء
+                                        </Badge>
+                                    </Group>
+                                    <Text size="xs" c="dimmed" mt={4}>
+                                        {(a.matches || [])
+                                            .map((m: any) => `${m.firstTeam} ضد ${m.secondTeam}${m.date ? ` — ${String(m.date).slice(0, 10)}` : ""}`)
+                                            .join("  ◂▸  ")}
+                                    </Text>
+                                </Box>
+                            ))}
+                        </Stack>
+                    </Paper>
+                )}
 
                 <Tabs defaultValue="standings" color="cyan" keepMounted={false}>
                     <Tabs.List>

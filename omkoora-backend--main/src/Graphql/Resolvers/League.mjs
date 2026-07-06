@@ -755,6 +755,105 @@ export const resolvers = {
             }
           },
 
+        // Flags every player booked (yellow) in two CONSECUTIVE fixtures of
+        // their own team, for the organiser. Returns the player, the two
+        // back-to-back matches, and their total yellow count.
+        yellowCardAlerts: async (_, { leagueId }) => {
+            try {
+                const matches = await Match.findAll({
+                    where: { id_league: leagueId },
+                    attributes: ['id', 'date', 'first_team', 'second_team', 'createdAt']
+                });
+                if (!matches.length) return [];
+                const matchById = new Map(matches.map(m => [m.id, m]));
+
+                const cards = await MatchCard.findAll({
+                    where: { id_match: matches.map(m => m.id), type: 'yellow' }
+                });
+                if (!cards.length) return [];
+
+                // Real team name per participating-team id (for the match briefs).
+                const ptIds = [...new Set(matches.flatMap(m => [m.first_team, m.second_team]).filter(Boolean))];
+                const pts = await ParticipatingTeams.findAll({
+                    where: { id: ptIds },
+                    include: [{ model: Team, as: 'team', attributes: ['id', 'name'] }]
+                });
+                const teamNameByPt = new Map(pts.map(pt => [pt.id, pt.team?.name || '']));
+
+                // Chronological order key for a match (date first, then insertion).
+                const sortKey = (m) => `${m.date || ''}|${new Date(m.createdAt).getTime()}`;
+
+                // Ordered fixture list per participating team.
+                const fixturesByTeam = new Map();
+                const push = (ptId, m) => {
+                    if (!ptId) return;
+                    if (!fixturesByTeam.has(ptId)) fixturesByTeam.set(ptId, []);
+                    fixturesByTeam.get(ptId).push(m);
+                };
+                for (const m of matches) { push(m.first_team, m); push(m.second_team, m); }
+                for (const list of fixturesByTeam.values()) {
+                    list.sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+                }
+                const indexInTeam = (ptId, matchId) =>
+                    (fixturesByTeam.get(ptId) || []).findIndex(m => m.id === matchId);
+
+                // Group yellow cards by player.
+                const byPlayer = new Map();
+                for (const card of cards) {
+                    const key = card.id_player || card.player;
+                    if (!byPlayer.has(key)) {
+                        byPlayer.set(key, { name: card.player, ptId: card.id_team, matchIds: new Set(), count: 0 });
+                    }
+                    const rec = byPlayer.get(key);
+                    rec.matchIds.add(card.id_match);
+                    rec.count++;
+                }
+
+                const alerts = [];
+                for (const [key, rec] of byPlayer) {
+                    const idx = [...rec.matchIds]
+                        .map(mid => ({ mid, i: indexInTeam(rec.ptId, mid) }))
+                        .filter(x => x.i >= 0)
+                        .sort((a, b) => a.i - b.i);
+
+                    // Two of the player's yellow matches sit in adjacent fixtures.
+                    let pair = null;
+                    for (let k = 1; k < idx.length; k++) {
+                        if (idx[k].i === idx[k - 1].i + 1) { pair = [idx[k - 1].mid, idx[k].mid]; break; }
+                    }
+                    if (!pair) continue;
+
+                    const pt = await ParticipatingTeams.findByPk(rec.ptId);
+                    const team = pt ? await Team.findByPk(pt.id_team) : null;
+                    const pp = await ParticipatingPlayers.findOne({
+                        where: { id_player: key, id_participating_team: rec.ptId },
+                        attributes: ['number']
+                    });
+                    const brief = (mid) => {
+                        const m = matchById.get(mid);
+                        return m ? {
+                            id: m.id,
+                            date: m.date,
+                            firstTeam: teamNameByPt.get(m.first_team) || '',
+                            secondTeam: teamNameByPt.get(m.second_team) || ''
+                        } : null;
+                    };
+
+                    alerts.push({
+                        player: rec.name,
+                        number: pp?.number || '',
+                        team,
+                        yellowCount: rec.count,
+                        matches: pair.map(brief).filter(Boolean)
+                    });
+                }
+                return alerts;
+            } catch (error) {
+                console.error("yellowCardAlerts error:", error);
+                throw new ApolloError("Failed to compute yellow-card alerts.");
+            }
+        },
+
         countExternalPlayers: async (_, { idTeam, idLeague }) => {
             try {
               const team = await ParticipatingTeams.findOne({

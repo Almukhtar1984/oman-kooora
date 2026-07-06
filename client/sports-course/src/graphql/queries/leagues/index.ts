@@ -11,6 +11,7 @@ export * from "./UpdateMatchState";
 export * from "./GetRanking";
 export * from "./TopGoal";
 export * from "./CardsByLeague";
+export * from "./YellowCardAlerts";
 export * from "./DeleteScorerMatch";
 export * from "./CreateParticipatingPlayersMatch";
 export * from "./UpdateParticipatingPlayersMatch";
