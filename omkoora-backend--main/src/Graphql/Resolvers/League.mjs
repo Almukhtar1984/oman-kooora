@@ -1374,7 +1374,25 @@ export const resolvers = {
                 const rows = (content || []).filter((row) => row && row.id_team && row.id_team !== "" && row.id_league)
                 if (rows.length === 0) return []
                 await assertLeaguesNotEnded(rows.map((r) => r.id_league))
-                const created = await ParticipatingTeams.bulkCreate(rows)
+
+                // Never invite the same team into the same league twice. Guards
+                // against duplicate/over-invitation when the modal is submitted
+                // more than once or the same team is picked in two rows.
+                const leagueIds = [...new Set(rows.map((r) => r.id_league))]
+                const existing = await ParticipatingTeams.findAll({
+                    where: { id_league: { [Op.in]: leagueIds } },
+                    attributes: ['id_league', 'id_team'],
+                    raw: true
+                })
+                const seen = new Set(existing.map((e) => `${e.id_league}::${e.id_team}`))
+                const freshRows = rows.filter((r) => {
+                    const key = `${r.id_league}::${r.id_team}`
+                    if (seen.has(key)) return false
+                    seen.add(key)
+                    return true
+                })
+                if (freshRows.length === 0) return []
+                const created = await ParticipatingTeams.bulkCreate(freshRows)
 
                 // Auto-import the team's accepted technical staff so the
                 // league dashboard's "عرض جهاز فني" modal isn't empty
