@@ -49,3 +49,7 @@ jobs:
       - name: Player card action guards
         working-directory: omkoora-backend--main
         run: npm run test:card-actions
+
+      - name: Yellow card alert guards
+        working-directory: omkoora-backend--main
+        run: npm run test:yellow-cards
