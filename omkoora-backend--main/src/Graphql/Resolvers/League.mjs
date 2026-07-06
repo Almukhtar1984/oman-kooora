@@ -10,6 +10,7 @@ import {
 } from '../../Models/index.mjs';
 import { hashPassword, alreadyExistUser } from '../../Helpers/index.mjs';
 import { computeYellowCardAlerts } from '../../Helpers/YellowCards.mjs';
+import { buildLineup } from '../../Helpers/MatchLineup.mjs';
 import { randomBytes } from 'crypto';
 
 
@@ -484,6 +485,71 @@ export const resolvers = {
             } catch (error) {
                 logger.error("Error fetching match:", error.message);
                 throw new ApolloError(error.message);
+            }
+        },
+
+        // Public, print-ready lineup for one match: both teams' players with
+        // their أساسي/احتياط status. Assembled server-side so the token-less
+        // print app can render it as a formal match sheet.
+        matchLineup: async (_, { id }) => {
+            try {
+                const match = await Match.findByPk(id);
+                if (!match) return null;
+
+                const league = match.id_league ? await League.findByPk(match.id_league) : null;
+
+                const teamName = async (ptId) => {
+                    if (!ptId) return "";
+                    const pt = await ParticipatingTeams.findByPk(ptId);
+                    const team = pt ? await Team.findByPk(pt.id_team) : null;
+                    return team?.name || "";
+                };
+
+                const lineupFor = async (ptId) => {
+                    if (!ptId) return [];
+                    const rows = await ParticipatingPlayersMatch.findAll({
+                        where: { id_match: id },
+                        include: [{
+                            model: ParticipatingPlayers,
+                            as: "participating_player",
+                            where: { id_participating_team: ptId },
+                            attributes: ["id", "number", "id_player"],
+                        }],
+                    });
+                    // Bulk-load player names (avoid a query per row).
+                    const playerIds = [...new Set(rows.map(r => r.participating_player?.id_player).filter(Boolean))];
+                    const players = playerIds.length ? await Players.findAll({
+                        where: { id: playerIds },
+                        attributes: ["id", "player_center"],
+                        include: [{ model: Person, as: "person", attributes: ["first_name", "second_name", "third_name", "tribe"] }],
+                    }) : [];
+                    const playerById = new Map(players.map(p => [p.id, p]));
+
+                    return buildLineup(rows.map(r => {
+                        const pp = r.participating_player;
+                        const pl = pp ? playerById.get(pp.id_player) : null;
+                        return {
+                            starter: r.starter,
+                            sub: r.sub,
+                            number: pp?.number,
+                            player_center: pl?.player_center,
+                            person: pl?.person,
+                        };
+                    }));
+                };
+
+                return {
+                    id: match.id,
+                    date: match.date,
+                    leagueName: league?.name || "",
+                    firstTeamName: await teamName(match.first_team),
+                    secondTeamName: await teamName(match.second_team),
+                    firstTeamPlayers: await lineupFor(match.first_team),
+                    secondTeamPlayers: await lineupFor(match.second_team),
+                };
+            } catch (error) {
+                logger.error("matchLineup error:", error.message);
+                throw new ApolloError("Failed to build match lineup.");
             }
         },
         calculatePoints: async (_, { leagueId }) => {

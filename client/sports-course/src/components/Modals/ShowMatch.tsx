@@ -1,5 +1,6 @@
 import { ActionIcon,Badge,Box,Divider,Grid,Group,Menu,Stack,Text,useMantineTheme } from "@mantine/core";
-import { IconCards,IconClock,IconDotsVertical,IconEdit,IconFriends,IconPlus,IconStar,IconTrash,IconUserShield } from "@tabler/icons-react";
+import { IconCards,IconClock,IconDotsVertical,IconEdit,IconFriends,IconPlus,IconPrinter,IconStar,IconTrash,IconUserShield } from "@tabler/icons-react";
+import { printUrl } from "../../lib/config";
 import dayjs from "dayjs";
 import { isLeagueEnded } from "../Cards/LeagueCard";
 import Modal,{ Props as ModalProps } from "./Modal";
@@ -253,6 +254,13 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                                             setOpenManageMatchLineupModal(true)
                                                         }}
                                                     >قائمة الفريقين</Menu.Item>
+
+                                                    <Menu.Item
+                                                        component="a"
+                                                        href={`${printUrl}/#/match-list/${item?.id}`}
+                                                        target="_blank"
+                                                        leftSection={<IconPrinter size={14} />}
+                                                    >طباعة كشف اللاعبين</Menu.Item>
 
                                                     {(item?.manOfMatch === null || item?.manOfMatch === "")
                                                         ? <Menu.Item

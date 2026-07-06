@@ -53,3 +53,7 @@ jobs:
       - name: Yellow card alert guards
         working-directory: omkoora-backend--main
         run: npm run test:yellow-cards
+
+      - name: Match lineup print guards
+        working-directory: omkoora-backend--main
+        run: npm run test:match-lineup

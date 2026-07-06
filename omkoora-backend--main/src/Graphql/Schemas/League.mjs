@@ -9,6 +9,10 @@ export const typeDefs = gql`
         allLeaguesExternal: [League!]
         getMatch(id: ID) : Match @auth(requires: user)
 
+        # Printable match player list (starters + substitutes). Public like the
+        # other print reads so the token-less print app can render it.
+        matchLineup(id: ID!): MatchLineup
+
         allParticipatingPlayers(idParticipatingTeams: ID): [ParticipatingPlayers!] #@auth(requires: user)
 
         participatingPlayersByLeague(idLeague: ID!): [ParticipatingPlayers!] #@auth(requires: user)
@@ -460,6 +464,24 @@ export const typeDefs = gql`
             date: String
             firstTeam: String
             secondTeam: String
+        }
+
+        # A print-ready match lineup: both teams' players with أساسي/احتياط status.
+        type MatchLineup {
+            id: ID
+            date: String
+            leagueName: String
+            firstTeamName: String
+            secondTeamName: String
+            firstTeamPlayers: [MatchLineupPlayer]
+            secondTeamPlayers: [MatchLineupPlayer]
+        }
+        type MatchLineupPlayer {
+            name: String
+            number: String
+            position: String
+            starter: Boolean
+            sub: Boolean
         }
 
         type MatchCardGroupByType {

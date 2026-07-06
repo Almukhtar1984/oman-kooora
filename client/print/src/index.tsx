@@ -14,6 +14,7 @@ import CardAssembly from "./CardAssembly";
 import LeaguePlayersCards from "./LeaguePlayersCards";
 import LeaguePlayersList from "./LeaguePlayersList";
 import LeagueTeamsList from "./LeagueTeamsList";
+import MatchLineupPrint from "./MatchLineupPrint";
 import TeamPlayersCards from "./TeamPlayersCards";
 import TeamStaffCards from "./TeamStaffCards";
 import dayjs from "dayjs";
@@ -44,6 +45,7 @@ root.render(
                     <Route path="/league-cards/:id" element={<LeaguePlayersCards />} />
                     <Route path="/league-list/:id" element={<LeaguePlayersList />} />
                     <Route path="/league-teams/:id" element={<LeagueTeamsList />} />
+                    <Route path="/match-list/:id" element={<MatchLineupPrint />} />
                     <Route path="/team-cards/:teamId/:ids" element={<TeamPlayersCards />} />
                     <Route path="/team-staff-cards/:teamId/:ids" element={<TeamStaffCards />} />
                 </Routes>
