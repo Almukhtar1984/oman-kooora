@@ -1,11 +1,12 @@
 import {Box, Grid, Group, useMantineTheme, Stack, Text, Menu, ActionIcon, Image,Button} from "@mantine/core";
-import { Printer} from "tabler-icons-react";
+import { Printer, Trash} from "tabler-icons-react";
 import {IconDotsVertical, IconEdit,IconPrinter} from "@tabler/icons-react";
 import Modal, { Props as ModalProps } from "./Modal";
 import useStore from "../../store/useStore";
 import {openPrint} from "../../lib/helpers/openPrint";
 import dayjs from "dayjs";
-import {useAllParticipatingPlayers} from "../../graphql";
+import {useAllParticipatingPlayers, useDeleteParticipatingPlayers} from "../../graphql";
+import { showNotification } from '@mantine/notifications';
 import React, {useEffect, useState} from "react";
 
 const {Col} = Grid
@@ -23,34 +24,57 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
   
     const theme = useMantineTheme();
     const [getAllParticipatingPlayers, {data: dataAllParticipatingPlayers}] = useAllParticipatingPlayers()
+    const [deleteParticipatingPlayer] = useDeleteParticipatingPlayers()
 
     const [allParticipatingPlayers, setAllParticipatingPlayers] = useState<object[]>([]);
     const [EditData,setEditData] = useState(false)
 
+    const loadPlayers = () => {
+        if (!data) return;
+        getAllParticipatingPlayers({
+            variables: {
+                idParticipatingTeams: data
+            },
+            fetchPolicy: "network-only",
+            onCompleted: ({allParticipatingPlayers}) => {
+                setAllParticipatingPlayers([...allParticipatingPlayers])
+                if (allParticipatingPlayers && allParticipatingPlayers.length > 0) {
+
+                    if( allParticipatingPlayers[0]?.participating_team?.team?.id === userData?.person?.member?.team?.id){
+                        setEditData(true)
+                    }
+                    else{
+                        setEditData(false)
+                    }
+                  }
+            }
+        })
+    };
+
     useEffect(() => {
-        
         if (data && props.opened) {
-            getAllParticipatingPlayers({
-                variables: {
-                    idParticipatingTeams: data
-                },
-                fetchPolicy: "network-only",
-                onCompleted: ({allParticipatingPlayers}) => {
-                    setAllParticipatingPlayers([...allParticipatingPlayers])
-                    if (allParticipatingPlayers && allParticipatingPlayers.length > 0) {
-                    
-                        if( allParticipatingPlayers[0]?.participating_team?.team?.id === userData?.person?.member?.team?.id){
-                            setEditData(true)
-                        }
-                        else{
-                            setEditData(false)
-                        }
-                      }
-                }
-            })
+            loadPlayers()
         }
-        
     }, [data, props.opened]);
+
+    const handleDelete = (item: any) => {
+        if (!item?.id) return;
+        if (!window.confirm(`هل تريد حذف «${item?.player?.person?.first_name} ${item?.player?.person?.second_name}» من المسابقة؟`)) return;
+        deleteParticipatingPlayer({
+            variables: { id: item.id },
+            onCompleted: (res: any) => {
+                if (res?.deleteParticipatingPlayers?.status) {
+                    showNotification({ title: "تم", message: "تم حذف اللاعب من المسابقة", color: "green" });
+                    setAllParticipatingPlayers((prev) => prev.filter((p: any) => p?.id !== item.id));
+                } else {
+                    showNotification({ title: "تعذّر الحذف", message: "لم يتم حذف اللاعب", color: "red" });
+                }
+            },
+            onError: (err: any) => {
+                showNotification({ title: "خطأ", message: err?.message || "فشل حذف اللاعب من المسابقة", color: "red" });
+            }
+        });
+    };
     useEffect(() => {
         
     }, [allParticipatingPlayers])
@@ -128,6 +152,11 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
                                                     target={"_blank"}
                                                     onClick={(e) => { e.preventDefault(); openPrint(`/participating-player/${item?.id}`); }}
                                                 >طباعة البطاقة</Menu.Item>
+                                                    {EditData && <Menu.Item
+                                                        color="red"
+                                                        icon={<Trash size={14} />}
+                                                        onClick={() => handleDelete(item)}
+                                                    >حذف من المسابقة</Menu.Item>}
                                                 </Menu.Dropdown>
                                             </Menu>
                                         </Stack>
