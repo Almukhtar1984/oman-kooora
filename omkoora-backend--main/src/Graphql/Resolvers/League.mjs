@@ -9,6 +9,7 @@ import {
     User
 } from '../../Models/index.mjs';
 import { hashPassword, alreadyExistUser } from '../../Helpers/index.mjs';
+import { randomBytes } from 'crypto';
 
 
 dotenv.config();
@@ -21,6 +22,54 @@ const assertNotLeagueAdmin = (context) => {
     if (role === LEAGUE_ADMIN_ROLE) {
         throw new ApolloError("League admin is not allowed to perform this operation", "FORBIDDEN_ROLE");
     }
+};
+
+// Role "5" = match official (مسؤول مباراة). Signs in with a per-match code and
+// can only see/update their one assigned match — never delete or manage the
+// league, teams, or other matches.
+const MATCH_OFFICIAL_ROLE = "5";
+const assertNotMatchOfficial = (context) => {
+    const role = context?.user?.role;
+    if (role === MATCH_OFFICIAL_ROLE) {
+        throw new ApolloError("Match official is not allowed to perform this operation", "FORBIDDEN_ROLE");
+    }
+};
+
+// No ambiguous characters (0/O, 1/I/L) so the code is easy to read and type.
+const MATCH_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const generateMatchCode = (length = 8) => {
+    const bytes = randomBytes(length);
+    let out = "";
+    for (let i = 0; i < length; i++) {
+        out += MATCH_CODE_ALPHABET[bytes[i] % MATCH_CODE_ALPHABET.length];
+    }
+    return out;
+};
+
+// Provision the match-official login for a freshly created match: a role-5
+// user whose credentials ARE the code (a synthetic unique email plus the code
+// as the password), so the official signs in with just the code. Best-effort:
+// the caller wraps this so a failure here never aborts match creation.
+const createMatchOfficial = async (match) => {
+    let code = generateMatchCode();
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const clash = await Match.findOne({ where: { code } });
+        if (!clash) break;
+        code = generateMatchCode();
+    }
+    const email = `match-${code.toLowerCase()}@match.omkoora`;
+    const hashed = await hashPassword(code);
+    const user = await User.create({
+        email,
+        password: hashed,
+        role: MATCH_OFFICIAL_ROLE,
+        activation: true,
+        email_verify: true,
+    });
+    match.id_user = user.id;
+    match.code = code;
+    await match.save();
+    return { code, user };
 };
 
 // A league becomes read-only once its expiryDate day has passed: every
@@ -231,6 +280,15 @@ export const resolvers = {
                     return await League.findAll({
                         where: { id_user: context.user.id }
                     })
+                }
+                // Match officials (role "5") only see the league that holds their match.
+                if (context?.user?.role === MATCH_OFFICIAL_ROLE) {
+                    const myMatch = await Match.findOne({
+                        where: { id_user: context.user.id },
+                        attributes: ['id_league']
+                    })
+                    if (!myMatch) return []
+                    return await League.findAll({ where: { id: myMatch.id_league } })
                 }
                 return await League.findAll({
                     where: {
@@ -878,8 +936,13 @@ export const resolvers = {
         },
         matchs: async ({id}, {}, context, info) =>  {
             try {
+                const where = { id_league: id }
+                // A match official sees only their own match within the league.
+                if (context?.user?.role === MATCH_OFFICIAL_ROLE) {
+                    where.id_user = context.user.id
+                }
                 return await Match.findAll({
-                    where: {id_league: id},
+                    where,
                 order: [['createdAt', 'DESC']],
                 })
             } catch (error) {
@@ -1341,6 +1404,7 @@ export const resolvers = {
         setLeagueAdmin: async (obj, {idLeague, email, password}, context, info) => {
             try {
                 assertNotLeagueAdmin(context) // league admin can't reassign their own login
+                assertNotMatchOfficial(context)
                 const { league } = await upsertLeagueAdmin(idLeague, email, password)
                 return await League.findByPk(league.id)
             } catch (error) {
@@ -1352,6 +1416,7 @@ export const resolvers = {
         clearLeagueAdmin: async (obj, {idLeague}, context, info) => {
             try {
                 assertNotLeagueAdmin(context)
+                assertNotMatchOfficial(context)
                 const league = await League.findByPk(idLeague)
                 if (!league) throw new ApolloError("League not found", "LEAGUE_NOT_FOUND")
                 const previousUserId = league.id_user
@@ -1371,6 +1436,7 @@ export const resolvers = {
         deleteLeague: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                assertNotMatchOfficial(context)
                 const league = await League.destroy({ where: { id } })
 
                 return {
@@ -1489,6 +1555,7 @@ export const resolvers = {
         deleteParticipatingTeams: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                assertNotMatchOfficial(context)
                 await assertParticipatingTeamsLeagueNotEnded(id)
                 const league = await ParticipatingTeams.destroy({ where: { id } })
 
@@ -1504,8 +1571,17 @@ export const resolvers = {
 
         createMatch: async (obj, {content}, context, info) =>  {
             try {
+                assertNotMatchOfficial(context)
                 await assertLeaguesNotEnded(content?.id_league)
-                return await Match.create({...content})
+                const match = await Match.create({...content})
+                // Provision the official's login code. Best-effort: a failure
+                // here must not roll back the created match.
+                try {
+                    await createMatchOfficial(match)
+                } catch (e) {
+                    logger.error("createMatch: match-official account failed", e)
+                }
+                return match
 
             } catch (error) {
                 if (error instanceof ApolloError) throw error
@@ -1519,6 +1595,11 @@ export const resolvers = {
 
             try {
                 await assertMatchesLeagueNotEnded(id)
+                // A match official may only update the one match assigned to them.
+                if (context?.user?.role === MATCH_OFFICIAL_ROLE) {
+                    const own = await Match.findOne({ where: { id, id_user: context.user.id }, attributes: ['id'] })
+                    if (!own) throw new ApolloError("Not allowed to update this match", "FORBIDDEN_MATCH")
+                }
                 // Extract penalty from content to avoid it being included in Match.update
                 const { penalty, ...matchFields } = content;
 
@@ -1564,6 +1645,7 @@ export const resolvers = {
         deleteMatch: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                assertNotMatchOfficial(context)
                 await assertMatchesLeagueNotEnded(id)
                 const league = await Match.destroy({ where: { id } })
 
@@ -1647,6 +1729,7 @@ export const resolvers = {
 
             try {
                 assertNotLeagueAdmin(context)
+                assertNotMatchOfficial(context)
                 await assertMatchCardsLeagueNotEnded(id)
                 const league = await MatchCard.destroy({ where: { id } })
 
@@ -1706,6 +1789,7 @@ export const resolvers = {
         deleteParticipatingPlayers: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                assertNotMatchOfficial(context)
                 await assertParticipatingPlayersLeagueNotEnded(id)
                 const result = await ParticipatingPlayers.destroy({ where: { id } })
 
@@ -1817,6 +1901,7 @@ export const resolvers = {
 
             try {
                 assertNotLeagueAdmin(context)
+                assertNotMatchOfficial(context)
                 await assertPlayersMatchLeagueNotEnded(id)
                 const result = await ParticipatingPlayersMatch.destroy({ where: { id } })
 
@@ -1883,6 +1968,7 @@ export const resolvers = {
         deleteParticipatingTechnicalStaff: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                assertNotMatchOfficial(context)
                 await assertTechnicalStaffLeagueNotEnded(id)
                 const result = await ParticipatingTechnicalStaff.destroy({ where: { id } })
 
@@ -1940,6 +2026,7 @@ export const resolvers = {
         deleteScorerMatch: async (obj, {id}, context, info) =>  {
             try {
                 assertNotLeagueAdmin(context)
+                assertNotMatchOfficial(context)
                 await assertScorersLeagueNotEnded(id)
                 const removed = await ScorerMatch.destroy({ where: { id } })
                 return { status: removed >= 1 }

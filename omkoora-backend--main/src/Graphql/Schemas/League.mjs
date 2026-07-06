@@ -182,7 +182,10 @@ export const typeDefs = gql`
         manOfMatch:         String
         
         matchState:     String
-        
+
+        code:               String
+        note:               String
+
         firstTeam:      ParticipatingTeams
         secondTeam:     ParticipatingTeams
 
@@ -230,7 +233,9 @@ export const typeDefs = gql`
         type:               String
 
         manOfMatch:         String
-        
+
+        note:               String
+
         first_team:      ID
         second_team:     ID
         id_league:     ID
@@ -243,6 +248,8 @@ export const typeDefs = gql`
         second_team: ID
         manOfMatch: ID
         type: String
+
+        note: String
 
         # ✅ Add this line
         penalty: PenaltyInput

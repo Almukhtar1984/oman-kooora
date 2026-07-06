@@ -46,6 +46,17 @@ export default (db, types) => {
             defaultValue: 'before-start',
             allowNull: false
         },
+        // Login code handed to the match official; they sign in with it and
+        // see only this match. id_user links to that official's users row.
+        code: {
+            type: types.STRING(20),
+            allowNull: true
+        },
+        // Free-text notes shown/printed with the match.
+        note: {
+            type: types.TEXT,
+            allowNull: true
+        },
     },{
         timestamps: true,
         createdAt: true,

@@ -17,12 +17,13 @@ export default (db, types) => {
         },
         role: {
             type: types.ENUM,
-            values: ['1', '2', '3', '4'],
+            values: ['1', '2', '3', '4', '5'],
             defaultValue: 3,
             // 1 -> super admin
             // 2 -> admin club
             // 3 -> admin team
-            // 4 -> user
+            // 4 -> league admin
+            // 5 -> match official (sees only their assigned match)
         },
         activation: {
             type: types.BOOLEAN,
