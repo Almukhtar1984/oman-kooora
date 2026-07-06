@@ -106,6 +106,19 @@ const runWithConcurrency = async <T,>(
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+// Encode a blob as a base64 data URI. @react-pdf/renderer cannot reliably
+// render `blob:` object URLs (and revoking them races with pdf().toBlob()
+// during download, blanking the photos). Data URIs are embedded directly in
+// the document, so they render identically in the on-screen viewer and the
+// downloaded file with no lifecycle to manage.
+const blobToDataUrl = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+    });
+
 /**
  * Pre-loads every distinct image (player photo, team logo, club logo) once,
  * downscales it via canvas to roughly card-display size, and generates QR
@@ -149,7 +162,6 @@ export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets =
 
     useEffect(() => {
         const controller = new AbortController();
-        const localCreated: string[] = [];
         setImages({});
         setQr({});
         setImagesLoaded(0);
@@ -166,9 +178,9 @@ export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets =
                 const target = kind === "photo" ? PHOTO_TARGET : LOGO_TARGET;
                 const compressed = await downscaleBlob(raw, target);
                 if (controller.signal.aborted) return;
-                const url = URL.createObjectURL(compressed);
-                nextImages[name] = url;
-                localCreated.push(url);
+                const dataUrl = await blobToDataUrl(compressed);
+                if (controller.signal.aborted) return;
+                nextImages[name] = dataUrl;
                 setBytesIn((n) => n + raw.size);
                 setBytesOut((n) => n + compressed.size);
             } catch {
@@ -218,7 +230,6 @@ export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets =
 
         return () => {
             controller.abort();
-            for (const u of localCreated) URL.revokeObjectURL(u);
         };
     }, [imageJobs, qrTargets]);
 

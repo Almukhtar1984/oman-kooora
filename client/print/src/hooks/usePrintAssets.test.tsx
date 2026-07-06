@@ -162,9 +162,11 @@ describe("usePrintAssets", () => {
         expect(Object.keys(final.images).sort()).toEqual(
             ["club-z.png", "photo-a.jpg", "photo-b.jpg", "team-x.png", "team-y.png"].sort(),
         );
-        // Every blob URL we expose starts with our stub prefix.
+        // Every image is embedded as a base64 data URI so @react-pdf/renderer
+        // renders it identically in the viewer and the downloaded PDF (blob:
+        // object URLs render unreliably and race with revoke-on-cleanup).
         for (const url of Object.values(final.images)) {
-            expect(String(url).startsWith("blob:fake/")).toBe(true);
+            expect(String(url)).toMatch(/^data:image\//);
         }
         // QR generated for each participating player that has a player.id.
         expect(final.qr["pp-1"]).toMatch(/^data:image\//);
@@ -210,8 +212,18 @@ describe("usePrintAssets", () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it("revokes created object URLs on unmount to avoid memory leaks", async () => {
-        mockFetchOnce(100_000);
+    it("aborts in-flight fetches on unmount to avoid leaking work", async () => {
+        // Images are now embedded as data URIs (no object URLs to revoke), so
+        // the only cleanup concern is cancelling outstanding fetches. Capture
+        // the AbortSignal handed to fetch and assert unmount aborts it.
+        const signals: AbortSignal[] = [];
+        (globalThis as any).fetch = vi.fn(async (_url: string, opts: any) => {
+            if (opts?.signal) signals.push(opts.signal);
+            return {
+                ok: true,
+                blob: async () => new Blob([new Uint8Array(100_000)], { type: "image/jpeg" }),
+            };
+        });
         const captured: any[] = [];
 
         const { unmount } = render(
@@ -223,12 +235,11 @@ describe("usePrintAssets", () => {
             expect(latest?.progress.ready).toBe(true);
         });
 
-        const revokeSpy = (globalThis as any).URL.revokeObjectURL as ReturnType<typeof vi.fn>;
-        const createCount = ((globalThis as any).URL.createObjectURL as ReturnType<typeof vi.fn>)
-            .mock.calls.length;
+        expect(signals.length).toBeGreaterThan(0);
+        expect(signals.every((s) => !s.aborted)).toBe(true);
 
         act(() => unmount());
-        // Every blob URL we minted should be revoked exactly once on cleanup.
-        expect(revokeSpy.mock.calls.length).toBeGreaterThanOrEqual(createCount);
+        // Cleanup aborts the controller, flipping every captured signal.
+        expect(signals.every((s) => s.aborted)).toBe(true);
     });
 });
