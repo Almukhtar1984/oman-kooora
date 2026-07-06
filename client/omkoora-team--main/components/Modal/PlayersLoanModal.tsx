@@ -15,6 +15,7 @@ import {
 import useStore from "../../store/useStore";
 import {DateInput, DatePicker} from "@mantine/dates";
 import { useForm } from '@mantine/form';
+import { showNotification } from '@mantine/notifications';
 import dayjs from "dayjs";
 import {useAllClub} from "../../graphql/hooks/teams/useAllClub";
 
@@ -122,16 +123,43 @@ export const PlayersLoanModal = ({id, data, opened, ...props}: Props) => {
         }
     }, [clubSelected])
 
-    const onSubmit = (data: any) => {
-        const { id_team_to, type, date_end, date_start } = data
+    // The player id comes from the modal props (data=editData). Keep it out of
+    // onSubmit's scope so the form-values parameter can't shadow it — that shadow
+    // is what silently sent id_player=undefined and broke every loan.
+    const playerId = id || data?.id;
+
+    const onSubmit = (values: any) => {
+        const { id_team_to, date_end, date_start } = values
         const idTeam = userData?.person?.member?.team?.id
+
+        if (!playerId) {
+            showNotification({ title: "خطأ", message: "تعذّر تحديد اللاعب", color: "red" });
+            return;
+        }
+        if (!id_team_to) {
+            showNotification({ title: "خطأ", message: "حدد الفريق المُعار إليه", color: "red" });
+            return;
+        }
+        if (type && !clubSelected) {
+            showNotification({ title: "خطأ", message: "حدد النادي للإعارة الخارجية", color: "red" });
+            return;
+        }
+        if (!date_start || !date_end) {
+            showNotification({ title: "خطأ", message: "حدد تاريخ بداية ونهاية الإعارة", color: "red" });
+            return;
+        }
+        if (dayjs(date_end).isBefore(dayjs(date_start), "day")) {
+            showNotification({ title: "خطأ", message: "تاريخ النهاية يجب أن يكون بعد تاريخ البداية", color: "red" });
+            return;
+        }
 
         createTransfer({
             variables: {
                 content: {
                     status: "waiting",
+                    // `type` is the external-toggle state, not a form field.
                     type: type ? "external" : "internal",
-                    id_player: data?.id || id,
+                    id_player: playerId,
                     id_team_from: idTeam,
                     id_team_to,
                     transition_type: "loan",
@@ -140,11 +168,12 @@ export const PlayersLoanModal = ({id, data, opened, ...props}: Props) => {
                 }
             },
             refetchQueries: [AllPlayers],
-            onCompleted: data1 => {
+            onCompleted: () => {
+                showNotification({ title: "تم", message: "تم إرسال طلب الإعارة إلى الفريق المستقبِل", color: "green" });
                 closeModal();
             },
-            onError: error1 => {
-                console.log(error1)
+            onError: (error1) => {
+                showNotification({ title: "خطأ", message: error1?.message || "فشل إرسال طلب الإعارة", color: "red" });
             }
         })
     };
