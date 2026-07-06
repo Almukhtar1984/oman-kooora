@@ -106,7 +106,6 @@ export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
                     ? <Button
                         rightIcon={<Printer size={16} strokeWidth="3" />}
                         sx={{ fontWeight: 500 }}
-                        onClick={onSubmit}
                         color={"primary"}
                         variant={"outline"}
 
