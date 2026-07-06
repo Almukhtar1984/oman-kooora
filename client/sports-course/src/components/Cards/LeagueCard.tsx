@@ -476,6 +476,15 @@ export const LeagueCard = ({
                                 >
                                     طباعة قائمة المشاركين
                                 </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<IconUsersGroup size={14} />}
+                                    component="a"
+                                    href={`${printUrl}/#/league-teams/${data?.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    طباعة قائمة الفرق
+                                </Menu.Item>
                             </>
                         )}
 

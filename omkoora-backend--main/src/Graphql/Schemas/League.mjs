@@ -12,7 +12,9 @@ export const typeDefs = gql`
         allParticipatingPlayers(idParticipatingTeams: ID): [ParticipatingPlayers!] #@auth(requires: user)
 
         participatingPlayersByLeague(idLeague: ID!): [ParticipatingPlayers!] #@auth(requires: user)
-        
+
+        participatingTeamsByLeague(idLeague: ID!): [ParticipatingTeams!] #@auth(requires: user)
+
         allParticipatingTechnicalStaff(idParticipatingTeams: ID): [ParticipatingTechnicalStaff!] #@auth(requires: user)
 
         allScorerMatch(idMatch: ID): [ScorerMatch]
