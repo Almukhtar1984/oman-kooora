@@ -3,6 +3,7 @@ import {
     Avatar,
     Badge,
     Box,
+    Button,
     Center,
     Divider,
     Group,
@@ -28,6 +29,9 @@ import Modal, { Props as ModalProps } from "./Modal";
 type Props = {
     setSelectedData: (id: string) => void;
     data?: any;
+    // Only users with management permission (not a league admin) may remove
+    // teams; when false the delete actions are hidden entirely.
+    canDelete?: boolean;
 
     setOpenShowParticipatingPlayersModal: (status: boolean) => void;
     setOpenShowParticipatingTechnicalStaffModal: (status: boolean) => void;
@@ -55,6 +59,7 @@ const initials = (name?: string) => {
 export const ShowLeague = ({
     data,
     setSelectedData,
+    canDelete = false,
     setOpenShowParticipatingPlayersModal,
     setOpenShowParticipatingTechnicalStaffModal,
     ...props
@@ -62,6 +67,31 @@ export const ShowLeague = ({
     const theme = useMantineTheme();
     const [groupedData, setGroupedData] = useState<any[][]>([]);
     const [deleteParticipatingTeam] = useDeleteParticipatingTeams();
+
+    // Bulk-remove every team that isn't actually participating (status not
+    // "accepted": still waiting or rejected), keeping only the accepted ones.
+    const handleDeleteNonParticipating = async () => {
+        const notyf = typeof window !== "undefined" ? new Notyf({ position: { x: "right", y: "bottom" } }) : null;
+        const nonParticipating = groupedData.flat().filter((t: any) => t?.id && t?.status !== "accepted");
+        if (nonParticipating.length === 0) {
+            notyf?.error("لا توجد فرق غير مشاركة لحذفها");
+            return;
+        }
+        if (!window.confirm(`سيتم حذف ${nonParticipating.length} فريقاً غير مشارك (لم يقبل الانضمام) والإبقاء على الفرق المقبولة فقط. متابعة؟`)) return;
+        const ids = nonParticipating.map((t: any) => t.id);
+        const results = await Promise.allSettled(
+            ids.map((id: string) => deleteParticipatingTeam({ variables: { id }, refetchQueries: [AllLeagues], awaitRefetchQueries: false }))
+        );
+        const okIds = new Set<string>();
+        results.forEach((r, i) => {
+            if (r.status === "fulfilled" && (r.value as any)?.data?.deleteParticipatingTeams?.status) okIds.add(ids[i]);
+        });
+        setGroupedData((prev) =>
+            prev.map((g) => g.filter((t: any) => !okIds.has(t?.id))).filter((g) => g.length > 0)
+        );
+        if (okIds.size > 0) notyf?.success(`تم حذف ${okIds.size} فريقاً غير مشارك`);
+        if (okIds.size < ids.length) notyf?.error(`تعذّر حذف ${ids.length - okIds.size} فريقاً`);
+    };
 
     const handleDeleteTeam = (row: any) => {
         const notyf = typeof window !== "undefined" ? new Notyf({ position: { x: "right", y: "bottom" } }) : null;
@@ -122,6 +152,12 @@ export const ShowLeague = ({
         };
     }, [data]);
 
+    // Live count from the on-screen groups so it shrinks as rows are removed.
+    const nonParticipatingCount = useMemo(
+        () => groupedData.flat().filter((t: any) => t?.status !== "accepted").length,
+        [groupedData]
+    );
+
     const closeModal = () => {
         props.onClose();
     };
@@ -171,6 +207,20 @@ export const ShowLeague = ({
                         )}
                     </Group>
                 </Group>
+
+                {canDelete && nonParticipatingCount > 0 && (
+                    <Group justify="flex-end" mb={12}>
+                        <Button
+                            color="red"
+                            variant="light"
+                            size="xs"
+                            leftSection={<IconTrash size={14} />}
+                            onClick={handleDeleteNonParticipating}
+                        >
+                            حذف الفرق غير المشاركة ({nonParticipatingCount})
+                        </Button>
+                    </Group>
+                )}
 
                 {groupedData.length === 0 ? (
                     <Center py={50}>
@@ -332,14 +382,18 @@ export const ShowLeague = ({
                                                                 >
                                                                     عرض الجهاز الفني
                                                                 </Menu.Item>
-                                                                <Menu.Divider />
-                                                                <Menu.Item
-                                                                    color="red"
-                                                                    leftSection={<IconTrash size={14} />}
-                                                                    onClick={() => handleDeleteTeam(row)}
-                                                                >
-                                                                    حذف من البطولة
-                                                                </Menu.Item>
+                                                                {canDelete && (
+                                                                    <>
+                                                                        <Menu.Divider />
+                                                                        <Menu.Item
+                                                                            color="red"
+                                                                            leftSection={<IconTrash size={14} />}
+                                                                            onClick={() => handleDeleteTeam(row)}
+                                                                        >
+                                                                            حذف من البطولة
+                                                                        </Menu.Item>
+                                                                    </>
+                                                                )}
                                                             </Menu.Dropdown>
                                                         </Menu>
                                                     </Group>

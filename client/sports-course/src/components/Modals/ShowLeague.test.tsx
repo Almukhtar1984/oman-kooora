@@ -1,4 +1,5 @@
 import { DirectionProvider, MantineProvider } from "@mantine/core";
+import { MockedProvider } from "@apollo/client/testing";
 import { render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 import { ShowLeague } from "./ShowLeague";
@@ -23,19 +24,21 @@ const noop = () => {};
 
 const renderModal = (participatingTeams: any[]) =>
     render(
-        <DirectionProvider initialDirection="rtl">
-            <MantineProvider>
-                <ShowLeague
-                    title="المجموعات"
-                    opened={true}
-                    onClose={noop}
-                    data={{ id: "L1", name: "دوري الهواء", participatingTeams }}
-                    setSelectedData={noop}
-                    setOpenShowParticipatingPlayersModal={noop}
-                    setOpenShowParticipatingTechnicalStaffModal={noop}
-                />
-            </MantineProvider>
-        </DirectionProvider>
+        <MockedProvider addTypename={false}>
+            <DirectionProvider initialDirection="rtl">
+                <MantineProvider>
+                    <ShowLeague
+                        title="المجموعات"
+                        opened={true}
+                        onClose={noop}
+                        data={{ id: "L1", name: "دوري الهواء", participatingTeams }}
+                        setSelectedData={noop}
+                        setOpenShowParticipatingPlayersModal={noop}
+                        setOpenShowParticipatingTechnicalStaffModal={noop}
+                    />
+                </MantineProvider>
+            </DirectionProvider>
+        </MockedProvider>
     );
 
 describe("ShowLeague participating-team statuses", () => {

@@ -36,6 +36,7 @@ import { printUrl } from "../../lib/config";
 type Props = {
     data: any;
     canDelete?: boolean;
+    canEdit?: boolean;
 
     onShowMatches: (row: any) => void;
     onShowGroups: (row: any) => void;
@@ -114,6 +115,7 @@ const StatBox = ({
 export const LeagueCard = ({
     data,
     canDelete = true,
+    canEdit = true,
     onShowMatches,
     onShowGroups,
     onShowStats,
@@ -418,12 +420,14 @@ export const LeagueCard = ({
                         )}
 
                         {!ended && (hasTeams ? (
-                            <Menu.Item
-                                leftSection={<IconEdit size={14} />}
-                                onClick={() => onEditParticipating(data)}
-                            >
-                                تعديل الفرق
-                            </Menu.Item>
+                            canEdit && (
+                                <Menu.Item
+                                    leftSection={<IconEdit size={14} />}
+                                    onClick={() => onEditParticipating(data)}
+                                >
+                                    تعديل الفرق
+                                </Menu.Item>
+                            )
                         ) : (
                             <Menu.Item
                                 leftSection={<IconPlus size={14} />}
@@ -475,16 +479,18 @@ export const LeagueCard = ({
                             </>
                         )}
 
-                        {!ended && (
+                        {!ended && (canEdit || canDelete) && (
                             <>
                                 <Menu.Divider />
 
-                                <Menu.Item
-                                    leftSection={<IconEdit size={14} />}
-                                    onClick={() => onEdit(data)}
-                                >
-                                    تعديل
-                                </Menu.Item>
+                                {canEdit && (
+                                    <Menu.Item
+                                        leftSection={<IconEdit size={14} />}
+                                        onClick={() => onEdit(data)}
+                                    >
+                                        تعديل
+                                    </Menu.Item>
+                                )}
 
                                 {canDelete && (
                                     <Menu.Item

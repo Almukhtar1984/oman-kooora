@@ -267,6 +267,7 @@ export const Home = () => {
                             key={row.id}
                             data={row}
                             canDelete={!isLeagueAdmin}
+                            canEdit={!isLeagueAdmin}
                             onShowMatches={handleShowMatches}
                             onShowGroups={handleShowGroups}
                             onShowStats={handleShowStats}
@@ -322,6 +323,7 @@ export const Home = () => {
                 title="مجموعات الدورة"
                 opened={openShowGroupsModal}
                 data={selectedData}
+                canDelete={!isLeagueAdmin}
                 onClose={() => setOpenShowGroupsModal(false)}
 
                 setSelectedData={setSelectedParticipatingTeam}
