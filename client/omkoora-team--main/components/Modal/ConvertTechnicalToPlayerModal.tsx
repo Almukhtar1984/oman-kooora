@@ -117,8 +117,8 @@ export const ConvertTechnicalToPlayerModal = ({ id, ...props }: Props) => {
                     data={[
                         { value: "firstDegree", label: "الفريق الأول" },
                         { value: "secondDegree", label: "تحت 23 سنة" },
-                        { value: "rookies", label: "تحت 18 سنة" },
-                        { value: "young", label: "تحت 16 سنة" }
+                        { value: "young", label: "تحت 18 سنة" },
+                        { value: "rookies", label: "تحت 16 سنة" }
                     ]}
                     {...form.getInputProps("class")}
                 />
