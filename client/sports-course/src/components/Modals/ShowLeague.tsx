@@ -18,8 +18,11 @@ import {
     IconUsers,
     IconUserCog,
     IconUsersGroup,
+    IconTrash,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
+import { Notyf } from "notyf";
+import { AllLeagues, useDeleteParticipatingTeams } from "../../graphql";
 import Modal, { Props as ModalProps } from "./Modal";
 
 type Props = {
@@ -58,6 +61,35 @@ export const ShowLeague = ({
 }: Props) => {
     const theme = useMantineTheme();
     const [groupedData, setGroupedData] = useState<any[][]>([]);
+    const [deleteParticipatingTeam] = useDeleteParticipatingTeams();
+
+    const handleDeleteTeam = (row: any) => {
+        const notyf = typeof window !== "undefined" ? new Notyf({ position: { x: "right", y: "bottom" } }) : null;
+        if (!row?.id) return;
+        const teamName = row?.team?.name || "هذا الفريق";
+        if (!window.confirm(`هل تريد حذف «${teamName}» من البطولة؟ سيُلغى انضمامه نهائياً.`)) return;
+        deleteParticipatingTeam({
+            variables: { id: row.id },
+            refetchQueries: [AllLeagues],
+            awaitRefetchQueries: false,
+            onCompleted: (res: any) => {
+                if (res?.deleteParticipatingTeams?.status) {
+                    // Optimistically drop the team from the on-screen groups.
+                    setGroupedData((prev) =>
+                        prev
+                            .map((g) => g.filter((t: any) => t?.id !== row.id))
+                            .filter((g) => g.length > 0)
+                    );
+                    notyf?.success("تم حذف الفريق من البطولة");
+                } else {
+                    notyf?.error("تعذّر حذف الفريق");
+                }
+            },
+            onError: (err: any) => {
+                notyf?.error(err?.message || "فشل حذف الفريق من البطولة");
+            },
+        });
+    };
 
     useEffect(() => {
         if (data && props.opened) {
@@ -299,6 +331,14 @@ export const ShowLeague = ({
                                                                     }}
                                                                 >
                                                                     عرض الجهاز الفني
+                                                                </Menu.Item>
+                                                                <Menu.Divider />
+                                                                <Menu.Item
+                                                                    color="red"
+                                                                    leftSection={<IconTrash size={14} />}
+                                                                    onClick={() => handleDeleteTeam(row)}
+                                                                >
+                                                                    حذف من البطولة
                                                                 </Menu.Item>
                                                             </Menu.Dropdown>
                                                         </Menu>
