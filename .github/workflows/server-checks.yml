@@ -57,3 +57,7 @@ jobs:
       - name: Match lineup print guards
         working-directory: omkoora-backend--main
         run: npm run test:match-lineup
+
+      - name: Team roster print guards
+        working-directory: omkoora-backend--main
+        run: npm run test:team-roster

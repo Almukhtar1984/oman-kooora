@@ -76,6 +76,12 @@ export const ShowParticipatingPlayers = ({data, leagueEnded = false, setSelected
         window.open(url, "_blank", "noopener,noreferrer");
     };
 
+    // Formal list: this team's players + technical staff names in one report.
+    const handlePrintRoster = () => {
+        if (!data) return;
+        window.open(`${printUrl}/#/team-roster/${data}`, "_blank", "noopener,noreferrer");
+    };
+
     return (
         <Modal
             {...props} onClose={closeModal}
@@ -133,16 +139,27 @@ export const ShowParticipatingPlayers = ({data, leagueEnded = false, setSelected
                                     )}
                                 </Group>
 
-                                <Button
-                                    size="sm"
-                                    color="cyan"
-                                    leftSection={<IconPrinter size={16} />}
-                                    onClick={handlePrint}
-                                >
-                                    {selectedIds.size === 0 || allSelected
-                                        ? "طباعة جميع البطاقات"
-                                        : `طباعة المحدد (${selectedIds.size})`}
-                                </Button>
+                                <Group gap="xs">
+                                    <Button
+                                        size="sm"
+                                        color="cyan"
+                                        leftSection={<IconPrinter size={16} />}
+                                        onClick={handlePrint}
+                                    >
+                                        {selectedIds.size === 0 || allSelected
+                                            ? "طباعة جميع البطاقات"
+                                            : `طباعة المحدد (${selectedIds.size})`}
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="light"
+                                        color="cyan"
+                                        leftSection={<IconPrinter size={16} />}
+                                        onClick={handlePrintRoster}
+                                    >
+                                        طباعة كشف الفريق (لاعبون + جهاز فني)
+                                    </Button>
+                                </Group>
                             </Group>
                         </Paper>
 

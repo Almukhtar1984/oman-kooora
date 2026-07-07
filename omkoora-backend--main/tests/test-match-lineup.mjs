@@ -78,7 +78,7 @@ console.log(`${c.cyan}▶ Backend exposes a public match lineup${c.reset}`);
         "MatchLineupPlayer carries starter + sub");
 
     const resolver = read("omkoora-backend--main", "src", "Graphql", "Resolvers", "League.mjs");
-    assert(/import \{ buildLineup \}/.test(resolver), "resolver imports the pure helper");
+    assert(/import \{[^}]*\bbuildLineup\b/.test(resolver), "resolver imports the pure helper");
     assert(/matchLineup: async/.test(resolver), "matchLineup resolver exists");
     assert(/firstTeamPlayers: await lineupFor\(match\.first_team\)/.test(resolver), "builds the first team lineup");
     assert(/secondTeamPlayers: await lineupFor\(match\.second_team\)/.test(resolver), "builds the second team lineup");

@@ -10,7 +10,7 @@ import {
 } from '../../Models/index.mjs';
 import { hashPassword, alreadyExistUser } from '../../Helpers/index.mjs';
 import { computeYellowCardAlerts } from '../../Helpers/YellowCards.mjs';
-import { buildLineup } from '../../Helpers/MatchLineup.mjs';
+import { buildLineup, fullName } from '../../Helpers/MatchLineup.mjs';
 import { randomBytes } from 'crypto';
 
 
@@ -550,6 +550,80 @@ export const resolvers = {
             } catch (error) {
                 logger.error("matchLineup error:", error.message);
                 throw new ApolloError("Failed to build match lineup.");
+            }
+        },
+
+        // Public, print-ready roster for one participating team: its players and
+        // technical staff, assembled server-side so the token-less print app can
+        // render a formal list.
+        teamRoster: async (_, { id }) => {
+            try {
+                const pt = await ParticipatingTeams.findByPk(id);
+                if (!pt) return null;
+
+                const team = pt.id_team ? await Team.findByPk(pt.id_team) : null;
+                const league = pt.id_league ? await League.findByPk(pt.id_league) : null;
+
+                // Players (number + name + position), bulk-loaded.
+                const ppRows = await ParticipatingPlayers.findAll({
+                    where: { id_participating_team: id },
+                    attributes: ["id", "number", "id_player"],
+                });
+                const playerIds = [...new Set(ppRows.map(r => r.id_player).filter(Boolean))];
+                const players = playerIds.length ? await Players.findAll({
+                    where: { id: playerIds }, attributes: ["id", "player_center", "id_person"],
+                }) : [];
+
+                // Technical staff (name + job/occupation), bulk-loaded.
+                const ptsRows = await ParticipatingTechnicalStaff.findAll({
+                    where: { id_participating_team: id },
+                    attributes: ["id", "id_technical_apparatus"],
+                });
+                const techIds = [...new Set(ptsRows.map(r => r.id_technical_apparatus).filter(Boolean))];
+                const techs = techIds.length ? await TechnicalApparatus.findAll({
+                    where: { id: techIds }, attributes: ["id", "occupation", "id_person"],
+                }) : [];
+
+                // One person lookup for both players and staff.
+                const personIds = [...new Set([
+                    ...players.map(p => p.id_person),
+                    ...techs.map(t => t.id_person),
+                ].filter(Boolean))];
+                const persons = personIds.length ? await Person.findAll({
+                    where: { id: personIds },
+                    attributes: ["id", "first_name", "second_name", "third_name", "tribe"],
+                }) : [];
+                const personById = new Map(persons.map(p => [p.id, p]));
+                const playerById = new Map(players.map(p => [p.id, p]));
+                const techById = new Map(techs.map(t => [t.id, t]));
+
+                const rosterPlayers = ppRows
+                    .map(r => {
+                        const pl = playerById.get(r.id_player);
+                        const person = pl ? personById.get(pl.id_person) : null;
+                        return {
+                            number: r.number != null && r.number !== "" ? String(r.number) : "",
+                            name: fullName(person),
+                            position: pl?.player_center || "",
+                        };
+                    })
+                    .sort((a, b) => (parseInt(a.number, 10) || 999) - (parseInt(b.number, 10) || 999));
+
+                const rosterStaff = ptsRows.map(r => {
+                    const t = techById.get(r.id_technical_apparatus);
+                    const person = t ? personById.get(t.id_person) : null;
+                    return { name: fullName(person), job: t?.occupation || "" };
+                });
+
+                return {
+                    teamName: team?.name || "",
+                    leagueName: league?.name || "",
+                    players: rosterPlayers,
+                    staff: rosterStaff,
+                };
+            } catch (error) {
+                logger.error("teamRoster error:", error.message);
+                throw new ApolloError("Failed to build team roster.");
             }
         },
         calculatePoints: async (_, { leagueId }) => {

@@ -13,6 +13,10 @@ export const typeDefs = gql`
         # other print reads so the token-less print app can render it.
         matchLineup(id: ID!): MatchLineup
 
+        # Printable team roster: the team's players + technical staff, for the
+        # organiser to hand out. Public like the other print reads.
+        teamRoster(id: ID!): TeamRoster
+
         allParticipatingPlayers(idParticipatingTeams: ID): [ParticipatingPlayers!] #@auth(requires: user)
 
         participatingPlayersByLeague(idLeague: ID!): [ParticipatingPlayers!] #@auth(requires: user)
@@ -482,6 +486,23 @@ export const typeDefs = gql`
             position: String
             starter: Boolean
             sub: Boolean
+        }
+
+        # A print-ready team roster: players + technical staff for one team.
+        type TeamRoster {
+            teamName: String
+            leagueName: String
+            players: [RosterPlayer]
+            staff: [RosterStaff]
+        }
+        type RosterPlayer {
+            number: String
+            name: String
+            position: String
+        }
+        type RosterStaff {
+            name: String
+            job: String
         }
 
         type MatchCardGroupByType {
