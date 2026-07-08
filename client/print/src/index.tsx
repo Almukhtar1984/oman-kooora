@@ -14,6 +14,7 @@ import CardAssembly from "./CardAssembly";
 import LeaguePlayersCards from "./LeaguePlayersCards";
 import LeaguePlayersList from "./LeaguePlayersList";
 import LeagueTeamsList from "./LeagueTeamsList";
+import LeagueStatsPrint from "./LeagueStatsPrint";
 import MatchLineupPrint from "./MatchLineupPrint";
 import TeamRosterPrint from "./TeamRosterPrint";
 import TeamPlayersCards from "./TeamPlayersCards";
@@ -43,6 +44,7 @@ root.render(
                     <Route path="/members/:id/:type" element={<Members />} />
                     <Route path="/technicals/:id/:type" element={<Technicals />} />
                     <Route path="/assembly/:id/:type" element={<Assembly />} />
+                    <Route path="/league/:id" element={<LeagueStatsPrint />} />
                     <Route path="/league-cards/:id" element={<LeaguePlayersCards />} />
                     <Route path="/league-list/:id" element={<LeaguePlayersList />} />
                     <Route path="/league-teams/:id" element={<LeagueTeamsList />} />
