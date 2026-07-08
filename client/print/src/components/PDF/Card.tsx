@@ -171,6 +171,30 @@ const resolveImageSrc = (
     return images?.[filename] || `${apiUrl}/images/${filename}`;
 };
 
+// Default avatar for players with no uploaded photo — a head + shoulders
+// silhouette drawn from primitives (no external asset), filling the same
+// 70×78 frame as a real photo so the card layout never shifts.
+export const PhotoPlaceholder = () => (
+    <View
+        data-testid="photo-placeholder"
+        style={{
+            width: 70,
+            height: 78,
+            borderWidth: 1,
+            borderColor: cardPalette.border,
+            borderStyle: "solid",
+            backgroundColor: cardPalette.surfaceMuted,
+            alignItems: "center",
+            justifyContent: "center",
+        }}
+    >
+        <View style={{ alignItems: "center" }}>
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#cbd5e1", marginBottom: 3 }} />
+            <View style={{ width: 42, height: 22, borderTopLeftRadius: 21, borderTopRightRadius: 21, backgroundColor: "#cbd5e1" }} />
+        </View>
+    </View>
+);
+
 // Front + back templates that LeagueCards.tsx can reuse so all ID cards stay
 // visually identical regardless of entry point.
 export const CardFrontPage = ({
@@ -233,16 +257,7 @@ export const CardFrontPage = ({
                                 src={personalSrc}
                             />
                         ) : (
-                            <View
-                                style={{
-                                    width: 70,
-                                    height: 78,
-                                    borderWidth: 1,
-                                    borderColor: cardPalette.border,
-                                    borderStyle: "solid",
-                                    backgroundColor: cardPalette.surfaceMuted,
-                                }}
-                            />
+                            <PhotoPlaceholder />
                         )}
                     </View>
 

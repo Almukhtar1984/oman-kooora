@@ -254,6 +254,27 @@ describe("CardFrontPage with preloaded images", () => {
         expect(srcs.some((s) => s && s.endsWith("/images/club.png"))).toBe(true);
     });
 
+    it("renders the photo when a personal_picture exists (no placeholder)", () => {
+        render(
+            <CardFrontPage qrDataUrl="" player={player} images={{ "photo.jpg": "blob:fake/photo" }} />,
+        );
+        // The real photo is embedded…
+        const srcs = screen.getAllByTestId("pdf-image").map((el) => el.getAttribute("src"));
+        expect(srcs).toContain("blob:fake/photo");
+        // …and the default avatar is NOT shown.
+        expect(screen.queryByTestId("photo-placeholder")).not.toBeInTheDocument();
+    });
+
+    it("shows the default avatar placeholder when the player has no photo", () => {
+        const noPhoto = { ...player, person: { ...player.person, personal_picture: null } };
+        render(<CardFrontPage qrDataUrl="" player={noPhoto} images={{}} />);
+        // Placeholder is rendered instead of a photo Image.
+        expect(screen.getByTestId("photo-placeholder")).toBeInTheDocument();
+        const srcs = screen.getAllByTestId("pdf-image").map((el) => el.getAttribute("src"));
+        // No image src points at a personal photo file (only team/club logos may remain via fallback).
+        expect(srcs.some((s) => s && s.includes("photo.jpg"))).toBe(false);
+    });
+
     it("works the same on the back page", () => {
         render(
             <CardBackPage
