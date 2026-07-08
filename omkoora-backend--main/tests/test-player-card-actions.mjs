@@ -63,6 +63,7 @@ console.log(`${c.cyan}▶ MemberCard action menu invokes each handler${c.reset}`
         ["تعديل", /onEdit && onEdit\(data\)/],
         ["إضافة صورة", /onAddImage && onAddImage\(/],
         ["إضافة مرفقات", /onAddAttachment && onAddAttachment\(data\?\.id\)/],
+        ["المرفقات", /onShowAttachments && onShowAttachments\(data\)/],
         ["احصائيات اللاعب", /onStatPlayer && onStatPlayer\(/],
         ["تغيير التصنيف", /onChangeClassification && onChangeClassification\(data\)/],
         ["تحرير اللاعب", /onFreePlayer && onFreePlayer\(data\?\.id\)/],
