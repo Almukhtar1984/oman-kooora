@@ -69,3 +69,7 @@ jobs:
       - name: Team print route guards
         working-directory: omkoora-backend--main
         run: npm run test:team-print-routes
+
+      - name: Remove participating team guards
+        working-directory: omkoora-backend--main
+        run: npm run test:remove-team

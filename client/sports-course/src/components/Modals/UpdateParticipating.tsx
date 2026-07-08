@@ -1,9 +1,9 @@
-import { Box,Button,Grid,Group,Select } from "@mantine/core";
+import { ActionIcon,Box,Button,Grid,Group,Select,Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconCheck,IconX } from "@tabler/icons-react";
+import { IconCheck,IconTrash,IconX } from "@tabler/icons-react";
 import { Notyf } from "notyf";
 import { useEffect,useState } from "react";
-import { AllLeagues,useAllTeams,useUpdateParticipatingTeams } from "../../graphql";
+import { AllLeagues,useAllTeams,useUpdateParticipatingTeams,useDeleteParticipatingTeams } from "../../graphql";
 import Modal,{ Props as ModalProps } from "./Modal";
 
 const {Col} = Grid
@@ -18,7 +18,7 @@ const ABC = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N
 const category = ["الدرجة الاولى", "الدرجة الثاني", "الدرجة الثالثة"]
 
 export const UpdateParticipating = ({data, ...props}: Props) => {
-    const {getInputProps, reset, onSubmit, values, insertListItem} = useForm({
+    const {getInputProps, reset, onSubmit, values, insertListItem, removeListItem} = useForm({
         initialValues: {teams: []}
     });
     const [allTeams, setAllTeams] = useState<{ label: string, value: string }[]>([]);
@@ -26,6 +26,32 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
     const [getAllTeams] = useAllTeams();
 
     const [updateParticipatingTeams] = useUpdateParticipatingTeams();
+    const [deleteParticipatingTeam] = useDeleteParticipatingTeams();
+
+    // Remove a team row. An existing participating team (has an id) is deleted
+    // from the tournament; an empty placeholder row is just dropped locally.
+    const handleRemoveTeam = (index: number, item: any) => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!item?.id) {
+            removeListItem("teams", index);
+            return;
+        }
+        if (typeof window !== "undefined" && !window.confirm("هل أنت متأكد من حذف هذا الفريق من الدورة؟")) return;
+        deleteParticipatingTeam({
+            variables: { id: item.id },
+            refetchQueries: [AllLeagues],
+            awaitRefetchQueries: false,
+            onCompleted: (res: any) => {
+                if (res?.deleteParticipatingTeams?.status) {
+                    removeListItem("teams", index);
+                    notyf.success("تم حذف الفريق من الدورة");
+                } else {
+                    notyf.error("تعذّر حذف الفريق");
+                }
+            },
+            onError: (err: any) => notyf.error(err?.message || "فشل حذف الفريق"),
+        });
+    };
 
     useEffect(() => {
         if (data !== null && props.opened) {
@@ -121,10 +147,10 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
             <Box style={({ colors }) => ({padding: 20})}>
                 <form onSubmit={onSubmit(onFormSubmit)} id="submit_form">
                     <Grid gutter={20}>
-                        {values.teams.map((item, index) => (
+                        {values.teams.map((item: any, index) => (
                             <Col span={12} key={index} >
-                                <Grid gutter={20}>
-                                    <Col span={9} >
+                                <Grid gutter={20} align="flex-end">
+                                    <Col span={8} >
                                         <Select
                                             label={`اسم الفريق ${index+1}`}
                                             placeholder="اختر الفريق"
@@ -144,6 +170,18 @@ export const UpdateParticipating = ({data, ...props}: Props) => {
 
                                             {...getInputProps(`teams.${index}.group`)}
                                         />
+                                    </Col>
+                                    <Col span={1} >
+                                        <Tooltip label={item?.id ? "حذف الفريق من الدورة" : "إزالة الصف"}>
+                                            <ActionIcon
+                                                color="red"
+                                                variant="light"
+                                                size={36}
+                                                onClick={() => handleRemoveTeam(index, item)}
+                                            >
+                                                <IconTrash size={18} />
+                                            </ActionIcon>
+                                        </Tooltip>
                                     </Col>
                                 </Grid>
                             </Col>
