@@ -98,9 +98,9 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
             <Button
                 color={"blue"}
                 component={"a"}
-                href={`https://print.omkooora.com/#/Participating/${data}/player`}
+                href={`https://print.omkooora.com/#/team-cards/${data}/all`}
                 target={"_blank"}
-                onClick={(e) => { e.preventDefault(); openPrint(`/Participating/${data}/player`); }}
+                onClick={(e) => { e.preventDefault(); openPrint(`/team-cards/${data}/all`); }}
                 ><IconPrinter size={18} />
                     طباعة القائمة
                 </Button>
@@ -148,9 +148,9 @@ export const ShowParticipatingPlayers = ({data, setSelectedData, setOpenEditPart
                                                     >تعديل اللاعب</Menu.Item>}
                                                      <Menu.Item
                                                     component={"a"} icon={<Printer size={18} />}
-                                                    href={`https://print.omkooora.com/#/participating-player/${item?.id}`}
+                                                    href={`https://print.omkooora.com/#/team-cards/${data}/${item?.id}`}
                                                     target={"_blank"}
-                                                    onClick={(e) => { e.preventDefault(); openPrint(`/participating-player/${item?.id}`); }}
+                                                    onClick={(e) => { e.preventDefault(); openPrint(`/team-cards/${data}/${item?.id}`); }}
                                                 >طباعة البطاقة</Menu.Item>
                                                     {EditData && <Menu.Item
                                                         color="red"

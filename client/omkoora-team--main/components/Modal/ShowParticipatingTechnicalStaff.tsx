@@ -86,9 +86,9 @@ export const ShowParticipatingTechnicalStaff = ({data, setSelectedData, ...props
                                             
                                                 <Menu.Item
                                             component={"a"} icon={<Printer size={18} />}
-                                            href={`https://print.omkooora.com/#/participating-staff/${item?.id}`}
+                                            href={`https://print.omkooora.com/#/team-staff-cards/${data}/${item?.id}`}
                                             target={"_blank"}
-                                            onClick={(e) => { e.preventDefault(); openPrint(`/participating-staff/${item?.id}`); }}
+                                            onClick={(e) => { e.preventDefault(); openPrint(`/team-staff-cards/${data}/${item?.id}`); }}
                                         >طباعة البطاقة</Menu.Item>
                                         </Menu.Dropdown>
                                     </Menu>

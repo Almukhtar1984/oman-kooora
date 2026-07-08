@@ -17,7 +17,8 @@
     "test:yellow-cards": "node tests/test-yellow-card-alerts.mjs",
     "test:match-lineup": "node tests/test-match-lineup.mjs",
     "test:team-roster": "node tests/test-team-roster.mjs",
-    "test:team-players-print": "node tests/test-team-players-print.mjs"
+    "test:team-players-print": "node tests/test-team-players-print.mjs",
+    "test:team-print-routes": "node tests/test-team-print-routes.mjs"
   },
   "keywords": [],
   "author": "",

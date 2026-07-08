@@ -83,9 +83,9 @@ export const ShowPlayerListModal = ({ dataMatch, onClose, opened }: Props) => {
       <Button
               color={"blue"}
               component={"a"}
-              href={`https://print.omkooora.com/#/matchplayerlist/${dataMatch?.id}`}
+              href={`https://print.omkooora.com/#/match-list/${dataMatch?.id}`}
               target={"_blank"}
-              onClick={(e) => { e.preventDefault(); openPrint(`/matchplayerlist/${dataMatch?.id}`); }}
+              onClick={(e) => { e.preventDefault(); openPrint(`/match-list/${dataMatch?.id}`); }}
               ><IconPrinter size={18} />
                   طباعة القائمة
               </Button>
