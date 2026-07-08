@@ -264,12 +264,13 @@ export const MemberCard = ({
             </Modal>
 
             <Box sx={{ width: '100%', maxWidth: 380, margin: '0 auto', direction: 'rtl' }}>
-                <Box sx={(theme) => ({
+                <Box onClick={() => setDetailsOpen(true)} sx={(theme) => ({
                     borderRadius: 24,
                     border: `1px solid ${theme.colors.gray[3]}`,
                     backgroundColor: theme.colors.gray[0],
                     overflow: 'hidden',
                     boxShadow: theme.shadows.md,
+                    cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     '&:hover': {
                         transform: 'translateY(-4px)',
@@ -284,7 +285,7 @@ export const MemberCard = ({
                                     {renderStatusBadge()}
                                     {data?.classification && <Badge color="gray" variant="outline" size="xs">{data.classification}</Badge>}
                                 </Group>
-                                <Group spacing={4}>
+                                <Group spacing={4} onClick={(e) => e.stopPropagation()}>
                                     <Tooltip label="عرض التفاصيل">
                                         <ActionIcon variant="filled" color="blue" size="sm" onClick={() => setDetailsOpen(true)}>
                                             <Eye size={16} />
@@ -355,7 +356,7 @@ export const MemberCard = ({
                                 </Group>
                             </Box>
 
-                            <Box sx={{ borderRadius: 16, overflow: 'hidden', cursor: 'pointer' }} onClick={() => onShowDetails && onShowDetails(data)}>
+                            <Box sx={{ borderRadius: 16, overflow: 'hidden', cursor: 'pointer' }} onClick={() => setDetailsOpen(true)}>
                                 <Box sx={(theme) => ({
                                     position: 'relative',
                                     height: 200,

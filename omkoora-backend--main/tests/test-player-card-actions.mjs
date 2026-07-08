@@ -76,6 +76,13 @@ console.log(`${c.cyan}▶ MemberCard action menu invokes each handler${c.reset}`
         assert(re.test(card), `menu item "${label}" calls its handler`);
     }
     assert(/import \{ openPrint \}/.test(card), "MemberCard imports openPrint");
+
+    // Clicking the card body opens the details modal (same as the eye icon),
+    // and the action buttons stop propagation so the menu doesn't also open it.
+    assert(/<Box onClick=\{\(\) => setDetailsOpen\(true\)\}/.test(card),
+        "card body opens the details modal on click");
+    assert(/onClick=\{\(e\) => e\.stopPropagation\(\)\}/.test(card),
+        "action buttons stopPropagation so the menu doesn't open details");
 }
 
 // ── Every handler is fed a real modal on the page that renders the cards ──────
