@@ -119,11 +119,12 @@ describe("usePrintAssets", () => {
         // Unique filenames: photo-a, photo-b, team-x, team-y, club-z → 5 fetches.
         expect(fetchMock).toHaveBeenCalledTimes(5);
         const urls = (fetchMock.mock.calls as any[][]).map((c) => String(c[0]));
-        expect(urls.some((u) => u.endsWith("/images/photo-a.jpg"))).toBe(true);
-        expect(urls.some((u) => u.endsWith("/images/photo-b.jpg"))).toBe(true);
-        expect(urls.some((u) => u.endsWith("/images/team-x.png"))).toBe(true);
-        expect(urls.some((u) => u.endsWith("/images/team-y.png"))).toBe(true);
-        expect(urls.some((u) => u.endsWith("/images/club-z.png"))).toBe(true);
+        // Photos request the photo-sized baseline transform, logos the logo size.
+        expect(urls.some((u) => u.endsWith("/images/photo-a.jpg?w=280&h=320"))).toBe(true);
+        expect(urls.some((u) => u.endsWith("/images/photo-b.jpg?w=280&h=320"))).toBe(true);
+        expect(urls.some((u) => u.endsWith("/images/team-x.png?w=256&h=256"))).toBe(true);
+        expect(urls.some((u) => u.endsWith("/images/team-y.png?w=256&h=256"))).toBe(true);
+        expect(urls.some((u) => u.endsWith("/images/club-z.png?w=256&h=256"))).toBe(true);
     });
 
     it("downscales fetched blobs through canvas and reports bytesIn/bytesOut", async () => {
@@ -188,9 +189,10 @@ describe("usePrintAssets", () => {
         });
 
         const final = captured[captured.length - 1];
-        // Every image key still resolves to *some* URL — just the remote one.
-        expect(final.images["photo-a.jpg"]).toMatch(/\/images\/photo-a\.jpg$/);
-        expect(final.images["team-x.png"]).toMatch(/\/images\/team-x\.png$/);
+        // Every image key still resolves to *some* URL — just the remote one,
+        // which stays the baseline-resize transform so react-pdf can render it.
+        expect(final.images["photo-a.jpg"]).toMatch(/\/images\/photo-a\.jpg\?w=280&h=320$/);
+        expect(final.images["team-x.png"]).toMatch(/\/images\/team-x\.png\?w=256&h=256$/);
         // No compression happened.
         expect(final.progress.bytesOut).toBe(0);
     });

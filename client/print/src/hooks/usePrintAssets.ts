@@ -44,7 +44,10 @@ const PHOTO_TARGET = { w: 280, h: 320, quality: 0.82 };
 const LOGO_TARGET = { w: 256, h: 256, quality: 0.85 };
 
 const fetchAsBlob = async (url: string, signal: AbortSignal): Promise<Blob> => {
-    const res = await fetch(url, { signal, cache: "force-cache" });
+    // NB: `cache: "default"` (not "force-cache"): the latter replays stale
+    // pre-CORS / opaque cached responses whose `.blob()` throws, which used to
+    // drop us onto the raw progressive fallback and blank the photo.
+    const res = await fetch(url, { signal, cache: "default" });
     if (!res.ok) throw new Error(`status ${res.status}`);
     return res.blob();
 };
@@ -172,10 +175,17 @@ export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets =
         const nextImages: Record<string, string> = {};
 
         const imageTasks = imageJobs.map(({ name, kind }) => async () => {
+            const target = kind === "photo" ? PHOTO_TARGET : LOGO_TARGET;
+            // Ask the backend for an already-downscaled *baseline* JPEG. Originals
+            // are often multi-MB *progressive* photos that @react-pdf/renderer
+            // (pdfkit) cannot decode — it only renders baseline — so a raw
+            // progressive photo would print blank. The ?w/?h transform normalises
+            // format + size server-side; the canvas step below is then just a
+            // best-effort extra shrink that can safely fall back to this blob.
+            const remoteUrl = `${apiUrl}/images/${name}?w=${target.w}&h=${target.h}`;
             try {
-                const raw = await fetchAsBlob(`${apiUrl}/images/${name}`, controller.signal);
+                const raw = await fetchAsBlob(remoteUrl, controller.signal);
                 if (controller.signal.aborted) return;
-                const target = kind === "photo" ? PHOTO_TARGET : LOGO_TARGET;
                 const compressed = await downscaleBlob(raw, target);
                 if (controller.signal.aborted) return;
                 const dataUrl = await blobToDataUrl(compressed);
@@ -184,9 +194,10 @@ export const usePrintAssets = (players: PlayerLike[] | undefined): PrintAssets =
                 setBytesIn((n) => n + raw.size);
                 setBytesOut((n) => n + compressed.size);
             } catch {
-                // Network or decode failed — fall back to the remote URL so the
-                // card still renders, it just won't get the compression benefit.
-                nextImages[name] = `${apiUrl}/images/${name}`;
+                // Network or decode failed — fall back to the remote (baseline,
+                // resized) URL so the card still renders react-pdf-safely, it just
+                // won't get the extra client-side compression benefit.
+                nextImages[name] = remoteUrl;
             } finally {
                 if (!controller.signal.aborted) {
                     setImagesLoaded((n) => n + 1);

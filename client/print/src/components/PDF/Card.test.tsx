@@ -249,9 +249,10 @@ describe("CardFrontPage with preloaded images", () => {
             .map((el) => el.getAttribute("src"))
             .filter(Boolean);
         expect(srcs).toContain("blob:fake/photo");
-        // team.png + club.png weren't in the map → fall back to live API.
-        expect(srcs.some((s) => s && s.endsWith("/images/team.png"))).toBe(true);
-        expect(srcs.some((s) => s && s.endsWith("/images/club.png"))).toBe(true);
+        // team.png + club.png weren't in the map → fall back to the live API's
+        // baseline resize transform (react-pdf can't render raw progressive JPEGs).
+        expect(srcs.some((s) => s && s.endsWith("/images/team.png?w=512"))).toBe(true);
+        expect(srcs.some((s) => s && s.endsWith("/images/club.png?w=512"))).toBe(true);
     });
 
     it("renders the photo when a personal_picture exists (no placeholder)", () => {

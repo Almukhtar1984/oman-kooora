@@ -168,7 +168,12 @@ const resolveImageSrc = (
     images?: Record<string, string>,
 ): string | undefined => {
     if (!filename) return undefined;
-    return images?.[filename] || `${apiUrl}/images/${filename}`;
+    // Fall back to the backend's resize transform (?w) rather than the raw file:
+    // originals are often *progressive* JPEGs that @react-pdf/renderer cannot
+    // decode (they print blank), while ?w returns a react-pdf-safe *baseline*
+    // JPEG. This also covers the single-card path (/#/<idPlayer>), which renders
+    // without a preloaded `images` map.
+    return images?.[filename] || `${apiUrl}/images/${filename}?w=512`;
 };
 
 // Default avatar for players with no uploaded photo — a head + shoulders

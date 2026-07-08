@@ -3,6 +3,8 @@ import express from 'express';
 import cors from "cors";
 import {createServer} from "http";
 import path from "path";
+import { promises as fsPromises } from "fs";
+import sharp from "sharp";
 import {fileURLToPath} from 'url';
 import cookieParser from "cookie-parser";
 import { express as expressUserAgent } from 'express-useragent';
@@ -61,9 +63,53 @@ let socket = null;
         app.use(cookieParser())
         app.use(expressUserAgent());
 
+        // Uploaded photos are stored raw — often multi-MB *progressive* JPEGs
+        // (phone/WhatsApp defaults). @react-pdf/renderer (pdfkit) can only decode
+        // *baseline* JPEGs, so the print app's player photos rendered blank while
+        // small baseline logos rendered fine. When the print app requests a size
+        // (?w=&h=) we transcode on the fly via sharp to a downscaled, EXIF-rotated
+        // *baseline* JPEG and cache it on disk, so react-pdf always gets a photo it
+        // can render (and the payload shrinks ~10x for large leagues). Requests
+        // without ?w fall through to the untouched static serving below.
+        const IMAGES_DIR = path.join(__dirname, '../uploads');
+        const PRINT_CACHE = path.join(IMAGES_DIR, '.print-cache');
+        const printResize = async (req, res, next) => {
+            const w = parseInt(req.query.w, 10);
+            if (!w) return next();
+            const h = parseInt(req.query.h, 10) || null;
+            let rel;
+            try { rel = decodeURIComponent(req.path.replace(/^\/+/, '')); }
+            catch { return next(); }
+            if (!rel || rel.includes('/') || rel.includes('..')) return next();
+            const ext = rel.split('.').pop().toUpperCase();
+            if (!['JPEG', 'JPG', 'PNG'].includes(ext)) return next();
+            const cachePath = path.join(PRINT_CACHE, `${w}x${h || 'auto'}-${rel}.jpg`);
+            try {
+                await fsPromises.access(cachePath);
+            } catch {
+                try {
+                    await fsPromises.mkdir(PRINT_CACHE, { recursive: true });
+                    await sharp(path.join(IMAGES_DIR, rel))
+                        .rotate()
+                        .resize(w, h, { fit: 'inside', withoutEnlargement: true })
+                        // NB: do NOT enable mozjpeg — its preset turns on
+                        // optimiseScans, which forces *progressive* output and
+                        // defeats the whole purpose (react-pdf needs baseline).
+                        .jpeg({ progressive: false, quality: 82 })
+                        .toFile(cachePath);
+                } catch {
+                    return next(); // source missing / undecodable → static → 404
+                }
+            }
+            res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+            res.type('jpeg');
+            return res.sendFile(cachePath);
+        };
+
         app.use(
             '/images',
-            express.static(path.join(__dirname, '../uploads'), {
+            printResize,
+            express.static(IMAGES_DIR, {
                 maxAge: '30d',
                 immutable: true,
                 etag: true,
@@ -72,8 +118,11 @@ let socket = null;
                     res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
                 },
             }),
+            // Static miss (renamed / missing / case-mismatch): return 404. The old
+            // handler redirected to the same absolute URL, causing an infinite
+            // redirect loop that also blanked the card and hung the fetch.
             (req, res) => {
-                res.redirect(`https://api.omkooora.com/images${req.url}`);
+                res.status(404).end();
             },
         );
         app.get('/health', (req, res) => {

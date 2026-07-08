@@ -90,7 +90,7 @@ const AssemblyCardTemplate = ({ assembly }: Props) => {
 
                             {/* section 2 */}
                             {assembly?.team?.club?.logo
-                                ? <Image style={{ width: "20mm", height: "20mm", marginRight: "5mm" }} src={`${apiUrl}/images/${assembly.team.club.logo}`} />
+                                ? <Image style={{ width: "20mm", height: "20mm", marginRight: "5mm" }} src={`${apiUrl}/images/${assembly.team.club.logo}?w=256`} />
                                 : <View style={{ width: "20mm", height: "20mm", marginRight: "5mm" }} />
                             }
 
@@ -102,7 +102,7 @@ const AssemblyCardTemplate = ({ assembly }: Props) => {
                                 <View style={{display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "30mm"}}>
                                     {/*logo*/}
                                     {assembly?.personal_picture
-                                        ? <Image style={{ width: "100%", height: "2.5cm" }} src={`${apiUrl}/images/${assembly?.personal_picture}`} />
+                                        ? <Image style={{ width: "100%", height: "2.5cm" }} src={`${apiUrl}/images/${assembly?.personal_picture}?w=512&h=640`} />
                                         : <View style={{width: "100%", height: "2.5cm", border: "1px solid #555"}}/>
                                     }
 
@@ -147,13 +147,13 @@ const AssemblyCardTemplate = ({ assembly }: Props) => {
                         <View style={{display: "flex", flexDirection: "row", width: "100%", height: "3cm", alignItems: "center", justifyContent: "center"}}>
                             {/* section 1 */}
                             {assembly?.team?.logo
-                                ? <Image style={{ width: "30mm", height: "30mm" }} src={`${apiUrl}/images/${assembly.team.logo}`} />
+                                ? <Image style={{ width: "30mm", height: "30mm" }} src={`${apiUrl}/images/${assembly.team.logo}?w=256`} />
                                 : <View style={{ width: "30mm", height: "30mm" }} />
                             }
                             <View style={{width: "1cm", height: "1cm"}}></View>
                             {/* section 2 */}
                             {assembly?.team?.club?.logo
-                                ? <Image style={{ width: "30mm", height: "30mm" }} src={`${apiUrl}/images/${assembly.team.club.logo}`} />
+                                ? <Image style={{ width: "30mm", height: "30mm" }} src={`${apiUrl}/images/${assembly.team.club.logo}?w=256`} />
                                 : <View style={{ width: "30mm", height: "30mm" }} />
                             }
                         </View>
