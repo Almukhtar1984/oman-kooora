@@ -18,6 +18,7 @@ import {
     IconPlus,
     IconPrinter
 } from '@tabler/icons-react';
+import { openPrint } from "../../lib/helpers/openPrint";
 import React, { useState } from "react";
 import dayjs from "dayjs";
 
@@ -152,7 +153,16 @@ export const LeagueCard = ({
                                     عرض المجموعات
                                 </Menu.Item>
                             )}
-                            
+
+                            {team?.id && (
+                                <Menu.Item
+                                    icon={<IconPrinter size={14} />}
+                                    onClick={() => { openPrint(`/team-cards/${team.id}/all`); }}
+                                >
+                                    طباعة لاعبين
+                                </Menu.Item>
+                            )}
+
                             
                             {team && team.status === 'waiting' && (
                                 <>

@@ -10,6 +10,7 @@ import DataTable, {TableStyles} from 'react-data-table-component';
 import dayjs from "dayjs";
 import { GiSoccerBall } from "react-icons/gi";
 import isInscriptionActive from "../../lib/helpers/isInscriptionActive"
+import { openPrint } from "../../lib/helpers/openPrint"
 import {LeagueCard} from "../Card/LeagueCard"
 import { useMediaQuery } from "@mantine/hooks";
 //TeamParticipationAccptedModal
@@ -176,6 +177,16 @@ export const LeaguesTabel = ({data, setSelectedData, setOpenShowGroupsModal, set
                                             setOpenShowMatchsModal(true);
                                         }}
                                     >عرض المباريات</Menu.Item>
+                                    : null
+                                }
+
+                                {/* Print this team's players in this competition as a PDF.
+                                    Uses the optimized team-cards route (compressed images
+                                    + "preparing" screen) so the file is ready fast. */}
+                                {row.participatingTeams && row.participatingTeams.length > 0 && team?.id
+                                    ? <Menu.Item
+                                        onClick={() => { openPrint(`/team-cards/${team.id}/all`); }}
+                                    >طباعة لاعبين</Menu.Item>
                                     : null
                                 }
 

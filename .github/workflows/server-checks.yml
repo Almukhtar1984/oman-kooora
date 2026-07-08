@@ -61,3 +61,7 @@ jobs:
       - name: Team roster print guards
         working-directory: omkoora-backend--main
         run: npm run test:team-roster
+
+      - name: Team players print guards
+        working-directory: omkoora-backend--main
+        run: npm run test:team-players-print
