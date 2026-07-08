@@ -26,6 +26,15 @@ export const ParticipatingPlayersByLeague = gql`
             player {
                 id
                 player_center
+                type
+                lastLoan {
+                    status
+                    transition_type
+                    date_end
+                    team_to {
+                        id
+                    }
+                }
                 person {
                     id
                     personal_picture

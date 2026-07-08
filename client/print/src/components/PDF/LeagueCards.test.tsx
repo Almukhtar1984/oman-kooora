@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 beforeEach(() => {
@@ -196,16 +196,21 @@ describe("<LeagueCards /> heavy-league ready screen", () => {
 describe("<LeagueList />", () => {
     it("renders the table even when no players are passed", () => {
         render(<LeagueList players={[]} />);
-        expect(screen.getByTestId("league-list-pdfviewer")).toBeInTheDocument();
-        // header row labels should still show up
-        expect(screen.getByText("الاسم الكامل")).toBeInTheDocument();
-        expect(screen.getByText("الفريق")).toBeInTheDocument();
+        const viewer = screen.getByTestId("league-list-pdfviewer");
+        expect(viewer).toBeInTheDocument();
+        // header row labels should still show up (scoped to the table — the
+        // filter bar carries an "الفريق" label too).
+        expect(within(viewer).getByText("الاسم الكامل")).toBeInTheDocument();
+        expect(within(viewer).getByText("الفريق")).toBeInTheDocument();
     });
 
     it("renders one row per player and never prints 'undefined'", () => {
         render(<LeagueList players={samplePlayers} />);
-        expect(screen.getByText("النهضة")).toBeInTheDocument();
-        expect(screen.getByText("السيب")).toBeInTheDocument();
+        // Team names appear both in the printed table and in the filter
+        // dropdown, so scope the row assertions to the viewer.
+        const viewer = screen.getByTestId("league-list-pdfviewer");
+        expect(within(viewer).getByText("النهضة")).toBeInTheDocument();
+        expect(within(viewer).getByText("السيب")).toBeInTheDocument();
         // pp-2 has missing name parts; the row should compose without
         // 'undefined' tokens leaking through.
         expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
