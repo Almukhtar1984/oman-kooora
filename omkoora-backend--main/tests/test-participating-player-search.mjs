@@ -86,6 +86,19 @@ console.log(`${c.cyan}▶ Real-time, no refetch${c.reset}`);
     assert(/values\.players/.test(memo) && /picked/.test(memo), "already-selected players are excluded live");
 }
 
+console.log(`${c.cyan}▶ Loaned players are marked "معار"${c.reset}`);
+{
+    // A loaned player is flagged so the user can tell them apart from internal
+    // / external players — sourced from ONE team-loans query, not per player.
+    assert(/useAllTransferTeam/.test(src), "reads the team's loans (single query, no N+1)");
+    assert(/transitionType:\s*\[\s*"loan"\s*\]/.test(src), "queries loan transfers for the team");
+    assert(/isLoaned/.test(src), "computes a per-player loaned flag");
+    assert(/status === "accepted"[\s\S]{0,120}transition_type === "loan"[\s\S]{0,120}team_to\?\.id === teamId/.test(src),
+        "only active loans INTO this team count");
+    assert(/معار/.test(src), "loaned players show a 'معار' marker in the list");
+    assert(/داخلي/.test(src) && /محترف/.test(src), "still distinguishes internal / external too");
+}
+
 console.log(`${c.cyan}▶ Existing submit contract preserved${c.reset}`);
 {
     assert(/id_player:\s*player\.id_player/.test(src), "submit still sends id_player");

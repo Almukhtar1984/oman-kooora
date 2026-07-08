@@ -4,6 +4,7 @@ import React, {useEffect, useMemo, useState} from "react";
 import { useForm } from "@mantine/form";
 import Modal, { Props as ModalProps } from "./Modal";
 import {AllLeagues, useAddParticipatingPlayers, useAllPlayers,useCountExternalPlayers,CountExternalPlayers,AllLeaguesTeam} from "../../graphql";
+import { useAllTransferTeam } from "../../graphql/hooks/players/useAllTransferTeam";
 import {Notyf} from "notyf";
 import {DateInput} from "@mantine/dates";
 import dayjs from "dayjs";
@@ -24,6 +25,7 @@ type PlayerOption = {
     type: string;
     card_number: string;
     date_birth: string | null;
+    isLoaned: boolean;
 };
 
 const computeAge = (dob: string | null): number | null => {
@@ -60,6 +62,7 @@ export const AddParticipatingPlayers = ({data, ...props}: Props) => {
     const [existingPlayerIds, setExistingPlayerIds] = useState<string[]>([]);
     const [participatingTeam, setParticipatingTeam] = useState<string | null>();
     const [getAllPlayers] = useAllPlayers();
+    const [getAllTransferTeam] = useAllTransferTeam();
     const [LegalExternalPlayer, setLegalExternalPlayer] = useState<any>();
 
     // Advanced narrowing controls (all client-side, real-time — no refetch).
@@ -88,40 +91,57 @@ export const AddParticipatingPlayers = ({data, ...props}: Props) => {
     }, [data, props.opened])
 
     useEffect(() => {
-        if (props.opened) {
-            const teamParticipating = data?.participatingTeams?.filter((item: any) => item.id === participatingTeam)
-            if (teamParticipating.length > 0) {
-                const usedNumbers = teamParticipating[0]?.participatingPlayers?.map((p: any) => p.number) || [];
-                const usedPlayerIds = teamParticipating[0]?.participatingPlayers?.map((p: any) => p.player?.id) || [];
-                setExistingNumbers(usedNumbers);
-                setExistingPlayerIds(usedPlayerIds);
-                getAllPlayers({
-                    variables: {
-                        idTeam: teamParticipating?.[0]?.team?.id
-                    },
-                    onCompleted: ({allPlayers}) => {
-                        let newAllPlayers: PlayerOption[] = []
-                        for (let i = 0; i < allPlayers.length; i++) {
-                            const item = allPlayers[i]
-                            if(usedPlayerIds.includes(item.id)) continue;
-                            const option: PlayerOption = {
-                                value: item.id,
-                                label: `${item?.person?.first_name} ${item?.person?.second_name} ${item?.person?.third_name} ${item?.person?.tribe ?? ""} (${item?.type==='internal'?"داخلي":"محترف"})`.replace(/\s+/g, " ").trim(),
-                                type: item?.type,
-                                card_number: item?.person?.card_number ?? "",
-                                date_birth: item?.person?.date_birth ?? null,
-                            };
-                            if(parseInt(LegalExternalPlayer)>0) {
-                                if(item.status==="accepted") newAllPlayers.push(option)
-                            } else {
-                                if(item.status==="accepted" && item.type==="internal") newAllPlayers.push(option)
-                            }
-                        }
-                        setAllPlayers([...newAllPlayers])
-                    }
-                })
+        if (!props.opened) return;
+        const teamParticipating = data?.participatingTeams?.filter((item: any) => item.id === participatingTeam)
+        if (!teamParticipating || teamParticipating.length === 0) return;
+
+        const teamId = teamParticipating[0]?.team?.id;
+        const usedNumbers = teamParticipating[0]?.participatingPlayers?.map((p: any) => p.number) || [];
+        const usedPlayerIds = teamParticipating[0]?.participatingPlayers?.map((p: any) => p.player?.id) || [];
+        setExistingNumbers(usedNumbers);
+        setExistingPlayerIds(usedPlayerIds);
+
+        (async () => {
+            // One query for the team's loans -> the set of players currently on
+            // loan INTO this team, so we can flag them as "معار" in the list.
+            const loanedIds = new Set<string>();
+            try {
+                const loansRes: any = await getAllTransferTeam({
+                    variables: { idTeam: teamId, transitionType: ["loan"] },
+                });
+                for (const t of (loansRes?.data?.allTransferTeam || [])) {
+                    const active = t?.status === "accepted" && t?.transition_type === "loan"
+                        && t?.team_to?.id === teamId
+                        && (!t?.date_end || dayjs(t.date_end).isAfter(dayjs(), "day"));
+                    if (active && t?.player?.id) loanedIds.add(t.player.id);
+                }
+            } catch { /* loans are a nice-to-have marker; ignore fetch errors */ }
+
+            const playersRes: any = await getAllPlayers({ variables: { idTeam: teamId } });
+            const allPlayers = playersRes?.data?.allPlayers || [];
+
+            const newAllPlayers: PlayerOption[] = [];
+            for (const item of allPlayers) {
+                if (usedPlayerIds.includes(item.id)) continue;
+                const isLoaned = loanedIds.has(item.id);
+                const typeLabel = item?.type === 'internal' ? "داخلي" : "محترف";
+                const name = `${item?.person?.first_name} ${item?.person?.second_name} ${item?.person?.third_name} ${item?.person?.tribe ?? ""}`.replace(/\s+/g, " ").trim();
+                const option: PlayerOption = {
+                    value: item.id,
+                    label: `${name} (${typeLabel}${isLoaned ? " · معار" : ""})`,
+                    type: item?.type,
+                    card_number: item?.person?.card_number ?? "",
+                    date_birth: item?.person?.date_birth ?? null,
+                    isLoaned,
+                };
+                if (parseInt(LegalExternalPlayer) > 0) {
+                    if (item.status === "accepted") newAllPlayers.push(option);
+                } else {
+                    if (item.status === "accepted" && item.type === "internal") newAllPlayers.push(option);
+                }
             }
-        }
+            setAllPlayers([...newAllPlayers]);
+        })();
     }, [participatingTeam])
 
     // Fast lookup for rendering a selected row's name without re-scanning.
