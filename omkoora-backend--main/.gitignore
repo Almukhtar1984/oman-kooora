@@ -108,3 +108,5 @@ dist
 
 # TernJS port file
 .tern-port
+# One-off DB backups produced by scripts/cleanup-stuck-loan-participations.mjs (contain data — never commit)
+backups/
