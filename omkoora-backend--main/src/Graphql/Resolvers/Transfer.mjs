@@ -7,7 +7,9 @@ import { v4 as UUID } from 'uuid';
 import logger from "../../Config/logger.mjs";
 
 import {Transfer, Players, Team, Club} from '../../Models/index.mjs';
+import DB from '../../Config/DBContact.mjs';
 import {CreateNotificationTeam} from "../../Helpers/index.mjs";
+import {removeReceivingTeamParticipations} from "../../Helpers/LoanReturn.mjs";
 
 
 dotenv.config();
@@ -210,21 +212,31 @@ export const resolvers = {
                     throw new ApolloError(`Transfer with ID ${id} not found`);
                 }
 
-                // Update player's team to the old team
-                const updatedPlayer = await Players.update(
-                    { id_team: transfer.id_team_from },
-                    { where: { id: transfer.id_player } }
-                );
+                // Return the loan atomically: restore the player's team, drop
+                // his league enrolment(s) with the RECEIVING team, then
+                // soft-delete the transfer. If any step fails nothing commits.
+                const deleted = await DB.transaction(async (t) => {
+                    // 1) Restore player's team to the old (lending) team.
+                    const updatedPlayer = await Players.update(
+                        { id_team: transfer.id_team_from },
+                        { where: { id: transfer.id_player }, transaction: t }
+                    );
 
-                if (updatedPlayer[0] === 0) {
-                    throw new ApolloError(`Failed to update player team for player ID ${transfer.id_player}`);
-                }
+                    if (updatedPlayer[0] === 0) {
+                        throw new ApolloError(`Failed to update player team for player ID ${transfer.id_player}`);
+                    }
 
-                // Delete the transfer record
-                const deleted = await Transfer.destroy({ where: { id } });
-                if (deleted === 0) {
-                    throw new ApolloError(`Failed to delete transfer with ID ${id}`);
-                }
+                    // 2) Remove his league squad enrolment(s) with the RECEIVING
+                    //    team only — his original-team enrolments stay intact.
+                    await removeReceivingTeamParticipations(transfer.id_player, transfer.id_team_to, t);
+
+                    // 3) Soft-delete the transfer record.
+                    const removed = await Transfer.destroy({ where: { id }, transaction: t });
+                    if (removed === 0) {
+                        throw new ApolloError(`Failed to delete transfer with ID ${id}`);
+                    }
+                    return removed;
+                });
 
                 return {
                     status: deleted === 1 // Return true if deletion was successful

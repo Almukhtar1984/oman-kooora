@@ -199,6 +199,7 @@ export const resolvers = {
                                     [Op.eq]: literal(`(
                                         SELECT transfers.id FROM transfers
                                         WHERE transfers.id_player = transfer.id_player
+                                          AND transfers.deletedAt IS NULL
                                         ORDER BY transfers.createdAt DESC
                                         LIMIT 0, 1
                                     )`)
@@ -244,6 +245,7 @@ export const resolvers = {
                                     [Op.eq]: literal(`(
                                         SELECT transfers.id FROM transfers
                                         WHERE transfers.id_player = transfer.id_player
+                                          AND transfers.deletedAt IS NULL
                                         ORDER BY transfers.createdAt DESC
                                         LIMIT 0, 1
                                     )`)
