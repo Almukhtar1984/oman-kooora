@@ -39,12 +39,27 @@ console.log(`${c.cyan}▶ Backend exposes a public team roster${c.reset}`);
     const resolver = read("omkoora-backend--main", "src", "Graphql", "Resolvers", "League.mjs");
     assert(/teamRoster: async/.test(resolver), "teamRoster resolver exists");
     const start = resolver.indexOf("teamRoster: async");
-    const body = resolver.slice(start, start + 3400);
+    const body = resolver.slice(start, start + 4400);
     assert(/ParticipatingPlayers\.findAll/.test(body), "loads the team's players");
     assert(/ParticipatingTechnicalStaff\.findAll/.test(body), "loads the team's technical staff");
     assert(/TechnicalApparatus\.findAll/.test(body), "resolves staff occupation");
     assert(/fullName\(person\)/.test(body), "builds names via the shared helper");
     assert(/Person\.findAll/.test(body), "bulk-loads person names (no per-row lookup)");
+    // Duplicate participating-player rows must not repeat in the printed roster.
+    assert(/uniqueBy/.test(body) && /uniquePpRows/.test(body), "dedups repeated player rows by id_player");
+    assert(/uniquePtsRows/.test(body), "dedups repeated staff rows");
+    assert(/uniquePpRows[\s\S]*\.map\(r =>/.test(body), "roster players are built from the deduped rows");
+}
+
+console.log(`${c.cyan}▶ createParticipatingPlayers blocks duplicate enrolments${c.reset}`);
+{
+    const resolver = read("omkoora-backend--main", "src", "Graphql", "Resolvers", "League.mjs");
+    const start = resolver.indexOf("createParticipatingPlayers: async");
+    const body = resolver.slice(start, start + 1600);
+    assert(/ParticipatingPlayers\.findAll/.test(body), "checks who is already enrolled before inserting");
+    assert(/id_participating_team.*::.*id_player|\$\{r\.id_participating_team\}::\$\{r\.id_player\}/.test(body),
+        "keys the dedup on (team, player)");
+    assert(/freshRows/.test(body) && /bulkCreate\(freshRows\)/.test(body), "only inserts non-duplicate rows");
 }
 
 console.log(`${c.cyan}▶ Print app renders the roster${c.reset}`);

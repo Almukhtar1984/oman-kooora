@@ -597,7 +597,28 @@ export const resolvers = {
                 const playerById = new Map(players.map(p => [p.id, p]));
                 const techById = new Map(techs.map(t => [t.id, t]));
 
-                const rosterPlayers = ppRows
+                // A player/staff can have more than one participating row if they
+                // were added to this team repeatedly (the add-players modal was
+                // submitted twice, etc.). List each once — prefer a row that
+                // carries a shirt number — so the printed roster isn't duplicated.
+                const uniqueBy = (rows, keyOf, prefer) => {
+                    const m = new Map();
+                    for (const r of rows) {
+                        const k = keyOf(r);
+                        if (!k) continue;
+                        const cur = m.get(k);
+                        if (!cur || prefer(r, cur)) m.set(k, r);
+                    }
+                    return [...m.values()];
+                };
+                const uniquePpRows = uniqueBy(
+                    ppRows,
+                    r => r.id_player,
+                    (r, cur) => (cur.number == null || cur.number === "") && r.number != null && r.number !== "",
+                );
+                const uniquePtsRows = uniqueBy(ptsRows, r => r.id_technical_apparatus, () => false);
+
+                const rosterPlayers = uniquePpRows
                     .map(r => {
                         const pl = playerById.get(r.id_player);
                         const person = pl ? personById.get(pl.id_person) : null;
@@ -609,7 +630,7 @@ export const resolvers = {
                     })
                     .sort((a, b) => (parseInt(a.number, 10) || 999) - (parseInt(b.number, 10) || 999));
 
-                const rosterStaff = ptsRows.map(r => {
+                const rosterStaff = uniquePtsRows.map(r => {
                     const t = techById.get(r.id_technical_apparatus);
                     const person = t ? personById.get(t.id_person) : null;
                     return { name: fullName(person), job: t?.occupation || "" };
@@ -1956,8 +1977,28 @@ export const resolvers = {
 
         createParticipatingPlayers: async (obj, {content}, context, info) =>  {
             try {
-                await assertParticipatingTeamsLeagueNotEnded((content || []).map((r) => r?.id_participating_team))
-                return await ParticipatingPlayers.bulkCreate(content)
+                const rows = (content || []).filter((r) => r && r.id_player && r.id_participating_team)
+                if (rows.length === 0) return []
+                await assertParticipatingTeamsLeagueNotEnded(rows.map((r) => r.id_participating_team))
+
+                // Never add the same player to the same team twice — resubmitting
+                // the add-players modal used to bulkCreate duplicate rows, which
+                // then showed up repeated in the roster print.
+                const teamIds = [...new Set(rows.map((r) => r.id_participating_team))]
+                const existing = await ParticipatingPlayers.findAll({
+                    where: { id_participating_team: { [Op.in]: teamIds } },
+                    attributes: ['id_participating_team', 'id_player'],
+                    raw: true,
+                })
+                const seen = new Set(existing.map((e) => `${e.id_participating_team}::${e.id_player}`))
+                const freshRows = rows.filter((r) => {
+                    const key = `${r.id_participating_team}::${r.id_player}`
+                    if (seen.has(key)) return false
+                    seen.add(key)
+                    return true
+                })
+                if (freshRows.length === 0) return []
+                return await ParticipatingPlayers.bulkCreate(freshRows)
 
             } catch (error) {
                 if (error instanceof ApolloError) throw error
