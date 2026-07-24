@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node ./src/app.mjs",
+    "schema:export": "node scripts/export-schema.mjs",
     "test:schema-bulk": "node tests/test-schema-bulk.mjs",
     "test:bulk-status": "node tests/test-bulk-change-status.mjs",
     "test:team-flow": "node tests/test-team-flow.mjs",

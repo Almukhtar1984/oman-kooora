@@ -1,0 +1,1655 @@
+# ============================================================================
+#  Tomoh / omkooora GraphQL API — root schema
+#  Endpoint (prod): https://api.omkooora.com/graphql
+#  Auth: send an access token in the "Authorization" header. Fields marked
+#        @auth(requires: ...) need a valid token; fields without it are public.
+# ============================================================================
+
+directive @date(format: String = "dd/mm/yyyy HH:MM:ss") on FIELD_DEFINITION
+directive @auth(requires: Role = user) on OBJECT | FIELD_DEFINITION
+directive @imgUrl on FIELD_DEFINITION
+
+scalar Date
+scalar Upload
+scalar Time
+
+type File { filename: String!  url: String! }
+type Files { filesname: [String!]  url: String! }
+
+enum Role { admin employee supervisor customer user }
+enum Gander { male female }
+enum Activation { Active Desactive }
+
+type Query { _empty: String }
+type Mutation {
+    _empty: String
+    singleUpload(file: Upload): File @auth(requires: user)
+}
+
+type statusUpdate { status: Boolean }
+type statusDelete { status: Boolean }
+type bulkStatusResult { success: Int  total: Int }
+
+# ===================== typeActionLogs =====================
+extend type Query {
+  ActionLog(id: ID!): ActionLog @auth(requires: user)
+  allActionLogs: [ActionLog!] @auth(requires: user)
+  allActionLogsClub(idClub: ID!): [ActionLog!] @auth(requires: user)
+}
+
+type ActionLog {
+  id: ID!
+  id_player: ID
+  level: String
+  action_name: String
+  success: String
+  user: User
+  entity_type: String
+  entity_id: ID
+  action_type: ActionType
+  action_variables: String
+  team: Team
+  createdAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+  updatedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+  deletedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+}
+
+enum ActionType {
+  Create
+  Update
+  Delete
+}
+
+type statusDelete {
+  success: Boolean!
+  message: String
+}
+
+# ===================== Assembly =====================
+extend type Query {
+  assembly(id: ID): Assembly
+  allAssemblyClub(idClub: ID): [Assembly!]
+  allAssemblyTeam(idTeam: ID): [Assembly!]
+}
+
+extend type Mutation {
+  createAssembly(content: contentAssembly!): Assembly! @auth(requires: user)
+  updateAssembly(id: ID!, content: contentAssembly!): statusUpdate @auth(requires: user)
+  deleteAssembly(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Assembly {
+  id: ID
+  personal_picture: String
+  first_name: String
+  second_name: String
+  third_name: String
+  tribe: String
+  date_birth: Date @date(format: "yyyy-MM-dd")
+  card_number: String
+  phone: String
+  type: String
+  club: Club
+  team: Team
+  nationalID: String
+  nationalIDBack: String
+  membership_date: Date @date(format: "yyyy-MM-dd")
+  gender: Gander
+  subscription_date: Date @date(format: "yyyy-MM-dd")
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentAssembly {
+  personal_picture: Upload
+  oldPersonalPicture: String
+  first_name: String
+  second_name: String
+  third_name: String
+  tribe: String
+  date_birth: String
+  card_number: String
+  phone: String
+  type: String
+  nationalID: Upload
+  nationalIDBack: Upload
+  oldNationalID: String
+  oldNationalIDBack: String
+  membership_date: String
+  gender: Gander
+  subscription_date: String
+  id_club: ID
+  id_team: ID
+}
+
+# ===================== Blog =====================
+extend type Query {
+  blog(id: ID): Blog
+  allBlogs: [Blog!]
+  allBlogsClub(idClub: ID): [Blog!] @auth(requires: user)
+  allBlogsTeam(idTeam: ID): [Blog!] @auth(requires: user)
+}
+
+extend type Mutation {
+  createBlog(content: contentBlog!): Blog! @auth(requires: user)
+  updateBlog(id: ID!, content: contentBlog!): statusUpdate @auth(requires: user)
+  deleteBlog(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Blog {
+  id: ID
+  subject: String
+  short_description: String
+  description: String
+  attachment: [AttachmentBlog]
+  status: String
+  club: Club
+  team: Team
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type AttachmentBlog {
+  id: ID
+  content: String
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentBlog {
+  subject: String
+  short_description: String
+  description: String
+  attachment: [Upload]
+  status: String
+  id_club: ID
+  id_team: ID
+}
+
+# ===================== Club =====================
+extend type Query {
+  club(id: ID): Club @auth(requires: user)
+  allClub: [Club!]
+}
+
+extend type Mutation {
+  createClub(content: contentClub!): Club! @auth(requires: user)
+  updateClub(id: ID!, content: contentClub!): statusUpdate @auth(requires: user)
+  deleteClub(id: ID!): statusDelete @auth(requires: user)
+  uploadPlayersSheet(teamId: ID!, file: Upload!): UploadPlayersSheetResult!
+}
+
+type Club {
+  id: ID
+  name: String
+  governorate: String
+  logo: String @imgUrl
+  phone: String
+  account_status: Boolean
+  teams: [Team]
+  admin: User
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentClub {
+  name: String
+  governorate: String
+  logo: Upload
+  phone: String
+  account_status: Boolean
+}
+
+type UploadPlayersSheetResult {
+  numberOfPersonCreated: Int!
+  numberOfPersonRefused: Int!
+}
+
+# ===================== ClubManagement =====================
+extend type Query {
+  clubManagement(id: ID): ClubManagement @auth(requires: user)
+  allClubManagement(idClub: ID): [ClubManagement!] @auth(requires: user)
+}
+
+extend type Mutation {
+  createClubManagement(content: contentClubManagement!): ClubManagement! @auth(requires: user)
+  updateClubManagement(id: ID!, idPerson: ID!, content: contentClubManagement!): statusUpdate @auth(requires: user)
+  deleteClubManagement(id: ID!): statusDelete @auth(requires: user)
+}
+
+type ClubManagement {
+  id: ID
+  membership_date: Date @date(format: "yyyy-MM-dd")
+  membership_date_end: Date @date(format: "yyyy-MM-dd")
+  role: String
+  person: Person
+  club: Club
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentClubManagement {
+  id: ID
+  membership_date: String
+  membership_date_end: String
+  role: String
+  user: contentUserClubManagement
+  id_club: ID
+}
+
+input contentUserClubManagement {
+  person: contentPerson
+  email: String
+  password: String
+  role: String
+  activation: String
+  email_verify: String
+}
+
+# ===================== Event =====================
+extend type Query {
+  allEvents(idTeam: ID!): [Event!]
+  event(id: ID!): Event
+}
+
+extend type Mutation {
+  createEvent(content: contentEvent!): Event! @auth(requires: user)
+  updateEvent(id: ID!, content: contentEvent!): statusUpdate @auth(requires: user)
+  deleteEvent(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Event {
+  id: ID
+  name: String
+  description: String
+  date: Date @date(format: "yyyy-MM-dd")
+  images: String
+  imageList: [String]
+  team: Team
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentEvent {
+  name: String
+  description: String
+  date: String
+  images: [Upload]
+  id_team: ID
+  deletedImages: [String]
+}
+
+# ===================== Expense =====================
+extend type Query {
+  expense(id: ID): Expense @auth(requires: user)
+  allExpensesClub(idClub: ID): [Expense!] @auth(requires: user)
+  allExpensesTeam(idTeam: ID): [Expense!] @auth(requires: user)
+  expenseSummary(idClub: ID, idTeam: ID): ExpenseSummary!
+}
+
+extend type Mutation {
+  createExpense(content: contentExpense!): Expense! @auth(requires: user)
+  updateExpense(id: ID!, content: contentExpense!): statusUpdate @auth(requires: user)
+  updateSessionId(id: ID!, session_id: String!): statusUpdate @auth(requires: user)
+  deleteExpense(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Expense {
+  id: ID
+  value: Float
+  note: String
+  attachment: String
+  user: String
+  club: Club
+  team: Team
+  session_id: String
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentExpense {
+  value: Float
+  note: String
+  attachment: Upload
+  session_id: String
+  user: String
+  id_club: ID
+  id_team: ID
+}
+
+input contentExpenseThawani {
+  value: Float
+  note: String
+  session_id: String
+  user: String
+  id_club: ID
+  id_team: ID
+}
+
+type ExpenseSummary {
+  profits: Float
+  expenses: Float
+  net: Float
+}
+
+# ===================== Form =====================
+extend type Query {
+  form(id: ID): Form @auth(requires: user)
+  allForms(idClub: ID): [Form!] @auth(requires: user)
+}
+
+extend type Mutation {
+  createForm(content: contentForm!): Form! @auth(requires: user)
+  updateForm(id: ID!, content: contentForm!): statusUpdate @auth(requires: user)
+  deleteForm(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Form {
+  id: ID
+  subject: String
+  file: String
+  club: Club
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentForm {
+  subject: String
+  file: Upload
+  id_club: ID
+}
+
+# ===================== League =====================
+extend type Query {
+  league(id: ID): League @auth(requires: user)
+  allLeagues(idClub: ID): [League!] @auth(requires: user)
+  allLeaguesTeam(idTeam: ID): [League!] @auth(requires: user)
+  leagueFull(id: ID): League @auth(requires: user)
+  allLeaguesExternal: [League!]
+  getMatch(id: ID): Match @auth(requires: user)
+  matchLineup(id: ID!): MatchLineup
+  teamRoster(id: ID!): TeamRoster
+  allParticipatingPlayers(idParticipatingTeams: ID): [ParticipatingPlayers!]
+  participatingPlayersByLeague(idLeague: ID!): [ParticipatingPlayers!]
+  participatingTeamsByLeague(idLeague: ID!): [ParticipatingTeams!]
+  allParticipatingTechnicalStaff(idParticipatingTeams: ID): [ParticipatingTechnicalStaff!]
+  allScorerMatch(idMatch: ID): [ScorerMatch]
+  calculatePoints(leagueId: ID!): [TeamPoints]
+  calculateGoalPlayer(leagueId: ID!): [TopGoalPlayer]
+  ExternalMatch(id: ID!): MatchExternal @auth(requires: user)
+  GetParticipatingPlayer(id: ID!): ParticipatingPlayers
+  getCardsByLeague(leagueId: ID!): LeagueCards
+  countExternalPlayers(idTeam: ID!, idLeague: ID!): Int
+  GetParticipatingStaff(id: ID!): ParticipatingTechnicalStaff
+  getAllMatchesGroupedByType(leagueId: ID!): [MatchGroupByType!]
+  getCardsByLeagueGroupedByMatchType(leagueId: ID!): [MatchCardGroupByType]
+  yellowCardAlerts(leagueId: ID!): [YellowCardAlert]
+}
+
+extend type Mutation {
+  createLeague(content: contentLeague!): League! @auth(requires: user)
+  updateLeague(id: ID!, content: contentLeague!): statusUpdate @auth(requires: user)
+  deleteLeague(id: ID!): statusDelete @auth(requires: user)
+  createParticipatingTeams(content: [contentParticipatingTeams]!): [ParticipatingTeams!] @auth(requires: user)
+  updateParticipatingTeams(content: [contentUpdateParticipatingTeams]!): statusUpdate @auth(requires: user)
+  deleteParticipatingTeams(id: ID!): statusDelete @auth(requires: user)
+  accepteParticipatingTeams(id: ID!): statusUpdate @auth(requires: user)
+  rejecteParticipatingTeams(id: ID!): statusUpdate @auth(requires: user)
+  createMatch(content: contentMatch!): Match! @auth(requires: user)
+  updateMatch(id: ID!, content: UpdateMatchInput!): statusUpdate @auth(requires: user)
+  deleteMatch(id: ID!): statusDelete @auth(requires: user)
+  createMatchCard(content: contentMatchCard!): MatchCard! @auth(requires: user)
+  updateMatchCard(id: ID!, content: contentMatchCard!): statusUpdate @auth(requires: user)
+  deleteMatchCard(id: ID!): statusDelete @auth(requires: user)
+  createParticipatingPlayers(content: [contentParticipatingPlayers]!): [ParticipatingPlayers!] @auth(requires: user)
+  updateParticipatingPlayers(content: [contentUpdateParticipatingPlayers]!): statusUpdate @auth(requires: user)
+  deleteParticipatingPlayers(id: ID!): statusDelete @auth(requires: user)
+  createParticipatingTechnicalStaff(content: [contentParticipatingTechnicalStaff]!): [ParticipatingTechnicalStaff!] @auth(requires: user)
+  updateParticipatingTechnicalStaff(content: [contentUpdateParticipatingTechnicalStaff]!): statusUpdate @auth(requires: user)
+  deleteParticipatingTechnicalStaff(id: ID!): statusDelete @auth(requires: user)
+  createScorerMatch(content: contentScorerMatch!): ScorerMatch @auth(requires: user)
+  updateScorerMatch(content: [contentUpdateScorerMatch!]): statusUpdate @auth(requires: user)
+  deleteScorerMatch(id: ID!): statusDelete @auth(requires: user)
+  createParticipatingPlayersMatch(content: [contentParticipatingPlayerMatch]!): [ParticipatingPlayersMatch!] @auth(requires: user)
+  updateParticipatingPlayersMatch(content: [contentUpdateParticipatingPlayersMatch]!): statusUpdate @auth(requires: user)
+  deleteParticipatingPlayersMatch(id: ID!): statusDelete @auth(requires: user)
+  updateParticipatingPlayerMatchSub(id: ID!, sub: Boolean!): statusUpdate @auth(requires: user)
+  createArbitre(id_match: ID!, Arbitre1: String!, Arbitre2: String!, Arbitre3: String!, Arbitre4: String!): Arbitres @auth(requires: user)
+  generatMatches(leagueId: ID!, type: Int!): statusUpdate! @auth(requires: user)
+  freePlayer(id: ID!): statusUpdate @auth(requires: user)
+  updateMatchState(id: ID!, state: String!): statusUpdate @auth(requires: user)
+  setLeagueAdmin(idLeague: ID!, email: String!, password: String): League!
+  clearLeagueAdmin(idLeague: ID!): statusUpdate
+}
+
+type League {
+  id: ID
+  name: String
+  numberTeams: Int
+  numberGroups: Int
+  description: String
+  startDate: String
+  expiryDate: String
+  inscriptionStartDate: String
+  inscriptionExpiryDate: String
+  externalplayer: Int
+  internalplayer: Int
+  participatingTeams: [ParticipatingTeams]
+  matchs: [Match]
+  club: Club
+  user: User
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentLeague {
+  name: String
+  numberTeams: Int
+  numberGroups: Int
+  description: String
+  startDate: String
+  expiryDate: String
+  inscriptionStartDate: String
+  inscriptionExpiryDate: String
+  id_club: ID
+  externalplayer: Int
+  internalplayer: Int
+  adminEmail: String
+  adminPassword: String
+}
+
+type ParticipatingTeams {
+  id: ID
+  group: String
+  status: String
+  league: League
+  team: Team
+  participatingPlayers: [ParticipatingPlayers!]
+  participatingTechnicalStaff: [ParticipatingTechnicalStaff!]
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentParticipatingTeams {
+  group: String
+  id_league: ID
+  id_team: ID
+}
+
+input contentUpdateParticipatingTeams {
+  id: ID
+  group: String
+  id_league: ID
+  id_team: ID
+}
+
+type Match {
+  id: ID
+  date: String
+  firstTeamGoal: Int
+  secondTeamGoal: Int
+  type: String
+  manOfMatch: String
+  matchState: String
+  code: String
+  note: String
+  firstTeam: ParticipatingTeams
+  secondTeam: ParticipatingTeams
+  firstTeamScorersMatch: [ScorerMatch]
+  secondTeamScorersMatch: [ScorerMatch]
+  firstTeamParticipatingPlayersMatch: [ParticipatingPlayersMatch]
+  secondTeamParticipatingPlayersMatch: [ParticipatingPlayersMatch]
+  arbitre: Arbitres
+  firstTeamCards: [MatchCard]
+  secondTeamCards: [MatchCard]
+  league: League
+  penalty: Penalty
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type MatchExternal {
+  id: ID
+  date: String
+  firstTeamGoal: Int
+  secondTeamGoal: Int
+  type: String
+  manOfMatch: String
+  firstTeam: ParticipatingTeams
+  secondTeam: ParticipatingTeams
+  firstTeamScorersMatch: [ScorerMatch]
+  secondTeamScorersMatch: [ScorerMatch]
+  firstTeamCards: [MatchCard]
+  secondTeamCards: [MatchCard]
+  arbitre: Arbitres
+  league: League
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentMatch {
+  date: String
+  firstTeamGoal: Int
+  secondTeamGoal: Int
+  type: String
+  manOfMatch: String
+  note: String
+  first_team: ID
+  second_team: ID
+  id_league: ID
+}
+
+input UpdateMatchInput {
+  date: String
+  firstTeamGoal: Int
+  secondTeamGoal: Int
+  first_team: ID
+  second_team: ID
+  manOfMatch: ID
+  type: String
+  note: String
+  penalty: PenaltyInput
+}
+
+type MatchCard {
+  id: ID
+  type: String
+  player: String
+  date: String
+  team: ParticipatingTeams
+  match: Match
+  playerInfo: Player
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentMatchCard {
+  type: String
+  player: String
+  date: String
+  id_match: ID
+  id_team: ID
+}
+
+type ParticipatingPlayers {
+  id: ID
+  number: String
+  participating_team: ParticipatingTeams
+  player: Player
+  participatingPlayersMatches: [ParticipatingPlayersMatch]
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type Arbitres {
+  id: ID!
+  Arbitre1: String!
+  Arbitre2: String!
+  Arbitre3: String!
+  Arbitre4: String!
+  id_match: ID!
+}
+
+input contentParticipatingPlayers {
+  id_participating_team: ID
+  id_player: ID
+  number: String
+}
+
+input contentUpdateParticipatingPlayers {
+  id: ID
+  id_participating_team: ID
+  id_player: ID
+  number: String
+}
+
+type ParticipatingPlayersMatch {
+  id: ID
+  starter: Boolean
+  sub: Boolean
+  id_match: Match
+  id_participating_player: ParticipatingPlayers
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentParticipatingPlayerMatch {
+  starter: Boolean
+  id_match: ID
+  id_participating_player: ID
+}
+
+input contentUpdateParticipatingPlayersMatch {
+  id: ID
+  id_match: ID
+  id_participating_player: ID
+  starter: Boolean
+}
+
+type ParticipatingTechnicalStaff {
+  id: ID
+  participating_team: ParticipatingTeams
+  technicalApparatus: TechnicalApparatus
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentParticipatingTechnicalStaff {
+  id_participating_team: ID
+  id_technical_apparatus: ID
+}
+
+input contentUpdateParticipatingTechnicalStaff {
+  id: ID
+  id_participating_team: ID
+  id_technical_apparatus: ID
+}
+
+input PenaltyInput {
+  firstTeamPenalty: Int!
+  secondTeamPenalty: Int!
+}
+
+type ScorerMatch {
+  id: ID
+  time: String
+  match: Match
+  participating_team: ParticipatingTeams
+  participating_player: ParticipatingPlayers
+}
+
+input contentScorerMatch {
+  time: String
+  id_match: ID
+  id_participating_team: ID
+  id_participating_player: ID
+}
+
+input contentUpdateScorerMatch {
+  id: ID
+  time: String
+  id_match: ID
+  id_participating_team: ID
+  id_participating_player: ID
+}
+
+type TeamPoints {
+  team: Team!
+  points: Int!
+  matchesPlayed: Int!
+  group: String
+  wins: Int!
+  draws: Int!
+  losses: Int!
+  goalsFor: Int
+  goalsAgainst: Int
+  goalDifference: Int
+}
+
+type TopGoalPlayer {
+  team: String!
+  Goal: Int!
+  PlayerID: ParticipatingPlayers!
+}
+
+type LeagueCards {
+  yellowCards: [PlayerCardStats]
+  redCards: [PlayerCardStats]
+}
+
+type PlayerCardStats {
+  player: String
+  number: String
+  count: Int
+  team: Team
+}
+
+type MatchGroupByType {
+  type: String!
+  matches: [Match!]!
+}
+
+type CardPlayerInfo {
+  player: String
+  number: String
+  count: Int
+  team: Team
+}
+
+type YellowCardAlert {
+  player: String
+  number: String
+  team: Team
+  yellowCount: Int
+  matches: [YellowCardMatch]
+}
+
+type YellowCardMatch {
+  id: ID
+  date: String
+  firstTeam: String
+  secondTeam: String
+}
+
+type MatchLineup {
+  id: ID
+  date: String
+  leagueName: String
+  firstTeamName: String
+  secondTeamName: String
+  firstTeamPlayers: [MatchLineupPlayer]
+  secondTeamPlayers: [MatchLineupPlayer]
+}
+
+type MatchLineupPlayer {
+  name: String
+  number: String
+  position: String
+  starter: Boolean
+  sub: Boolean
+}
+
+type TeamRoster {
+  teamName: String
+  leagueName: String
+  players: [RosterPlayer]
+  staff: [RosterStaff]
+}
+
+type RosterPlayer {
+  number: String
+  name: String
+  position: String
+}
+
+type RosterStaff {
+  name: String
+  job: String
+}
+
+type MatchCardGroupByType {
+  type: String
+  yellowCards: [CardPlayerInfo]
+  redCards: [CardPlayerInfo]
+}
+
+type Penalty {
+  id: ID
+  id_match: ID
+  firstTeamPenalty: Int
+  secondTeamPenalty: Int
+}
+
+# ===================== Meeting =====================
+extend type Query {
+  meeting(id: ID): Meeting @auth(requires: user)
+  allMeetingsTeam(idTeam: ID): [Meeting!] @auth(requires: user)
+  allMeetingsClub(idClub: ID): [Meeting!] @auth(requires: user)
+}
+
+extend type Mutation {
+  createMeeting(content: contentMeeting!): Meeting! @auth(requires: user)
+  updateMeeting(id: ID!, content: contentMeeting!): statusUpdate @auth(requires: user)
+  deleteMeeting(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Meeting {
+  id: ID
+  subject: String
+  names_attending: String
+  description: String
+  attachment: [Attachment]
+  club: Club
+  team: Team
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentMeeting {
+  subject: String
+  names_attending: String
+  description: String
+  attachment: [Upload]
+  id_team: ID
+  id_club: ID
+}
+
+# ===================== Members =====================
+extend type Query {
+  member(id: ID): Member
+  allMembers(idTeam: ID): [Member!]
+  allMembersHasAccount(idTeam: ID): [Member!] @auth(requires: user)
+  allMembersClub(idClub: ID): [Member!] @auth(requires: user)
+}
+
+extend type Mutation {
+  createMember(content: contentMember!): Member!
+  createAdminMember(content: contentAdminMember!): Member! @auth(requires: user)
+  updateAdminMember(id: ID!, idPerson: ID!, content: contentAdminMember!): statusUpdate @auth(requires: user)
+  updateMember(id: ID!, idPerson: ID!, content: contentMember!): statusUpdate @auth(requires: user)
+  changeStatusMember(id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
+  changeStatusMembersBulk(ids: [ID!]!, status: String!, note: String): bulkStatusResult @auth(requires: user)
+  deleteMember(id: ID!): statusDelete @auth(requires: user)
+  changeMemberClassification(id: ID!, fromType: String!, toType: String!, classification: String, occupation: String, job: String, activity: String, player_center: String, class: String, membership_date: String, membership_date_end: String): Member @auth(requires: user)
+}
+
+type Member {
+  id: ID
+  occupation: String
+  classification: String
+  status: String
+  note: String
+  membership_date: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  membership_date_end: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  paid: Boolean
+  person: Person
+  team: Team
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentMember {
+  occupation: String
+  classification: String
+  membership_date: String
+  membership_date_end: String
+  paid: Boolean
+  person: contentPerson
+  id_team: ID
+}
+
+input contentAdminMember {
+  occupation: String
+  classification: String
+  membership_date: String
+  membership_date_end: String
+  user: contentUserAdminMember
+  id_team: ID
+}
+
+input contentUserAdminMember {
+  person: contentPerson
+  email: String
+  password: String
+  role: String
+  activation: String
+  email_verify: String
+}
+
+# ===================== Message =====================
+extend type Query {
+  message(id: ID): Message @auth(requires: user)
+  allMessage(idClub: ID): [Message!] @auth(requires: user)
+  allMessageClubSender(idClub: ID): [Message!] @auth(requires: user)
+  allMessageClubReceiver(idClub: ID): [Message!] @auth(requires: user)
+  allMessageTeamSender(idTeam: ID): [Message!] @auth(requires: user)
+  allMessageTeamReceiver(idTeam: ID): [Message!] @auth(requires: user)
+}
+
+extend type Mutation {
+  createMessage(content: contentMessage!): Message! @auth(requires: user)
+  updateMessage(id: ID!, content: contentMessage!): statusUpdate @auth(requires: user)
+  deleteMessage(id: ID!): statusDelete @auth(requires: user)
+  createComment(content: contentComment!): Comment! @auth(requires: user)
+  updateComment(id: ID!, content: contentComment!): statusUpdate @auth(requires: user)
+  deleteComment(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Message {
+  id: ID
+  subject: String
+  content: String
+  priority: String
+  logo: String @imgUrl
+  attachment: [Attachment]
+  comment: [Comment]
+  club_sender: Club
+  club_receiver: Club
+  team_sender: Team
+  team_receiver: Team
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentMessage {
+  subject: String
+  content: String
+  priority: String
+  logo: Upload
+  attachment: [Upload]
+  id_club_sender: ID
+  id_team_sender: ID
+  id_team_receiver: ID
+  id_club_receiver: ID
+}
+
+type Attachment {
+  id: ID
+  content: String
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type Comment {
+  id: ID
+  content: String
+  note: String
+  team: Team
+  club: Club
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentComment {
+  content: String
+  note: String
+  id_message: ID
+  id_team: ID
+  id_club: ID
+}
+
+# ===================== Permission =====================
+extend type Query {
+  permission(id: ID): Permission @auth(requires: user)
+  allPermissionsClub(idClub: ID): [Permission!] @auth(requires: user)
+  allPermissionsTeam(idTeam: ID): [Permission!] @auth(requires: user)
+}
+
+extend type Mutation {
+  createPermission(content: contentPermission!): Permission! @auth(requires: user)
+  updatePermission(id: ID!, content: contentPermission!): statusUpdate @auth(requires: user)
+  deletePermission(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Permission {
+  id: ID
+  teams: String
+  members: String
+  technicals: String
+  players: String
+  transfer_players: String
+  loan_players: String
+  assembly: String
+  inbox: String
+  outbox: String
+  meeting: String
+  blogs: String
+  forms: String
+  permissions: String
+  complaints: String
+  expenses: String
+  leagues: String
+  user: User
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentPermission {
+  teams: [String]
+  members: [String]
+  technicals: [String]
+  players: [String]
+  transfer_players: [String]
+  loan_players: [String]
+  assembly: [String]
+  inbox: [String]
+  outbox: [String]
+  meeting: [String]
+  blogs: [String]
+  forms: [String]
+  permissions: [String]
+  complaints: [String]
+  expenses: [String]
+  leagues: [String]
+  id_user: ID
+}
+
+# ===================== Players =====================
+extend type Query {
+  player(id: ID): Player
+  playerAccepted(id: ID): Player @auth(requires: user)
+  allPlayers(idTeam: ID): [Player!]
+  allPlayersAccpted(idTeam: ID): [Player!] @auth(requires: user)
+  allPlayersClub(idClub: ID): [Player!]
+  allPlayersByClass(idTeam: ID, className: String): [Player!]
+  allPlayersByClassAccpted(idTeam: ID, className: String): [Player!] @auth(requires: user)
+  allPlayersClubByClass(idClub: ID, className: String): [Player!]
+  allPlayersAcceptedExternal(limit: Int, offset: Int): PlayerPage! @auth(requires: user)
+  allPlayersClubTransferred(idClub: ID): [Player!] @auth(requires: user)
+  allPlayersClubLoaned(idClub: ID): [Player!] @auth(requires: user)
+  statPlayer(id: ID!): StatPlayer @auth(requires: user)
+}
+
+extend type Mutation {
+  createPlayer(content: contentPlayer!): Player!
+  createListPlayer(content: [contentPlayer!]): [Player!] @auth(requires: user)
+  updatePlayer(id: ID!, idPerson: ID!, content: contentPlayer!): statusUpdate @auth(requires: user)
+  changeStatusPlayer(id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
+  changeStatusPlayersBulk(ids: [ID!]!, status: String!, note: String): bulkStatusResult @auth(requires: user)
+  deletePlayer(id: ID!): statusDelete @auth(requires: user)
+  addAttachmentPlayer(idPlayer: ID!, attachments: [Upload!]): [AttachmentPlayer] @auth(requires: user)
+  updateAttachmentPlayer(idPlayer: ID!, attachments: [Upload!]): [AttachmentPlayer] @auth(requires: user)
+  deleteAttachmentPlayer(id: ID!): statusDelete @auth(requires: user)
+  convertPlayerToTechnical(idPlayer: ID!, classification: String!, membership_date: String!, membership_date_end: String!): TechnicalApparatus!
+  convertTechnicalToPlayer(idTechnical: ID!, activity: String!, player_center: String!, class: String!): Player! @auth(requires: user)
+  associatePlayer(id_player: ID!, id_team: ID!): statusUpdate
+}
+
+type Player {
+  id: ID
+  activity: String
+  player_center: String
+  job: String
+  nationalID: String
+  nationalIDBack: String
+  parentApproval: String
+  status: String
+  note: String
+  class: String
+  type: String
+  person: Person
+  team: Team
+  club: Club
+  transfer: [Transfer]
+  lastTransfer: Transfer
+  lastLoan: Transfer
+  attachmentsPlayer: [AttachmentPlayer]
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentPlayer {
+  activity: String
+  player_center: String
+  job: String
+  nationalID: Upload
+  nationalIDBack: Upload
+  type: String
+  parentApproval: Upload
+  class: String
+  person: contentPerson
+  id_team: ID
+}
+
+type AttachmentPlayer {
+  id: ID
+  content: String
+  player: Player
+}
+
+type PlayerPage {
+  players: [Player!]!
+  totalCount: Int!
+}
+
+type StatPlayer {
+  team: Team
+  Goal: Int
+  Person: Person
+  Participation: [ParticipatingPlayers]
+  Sanctions: [Sanction]
+  participatingPlayerMatchCount: Int
+}
+
+# ===================== Request =====================
+extend type Query {
+  request(id: ID): Request @auth(requires: user)
+  allRequests(idPlayer: ID, type: String): [Request!] @auth(requires: user)
+  allRequestsTeam(idTeam: ID): [Request!] @auth(requires: user)
+  authexternal(CardNumber: String, phoneNumber: String): Player
+}
+
+extend type Mutation {
+  createRequest(content: contentRequest!): Request! @auth(requires: user)
+  updateRequest(id: ID!, content: contentRequest!): statusUpdate @auth(requires: user)
+  deleteRequest(id: ID!): statusDelete @auth(requires: user)
+  createRequestExternal(content: contentRequestExternal!): Request! @auth(requires: user)
+}
+
+type Request {
+  id: ID
+  content: String
+  type: String
+  status: String
+  note: String
+  player: Player
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentRequest {
+  content: String
+  type: String
+  status: String
+  note: String
+  id_player: ID
+}
+
+input contentRequestExternal {
+  content: String
+  type: String
+  status: String
+  note: String
+  id_person: ID
+}
+
+# ===================== Stadium =====================
+extend type Query {
+  stadium(id: ID): Stadium
+  allStadiumsTeam(idTeam: ID): [Stadium!] @auth(requires: user)
+  allStadiums: [Stadium!]
+  allReservations(idStadium: ID): [Reservations]
+  reservationsByTeam(idTeam: ID!): [Reservations!]
+  availableTimeSlots(idStadium: ID!, booking_date: String!): [String!]
+}
+
+extend type Mutation {
+  createStadium(content: contentStadium!): Stadium!
+  updateStadium(id: ID!, content: contentStadium!): statusUpdate
+  deleteStadium(id: ID!): statusDelete
+  createReservations(content: contentReservations!): Reservations!
+  updateReservationStatus(id: ID!, status: String!): statusUpdate @auth(requires: user)
+  deleteReservation(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Stadium {
+  id: ID
+  name: String
+  about: String
+  type: String
+  attachments: String
+  rent: Float
+  images: String
+  mohafada: String
+  wiliya: String
+  team: Team
+  sport: String
+  end_time: String
+  start_time: String
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentStadium {
+  name: String
+  about: String
+  type: String
+  attachments: String
+  rent: Float
+  start_time: String
+  end_time: String
+  mohafada: String
+  wiliya: String
+  images: [Upload]
+  id_team: ID
+}
+
+type Reservations {
+  id: ID
+  phone: String
+  booking_date: Date
+  booking_start: String
+  booking_end: String
+  stadium: Stadium
+  status: String
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentReservations {
+  phone: String
+  booking_date: String
+  booking_start: String
+  booking_end: String
+  id_stadium: ID
+}
+
+# ===================== Team =====================
+extend type Query {
+  team(id: ID): Team @auth(requires: user)
+  allTeam(idClub: ID): [Team!]
+  allTeams: [Team!]
+  statisticsTeam(idTeam: ID): StatisticsTeam @auth(requires: user)
+  statisticsClub(idClub: ID): StatisticsClub @auth(requires: user)
+}
+
+extend type Mutation {
+  createTeam(content: contentTeam!): Team! @auth(requires: user)
+  createTeamWithAdmin(team: contentTeam!, manager: contentTeamManager!): Team!
+  updateTeam(id: ID!, content: contentTeam!): statusUpdate @auth(requires: user)
+  deleteTeam(id: ID!): statusDelete @auth(requires: user)
+}
+
+input contentTeamManager {
+  email: String!
+  password: String!
+  occupation: String
+  classification: String
+  membership_date: String
+  membership_date_end: String
+  person: contentPerson!
+}
+
+type Team {
+  id: ID
+  name: String
+  category: Int
+  enableAddPlayer: Boolean
+  logo: String @imgUrl
+  phone: String
+  manager_name: String
+  activities: String
+  account_status: Boolean
+  code: String
+  club: Club
+  admin: User
+  descreption: String
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentTeam {
+  name: String
+  category: Int
+  enableAddPlayer: Boolean
+  logo: Upload
+  phone: String
+  manager_name: String
+  activities: String
+  account_status: Boolean
+  code: String
+  id_club: ID
+}
+
+type StatisticsTeam {
+  numberPlayers: Int
+  numberPlayersWaiting: Int
+  numberPlayersRejected: Int
+  numberPlayersAccepted: Int
+  numberTechnicales: Int
+  numberMembers: Int
+  numberStadiums: Int
+}
+
+type StatisticsClub {
+  numberTeams: Int
+  numberPlayers: Int
+  numberPlayersWaiting: Int
+  numberPlayersRejected: Int
+  numberPlayersAccepted: Int
+  numberTechnicales: Int
+  numberMembers: Int
+  numberStadiums: Int
+}
+
+# ===================== TechnicalApparatus =====================
+extend type Query {
+  technicalApparatus(id: ID): TechnicalApparatus @auth(requires: user)
+  allTechnicalApparatus(idTeam: ID): [TechnicalApparatus!]
+  allTechnicalApparatusClub(idClub: ID): [TechnicalApparatus!] @auth(requires: user)
+}
+
+extend type Mutation {
+  createTechnicalApparatus(content: contentTechnicalApparatus!): TechnicalApparatus!
+  updateTechnicalApparatus(id: ID!, idPerson: ID!, content: contentTechnicalApparatus!): statusUpdate @auth(requires: user)
+  changeStatusTechnicalApparatus(id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
+  changeStatusTechnicalApparatusBulk(ids: [ID!]!, status: String!, note: String): bulkStatusResult @auth(requires: user)
+  deleteTechnicalApparatus(id: ID!): statusDelete @auth(requires: user)
+  addAttachmentTechnical(idTechnical: ID!, attachments: [Upload!]): [AttachmentTechnical] @auth(requires: user)
+  deleteAttachmentTechnical(id: ID!): statusDelete @auth(requires: user)
+}
+
+type TechnicalApparatus {
+  id: ID
+  occupation: String
+  classification: String
+  membership_date: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  membership_date_end: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  paid: Boolean
+  testimony_experience: String
+  status: String
+  note: String
+  person: Person
+  team: Team
+  attachmentsTechnical: [AttachmentTechnical]
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type AttachmentTechnical {
+  id: ID
+  content: String
+}
+
+input contentTechnicalApparatus {
+  id: ID
+  occupation: String
+  classification: String
+  membership_date: String
+  membership_date_end: String
+  paid: Boolean
+  testimony_experience: Upload
+  person: contentPerson
+  id_team: ID
+}
+
+# ===================== Transfer =====================
+extend type Query {
+  transfer(id: ID): Transfer @auth(requires: user)
+  allTransfer(idClub: ID): [Transfer!] @auth(requires: user)
+  allTransferTeam(idTeam: ID, transitionType: [String]): [Transfer!] @auth(requires: user)
+  allTransferClub(idClub: ID): [Transfer!] @auth(requires: user)
+}
+
+extend type Mutation {
+  createTransfer(content: contentTransfer!): Transfer! @auth(requires: user)
+  updateTransfer(id: ID!, content: contentTransfer!): statusUpdate @auth(requires: user)
+  deleteTransfer(id: ID!): statusDelete @auth(requires: user)
+  BackToOldTeamTransfer(id: ID!): statusDelete @auth(requires: user)
+  updateLoan(id: ID!, date_start: String, date_end: String): Transfer! @auth(requires: user)
+}
+
+type Transfer {
+  id: ID
+  status: String
+  type: String
+  team_from: Team
+  team_to: Team
+  club_to: Club
+  id_player: ID
+  player: Player
+  transition_type: String
+  date_end: Date @date(format: "yyyy-MM-dd")
+  date_start: Date @date(format: "yyyy-MM-dd")
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentTransfer {
+  status: String
+  type: String
+  transition_type: String
+  date_end: String
+  date_start: String
+  id_team_from: ID
+  id_team_to: ID
+  id_player: ID
+  id_club_to: ID
+}
+
+# ===================== User =====================
+extend type Query {
+  user(id: ID): User @auth(requires: user)
+  allUser: [User!] @auth(requires: user)
+  person(cardNumber: String): Person @auth(requires: user)
+  personExternal(cardNumber: String, phone: String): Person
+  currentUser: User! @auth(requires: user)
+  refreshToken: AuthUser
+  printToken: String! @auth(requires: user)
+}
+
+extend type Mutation {
+  authenticateUser(content: loginInfo): AuthUser!
+  createUser(content: contentUser!): User! @auth(requires: user)
+  addPersonImage(id: ID, image: Upload): Image @auth(requires: user)
+  deletePerson(id: ID!): statusDelete @auth(requires: user)
+  updateUser(id: ID!, content: contentUser!): statusUpdate @auth(requires: user)
+  updateAnyUser(id: ID!, content: contentAnyUser!): statusUpdate @auth(requires: user)
+  deleteUser(id: ID!): statusDelete @auth(requires: user)
+  emailVerification(token: String): statusUpdate!
+  resendVerificationEmail(email: String): statusUpdate!
+  forgetPassword(email: String): statusUpdate!
+  changePassword(content: contentChangePassword): statusUpdate!
+  activeUser(id: ID!, activation: Boolean): statusUpdate! @auth(requires: user)
+  logOut: statusDelete
+  resetTeamPassword(idTeam: ID!): ResetTeamPasswordPayload!
+}
+
+type AuthUser {
+  token: String!
+  user: User
+}
+
+type ResetTeamPasswordPayload {
+  email: String!
+  password: String!
+}
+
+input loginInfo {
+  email: String!
+  password: String!
+}
+
+type Image {
+  url: String @imgUrl
+}
+
+type Person {
+  id: ID
+  personal_picture: String
+  first_name: String
+  second_name: String
+  third_name: String
+  tribe: String
+  phone: String
+  card_number: String
+  date_birth: String
+  clubManagement: ClubManagement
+  team: Team
+  user: User
+  member: Member
+  player: Player
+  technicalApparatus: TechnicalApparatus
+  createdAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+  updatedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+  deletedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+}
+
+type User {
+  id: ID
+  person: Person
+  permission: Permission
+  email: String
+  password: String
+  role: String
+  activation: String
+  email_verify: String
+  createdAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+  updatedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+  deletedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+}
+
+input contentPerson {
+  first_name: String
+  second_name: String
+  third_name: String
+  tribe: String
+  phone: String
+  card_number: String
+  date_birth: String
+}
+
+input contentUser {
+  id_person: String
+  email: String
+  password: String
+  role: String
+  activation: String
+  email_verify: String
+}
+
+input contentAnyUser {
+  name: String
+  phone: String
+  email: String
+  newPassword: String
+  id_street: [ID]
+  id_service: ID
+}
+
+input contentUpdateMyProfile {
+  name: String
+  phone: String
+  email: String
+  password: String
+  newPassword: String
+}
+
+input contentChangePassword {
+  token: String!
+  password: String!
+  confirmPassword: String!
+}
+
+# ===================== typeExternal =====================
+extend type Query {
+  Home: Home @auth(requires: user)
+}
+
+type Home {
+  Match: [Match]
+  Blog: [Blog]
+  League: [League]
+}
+
+# ===================== typeNotification =====================
+extend type Query {
+  allNotificationClub(idClub: ID!): [Notification] @auth(requires: user)
+  allNotificationTeam(idTeam: ID!): [Notification] @auth(requires: user)
+}
+
+extend type Mutation {
+  markNotificationsAsRead(idClub: ID, idTeam: ID): Boolean @auth(requires: user)
+}
+
+type Notification {
+  id: ID!
+  body: String
+  isRead: Boolean
+  createdAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+  updatedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+  deletedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+}
+
+# ===================== typeSanction =====================
+extend type Query {
+  sanction(id: ID): Sanction
+  allSanctions(id_player: ID): [Sanction!]
+  allSanctionsTeam(idTeam: ID): [Sanction!]
+  allSanctionsClub(idClub: ID): [Sanction!]
+  getAllSanctionsByPlayer(id_player: ID!): [Sanction]
+  SanctionLast(id_player: ID!): Sanction
+}
+
+extend type Mutation {
+  createSanction(content: contentSanction!): Sanction! @auth(requires: user)
+  updateSanction(id: ID!, content: contentSanction!): statusUpdate @auth(requires: user)
+  deleteSanction(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Sanction {
+  id: ID
+  note: String
+  date_from: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  date_to: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  player: Player
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+input contentSanction {
+  note: String
+  id_player: ID
+  date_from: String!
+  date_to: String!
+}
+
+# ===================== typeStat =====================
+extend type Query {
+  StateFilter: Filters
+  SearchData(filters: FiltersInput): SearchResult
+  FetchAllData: SearchResult
+}
+
+type Filters {
+  Club: [Club]
+  Team: [Team]
+  League: [League]
+}
+
+input FiltersInput {
+  saison: [String]
+  mohfada: [String]
+  teams: [ID]
+  clubs: [ID]
+  leagues: [ID]
+  age: [String]
+}
+
+type SearchResult {
+  success: Boolean!
+  message: String
+  clubs: [Club]
+  mohafadaClubCounts: [ChartResult]
+  teamCountByClub: [ChartResult]
+  playerCountsByAge: [ChartResult]
+  matchCountsByYear: [ChartResult]
+  stadiumCountByMohafada: [ChartTreeResult]
+  teamAgeStats: [ChartTableResult]
+  GeneralStat: generalStatType
+}
+
+type ChartResult {
+  name: String
+  count: Int
+}
+
+type ChartTreeResult {
+  name: String
+  value: Int
+}
+
+type ChartTableResult {
+  clubName: String
+  teamName: String
+  age: String
+  countPlayer: Int
+  trophy: Int
+  mohafada: String
+}
+
+type generalStatType {
+  Members: Int
+  blogs: Int
+  acceptedPlayer: Int
+  leagues: Int
+}
