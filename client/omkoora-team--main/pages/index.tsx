@@ -35,6 +35,7 @@ import {
     AddPlayersModal, AddTechnicalModal, AddMembersModal, AddAssemblyModal,
     SearchAssemblyModal,
     VerifyIdentityModal, ShowAttachments, AddAttachmentPlayerModal, DeleteAttachmentPlayerModal,
+    AddAttachmentTechnicalModal, ShowAttachmentsTechnical,
     ShowStatPlayer, FreePlayerModal, ConvertPlayerToTechnicalModal, PlayersTransferModal,
     PlayersLoanModal, AddImagePlayersModal, RenewAssemblyModal
 } from "../components/Modal";
@@ -98,6 +99,8 @@ export default function Home() {
     const [openVerifyIdentityModal, setOpenVerifyIdentityModal] = useState(false);
     const [openShowAttachmentPlayerModal, setOpenShowAttachmentPlayerModal] = useState(false);
     const [openAddAttachmentPlayerModal, setOpenAddAttachmentPlayerModal] = useState(false);
+    const [openShowAttachmentTechnicalModal, setOpenShowAttachmentTechnicalModal] = useState(false);
+    const [openAddAttachmentTechnicalModal, setOpenAddAttachmentTechnicalModal] = useState(false);
     const [openDeleteAttachmentModal, setOpenDeleteAttachmentModal] = useState(false);
     const [StatPlayerModal, setStatPlayerModal] = useState(false);
     const [openTransferModal, setOpenTransferModal] = useState(false);
@@ -174,6 +177,8 @@ export default function Home() {
     const handleVerifyIdentity = (data: any) => { setEditData(data); setOpenVerifyIdentityModal(true); };
     const handleShowAttachments = (data: any) => { setEditData(data); setOpenShowAttachmentPlayerModal(true); };
     const handleAddAttachment = (id: string) => { setEditData(id); setOpenAddAttachmentPlayerModal(true); };
+    const handleShowAttachmentsTechnical = (data: any) => { setEditData(data); setOpenShowAttachmentTechnicalModal(true); };
+    const handleAddAttachmentTechnical = (id: string) => { setEditData(id); setOpenAddAttachmentTechnicalModal(true); };
     const handleStatPlayer = (id: string) => { setEditData(id); setStatPlayerModal(true); };
     const handleTransferPlayer = (data: any) => { setEditData(data); setOpenTransferModal(true); };
     const handleLoanPlayer = (data: any) => { setEditData(data); setOpenLoanModal(true); };
@@ -493,6 +498,8 @@ export default function Home() {
                                         onChangeStatus={(id, status) => handleChangeStatus(id, status, 'technical')}
                                         onChangeClassification={(item) => handleChangeClassification(item, 'technical')}
                                         onAddImage={handleAddImage}
+                                        onAddAttachment={handleAddAttachmentTechnical}
+                                        onShowAttachments={handleShowAttachmentsTechnical}
                                     />
                                 </Box>
                             </Tabs.Panel>
@@ -648,6 +655,9 @@ export default function Home() {
 
             <AddAttachmentPlayerModal title="إضافة مرفقات" opened={openAddAttachmentPlayerModal} id={editData} onClose={() => setOpenAddAttachmentPlayerModal(false)} />
             <DeleteAttachmentPlayerModal title="" opened={openDeleteAttachmentModal} id={selectedAttachment} onClose={() => setOpenDeleteAttachmentModal(false)} />
+
+            <AddAttachmentTechnicalModal title="إضافة مرفقات" opened={openAddAttachmentTechnicalModal} id={editData} onClose={() => setOpenAddAttachmentTechnicalModal(false)} />
+            <ShowAttachmentsTechnical title="المرفقات" opened={openShowAttachmentTechnicalModal} data={editData} onClose={() => setOpenShowAttachmentTechnicalModal(false)} />
 
             <ShowStatPlayer
                 playerId={editData}

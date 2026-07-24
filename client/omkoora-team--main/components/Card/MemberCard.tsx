@@ -336,6 +336,8 @@ export const MemberCard = ({
                                                 <>
                                                     {hasPermission("3") && <Menu.Item icon={<EditCircle size={14} />} onClick={() => onEdit && onEdit(data)}>تعديل المعلومات</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<Upload size={14} />} onClick={() => onAddImage && onAddImage(data?.person?.id || data?.id)}>إضافة صورة</Menu.Item>}
+                                                    {type === 'technical' && hasPermission("3") && <Menu.Item icon={<Paperclip size={14} />} onClick={() => onAddAttachment && onAddAttachment(data?.id)}>إضافة مرفقات</Menu.Item>}
+                                                    {type === 'technical' && data?.attachmentsTechnical?.length > 0 && <Menu.Item icon={<Paperclip size={14} />} onClick={() => onShowAttachments && onShowAttachments(data)}>المرفقات ({data?.attachmentsTechnical?.length})</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<ArrowsLeftRight size={14} />} onClick={() => onChangeClassification && onChangeClassification(data)}>تغيير التصنيف</Menu.Item>}
                                                     {hasPermission("4") && <Menu.Item icon={<Trash size={14} color="red" />} color="red" onClick={() => onDelete && onDelete(data?.id)}>حذف</Menu.Item>}
                                                 </>

@@ -92,6 +92,23 @@ console.log(`${c.cyan}▶ Team app — wiring${c.reset}`);
     assert(/<ShowAttachmentsTechnical[\s\S]*data=\{selectedTechnical\}/.test(page), "page mounts the review modal");
 }
 
+console.log(`${c.cyan}▶ Team app — home page cards (the primary staff view)${c.reset}`);
+{
+    // The home dashboard shows technical staff as MemberCards; the attachment
+    // actions must be there too (not just the /technicalApparatus table).
+    const card = read(TEAM, "components", "Card", "MemberCard.tsx");
+    assert(/type === 'technical' && hasPermission\("3"\)[\s\S]*?onAddAttachment && onAddAttachment\(data\?\.id\)/.test(card),
+        "MemberCard technical block has 'إضافة مرفقات'");
+    assert(/type === 'technical' && data\?\.attachmentsTechnical\?\.length > 0[\s\S]*onShowAttachments && onShowAttachments\(data\)/.test(card),
+        "MemberCard technical block has 'المرفقات' (shown when there are any)");
+
+    const home = read(TEAM, "pages", "index.tsx");
+    assert(/onAddAttachment=\{handleAddAttachmentTechnical\}/.test(home) && /onShowAttachments=\{handleShowAttachmentsTechnical\}/.test(home),
+        "home passes the technical attachment handlers to the technical section");
+    assert(/<AddAttachmentTechnicalModal[\s\S]*opened=\{openAddAttachmentTechnicalModal\}/.test(home), "home mounts the technical upload modal");
+    assert(/<ShowAttachmentsTechnical[\s\S]*opened=\{openShowAttachmentTechnicalModal\}/.test(home), "home mounts the technical review modal");
+}
+
 console.log("");
 if (failures === 0) {
     console.log(`${c.green}All technical-attachment guards passed.${c.reset}`);
