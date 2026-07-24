@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { CompactTable } from '@table-library/react-table-library/compact';
 import {ActionIcon, Badge, Group, Menu, Pagination, Stack, Text} from '@mantine/core';
-import {Check, DotsVertical, EditCircle, FileCertificate, Trash, X,InfoCircle,TransferOut} from "tabler-icons-react";
+import {Check, DotsVertical, EditCircle, FileCertificate, Paperclip, Trash, X,InfoCircle,TransferOut} from "tabler-icons-react";
 import dayjs from "dayjs";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
@@ -52,9 +52,22 @@ interface Props {
     setopenConvertTechnicalToPlayerModal ?: (open: boolean) => void;
     setNewStatus?: (status: string) => void;
     hasPermission: (permission: string) => boolean;
+    setOpenAddAttachmentModal?: (open: boolean) => void;
+    setOpenShowAttachmentsModal?: (open: boolean) => void;
+    setSelectedData?: (data: any) => void;
 }
 
-export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, setNewStatus, setOpenChangeStatusModal, hasPermission, setopenConvertTechnicalToPlayerModal }: Props) => {
+export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, setNewStatus, setOpenChangeStatusModal, hasPermission, setopenConvertTechnicalToPlayerModal, setOpenAddAttachmentModal, setOpenShowAttachmentsModal, setSelectedData }: Props) => {
+
+    const openModelAddAttachment = (id: string) => {
+        typeof setSelectedRow === "function" && setSelectedRow(id)
+        typeof setOpenAddAttachmentModal === "function" && setOpenAddAttachmentModal(true)
+    }
+
+    const openModelShowAttachments = (item: any) => {
+        typeof setSelectedData === "function" && setSelectedData(item)
+        typeof setOpenShowAttachmentsModal === "function" && setOpenShowAttachmentsModal(true)
+    }
     const [allMembers, setAllMembers] = useState<any>([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [modalOpened, setModalOpened] = useState(false);
@@ -169,6 +182,8 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
 
                         <Menu.Item icon={<EditCircle size={18} />} onClick={() => openModelUpdate(item?.id)} >تعديل</Menu.Item>
                         {item?.status == "accepted" && <Menu.Item icon={<TransferOut size={18} />} onClick={() => openModelConvert(item?.id)} >نقل الى اللاعب</Menu.Item>}
+                        <Menu.Item icon={<Paperclip size={18} />} onClick={() => openModelAddAttachment(item?.id)} >إضافة مرفقات</Menu.Item>
+                        <Menu.Item icon={<Paperclip size={18} />} onClick={() => openModelShowAttachments(item)} >المرفقات</Menu.Item>
                         <Menu.Item icon={<Trash size={18} />} onClick={() => openModelDelete(item?.id)} >حذف</Menu.Item>
                     </Menu.Dropdown>
                 </Menu>

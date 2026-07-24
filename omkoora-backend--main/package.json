@@ -20,7 +20,8 @@
     "test:team-roster": "node tests/test-team-roster.mjs",
     "test:team-players-print": "node tests/test-team-players-print.mjs",
     "test:team-print-routes": "node tests/test-team-print-routes.mjs",
-    "test:remove-team": "node tests/test-remove-participating-team.mjs"
+    "test:remove-team": "node tests/test-remove-participating-team.mjs",
+    "test:technical-attachments": "node tests/test-technical-attachments.mjs"
   },
   "keywords": [],
   "author": "",

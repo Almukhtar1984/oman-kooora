@@ -4,11 +4,12 @@ import dotenv from 'dotenv'
 
 import logger from "../../Config/logger.mjs";
 
-import {Members, Person, Players, Team, TechnicalApparatus} from '../../Models/index.mjs';
+import {Members, Person, Players, Team, TechnicalApparatus, AttachmentPerson} from '../../Models/index.mjs';
 import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
-import {createWriteStream} from "fs";
+import {createWriteStream, promises as fsPromises} from "fs";
+import {saveUpload} from "../../Helpers/Upload.mjs";
 
 dotenv.config();
 
@@ -69,6 +70,18 @@ export const resolvers = {
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
+            }
+        },
+        attachmentsTechnical: async (parent, {}, context, info) => {
+            if (parent?.attachmentsTechnical) return parent.attachmentsTechnical;
+            if (!parent?.id) return [];
+            try {
+                return await AttachmentPerson.findAll({
+                    where: { id_technical_apparatus: parent.id }
+                });
+            } catch (error) {
+                logger.error(`attachmentsTechnical error: ${error?.message}`);
+                throw new ApolloError(error);
             }
         }
     },
@@ -200,6 +213,51 @@ export const resolvers = {
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
+            }
+        },
+
+        // Attachments for a technical-staff member — same storage + safe upload
+        // as player attachments, keyed by id_technical_apparatus.
+        addAttachmentTechnical: async (obj, {idTechnical, attachments}, context, info) => {
+            try {
+                if (!idTechnical) throw new ApolloError("معرف عضو الجهاز الفني مطلوب", "TECHNICAL_REQUIRED");
+
+                const uploads = attachments || [];
+                const allResult = [];
+
+                // Await each file to disk in order (graphql-upload requirement)
+                // before creating the DB row.
+                for (const upload of uploads) {
+                    const storedName = await saveUpload(upload);
+                    const result = await AttachmentPerson.create({ id_technical_apparatus: idTechnical, content: storedName });
+                    allResult.push(result);
+                }
+
+                return allResult;
+            } catch (error) {
+                if (error instanceof ApolloError) throw error;
+                logger.error(`addAttachmentTechnical failed: ${error?.message}`);
+                throw new ApolloError(error?.message || "فشل إضافة المرفقات", "ATTACHMENT_UPLOAD_FAILED");
+            }
+        },
+
+        deleteAttachmentTechnical: async (obj, {id}, context, info) => {
+            try {
+                const attachment = await AttachmentPerson.findByPk(id);
+                const result = await AttachmentPerson.destroy({ where: { id } });
+
+                if (result === 1 && attachment?.content) {
+                    const filePath = path.join(__dirname, `./../uploads/${attachment.content}`);
+                    try {
+                        await fsPromises.unlink(filePath);
+                    } catch (err) {
+                        logger.warn(`deleteAttachmentTechnical: could not unlink ${filePath}: ${err?.message}`);
+                    }
+                }
+
+                return { status: result === 1 };
+            } catch (error) {
+                throw new ApolloError(error);
             }
         },
     }

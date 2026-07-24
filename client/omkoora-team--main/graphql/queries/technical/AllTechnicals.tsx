@@ -26,6 +26,10 @@ export const AllTechnicals = gql`
             team {
                 id
             }
+            attachmentsTechnical {
+                id
+                content
+            }
             createdAt
             updatedAt
         }

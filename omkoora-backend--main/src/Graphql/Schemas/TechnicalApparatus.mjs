@@ -18,6 +18,9 @@ export const typeDefs = gql`
         changeStatusTechnicalApparatusBulk (ids: [ID!]!, status: String!, note: String): bulkStatusResult @auth(requires: user)
 
         deleteTechnicalApparatus ( id: ID! ): statusDelete @auth(requires: user)
+
+        addAttachmentTechnical (idTechnical: ID!, attachments: [Upload!]): [AttachmentTechnical] @auth(requires: user)
+        deleteAttachmentTechnical ( id: ID! ): statusDelete @auth(requires: user)
     }
 
     type TechnicalApparatus {
@@ -32,10 +35,16 @@ export const typeDefs = gql`
         note:         String
         person:              Person
         team:               Team
-        
+        attachmentsTechnical: [AttachmentTechnical]
+
         createdAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         updatedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         deletedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
+    }
+
+    type AttachmentTechnical {
+        id:            ID
+        content:       String
     }
 
     input contentTechnicalApparatus {

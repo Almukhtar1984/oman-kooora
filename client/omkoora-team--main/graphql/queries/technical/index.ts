@@ -4,3 +4,5 @@ export * from "./DeleteTechnical";
 export * from "./AllTechnicals";
 export * from "./Technical";
 export * from "./ChangeStatusTechnicalApparatus";
+export * from "./AddAttachmentTechnical";
+export * from "./DeleteAttachmentTechnical";

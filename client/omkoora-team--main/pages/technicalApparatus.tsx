@@ -10,7 +10,9 @@ import {
     ChangeStatusTechnicalsModal, 
     DeleteTechnicalModal, 
     UpdateTechnicalModal,
-    ConvertTechnicalToPlayerModal
+    ConvertTechnicalToPlayerModal,
+    AddAttachmentTechnicalModal,
+    ShowAttachmentsTechnical
 } from "../components/Modal";
 import {useAllTechnicals} from "../graphql";
 import useStore from "../store/useStore";
@@ -29,6 +31,9 @@ export default function TechnicalApparatus() {
     const [allTechnicals, setAllTechnicals] = useState<object[]>([]);
     const [allTechnicalsSorting, setAllTechnicalsSorting] = useState<object[]>([]);
     const [openChangeStatusModal, setOpenChangeStatusModal] = useState<boolean>(false);
+    const [openAddAttachmentModal, setOpenAddAttachmentModal] = useState<boolean>(false);
+    const [openShowAttachmentsModal, setOpenShowAttachmentsModal] = useState<boolean>(false);
+    const [selectedTechnical, setSelectedTechnical] = useState<any>(null);
 
 
     const [role, setRole] = useState("");
@@ -150,6 +155,9 @@ export default function TechnicalApparatus() {
                     setopenConvertTechnicalToPlayerModal={setopenConvertTechnicalToPlayerModal}
                     setNewStatus={setNewStatus}
                     hasPermission={hasPermission}
+                    setOpenAddAttachmentModal={setOpenAddAttachmentModal}
+                    setOpenShowAttachmentsModal={setOpenShowAttachmentsModal}
+                    setSelectedData={setSelectedTechnical}
                 />
             </Container>
 
@@ -160,6 +168,8 @@ export default function TechnicalApparatus() {
             <UpdateTechnicalModal title="تعديل عضو" opened={openEditModal} id={selectedData} onClose={() => setOpenEditModal(false)}/>
             <DeleteTechnicalModal title="حذف عضو" opened={openDeleteModal} id={selectedData} onClose={() => setOpenDeleteModal(false)}/>
             <ConvertTechnicalToPlayerModal title="تحويل عضو الى لاعب" opened={openConvertTechnicalToPlayerModal} id={selectedData} onClose={() => setopenConvertTechnicalToPlayerModal(false)}/>
+            <AddAttachmentTechnicalModal title="إضافة مرفقات" opened={openAddAttachmentModal} id={selectedData} onClose={() => setOpenAddAttachmentModal(false)}/>
+            <ShowAttachmentsTechnical title="المرفقات" opened={openShowAttachmentsModal} data={selectedTechnical} onClose={() => setOpenShowAttachmentsModal(false)}/>
         </Box>
     );
 }

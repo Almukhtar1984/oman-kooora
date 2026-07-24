@@ -73,3 +73,7 @@ jobs:
       - name: Remove participating team guards
         working-directory: omkoora-backend--main
         run: npm run test:remove-team
+
+      - name: Technical attachments guards
+        working-directory: omkoora-backend--main
+        run: npm run test:technical-attachments

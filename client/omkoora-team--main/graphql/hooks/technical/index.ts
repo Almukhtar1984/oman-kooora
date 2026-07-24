@@ -5,3 +5,5 @@ export * from "./useAllTechnicals";
 export * from "./useTechnical";
 export * from "./useChangeStatusTechnicalApparatus";
 export * from "./useConvertTechnicalToPlayer"
+export * from "./useAddAttachmentTechnical";
+export * from "./useDeleteAttachmentTechnical";

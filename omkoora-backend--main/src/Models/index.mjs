@@ -310,6 +310,10 @@ ParticipatingTechnicalStaff.belongsTo(TechnicalApparatus, { foreignKey: { name: 
 Players.hasOne(AttachmentPerson, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 AttachmentPerson.belongsTo(Players, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
+// TechnicalApparatus 1 * AttachmentPerson (same table, keyed by id_technical_apparatus)
+TechnicalApparatus.hasMany(AttachmentPerson, { foreignKey: { name: 'id_technical_apparatus' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+AttachmentPerson.belongsTo(TechnicalApparatus, { foreignKey: { name: 'id_technical_apparatus' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
+
 // Match 1 * ScorerMatch
 Match.hasOne(ScorerMatch, { foreignKey: { name: 'id_match' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 ScorerMatch.belongsTo(Match, { foreignKey: { name: 'id_match' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
