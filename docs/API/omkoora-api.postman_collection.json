@@ -1,0 +1,389 @@
+{
+  "info": {
+    "name": "Tomoh / omkooora API",
+    "description": "GraphQL API for the Tomoh (omkooora) football-management platform.\n\nOne endpoint serves every operation: POST {{baseUrl}}/graphql.\n\nHow to use:\n1. Import this collection AND `omkoora-api.postman_environment.json`, then select the environment.\n2. Fill `email` / `password` (and the sample ids) in the environment.\n3. Run **Auth > Login** first — it saves the access token to the `token` variable automatically.\n4. Every request auto-attaches the required headers (Authorization, apollo-require-preflight, x-apollo-operation-name) via a collection pre-request script.\n\nSee `README.md` and `schema.graphql` (same folder) for the full contract. Fields marked @auth need a token; the rest are public.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Attach the headers every /graphql request needs.",
+          "pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
+          "pm.request.headers.upsert({ key: 'apollo-require-preflight', value: 'true' });",
+          "var op = (pm.info.requestName || 'Operation').replace(/[^A-Za-z0-9_]/g, '');",
+          "pm.request.headers.upsert({ key: 'x-apollo-operation-name', value: op || 'Operation' });",
+          "var token = pm.collectionVariables.get('token') || pm.environment.get('token');",
+          "if (token) { pm.request.headers.upsert({ key: 'Authorization', value: token }); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.omkooora.com" },
+    { "key": "token", "value": "" },
+    { "key": "email", "value": "" },
+    { "key": "password", "value": "" },
+    { "key": "idTeam", "value": "" },
+    { "key": "idClub", "value": "" },
+    { "key": "idLeague", "value": "" },
+    { "key": "idMatch", "value": "" },
+    { "key": "idParticipatingTeam", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] },
+        "description": "Simple liveness probe. Returns { status: \"ok\" }."
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var res = pm.response.json();",
+                  "var token = res && res.data && res.data.authenticateUser && res.data.authenticateUser.token;",
+                  "if (token) {",
+                  "  pm.collectionVariables.set('token', token);",
+                  "  pm.environment.set('token', token);",
+                  "  console.log('Access token saved to {{token}}.');",
+                  "} else {",
+                  "  console.log('No token in response:', JSON.stringify(res));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation Login($content: loginInfo) {\n  authenticateUser(content: $content) {\n    token\n    user { id role person { id first_name } }\n  }\n}",
+                "variables": "{\n  \"content\": {\n    \"email\": \"{{email}}\",\n    \"password\": \"{{password}}\"\n  }\n}"
+              }
+            },
+            "description": "Authenticate and receive a short-lived access token. The test script saves it to the `token` variable for every other request."
+          }
+        },
+        {
+          "name": "Current User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query CurrentUser {\n  currentUser { id role person { id first_name second_name } }\n}",
+                "variables": "{}"
+              }
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var res = pm.response.json();",
+                  "var token = res && res.data && res.data.refreshToken && res.data.refreshToken.token;",
+                  "if (token) { pm.collectionVariables.set('token', token); pm.environment.set('token', token); console.log('Token refreshed.'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query RefreshToken {\n  refreshToken { token }\n}",
+                "variables": "{}"
+              }
+            },
+            "description": "Reads the httpOnly refresh cookie and mints a new access token. Call this on an UNAUTHENTICATED error, then retry."
+          }
+        },
+        {
+          "name": "Log Out",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation LogOut {\n  logOut { status }\n}",
+                "variables": "{}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "All Players (by team)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query AllPlayers($idTeam: ID) {\n  allPlayers(idTeam: $idTeam) {\n    id\n    player_center\n    person { id first_name second_name third_name card_number }\n  }\n}",
+                "variables": "{\n  \"idTeam\": \"{{idTeam}}\"\n}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Members & Staff",
+      "item": [
+        {
+          "name": "All Members (board)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query AllMembers($idTeam: ID) {\n  allMembers(idTeam: $idTeam) {\n    id\n    occupation\n    classification\n    person { id first_name second_name }\n  }\n}",
+                "variables": "{\n  \"idTeam\": \"{{idTeam}}\"\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "All Technical Apparatus (staff)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query AllTechnicalApparatus($idTeam: ID) {\n  allTechnicalApparatus(idTeam: $idTeam) {\n    id\n    occupation\n    person { id first_name second_name }\n  }\n}",
+                "variables": "{\n  \"idTeam\": \"{{idTeam}}\"\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "Change Member Classification",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation ChangeMemberClassification($id: ID!, $fromType: String!, $toType: String!) {\n  changeMemberClassification(id: $id, fromType: $fromType, toType: $toType) { id }\n}",
+                "variables": "{\n  \"id\": \"\",\n  \"fromType\": \"member\",\n  \"toType\": \"player\"\n}"
+              }
+            },
+            "description": "fromType / toType are one of: player | technical | member."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teams & Clubs",
+      "item": [
+        {
+          "name": "All Teams (by club)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query AllTeam($idClub: ID) {\n  allTeam(idClub: $idClub) {\n    id\n    name\n    logo\n    club { id name }\n  }\n}",
+                "variables": "{\n  \"idClub\": \"{{idClub}}\"\n}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transfers & Loans",
+      "item": [
+        {
+          "name": "Create Transfer / Loan",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation CreateTransfer($content: contentTransfer!) {\n  createTransfer(content: $content) {\n    id\n    status\n    type\n    transition_type\n  }\n}",
+                "variables": "{\n  \"content\": {\n    \"status\": \"waiting\",\n    \"type\": \"internal\",\n    \"transition_type\": \"loan\",\n    \"id_player\": \"\",\n    \"id_team_from\": \"\",\n    \"id_team_to\": \"\",\n    \"date_start\": \"2026-08-01\",\n    \"date_end\": \"2026-10-01\"\n  }\n}"
+              }
+            },
+            "description": "transition_type: transition | loan | returning. type: internal | external."
+          }
+        },
+        {
+          "name": "Update Transfer (accept / reject)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation UpdateTransfer($id: ID!, $content: contentTransfer!) {\n  updateTransfer(id: $id, content: $content) { status }\n}",
+                "variables": "{\n  \"id\": \"\",\n  \"content\": {\n    \"status\": \"accepted\"\n  }\n}"
+              }
+            },
+            "description": "status: accepted | rejected."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leagues & Competitions",
+      "item": [
+        {
+          "name": "Participating Teams By League (public)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query ParticipatingTeamsByLeague($idLeague: ID!) {\n  participatingTeamsByLeague(idLeague: $idLeague) {\n    id\n    group\n    status\n    team { id name category club { id name } }\n  }\n}",
+                "variables": "{\n  \"idLeague\": \"{{idLeague}}\"\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "Participating Players By League (public)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query ParticipatingPlayersByLeague($idLeague: ID!) {\n  participatingPlayersByLeague(idLeague: $idLeague) {\n    id\n    number\n    player { id person { first_name second_name third_name } }\n  }\n}",
+                "variables": "{\n  \"idLeague\": \"{{idLeague}}\"\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "Match Lineup (public)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query MatchLineup($id: ID!) {\n  matchLineup(id: $id) {\n    id\n    date\n    leagueName\n    firstTeamName\n    secondTeamName\n    firstTeamPlayers { name number position starter sub }\n    secondTeamPlayers { name number position starter sub }\n  }\n}",
+                "variables": "{\n  \"id\": \"{{idMatch}}\"\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "Team Roster (public)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query TeamRoster($id: ID!) {\n  teamRoster(id: $id) {\n    teamName\n    leagueName\n    players { number name position }\n    staff { name job }\n  }\n}",
+                "variables": "{\n  \"id\": \"{{idParticipatingTeam}}\"\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "Yellow Card Alerts",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query YellowCardAlerts($leagueId: ID!) {\n  yellowCardAlerts(leagueId: $leagueId) {\n    player\n    number\n    yellowCount\n    team { id name }\n    matches { id date firstTeam secondTeam }\n  }\n}",
+                "variables": "{\n  \"leagueId\": \"{{idLeague}}\"\n}"
+              }
+            },
+            "description": "Players booked in two consecutive team fixtures."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "All Notifications (team)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query AllNotificationTeam($idTeam: ID!) {\n  allNotificationTeam(idTeam: $idTeam) { id }\n}",
+                "variables": "{\n  \"idTeam\": \"{{idTeam}}\"\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "Mark Notifications As Read (team)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/graphql", "host": ["{{baseUrl}}"], "path": ["graphql"] },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation MarkNotificationsAsRead($idTeam: ID) {\n  markNotificationsAsRead(idTeam: $idTeam)\n}",
+                "variables": "{\n  \"idTeam\": \"{{idTeam}}\"\n}"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

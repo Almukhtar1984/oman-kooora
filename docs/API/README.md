@@ -141,3 +141,16 @@ after auth and listen for the `newNotification` event.
    with credentials included.
 4. On `UNAUTHENTICATED`, call `refreshToken` and retry.
 5. Generate types from `schema.graphql`; treat `@auth` fields as login-required.
+
+---
+
+## 6. Postman
+
+A ready-to-run collection lives in this folder:
+
+- [`omkoora-api.postman_collection.json`](./omkoora-api.postman_collection.json) — requests grouped by domain (Auth, Players, Members & Staff, Teams & Clubs, Transfers & Loans, Leagues & Competitions, Notifications) plus the health check.
+- [`omkoora-api.postman_environment.json`](./omkoora-api.postman_environment.json) — variables (`baseUrl`, `token`, `email`, `password`, and sample ids).
+
+**Steps:** import both → select the environment → fill `email`/`password` (and the ids) → run **Auth › Login**. The login test script saves the access token to `{{token}}`, and a collection pre-request script attaches the required headers (`Authorization`, `apollo-require-preflight: true`, `x-apollo-operation-name`) to every request automatically. On an `UNAUTHENTICATED` error, run **Auth › Refresh Token**.
+
+To browse or add operations with autocomplete, open a GraphQL request in Postman and set its **GraphQL schema** to the exported `schema.graphql`.
