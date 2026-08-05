@@ -1,14 +1,166 @@
-import { ApolloError } from 'apollo-server-express';
+import { ApolloError, AuthenticationError } from 'apollo-server-express';
 import dotenv from 'dotenv';
 import { Op } from 'sequelize'; // Import Sequelize operators
 
 import logger from "../../Config/logger.mjs";
-import { Club, Team, League, Players, Match, Stadium, Members, Blog } from '../../Models/index.mjs';
+import {
+  Club, Team, League, Players, Match, Stadium, Members, Blog,
+  TechnicalApparatus, Assembly, ClubManagement, Transfer, User,
+} from '../../Models/index.mjs';
 
 dotenv.config();
 
 export const resolvers = {
   Query: {
+    // Aggregate-only statistics for the super-admin dashboard. No personal
+    // data is returned — only counts and grouped breakdowns.
+    platformStatistics: async (parent, args, context, info) => {
+      const { user, isAuth } = context;
+      if (!isAuth || !user) {
+        return new AuthenticationError("Authentication required");
+      }
+      if (user.role !== "1") {
+        return new ApolloError("Only the super-admin can view platform statistics", "FORBIDDEN_ROLE");
+      }
+
+      // Arabic labels for the fixed player age categories (Players.class enum).
+      const AGE_LABELS = {
+        firstDegree: "الفريق الأول",
+        secondDegree: "تحت 23 سنة",
+        rookies: "تحت 18 سنة",
+        young: "تحت 16 سنة",
+      };
+      const STATUS_LABELS = {
+        accepted: "مقبول",
+        waiting: "قيد الانتظار",
+        waiting_club: "بانتظار النادي",
+        rejected: "مرفوض",
+        suspended: "موقوف",
+      };
+      const ROLE_LABELS = {
+        "1": "مدير النظام",
+        "2": "مدير نادٍ",
+        "3": "مدير فريق",
+        "4": "مدير مسابقة",
+        "5": "حكم / مسؤول مباراة",
+      };
+
+      // Turn an object of {key: count} into a sorted [{name, count}] array.
+      const toChart = (obj) =>
+        Object.entries(obj)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count);
+
+      try {
+        // Pull the rows we need to aggregate in parallel (columns only, no
+        // eager includes / personal fields).
+        const [
+          clubs, teams, players, members, technicals, assembly, board, users,
+          stadiums, leagues, loans, transfers,
+        ] = await Promise.all([
+          Club.findAll({ attributes: ["id", "name", "mohafada"] }),
+          Team.findAll({ attributes: ["id", "id_club", "activities"] }),
+          Players.findAll({ attributes: ["id_team", "class", "status"] }),
+          Members.findAll({ attributes: ["id_team"] }),
+          TechnicalApparatus.findAll({ attributes: ["id_team"] }),
+          Assembly.findAll({ attributes: ["id_club", "id_team"] }),
+          ClubManagement.findAll({ attributes: ["id_club"] }),
+          User.findAll({ attributes: ["role"] }),
+          Stadium.count(),
+          League.count(),
+          Transfer.count({ where: { transition_type: "loan" } }),
+          Transfer.count({ where: { transition_type: "transition" } }),
+        ]);
+
+        // team -> club lookup (children of a team roll up to that team's club).
+        const teamToClub = {};
+        teams.forEach((t) => { teamToClub[t.id] = t.id_club; });
+
+        // Per-club accumulator.
+        const perClub = {};
+        clubs.forEach((c) => {
+          perClub[c.id] = {
+            id: c.id, name: c.name,
+            teams: 0, players: 0, members: 0, technicals: 0, assembly: 0, board: 0,
+          };
+        });
+        const bump = (clubId, key) => { if (clubId && perClub[clubId]) perClub[clubId][key] += 1; };
+
+        teams.forEach((t) => bump(t.id_club, "teams"));
+        players.forEach((p) => bump(teamToClub[p.id_team], "players"));
+        members.forEach((m) => bump(teamToClub[m.id_team], "members"));
+        technicals.forEach((t) => bump(teamToClub[t.id_team], "technicals"));
+        assembly.forEach((a) => bump(a.id_club || teamToClub[a.id_team], "assembly"));
+        board.forEach((b) => bump(b.id_club, "board"));
+
+        const clubTotals = Object.values(perClub)
+          .map((c) => ({
+            ...c,
+            total: c.players + c.members + c.technicals + c.assembly + c.board,
+          }))
+          .sort((a, b) => b.total - a.total);
+
+        // Breakdowns.
+        const activitiesAcc = {};
+        teams.forEach((t) => {
+          const key = (t.activities && String(t.activities).trim()) || "غير محدد";
+          activitiesAcc[key] = (activitiesAcc[key] || 0) + 1;
+        });
+
+        const ageAcc = {};
+        Object.keys(AGE_LABELS).forEach((k) => { ageAcc[AGE_LABELS[k]] = 0; });
+        const statusAcc = {};
+        players.forEach((p) => {
+          const ageLabel = AGE_LABELS[p.class] || "أخرى";
+          ageAcc[ageLabel] = (ageAcc[ageLabel] || 0) + 1;
+          const stLabel = STATUS_LABELS[p.status] || p.status || "غير محدد";
+          statusAcc[stLabel] = (statusAcc[stLabel] || 0) + 1;
+        });
+
+        const govAcc = {};
+        clubs.forEach((c) => {
+          const key = c.mohafada || "غير محدد";
+          govAcc[key] = (govAcc[key] || 0) + 1;
+        });
+
+        const roleAcc = {};
+        users.forEach((u) => {
+          const label = ROLE_LABELS[u.role] || `دور ${u.role}`;
+          roleAcc[label] = (roleAcc[label] || 0) + 1;
+        });
+
+        const totalPeople =
+          players.length + members.length + technicals.length + assembly.length + board.length;
+
+        return {
+          clubs: clubs.length,
+          teams: teams.length,
+          players: players.length,
+          members: members.length,
+          technicals: technicals.length,
+          boardManagement: board.length,
+          assembly: assembly.length,
+          stadiums,
+          leagues,
+          loans,
+          transfers,
+          viewers: users.length,
+          totalPeople,
+          activities: toChart(activitiesAcc),
+          // keep age categories in their natural order (not count-sorted)
+          ageCategories: Object.keys(AGE_LABELS).map((k) => ({
+            name: AGE_LABELS[k], count: ageAcc[AGE_LABELS[k]] || 0,
+          })),
+          playersByStatus: toChart(statusAcc),
+          clubsByGovernorate: toChart(govAcc),
+          usersByRole: toChart(roleAcc),
+          clubTotals,
+        };
+      } catch (error) {
+        logger.error(`platformStatistics error: ${error.message}`);
+        throw new ApolloError("Failed to build platform statistics", "PLATFORM_STATISTICS_FAILED", { error });
+      }
+    },
     StateFilter: async (parent, args, context, info) => {
       console.log("====");
       try {

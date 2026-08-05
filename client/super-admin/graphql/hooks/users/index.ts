@@ -13,6 +13,7 @@ import useAddUserImage from "./useAddUserImage";
 import useSettingsUser from "./useSettingsUser";
 import useEmailVerification from "./useEmailVerification";
 import useStatisticsAdmin from "./useStatisticsAdmin";
+import usePlatformStatistics from "./usePlatformStatistics";
 import useAllRequestsWeekly from "./useAllRequestsWeekly";
 import useAllRequestsYearly from "./useAllRequestsYearly";
 import useForgetPassword from "./useForgetPassword";
@@ -36,6 +37,7 @@ export {
   useSettingsUser,
   useEmailVerification,
   useStatisticsAdmin,
+  usePlatformStatistics,
   useAllRequestsWeekly,
   useAllRequestsYearly,
   useForgetPassword,

@@ -5,6 +5,44 @@ export const typeDefs = gql`
     StateFilter: Filters
     SearchData(filters: FiltersInput): SearchResult
     FetchAllData:SearchResult
+    # Aggregate-only platform statistics for the super-admin dashboard.
+    # Returns counts and breakdowns exclusively — no names, IDs, or personal data.
+    platformStatistics: PlatformStatistics @auth(requires: user)
+  }
+
+  # ---- Aggregate-only statistics (super-admin) ----
+  type PlatformStatistics {
+    clubs: Int
+    teams: Int
+    players: Int
+    members: Int
+    technicals: Int
+    boardManagement: Int
+    assembly: Int
+    stadiums: Int
+    leagues: Int
+    loans: Int
+    transfers: Int
+    viewers: Int
+    totalPeople: Int
+    activities: [ChartResult]
+    ageCategories: [ChartResult]
+    playersByStatus: [ChartResult]
+    clubsByGovernorate: [ChartResult]
+    usersByRole: [ChartResult]
+    clubTotals: [ClubTotalStat]
+  }
+
+  type ClubTotalStat {
+    id: ID
+    name: String
+    teams: Int
+    players: Int
+    members: Int
+    technicals: Int
+    assembly: Int
+    board: Int
+    total: Int
   }
 
   type Filters {

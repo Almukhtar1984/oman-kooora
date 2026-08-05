@@ -1,6 +1,6 @@
 import {createStyles, Navbar, ScrollArea, Image, Tooltip, Box} from '@mantine/core';
 import { useRouter } from 'next/router';
-import { IconHome } from "@tabler/icons";
+import { IconHome, IconChartBar } from "@tabler/icons";
 interface _params {
     language: string;
 }
@@ -182,6 +182,21 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                         <IconHome color={theme.colors.cyan[5]} />
                     </a>
                 {/*</Tooltip>*/}
+
+                <Tooltip withArrow label={"الإحصاء"} position={"left"} zIndex={100}>
+                    <a
+                        className={cx(classes.link, { [classes.linkActive]: "/statistics" === router.pathname })}
+                        href={"/statistics"}
+                        key={"الإحصاء"}
+                        onClick={(event) => {
+                            event.preventDefault()
+                            router.push("/statistics")
+                            toggleSideBar()
+                        }}
+                    >
+                        <IconChartBar color={theme.colors.cyan[5]} />
+                    </a>
+                </Tooltip>
             </Navbar.Section>
         </Navbar>
     );
