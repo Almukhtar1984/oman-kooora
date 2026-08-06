@@ -56,7 +56,7 @@ export const resolvers = {
         // eager includes / personal fields).
         const [
           clubs, teams, players, members, technicals, assembly, board, users,
-          stadiums, leagues, loans, transfers,
+          stadiumRows, leagueRows, transferRows,
         ] = await Promise.all([
           Club.findAll({ attributes: ["id", "name", "mohafada"] }),
           Team.findAll({ attributes: ["id", "id_club", "activities"] }),
@@ -66,37 +66,63 @@ export const resolvers = {
           Assembly.findAll({ attributes: ["id_club", "id_team"] }),
           ClubManagement.findAll({ attributes: ["id_club"] }),
           User.findAll({ attributes: ["role"] }),
-          Stadium.count(),
-          League.count(),
-          Transfer.count({ where: { transition_type: "loan" } }),
-          Transfer.count({ where: { transition_type: "transition" } }),
+          Stadium.findAll({ attributes: ["id_team"] }),
+          League.findAll({ attributes: ["id_club"] }),
+          Transfer.findAll({ attributes: ["transition_type", "id_club_to", "id_team_from"] }),
         ]);
+        const loans = transferRows.filter((t) => t.transition_type === "loan").length;
+        const transfers = transferRows.filter((t) => t.transition_type === "transition").length;
 
         // team -> club lookup (children of a team roll up to that team's club).
         const teamToClub = {};
         teams.forEach((t) => { teamToClub[t.id] = t.id_club; });
 
-        // Per-club accumulator.
+        // Per-club accumulator (numbers + per-club breakdown maps).
         const perClub = {};
         clubs.forEach((c) => {
           perClub[c.id] = {
-            id: c.id, name: c.name,
+            id: c.id, name: c.name, governorate: c.mohafada || "غير محدد",
             teams: 0, players: 0, members: 0, technicals: 0, assembly: 0, board: 0,
+            leagues: 0, stadiums: 0, loans: 0, transfers: 0,
+            _activities: {}, _ages: {},
           };
         });
         const bump = (clubId, key) => { if (clubId && perClub[clubId]) perClub[clubId][key] += 1; };
 
-        teams.forEach((t) => bump(t.id_club, "teams"));
-        players.forEach((p) => bump(teamToClub[p.id_team], "players"));
+        teams.forEach((t) => {
+          bump(t.id_club, "teams");
+          if (t.id_club && perClub[t.id_club]) {
+            const a = (t.activities && String(t.activities).trim()) || "غير محدد";
+            perClub[t.id_club]._activities[a] = (perClub[t.id_club]._activities[a] || 0) + 1;
+          }
+        });
+        players.forEach((p) => {
+          const clubId = teamToClub[p.id_team];
+          bump(clubId, "players");
+          if (clubId && perClub[clubId]) {
+            const label = AGE_LABELS[p.class] || "أخرى";
+            perClub[clubId]._ages[label] = (perClub[clubId]._ages[label] || 0) + 1;
+          }
+        });
         members.forEach((m) => bump(teamToClub[m.id_team], "members"));
         technicals.forEach((t) => bump(teamToClub[t.id_team], "technicals"));
         assembly.forEach((a) => bump(a.id_club || teamToClub[a.id_team], "assembly"));
         board.forEach((b) => bump(b.id_club, "board"));
+        leagueRows.forEach((l) => bump(l.id_club, "leagues"));
+        stadiumRows.forEach((st) => bump(teamToClub[st.id_team], "stadiums"));
+        transferRows.forEach((tr) => {
+          const clubId = tr.id_club_to || teamToClub[tr.id_team_from];
+          bump(clubId, tr.transition_type === "loan" ? "loans" : "transfers");
+        });
 
         const clubTotals = Object.values(perClub)
-          .map((c) => ({
+          .map(({ _activities, _ages, ...c }) => ({
             ...c,
             total: c.players + c.members + c.technicals + c.assembly + c.board,
+            activities: toChart(_activities),
+            ageCategories: Object.keys(AGE_LABELS)
+              .map((k) => AGE_LABELS[k])
+              .map((label) => ({ name: label, count: _ages[label] || 0 })),
           }))
           .sort((a, b) => b.total - a.total);
 
@@ -140,8 +166,8 @@ export const resolvers = {
           technicals: technicals.length,
           boardManagement: board.length,
           assembly: assembly.length,
-          stadiums,
-          leagues,
+          stadiums: stadiumRows.length,
+          leagues: leagueRows.length,
           loans,
           transfers,
           viewers: users.length,

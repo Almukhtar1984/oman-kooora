@@ -36,13 +36,20 @@ export const typeDefs = gql`
   type ClubTotalStat {
     id: ID
     name: String
+    governorate: String
     teams: Int
     players: Int
     members: Int
     technicals: Int
     assembly: Int
     board: Int
+    leagues: Int
+    stadiums: Int
+    loans: Int
+    transfers: Int
     total: Int
+    activities: [ChartResult]
+    ageCategories: [ChartResult]
   }
 
   type Filters {

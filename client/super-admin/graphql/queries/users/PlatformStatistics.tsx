@@ -26,13 +26,20 @@ export const PlatformStatistics = gql`
             clubTotals {
                 id
                 name
+                governorate
                 teams
                 players
                 members
                 technicals
                 assembly
                 board
+                leagues
+                stadiums
+                loans
+                transfers
                 total
+                activities { name count }
+                ageCategories { name count }
             }
         }
     }

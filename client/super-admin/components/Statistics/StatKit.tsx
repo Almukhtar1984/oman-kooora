@@ -1,20 +1,28 @@
 import { Box, Flex, Group, Text, RingProgress, Progress, Center, ThemeIcon } from "@mantine/core";
+import { IconChevronLeft } from "@tabler/icons";
 import React from "react";
 
-/** A single headline metric tile. */
+/** A single headline metric tile. Pass onClick to make it a drill-down button. */
 export const StatCard = ({
-    label, value, icon, color = "cyan", hint,
+    label, value, icon, color = "cyan", hint, onClick,
 }: {
     label: string; value: number | string; icon: React.ReactNode; color?: string; hint?: string;
+    onClick?: () => void;
 }) => (
     <Box
         p="lg"
         bg="white"
+        onClick={onClick}
         sx={({ colors, radius, fn }) => ({
             borderRadius: radius.md,
             border: "1px solid " + colors.gray[2],
-            transition: "transform .15s ease, box-shadow .15s ease",
-            "&:hover": { transform: "translateY(-3px)", boxShadow: "0 10px 24px -12px " + fn.rgba(colors[color][6], 0.55) },
+            cursor: onClick ? "pointer" : "default",
+            transition: "transform .15s ease, box-shadow .15s ease, border-color .15s ease",
+            "&:hover": onClick ? {
+                transform: "translateY(-3px)",
+                boxShadow: "0 10px 24px -12px " + fn.rgba(colors[color][6], 0.55),
+                borderColor: colors[color][3],
+            } : {},
         })}
     >
         <Group position="apart" noWrap align="flex-start">
@@ -23,15 +31,38 @@ export const StatCard = ({
                 <Text sx={{ fontSize: 30, lineHeight: 1.1 }} weight={800} color="gray.8">
                     {typeof value === "number" ? value.toLocaleString("en-US") : value}
                 </Text>
-                {hint ? <Text size="xs" color="gray.5" mt={4}>{hint}</Text> : null}
+                {onClick
+                    ? <Group spacing={2} mt={6} sx={({ colors }) => ({ color: colors[color][6] })}>
+                        <Text size="xs" weight={600}>عرض التفاصيل حسب النادي</Text>
+                        <IconChevronLeft size={13} />
+                      </Group>
+                    : hint ? <Text size="xs" color="gray.5" mt={4}>{hint}</Text> : null}
             </Box>
-            <ThemeIcon
-                size={52} radius="md" variant="light" color={color}
-                sx={{ flexShrink: 0 }}
-            >
+            <ThemeIcon size={52} radius="md" variant="light" color={color} sx={{ flexShrink: 0 }}>
                 {icon}
             </ThemeIcon>
         </Group>
+    </Box>
+);
+
+/** A compact metric tile used inside the club-detail modal. */
+export const MiniStat = ({
+    label, value, color = "cyan", icon,
+}: {
+    label: string; value: number; color?: string; icon?: React.ReactNode;
+}) => (
+    <Box
+        p="sm"
+        sx={({ colors, radius }) => ({
+            borderRadius: radius.md, border: "1px solid " + colors.gray[2],
+            background: colors.gray[0],
+        })}
+    >
+        <Group spacing={8} noWrap mb={4}>
+            {icon ? <ThemeIcon size={26} radius="sm" variant="light" color={color}>{icon}</ThemeIcon> : null}
+            <Text size="xs" color="gray.6" weight={500} lineClamp={1}>{label}</Text>
+        </Group>
+        <Text sx={{ fontSize: 22 }} weight={800} color="gray.8">{Number(value).toLocaleString("en-US")}</Text>
     </Box>
 );
 
