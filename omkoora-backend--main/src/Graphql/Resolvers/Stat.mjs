@@ -187,6 +187,113 @@ export const resolvers = {
         throw new ApolloError("Failed to build platform statistics", "PLATFORM_STATISTICS_FAILED", { error });
       }
     },
+    // Aggregate-only statistics scoped to ONE club (club app dashboard).
+    // A club admin (role "2") is forced to their own club; a super-admin
+    // (role "1") may pass any idClub. No personal data is returned.
+    clubStatistics: async (parent, { idClub }, context, info) => {
+      const { user, isAuth } = context;
+      if (!isAuth || !user) {
+        return new AuthenticationError("Authentication required");
+      }
+
+      const AGE_LABELS = {
+        firstDegree: "الفريق الأول",
+        secondDegree: "تحت 23 سنة",
+        rookies: "تحت 18 سنة",
+        young: "تحت 16 سنة",
+      };
+      const STATUS_LABELS = {
+        accepted: "مقبول",
+        waiting: "قيد الانتظار",
+        waiting_club: "بانتظار النادي",
+        rejected: "مرفوض",
+        suspended: "موقوف",
+      };
+      const toChart = (obj) =>
+        Object.entries(obj).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+
+      try {
+        // Decide which club the caller is allowed to view.
+        let targetClubId = idClub;
+        if (user.role === "2") {
+          // Club admin: always scope to their own club, ignore any passed id.
+          const cm = await ClubManagement.findOne({ where: { id_person: user.id_person } });
+          if (!cm) return new ApolloError("No club is linked to this account", "NO_CLUB");
+          targetClubId = cm.id_club;
+        } else if (user.role !== "1") {
+          return new ApolloError("Not allowed to view club statistics", "FORBIDDEN_ROLE");
+        }
+        if (!targetClubId) return new ApolloError("idClub is required", "IDCLUB_REQUIRED");
+
+        const club = await Club.findByPk(targetClubId, { attributes: ["id", "name", "mohafada"] });
+        if (!club) return new ApolloError("Club not found", "CLUB_NOT_FOUND");
+
+        const teams = await Team.findAll({ where: { id_club: club.id }, attributes: ["id", "activities"] });
+        const teamIds = teams.map((t) => t.id);
+        const hasTeams = teamIds.length > 0;
+        const inTeams = { id_team: { [Op.in]: teamIds } };
+
+        const [players, membersCount, technicalsCount, assemblyRows, boardCount, stadiumsCount, leaguesCount, transferRows] =
+          await Promise.all([
+            hasTeams ? Players.findAll({ where: inTeams, attributes: ["class", "status"] }) : [],
+            hasTeams ? Members.count({ where: inTeams }) : 0,
+            hasTeams ? TechnicalApparatus.count({ where: inTeams }) : 0,
+            Assembly.findAll({
+              where: hasTeams ? { [Op.or]: [{ id_club: club.id }, { id_team: { [Op.in]: teamIds } }] } : { id_club: club.id },
+              attributes: ["id"],
+            }),
+            ClubManagement.count({ where: { id_club: club.id } }),
+            hasTeams ? Stadium.count({ where: inTeams }) : 0,
+            League.count({ where: { id_club: club.id } }),
+            Transfer.findAll({ attributes: ["transition_type", "id_club_to", "id_team_from"] }),
+          ]);
+
+        const teamSet = new Set(teamIds);
+        const clubTransfers = transferRows.filter((t) => t.id_club_to === club.id || teamSet.has(t.id_team_from));
+        const loans = clubTransfers.filter((t) => t.transition_type === "loan").length;
+        const transfers = clubTransfers.filter((t) => t.transition_type === "transition").length;
+
+        // Breakdowns.
+        const activitiesAcc = {};
+        teams.forEach((t) => {
+          const key = (t.activities && String(t.activities).trim()) || "غير محدد";
+          activitiesAcc[key] = (activitiesAcc[key] || 0) + 1;
+        });
+        const ageAcc = {};
+        const statusAcc = {};
+        players.forEach((p) => {
+          const ageLabel = AGE_LABELS[p.class] || "أخرى";
+          ageAcc[ageLabel] = (ageAcc[ageLabel] || 0) + 1;
+          const stLabel = STATUS_LABELS[p.status] || p.status || "غير محدد";
+          statusAcc[stLabel] = (statusAcc[stLabel] || 0) + 1;
+        });
+
+        const totalPeople = players.length + membersCount + technicalsCount + assemblyRows.length + boardCount;
+
+        return {
+          club: club.name,
+          governorate: club.mohafada || "غير محدد",
+          teams: teams.length,
+          players: players.length,
+          members: membersCount,
+          technicals: technicalsCount,
+          boardManagement: boardCount,
+          assembly: assemblyRows.length,
+          stadiums: stadiumsCount,
+          leagues: leaguesCount,
+          loans,
+          transfers,
+          totalPeople,
+          activities: toChart(activitiesAcc),
+          ageCategories: Object.keys(AGE_LABELS).map((k) => ({ name: AGE_LABELS[k], count: ageAcc[AGE_LABELS[k]] || 0 })),
+          playersByStatus: toChart(statusAcc),
+        };
+      } catch (error) {
+        logger.error(`clubStatistics error: ${error.message}`);
+        throw new ApolloError("Failed to build club statistics", "CLUB_STATISTICS_FAILED", { error });
+      }
+    },
+
     StateFilter: async (parent, args, context, info) => {
       console.log("====");
       try {

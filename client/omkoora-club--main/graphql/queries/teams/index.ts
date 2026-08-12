@@ -9,3 +9,4 @@ export * from "./TeamDetails";
 export * from "./AllClubs";
 export * from "./StatisticsTeam";
 export * from "./StatisticsClub";
+export * from "./ClubStatistics";

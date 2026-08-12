@@ -14,6 +14,7 @@ import {
     Repeat,
     ShieldLock,
     Activity,
+    ChartBar,
 } from "tabler-icons-react";
 import useStore from "../../store/useStore";
 import { useEffect, useState } from "react";
@@ -123,6 +124,7 @@ const HorizontalNavbar = () => {
 
     const navItems = [
         { path: '/', label: 'الرئيسية', icon: <Home size={20} />, show: true },
+        { path: '/statistics', label: 'الإحصاء', icon: <ChartBar size={20} />, show: role === "1" },
         { path: '/team', label: 'الفرق', icon: <BallFootball size={20} />, show: hasPermission("teams", "1") },
         { path: '/members', label: 'الأعضاء', icon: <Users size={20} />, show: hasPermission("members", "1") || hasPermission("technicals", "1") || hasPermission("players", "1") || hasPermission("assembly", "1") },
         { path: '/players_transfer', label: 'إنتقالات اللاعبين', icon: <ArrowsLeftRight size={20} />, show: hasPermission("transferPlayers", "1") },

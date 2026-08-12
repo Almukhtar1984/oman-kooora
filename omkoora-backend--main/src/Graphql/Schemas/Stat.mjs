@@ -8,6 +8,29 @@ export const typeDefs = gql`
     # Aggregate-only platform statistics for the super-admin dashboard.
     # Returns counts and breakdowns exclusively — no names, IDs, or personal data.
     platformStatistics: PlatformStatistics @auth(requires: user)
+    # Aggregate-only statistics scoped to a single club (for the club app).
+    # A club admin (role 2) always sees their own club; role 1 may pass any idClub.
+    clubStatistics(idClub: ID): ClubStatistics @auth(requires: user)
+  }
+
+  # ---- Aggregate-only statistics for one club ----
+  type ClubStatistics {
+    club: String
+    governorate: String
+    teams: Int
+    players: Int
+    members: Int
+    technicals: Int
+    boardManagement: Int
+    assembly: Int
+    stadiums: Int
+    leagues: Int
+    loans: Int
+    transfers: Int
+    totalPeople: Int
+    activities: [ChartResult]
+    ageCategories: [ChartResult]
+    playersByStatus: [ChartResult]
   }
 
   # ---- Aggregate-only statistics (super-admin) ----

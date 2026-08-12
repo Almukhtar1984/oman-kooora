@@ -11,3 +11,4 @@ export * from "./useAllClub";
 export * from "./useStatisticsTeam";
 export * from "./useStatisticsClub";
 export * from "./useChangeStatusAddPlayer";
+export * from "./useClubStatistics";
