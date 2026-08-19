@@ -25,6 +25,7 @@ export const typeDefs = gql`
         tribe:              String
         date_birth:         Date @date(format: "yyyy-MM-dd")
         card_number:        String
+        membership_number:  String
         phone:              String
         type:               String
 
@@ -52,6 +53,7 @@ export const typeDefs = gql`
         tribe:              String
         date_birth:         String
         card_number:        String
+        membership_number:  String
         phone:              String
         type:               String
 

@@ -19,7 +19,8 @@ import {
     RenewAssemblyModal,
     SearchAssemblyModal,
     UpdateAssemblyModal,
-    ShowAssemblyTeamModal
+    ShowAssemblyTeamModal,
+    UploadAssemblyBySheetModal
 } from "../components/Modal";
 
 export default function Assembly() {
@@ -31,6 +32,7 @@ export default function Assembly() {
     const [openRenewModal, setOpenRenewModal] = useState<boolean>(false);
     const [openSearchModal, setOpenSearchModal] = useState<boolean>(false);
     const [openShowAssemblyTeam, setOpenShowAssemblyTeam] = useState<boolean>(false);
+    const [openImportModal, setOpenImportModal] = useState<boolean>(false);
 
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
     const [searchValue, setSearchValue] = useState<string>("");
@@ -251,6 +253,7 @@ export default function Assembly() {
                                         <Menu.Dropdown>
                                             <Menu.Item onClick={() => setOpenAddModal(true)}>إضافة عضو غير موجود</Menu.Item>
                                             <Menu.Item onClick={() => setOpenSearchModal(true)} >إضافة عضو موجود</Menu.Item>
+                                            <Menu.Item onClick={() => setOpenImportModal(true)}>استيراد من إكسل</Menu.Item>
                                         </Menu.Dropdown>
                                     </Menu>
                                     : null
@@ -288,6 +291,15 @@ export default function Assembly() {
             <RenewAssemblyModal title="تجديد اشتراك العضو" data={selectedData} opened={openRenewModal} onClose={() => setOpenRenewModal(false)} />
 
             <ShowAssemblyTeamModal title="الجمعية العمومية للفريق" opened={openShowAssemblyTeam} onClose={() => setOpenShowAssemblyTeam(false)} hasPermission={hasPermission} />
+
+            <UploadAssemblyBySheetModal
+                opened={openImportModal}
+                onClose={() => setOpenImportModal(false)}
+                onImported={() => {
+                    const idClub = userData?.person?.clubManagement?.club?.id;
+                    if (idClub) getAllAssembly({ variables: { idClub }, fetchPolicy: "network-only" });
+                }}
+            />
         </Box>
     );
 }

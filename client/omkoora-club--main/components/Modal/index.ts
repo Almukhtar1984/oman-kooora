@@ -90,3 +90,4 @@ export * from "./ChangeClassificationModal"
 export * from "./ShowStatPlayerList"
 export * from "./AddImagePlayersModal"
 export * from "./FreePlayerModal"
+export * from "./UploadAssemblyBySheetModal";

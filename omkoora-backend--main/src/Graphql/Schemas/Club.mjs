@@ -14,6 +14,10 @@ export const typeDefs = gql`
 
         deleteClub ( id: ID! ): statusDelete @auth(requires: user)
         uploadPlayersSheet(teamId: ID!, file: Upload!): UploadPlayersSheetResult!
+        # Import a club membership register (الجمعية العمومية) from an Excel file.
+        # Robust: maps columns by header name, splits Arabic names, and
+        # preserves the club's own membership number (رقم العضوية).
+        uploadAssemblySheet(idClub: ID!, file: Upload!): UploadAssemblySheetResult! @auth(requires: user)
 
     }
 
@@ -44,6 +48,14 @@ export const typeDefs = gql`
 type UploadPlayersSheetResult {
   numberOfPersonCreated: Int!
   numberOfPersonRefused: Int!
+}
+
+type UploadAssemblySheetResult {
+  created: Int!
+  skipped: Int!
+  duplicates: Int!
+  totalRows: Int!
+  message: String
 }
 
 `;

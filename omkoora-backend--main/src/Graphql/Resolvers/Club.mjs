@@ -6,7 +6,7 @@ import { v4 as UUID } from 'uuid';
 import xlsx from 'xlsx';
 import fs from 'fs';
 import logger from "../../Config/logger.mjs";;
-import {Club, ClubManagement, Members, Person, Team, User, Players} from '../../Models/index.mjs';
+import {Club, ClubManagement, Members, Person, Team, User, Players, Assembly} from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 
@@ -26,6 +26,78 @@ function normalizeDate(raw) {
   if (m.length === 1) m = "0" + m;
   return `${y}-${m}-${d}`;
 }
+
+// --- Helpers for the assembly-register Excel import (اللائحة/الجمعية العمومية) ---
+const NAME_TITLES = new Set(["الشيخ", "السيد", "الدكتور", "الاستاذ", "الأستاذ", "المهندس", "الحاج", "المكرم", "معالي", "سعادة", "د", "م", "أ"]);
+// Split an Arabic full name into [first, second, third, tribe], بن/ابن aware.
+function splitArabicName(raw) {
+  if (!raw) return ["", "", "", ""];
+  let toks = ("" + raw).replace(/[\/.]/g, " ").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  while (toks.length && NAME_TITLES.has(toks[0])) toks.shift();
+  if (!toks.length) return ["", "", "", ""];
+  const first = toks[0];
+  const tribe = toks.length > 1 ? toks.pop() : "";
+  const rest = toks.slice(1);
+  const take = () => {
+    if (rest.length >= 2 && (rest[0] === "بن" || rest[0] === "ابن")) return rest.splice(0, 2).join(" ");
+    if (rest.length) return rest.shift();
+    return "";
+  };
+  const second = take();
+  const third = take();
+  const cap = (s) => (s || "").slice(0, 20);
+  return [cap(first), cap(second), cap(third), cap(tribe)];
+}
+// Only return a date the DB will accept; anything else → null (so a bad
+// value never fails the whole insert). Bare years become YYYY-01-01.
+function _validDate(y, m, d) {
+  const yi = parseInt(y, 10), mi = parseInt(m, 10), di = parseInt(d, 10);
+  if (!(yi >= 1300 && yi <= 2100)) return null;
+  if (!(mi >= 1 && mi <= 12)) return null;
+  if (!(di >= 1 && di <= 31)) return null;
+  const pad = (n) => ("0" + n).slice(-2);
+  return `${yi}-${pad(mi)}-${pad(di)}`;
+}
+function toDateOnly(raw) {
+  if (raw === null || raw === undefined) return null;
+  let s = ("" + raw).replace(/[مهـ]/g, "").trim();
+  if (!s) return null;
+  if (/[\/\-]/.test(s)) {
+    const p = s.split(/[\/\-]/).map((x) => x.trim()).filter(Boolean);
+    if (p.length >= 3) {
+      let y, m, d;
+      if (p[0].length === 4) { [y, m, d] = p; } else { [d, m, y] = p; }
+      if (/^\d{2}$/.test(y)) { const n = parseInt(y, 10); y = n < 30 ? "20" + y : "19" + y; }
+      if (!/^\d{4}$/.test(y)) return null;
+      return _validDate(y, m, d);
+    }
+  }
+  let m4 = s.match(/^(\d{4})$/); if (m4) return _validDate(m4[1], 1, 1);
+  let m2 = s.match(/^(\d{2})$/); if (m2) { const n = parseInt(m2[1], 10); return _validDate(`${n < 30 ? "20" : "19"}${m2[1]}`, 1, 1); }
+  return null;
+}
+const ASSEMBLY_TYPES = { "عامل": "عامل", "منتسب": "منتسب", "منتنسب": "منتسب", "نتسب": "منتسب", "انتساب": "منتسب", "رائد": "رائد", "رياضي": "رياضي" };
+function normAssemblyType(v) {
+  if (v === null || v === undefined) return null;
+  const s = ("" + v).trim();
+  if (!s) return null;
+  return ASSEMBLY_TYPES[s] || (s.length <= 20 ? s : null);
+}
+function cleanPhone(v) {
+  if (v === null || v === undefined) return null;
+  const s = ("" + v).trim();
+  if (!/\d/.test(s)) return null; // drop non-numeric junk (e.g. "متوفي")
+  return s.slice(0, 20);
+}
+// Find a column index by any of the accepted header labels.
+function findHeaderCol(headerRow, names) {
+  for (const n of names) {
+    const i = headerRow.findIndex((h) => ("" + (h ?? "")).trim() === n);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
 const {Op, col} = sequelize;
 
 export const resolvers = {
@@ -193,6 +265,118 @@ uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
 
 
 ,
+        uploadAssemblySheet: async (obj, { file, idClub }, context, info) => {
+            try {
+                const { user, isAuth } = context;
+                if (!isAuth || !user) throw new ApolloError("Authentication required", "UNAUTHENTICATED");
+                if (!file) throw new ApolloError("لم يتم رفع أي ملف", "NO_FILE");
+
+                // A club admin (role "2") is scoped to their own club.
+                let targetClubId = idClub;
+                if (user.role === "2") {
+                    const cm = await ClubManagement.findOne({ where: { id_person: user.id_person } });
+                    if (cm) targetClubId = cm.id_club;
+                }
+                if (!targetClubId) throw new ApolloError("لم يتم تحديد النادي", "NO_CLUB");
+
+                const { createReadStream } = await file;
+                const stream = createReadStream();
+                const chunks = [];
+                for await (const chunk of stream) chunks.push(chunk);
+                const buffer = Buffer.concat(chunks);
+
+                const workbook = xlsx.read(buffer, { type: "buffer" });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: false });
+
+                // Locate the header row (must contain a name column).
+                let headerIdx = -1;
+                for (let i = 0; i < Math.min(rows.length, 15); i++) {
+                    const r = (rows[i] || []).map((c) => ("" + (c ?? "")).trim());
+                    if (r.includes("الاسم") || r.includes("اسم العضو") || r.includes("الاسم الكامل")) { headerIdx = i; break; }
+                }
+                if (headerIdx === -1) throw new ApolloError('لم يتم العثور على صف العناوين (يجب أن يحتوي على عمود "الاسم").', "NO_HEADER");
+                const header = (rows[headerIdx] || []).map((c) => ("" + (c ?? "")).trim());
+
+                const idxName  = findHeaderCol(header, ["الاسم", "اسم العضو", "الاسم الكامل"]);
+                const idxMem   = findHeaderCol(header, ["رقم العضوية"]);
+                const idxCivil = findHeaderCol(header, ["الرقم المدني"]);
+                const idxBirth = findHeaderCol(header, ["تاريخ الميلاد"]);
+                const idxPhone = findHeaderCol(header, ["رقم الهاتف", "الهاتف", "رقم الاتف", "الجوال", "رقم الجوال"]);
+                const idxType  = findHeaderCol(header, ["نوع العضوية"]);
+                const idxJoin  = findHeaderCol(header, ["تاريخ الانتساب"]);
+                if (idxName === -1) throw new ApolloError('لم يتم العثور على عمود "الاسم" في الملف.', "NO_NAME_COL");
+
+                // Preload existing keys for this club to skip duplicates on re-import.
+                const existing = await Assembly.findAll({ where: { id_club: targetClubId }, attributes: ["membership_number", "card_number"], paranoid: false });
+                const seen = new Set();
+                for (const e of existing) {
+                    if (e.membership_number) seen.add("m:" + ("" + e.membership_number).trim());
+                    if (e.card_number) seen.add("c:" + ("" + e.card_number).trim());
+                }
+
+                const val = (row, idx) => (idx >= 0 && row[idx] !== undefined && row[idx] !== null ? ("" + row[idx]).trim() : "");
+                const records = [];
+                let totalRows = 0, duplicates = 0, skipped = 0;
+
+                for (let i = headerIdx + 1; i < rows.length; i++) {
+                    const row = rows[i] || [];
+                    const name = val(row, idxName);
+                    if (!name) continue;
+                    totalRows++;
+
+                    const memnum = val(row, idxMem);
+                    const civil = val(row, idxCivil);
+                    const keyM = memnum ? "m:" + memnum : null;
+                    const keyC = civil ? "c:" + civil : null;
+                    if ((keyM && seen.has(keyM)) || (keyC && seen.has(keyC))) { duplicates++; continue; }
+                    if (keyM) seen.add(keyM);
+                    if (keyC) seen.add(keyC);
+
+                    const [first_name, second_name, third_name, tribe] = splitArabicName(name);
+                    const membership_date = toDateOnly(val(row, idxJoin));
+                    records.push({
+                        first_name, second_name, third_name, tribe,
+                        card_number: civil || null,
+                        membership_number: memnum || null,
+                        phone: cleanPhone(val(row, idxPhone)),
+                        date_birth: toDateOnly(val(row, idxBirth)),
+                        type: normAssemblyType(val(row, idxType)),
+                        membership_date,
+                        subscription_date: membership_date,
+                        gender: "male",
+                        id_club: targetClubId,
+                    });
+                }
+
+                let created = 0;
+                const CHUNK = 500;
+                for (let i = 0; i < records.length; i += CHUNK) {
+                    const slice = records.slice(i, i + CHUNK);
+                    try {
+                        const res = await Assembly.bulkCreate(slice, { validate: false });
+                        created += res.length;
+                    } catch (e) {
+                        for (const rec of slice) {
+                            try { await Assembly.create(rec); created++; } catch (_) { skipped++; }
+                        }
+                    }
+                }
+
+                return {
+                    created,
+                    skipped,
+                    duplicates,
+                    totalRows,
+                    message: `تم استيراد ${created} عضو في الجمعية العمومية`
+                        + (duplicates ? ` — تم تخطّي ${duplicates} مكرّر` : "")
+                        + (skipped ? ` — تعذّر إدخال ${skipped}` : ""),
+                };
+            } catch (error) {
+                logger.error(`uploadAssemblySheet error: ${error?.message}`);
+                throw new ApolloError(error?.message || "خطأ أثناء معالجة الملف", "ASSEMBLY_SHEET_FAILED");
+            }
+        },
         createClub: async (obj, {content}, context, info) =>  {
             try {
                 let club = await Club.create({

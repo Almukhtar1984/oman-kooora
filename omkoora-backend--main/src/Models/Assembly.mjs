@@ -27,16 +27,23 @@ export default (db, types) => {
             allowNull: false
         },
         date_birth: {
+            // nullable: imported membership registries often lack birth dates
             type: types.DATEONLY,
-            allowNull: false
+            allowNull: true
         },
         card_number: {
+            // nullable: many imported members have no civil ID on file
             type: types.STRING(50),
-            allowNull: false
+            allowNull: true
+        },
+        // Club's own membership number (رقم العضوية) — preserved on import.
+        membership_number: {
+            type: types.STRING(50),
+            allowNull: true
         },
         phone: {
-            type: types.STRING(15),
-            allowNull: false
+            type: types.STRING(20),
+            allowNull: true
         },
         nationalID: {
             type: types.STRING(100),
@@ -48,7 +55,7 @@ export default (db, types) => {
         },
         membership_date: {
             type: types.DATEONLY,
-            allowNull: false
+            allowNull: true
         },
         gender: {
             type: types.ENUM,
@@ -61,7 +68,7 @@ export default (db, types) => {
         },
         subscription_date: {
             type: types.DATEONLY,
-            allowNull: false
+            allowNull: true
         },
     },{
         timestamps: true,
