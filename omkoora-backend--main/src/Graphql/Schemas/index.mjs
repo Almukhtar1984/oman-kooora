@@ -22,3 +22,5 @@ export {typeDefs as typeNotification} from "./Notifications.mjs"
 export {typeDefs as typeExternal} from "./External.mjs"
 export {typeDefs as typeStat} from "./Stat.mjs"
 export {typeDefs as typeDefsEvent} from "./Event.mjs"
+
+export {typeDefs as typeCommittee} from "./Committee.mjs"

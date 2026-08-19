@@ -42,6 +42,8 @@ import notification     from"./Notification.mjs";
 import playerExternal from "./PlayerExternal.mjs"
 import penalty from './Penalty.mjs'
 import eventModel from './Event.mjs';
+import committeeModel from './Committee.mjs';
+import committeeMemberModel from './CommitteeMember.mjs';
 
 
 
@@ -91,6 +93,8 @@ const PlayerExternal = playerExternal(DB,Sequelize)
 
 const Penalty = penalty(DB,Sequelize)
 const Event = eventModel(DB, Sequelize);
+const Committee = committeeModel(DB, Sequelize);
+const CommitteeMember = committeeMemberModel(DB, Sequelize);
 
 
 
@@ -406,6 +410,12 @@ Penalty.belongsTo(Match, {foreignKey: { name: 'id_match' },onDelete: 'CASCADE',o
 Team.hasMany(Event, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Event.belongsTo(Team, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
+// Club 1 * Committee, Committee 1 * CommitteeMember
+Club.hasMany(Committee, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+Committee.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+Committee.hasMany(CommitteeMember, { foreignKey: { name: 'id_committee' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+CommitteeMember.belongsTo(Committee, { foreignKey: { name: 'id_committee' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+
 if (shouldSyncDb) {
     DB.sync(dbSyncOptions)
         .then(() => {
@@ -421,5 +431,6 @@ export {
     User, Club, Team, Person, Members, Players, TechnicalApparatus, ClubManagement, Transfer, Request,Penalty,
     Assembly, Message, Attachment, Comment, Expense, Meeting, Blog, AttachmentBlog, Form, Permission,
     Stadium, Reservations, League, ParticipatingTeams, Match, MatchCard, ParticipatingPlayers,ParticipatingPlayersMatch,
-    ParticipatingTechnicalStaff, AttachmentPerson, ScorerMatch,Arbitres,AuthTrace,Sanction,ActionLog,Notification,PlayerExternal, Event
+    ParticipatingTechnicalStaff, AttachmentPerson, ScorerMatch,Arbitres,AuthTrace,Sanction,ActionLog,Notification,PlayerExternal, Event,
+    Committee, CommitteeMember
 }
