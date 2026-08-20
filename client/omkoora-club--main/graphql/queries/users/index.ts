@@ -16,3 +16,5 @@ export * from "./SettingsUser"
 export * from "./StatisticsAdmin"
 export * from "./GetPerson"
 export * from "./SearchPersons"
+
+export * from "./UpdatePassword"

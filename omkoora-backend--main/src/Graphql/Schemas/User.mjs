@@ -37,6 +37,8 @@ export const typeDefs = gql`
 
         forgetPassword(email: String): statusUpdate!
         changePassword(content: contentChangePassword): statusUpdate!
+        # Change the logged-in account's own password (verifies the current one).
+        updatePassword(oldPassword: String!, newPassword: String!): statusUpdate! @auth(requires: user)
 
         activeUser (id: ID!, activation: Boolean): statusUpdate! @auth(requires: user)
         logOut: statusDelete

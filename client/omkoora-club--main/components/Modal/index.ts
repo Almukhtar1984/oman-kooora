@@ -91,3 +91,5 @@ export * from "./ShowStatPlayerList"
 export * from "./AddImagePlayersModal"
 export * from "./FreePlayerModal"
 export * from "./UploadAssemblyBySheetModal";
+
+export * from "./ChangeMyPasswordModal";

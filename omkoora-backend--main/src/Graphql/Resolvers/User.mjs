@@ -625,6 +625,30 @@ export const resolvers = {
             }
         },
 
+        updatePassword: async (obj, {oldPassword, newPassword}, context, info) => {
+            try {
+                const {user, isAuth} = context;
+                if (!isAuth || !user) return new AuthenticationError("Authentication required");
+                if (!newPassword || newPassword.length < 6) {
+                    return new ApolloError("كلمة المرور الجديدة قصيرة جدًا", "PASSWORD_TOO_SHORT");
+                }
+                const dbUser = await User.findByPk(user.id);
+                if (!dbUser) return new AuthenticationError("User does not exist");
+
+                const isMatch = await comparePassword(oldPassword, dbUser.password);
+                if (!isMatch) {
+                    return new ApolloError("كلمة المرور الحالية غير صحيحة", "OLD_PASSWORD_INCORRECT");
+                }
+
+                const hash = await hashPassword(newPassword);
+                const result = await User.update({password: hash}, {where: {id: dbUser.id}});
+                return {status: result[0] === 1};
+            } catch (error) {
+                logger.error("updatePassword: " + error.message);
+                throw new ApolloError(error);
+            }
+        },
+
         activeUser: async (obj, {id, activation}, context, info) => {
             try {
                 let user = await User.update({activation}, { where: { id } })

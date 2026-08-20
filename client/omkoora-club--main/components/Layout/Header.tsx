@@ -1,12 +1,12 @@
 import { ActionIcon, Box, Button, Container, Flex, MantineTheme, Menu, Text, Tooltip, Divider, Burger, Drawer, Stack, Group, Avatar } from "@mantine/core";
 import React, { useEffect, useState } from "react";
-import { ChevronDown, Logout, Search, BellRinging, User, ShieldLock, Activity, Home, BallFootball, Users, Inbox, Send, CalendarEvent, Article, FileText, ArrowsLeftRight, Repeat } from "tabler-icons-react";
+import { ChevronDown, Logout, Search, Lock, BellRinging, User, ShieldLock, Activity, Home, BallFootball, Users, Inbox, Send, CalendarEvent, Article, FileText, ArrowsLeftRight, Repeat } from "tabler-icons-react";
 import { useTheme } from "@emotion/react";
 import { useDisclosure } from "@mantine/hooks";
 import useStore from "../../store/useStore";
 import { useRouter } from "next/router";
 import { useLogout } from "../../graphql";
-import { SearchPerson } from "../Modal";
+import { SearchPerson, ChangeMyPasswordModal } from "../Modal";
 import useSocket from "../../sockets/useSocket";
 import { useAllNotificationClub, useMarkNotificationsAsRead } from "../../graphql"; // Import the hook
 import { getTimeAgo } from "../../lib/helpers/Time"
@@ -34,6 +34,7 @@ const Header = (props: Props) => {
     const router = useRouter();
     const [logOut, { data }] = useLogout();
     const [openShowModal, setOpenShowModal] = useState<boolean>(false);
+    const [openChangePw, setOpenChangePw] = useState<boolean>(false);
     const [notificationsList, setNotifications] = useState<Notification[]>([]);
     const [drawerOpened, { toggle: toggleDrawer, close: closeDrawer }] = useDisclosure(false);
     const { clubManagement } = userData?.person || {};
@@ -312,6 +313,9 @@ const Header = (props: Props) => {
                                     <Text size="xs" color="gray.5">{userData?.email || ""}</Text>
                                 </Box>
                                 <Box p={4}>
+                                    <Menu.Item icon={<Lock size={16} />} onClick={() => setOpenChangePw(true)} sx={{ fontWeight: 500 }}>
+                                        تغيير كلمة المرور
+                                    </Menu.Item>
                                     <Menu.Item color="red" icon={<Logout size={16} />} onClick={onLogout} sx={{ fontWeight: 500 }}>
                                         تسجيل الخروج
                                     </Menu.Item>
@@ -408,6 +412,7 @@ const Header = (props: Props) => {
             </Drawer>
 
             <SearchPerson title="بحث بالرقم المدني" opened={openShowModal} data={null} onClose={() => setOpenShowModal(false)} />
+            <ChangeMyPasswordModal opened={openChangePw} onClose={() => setOpenChangePw(false)} />
         </Box>
     );
 };

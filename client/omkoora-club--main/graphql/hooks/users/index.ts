@@ -19,6 +19,7 @@ import useForgetPassword from "./useForgetPassword";
 import useChangePassword from "./useChangePassword";
 import useGetPerson from "./useGetPerson";
 import useSearchPersons from "./useSearchPersons";
+import useUpdatePassword from "./useUpdatePassword";
 
 
 export {
@@ -42,5 +43,6 @@ export {
   useForgetPassword,
   useChangePassword,
   useGetPerson,
-  useSearchPersons
+  useSearchPersons,
+  useUpdatePassword
 };
