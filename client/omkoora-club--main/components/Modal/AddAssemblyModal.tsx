@@ -62,8 +62,8 @@ export const AddAssemblyModal = (props: Props) => {
         if (props.opened && props.data) {
             // Handle both { person: {...} } and {...} structures
             const person = props.data.person || props.data;
-            
-            if (person && person.card_number) {
+
+            if (person && (person.card_number || person.first_name)) {
                 form.setValues({
                     first_name:     person?.first_name || "",
                     second_name:    person?.second_name || "",

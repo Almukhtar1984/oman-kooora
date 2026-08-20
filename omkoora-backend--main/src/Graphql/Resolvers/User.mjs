@@ -71,6 +71,32 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
+        searchPersons: async (obj, {query}, context, info) => {
+            try {
+                const q = (query || "").trim();
+                if (!q) return [];
+                const tokens = q.split(/\s+/).filter(Boolean);
+                const nameField = (t) => ({ [Op.or]: [
+                    { first_name:  { [Op.like]: `%${t}%` } },
+                    { second_name: { [Op.like]: `%${t}%` } },
+                    { third_name:  { [Op.like]: `%${t}%` } },
+                    { tribe:       { [Op.like]: `%${t}%` } },
+                ]});
+                return await Person.findAll({
+                    where: {
+                        [Op.or]: [
+                            { card_number: { [Op.like]: `%${q}%` } },
+                            { [Op.and]: tokens.map(nameField) },
+                        ],
+                    },
+                    limit: 25,
+                    order: [["first_name", "ASC"]],
+                });
+            } catch (error) {
+                logger.error("searchPersons: " + error.message);
+                throw new ApolloError(error);
+            }
+        },
         personExternal: async (obj, { cardNumber, phone }, context, info) => {
             try {
               // Check if either cardNumber or phone is provided

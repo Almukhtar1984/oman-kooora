@@ -7,6 +7,9 @@ export const typeDefs = gql`
         allUser: [User!] @auth(requires: user)
         
         person(cardNumber: String): Person @auth(requires: user)
+        # Search persons by name (any part) or civil id — for adding an existing
+        # player / staff / board member to the general assembly.
+        searchPersons(query: String!): [Person!] @auth(requires: user)
         personExternal(cardNumber: String, phone: String): Person
         currentUser: User! @auth(requires: user)
         refreshToken: AuthUser

@@ -18,6 +18,7 @@ import useAllRequestsYearly from "./useAllRequestsYearly";
 import useForgetPassword from "./useForgetPassword";
 import useChangePassword from "./useChangePassword";
 import useGetPerson from "./useGetPerson";
+import useSearchPersons from "./useSearchPersons";
 
 
 export {
@@ -40,5 +41,6 @@ export {
   useAllRequestsYearly,
   useForgetPassword,
   useChangePassword,
-  useGetPerson
+  useGetPerson,
+  useSearchPersons
 };
