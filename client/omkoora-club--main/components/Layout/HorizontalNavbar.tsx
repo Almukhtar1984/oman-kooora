@@ -16,7 +16,11 @@ import {
     Activity,
     ChartBar,
     Scale,
+    Trophy,
 } from "tabler-icons-react";
+
+// Public league/competitions site. Override with NEXT_PUBLIC_LEAGUE_URL.
+const LEAGUE_URL = process.env.NEXT_PUBLIC_LEAGUE_URL || "https://league.omkooora.com";
 import useStore from "../../store/useStore";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -133,6 +137,7 @@ const HorizontalNavbar = () => {
         { path: '/players_loan', label: 'إعارات اللاعبين', icon: <Repeat size={20} />, show: hasPermission("loanPlayers", "1") },
         { path: '/messages', label: ' الرسائل', icon: <Inbox size={20} />, show: hasPermission("inbox", "1") },
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={20} />, show: hasPermission("meetings", "1") },
+        { path: LEAGUE_URL, label: 'المسابقات', icon: <Trophy size={20} />, external: true, show: true },
         { path: '/blog', label: 'الأخبار', icon: <Article size={20} />, show: hasPermission("blogs", "1") },
         { path: '/forms', label: 'الاستمارات', icon: <FileText size={20} />, show: hasPermission("forms", "1") },
         { path: '/powers', label: 'الصلاحيات', icon: <ShieldLock size={20} />, show: hasPermission("permissions", "1") },
