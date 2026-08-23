@@ -106,17 +106,50 @@ export const resolvers = {
 
                 let result = await ClubManagement.update({membership_date: content.membership_date, membership_date_end: content.membership_date_end}, { where: { id } })
                 
+                // Build a User-only patch. `content.user` also carries the
+                // nested person payload and never belongs in User.update as-is.
+                // Password is touched only when the caller sent a new non-empty
+                // value, otherwise the existing hash stays put. (The previous
+                // version had a typo — `passwor` — so an empty password field
+                // was written straight through, wiping the hash and locking the
+                // manager out on the next login.)
                 let user = null
+                const userPatch = {}
+
+                if (content.user.email !== undefined && content.user.email !== null && content.user.email !== "") {
+                    // Two users sharing an email make login ambiguous: the save
+                    // lands on this row while authenticateUser resolves the
+                    // other one. Refuse instead of creating that state.
+                    const clash = await User.findOne({
+                        where: {
+                            email: content.user.email,
+                            id_person: { [Op.ne]: idPerson }
+                        }
+                    })
+
+                    if (clash) {
+                        return new ApolloError("email already exists", "EMAIL_ALREADY_EXIST")
+                    }
+
+                    userPatch.email = content.user.email
+                }
+
+                if (content.user.role !== undefined && content.user.role !== null && content.user.role !== "") {
+                    userPatch.role = content.user.role
+                }
+
                 if (content.user.password && content.user.password !== "") {
-                    let password = await hashPassword(content.user.password);
-                    user = await User.update({...content.user, password}, { where: { id_person: idPerson } })
-                } else {
-                    delete content.user.passwor
-                    user = await User.update({...content.user}, { where: { id_person: idPerson } })
+                    userPatch.password = await hashPassword(content.user.password);
+                }
+
+                if (Object.keys(userPatch).length > 0) {
+                    user = await User.update(userPatch, { where: { id_person: idPerson } })
                 }
               
                 return {
-                    status: result[0] === 1 || person[0] === 1 || user[0] === 1
+                    status: (result && result[0] === 1)
+                        || (person && person[0] === 1)
+                        || (user && user[0] === 1)
                 }
             } catch (error) {
                 

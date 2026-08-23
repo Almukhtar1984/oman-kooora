@@ -304,13 +304,27 @@ export const resolvers = {
             try {
                 const { appKey } = context;
 
-                const user = await User.findOne({
-                    where: { email: content.email }
+                // The email column has no unique index and duplicates exist in
+                // production, so an unordered findOne could resolve to a stale
+                // twin of the intended account — the row a super-admin edit
+                // never touches. Prefer a row that actually has a password hash,
+                // then the most recently updated one, so the lookup is stable.
+                const candidates = await User.findAll({
+                    where: { email: content.email },
+                    order: [['updatedAt', 'DESC']]
                 });
 
                 // User is existed
-                if (!user) {
+                if (!candidates || candidates.length === 0) {
                     return new ApolloError('User not found', 'USER_NOT_EXIST');
+                }
+
+                const user = candidates.find((row) => row.password && row.password !== "") || candidates[0];
+
+                // An empty hash makes bcrypt.compare reject every password, which
+                // surfaces to the user as "wrong password" on a correct one.
+                if (!user.password || user.password === "") {
+                    return new ApolloError("Account has no password set", "PASSWORD_NOT_SET");
                 }
 
                 let isMatch = await comparePassword(content.password, user.password);
@@ -417,22 +431,22 @@ export const resolvers = {
 
                 const person = await Person.update({...content.person}, { where: { id: user.id_person } })
 
-                let password = null;
+                // contentUser carries `password`, never `newPassword` — hashing
+                // the latter fed bcrypt an undefined value, and the helper's
+                // error object was then written into the password column,
+                // locking the account out for good.
+                const patch = {...content}
+                delete patch.person
+                delete patch.password
 
                 if (content.password && content.password !== "") {
-                    password = await hashPassword(content.newPassword);
+                    patch.password = await hashPassword(content.password);
                 }
 
-                if (password !== null) {
-                    result = await User.update({...content, password}, { where: { id } })
-                } else {
-                    delete content.password
-
-                    result = await User.update({...content}, { where: { id } })
-                }
+                result = await User.update(patch, { where: { id } })
 
                 return {
-                    status: person[0] === 1 || result[0] === 1
+                    status: (person && person[0] === 1) || (result && result[0] === 1)
                 }
             } catch (error) {
                 logger.error("")
