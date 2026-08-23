@@ -595,61 +595,59 @@ export const resolvers = {
             console.log("content", content);
             try {
                 let allResults = [];
-                let alreadyExistsCount = 0; // Counter for existing people in the database
-        
+                let alreadyExistsCount = 0; // already-in-DB (by civil id / phone)
+                let failedCount = 0;        // rows that couldn't be inserted
+
+                const clean = (v) => (v === null || v === undefined ? "" : String(v).trim());
+
                 for (let index = 0; index < content.length; index++) {
-                    const element = content[index];
-                    console.log("====================element======================");
-                    console.log("element", element);
-                    console.log("Card Number:", element?.person.card_number);
-                    console.log("==========================================");
-        
-                    // Skip iteration if card_number is undefined
-                    if (!element?.person?.card_number) {
-                        console.log("Skipping: Card number is undefined");
-                        continue;
+                    const element = content[index] || {};
+                    const src = element.person || {};
+
+                    // NOT-NULL person columns: coerce missing values to "" so
+                    // incomplete rows (no phone / birth date) still import
+                    // instead of aborting the whole batch.
+                    const person = {
+                        first_name:  clean(src.first_name),
+                        second_name: clean(src.second_name),
+                        third_name:  clean(src.third_name),
+                        tribe:       clean(src.tribe),
+                        phone:       clean(src.phone),
+                        date_birth:  clean(src.date_birth),
+                        card_number: clean(src.card_number) || null,
+                        personal_picture: src.personal_picture || null,
+                    };
+
+                    // Need at least a name to create a person.
+                    if (!person.first_name && !person.second_name) { failedCount++; continue; }
+
+                    // Duplicate check: by civil id, and by phone ONLY when it is
+                    // non-empty (otherwise every blank-phone row would match).
+                    const orConds = [];
+                    if (person.card_number) orConds.push({ card_number: person.card_number });
+                    if (person.phone) orConds.push({ phone: person.phone });
+                    if (orConds.length) {
+                        const onePerson = await Person.findOne({ where: { [Op.or]: orConds } });
+                        if (onePerson) { alreadyExistsCount++; continue; }
                     }
-        
-                    // Check if a person with the same card number or phone already exists
-                    const onePerson = await Person.findOne({
-                        where: {
-                            [Op.or]: [
-                                { card_number: element.person.card_number },
-                                { phone: element.person.phone }
-                            ]
-                        }
-                    });
-        
-                    if (onePerson) {
-                        // Increment counter if person already exists
-                        alreadyExistsCount++;
-                    } else {
-                        console.log("====== Creating new person ========");
-                        // Create new person and player if they don't already exist
-                        let person = await Person.create(element.person);
-                        if (person) {
-                            if (!element.type) {
-                                element.type = "internal";
-                            }
-                            let result = await Players.create({ ...element, id_person: person.id });
-                            allResults.push(result);
-                        }
+
+                    try {
+                        const created = await Person.create(person);
+                        const { person: _p, ...playerFields } = element;
+                        if (!playerFields.type) playerFields.type = "internal";
+                        const result = await Players.create({ ...playerFields, id_person: created.id });
+                        allResults.push(result);
+                    } catch (rowErr) {
+                        logger?.error?.(`createListPlayer row failed: ${rowErr.message}`);
+                        failedCount++;
                     }
                 }
-        
-                console.log("alreadyExistsCount:", alreadyExistsCount);
-        
-                // If there are existing records, throw an error with a custom message
-                if (alreadyExistsCount > 0) {
-                    const error = new ApolloError(`من أصل ${content.length} لم يتم اضافة ${alreadyExistsCount} لاعبا لوجود تكرار الرقم المدني`);
-                    error.extensions.code = "DUPLICATE_CIVIL_ID";  // Set custom error code
-                    error.extensions.count = alreadyExistsCount;    // Add count to extensions
-                    throw error;
-                }
-                // Return both the created players and the count of already existing people
-                return {
-                    createdPlayers: allResults
-                };
+
+                // Return the created players as an array to match the schema
+                // ([Player!]). Skipped/duplicate rows are not errors — the valid
+                // players are saved and returned.
+                logger?.info?.(`createListPlayer: created ${allResults.length}, duplicates ${alreadyExistsCount}, failed ${failedCount}, total ${content.length}`);
+                return allResults;
             } catch (error) {
                 console.log("error", error);
                 throw new ApolloError(error.message, error.code || "INTERNAL_SERVER_ERROR");
