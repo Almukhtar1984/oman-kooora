@@ -95,10 +95,12 @@ export const MemberCard = ({
             label: 'التاريخ',
             value: data?.membership_date ? dayjs(data.membership_date).format('YYYY-MM-DD') : (data?.createdAt ? dayjs(data.createdAt).format('YYYY-MM-DD') : '-'),
         },
-        {
-            label: 'النوع',
-            value: type === 'player' ? 'لاعب' : type === 'technical' ? 'جهاز فني' : type === 'member' ? 'عضو' : type === 'assembly' ? 'عمومية' : type === 'transfer' ? 'انتقال' : 'إعارة',
-        },
+        (type === 'assembly'
+            ? { label: 'رقم العضوية', value: data?.membership_number || '-' }
+            : {
+                label: 'النوع',
+                value: type === 'player' ? 'لاعب' : type === 'technical' ? 'جهاز فني' : type === 'member' ? 'عضو' : type === 'transfer' ? 'انتقال' : 'إعارة',
+            }),
     ];
 
     const getTransferInfo = () => {
