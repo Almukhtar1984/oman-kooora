@@ -9,6 +9,7 @@ export const exportToExcel = (data: any[], fileName: string) => {
     // Map data to Arabic headers
     const worksheetData = data.map(item => ({
         'الاسم': `${item?.first_name || ''} ${item?.second_name || ''} ${item?.third_name || ''} ${item?.tribe || ''}`.trim(),
+        'رقم العضوية': item?.membership_number || '-',
         'الرقم المدني': item?.card_number || '-',
         'رقم الهاتف': item?.phone || '-',
         'تاريخ الميلاد': item?.date_birth || '-',
