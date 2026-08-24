@@ -78,7 +78,7 @@ export default function Assembly() {
 
         // 1. Search Filter
         if (searchValue) {
-            filtered = searchSortedData(filtered, ['first_name', 'second_name', 'third_name', 'tribe', 'card_number'], searchValue);
+            filtered = searchSortedData(filtered, ['first_name', 'second_name', 'third_name', 'tribe', 'card_number', 'membership_number'], searchValue);
         }
 
         // 2. Status Filter
@@ -164,7 +164,7 @@ export default function Assembly() {
                                 <TextInput 
                                     value={searchValue} 
                                     icon={<Search color={theme.colors.gray[4]} size={16} />} 
-                                    placeholder="البحث بالاسم أو الرقم المدني" 
+                                    placeholder="البحث بالاسم أو الرقم المدني أو رقم العضوية"
                                     onChange={handleSearchChange}
                                     sx={{ width: 250 }}
                                 />

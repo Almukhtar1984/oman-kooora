@@ -10,6 +10,7 @@ export const AllAssembly = gql`
             tribe
             date_birth
             card_number
+            membership_number
             phone
             type
             nationalID
