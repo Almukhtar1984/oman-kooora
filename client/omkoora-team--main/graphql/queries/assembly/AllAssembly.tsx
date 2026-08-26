@@ -1,8 +1,8 @@
 import {gql} from "@apollo/client";
 
 export const AllAssembly = gql`
-    query AllAssembly($idClub: ID) {
-        allAssemblyClub(idClub: $idClub) {
+    query AllAssembly($idTeam: ID) {
+        allAssemblyTeam(idTeam: $idTeam) {
             id
             first_name
             second_name

@@ -128,8 +128,11 @@ export default function Home() {
             getAllMembers({ variables: { idTeam: teamId } });
             getAllTechnical({ variables: { idTeam: teamId } });
         }
-        if (team?.club?.id) {
-            getAllAssembly({ variables: { idClub: team.club.id } });
+        if (teamId) {
+            // The general assembly on the team dashboard must be scoped to THIS
+            // team (id_team), not the whole club — otherwise every club member
+            // shows up here.
+            getAllAssembly({ variables: { idTeam: teamId } });
         }
     }, [teamId, team?.club?.id]);
 
@@ -540,7 +543,7 @@ export default function Home() {
                                     </Group>
                                     <MemberSection
                                         type="assembly"
-                                        list={assemblyData?.allAssemblyClub || []}
+                                        list={assemblyData?.allAssemblyTeam || []}
                                         hasPermission={makeHasPermission("assembly")}
                                         onEdit={(item) => handleEdit(item, 'assembly')}
                                         onDelete={(id) => handleDelete(id, 'assembly')}
