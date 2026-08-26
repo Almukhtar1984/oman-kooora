@@ -1,10 +1,9 @@
 import { Box, Col, Container, Divider, Grid, Group, Stack, Text, useMantineTheme } from "@mantine/core";
 import Head from "next/head";
 import React, { useEffect, useState } from "react";
-import { Users, BallFootball, AlertCircle, CalendarTime, Article, Speakerphone, ShieldCheck } from "tabler-icons-react";
+import { Users, BallFootball, CircleX, Clock, Article, Speakerphone, ShieldCheck, SoccerField } from "tabler-icons-react";
 import useStore from "../store/useStore";
 import { useStatisticsClub } from "../graphql";
-import { GiAbstract042 } from "react-icons/gi";
 
 import { GradientStatCard, OutlineStatCard } from "../components/Stats/ModernStatCards";
 
@@ -79,7 +78,7 @@ export default function Home() {
                             gradientFrom={theme.colors.orange[4]}
                             gradientTo={theme.colors.orange[6]}
                             accentColor={theme.colors.orange[6]}
-                            icon={<CalendarTime size={22} color="white" />}
+                            icon={<Clock size={22} color="white" />}
                         />
                     </Col>
                     <Col span={12} xs={6} md={4} lg={3}>
@@ -99,7 +98,7 @@ export default function Home() {
                             gradientFrom={theme.colors.red[4]}
                             gradientTo={theme.colors.red[6]}
                             accentColor={theme.colors.red[6]}
-                            icon={<AlertCircle size={22} color="white" />}
+                            icon={<CircleX size={22} color="white" />}
                         />
                     </Col>
                 </Grid>
@@ -149,7 +148,7 @@ export default function Home() {
                             accentColor={theme.colors.cyan[7]}
                             borderColor={theme.colors.cyan[2]}
                             iconBg={theme.colors.cyan[0]}
-                            icon={<GiAbstract042 size={28} color={theme.colors.cyan[6]} />}
+                            icon={<SoccerField size={28} color={theme.colors.cyan[6]} />}
                         />
                     </Col>
                 </Grid>
