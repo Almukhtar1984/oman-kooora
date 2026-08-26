@@ -66,7 +66,7 @@ export default function PlayersLoan() {
 
         if (userData && "permission" in userData && userData.permission !== null) {
             const permission = userData?.permission
-            setPermissions(permission?.loanPlayers?.split(","))
+            setPermissions(permission?.loan_players?.split(","))
         }
     }, [userData])
 

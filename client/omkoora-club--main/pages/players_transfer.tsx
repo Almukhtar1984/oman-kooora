@@ -62,7 +62,7 @@ export default function PlayersTransfer() {
 
         if (userData && "permission" in userData && userData.permission !== null) {
             const permission = userData?.permission
-            setPermissions(permission?.transferPlayers?.split(","))
+            setPermissions(permission?.transfer_players?.split(","))
         }
     }, [userData])
 
