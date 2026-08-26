@@ -163,103 +163,89 @@ export const resolvers = {
     Mutation: {
 uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
   try {
+    const { user, isAuth } = context;
+    if (!isAuth || !user) throw new ApolloError("Authentication required", "UNAUTHENTICATED");
     if (!file) throw new ApolloError("لم يتم رفع أي ملف", "NO_FILE");
     if (!teamId) throw new ApolloError("لم يتم اختيار الفريق", "NO_TEAM");
 
     const { createReadStream } = await file;
     const stream = createReadStream();
     const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
+    for await (const chunk of stream) chunks.push(chunk);
     const buffer = Buffer.concat(chunks);
 
-    const workbook = xlsx.read(buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const sheetArr = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: false });
+    const workbook = xlsx.read(buffer, { type: "buffer" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: false });
 
-    // Find header row index (look for "اسم العضو")
-    let headerRowIdx = -1;
-    for (let i = 0; i < sheetArr.length; i++) {
-      if (sheetArr[i].includes("اسم العضو")) {
-        headerRowIdx = i;
-        break;
+    // Locate the header row (must contain a name column of some kind).
+    let headerIdx = -1;
+    for (let i = 0; i < Math.min(rows.length, 15); i++) {
+      const r = (rows[i] || []).map((c) => ("" + (c ?? "")).trim());
+      if (r.includes("الاسم") || r.includes("اسم العضو") || r.includes("الاسم الكامل") || r.includes("الاسم الأول")) { headerIdx = i; break; }
+    }
+    if (headerIdx === -1) throw new ApolloError('لم يتم العثور على صف العناوين (يجب أن يحتوي عمود "الاسم").', "NO_HEADER");
+    const header = (rows[headerIdx] || []).map((c) => ("" + (c ?? "")).trim());
+
+    const idxFull   = findHeaderCol(header, ["الاسم", "اسم العضو", "الاسم الكامل"]);
+    const idxFirst  = findHeaderCol(header, ["الاسم الأول"]);
+    const idxSecond = findHeaderCol(header, ["الاسم الثاني"]);
+    const idxThird  = findHeaderCol(header, ["الاسم الثالث"]);
+    const idxTribe  = findHeaderCol(header, ["القبيلة"]);
+    const idxCivil  = findHeaderCol(header, ["الرقم المدني"]);
+    const idxBirth  = findHeaderCol(header, ["تاريخ الميلاد"]);
+    const idxPhone  = findHeaderCol(header, ["رقم الهاتف", "الهاتف", "رقم الاتف", "الجوال", "رقم الجوال"]);
+    if (idxFull === -1 && idxFirst === -1) throw new ApolloError('لم يتم العثور على عمود "الاسم" في الملف.', "NO_NAME_COL");
+
+    const cap = (v, n) => ("" + (v ?? "")).trim().slice(0, n);
+    const val = (row, idx) => (idx >= 0 && row[idx] !== undefined && row[idx] !== null ? ("" + row[idx]).trim() : "");
+
+    // Skip civil ids already present so re-runs don't duplicate people.
+    let created = 0, duplicates = 0, failed = 0, total = 0;
+
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      // Resolve name parts: prefer explicit split columns, else split the full name.
+      let first_name, second_name, third_name, tribe;
+      if (idxFirst >= 0) {
+        first_name = cap(val(row, idxFirst), 20); second_name = cap(val(row, idxSecond), 20);
+        third_name = cap(val(row, idxThird), 20); tribe = cap(val(row, idxTribe), 20);
+      } else {
+        [first_name, second_name, third_name, tribe] = splitArabicName(val(row, idxFull));
+      }
+      const civil = cap(val(row, idxCivil), 50) || null;
+      if (!first_name && !civil) continue; // empty row
+      total++;
+
+      if (civil) {
+        const exists = await Person.findOne({ where: { card_number: civil } });
+        if (exists) { duplicates++; continue; }
+      }
+
+      try {
+        const person = await Person.create({
+          first_name: first_name || "", second_name: second_name || "", third_name: third_name || "", tribe: tribe || "",
+          card_number: civil,
+          phone: cap(cleanPhone(val(row, idxPhone)) || "", 15),
+          date_birth: (toDateOnly(val(row, idxBirth)) || ""),
+        });
+        await Players.create({ id_person: person.id, id_team: teamId, activity: "", player_center: "", job: "", type: "internal" });
+        created++;
+      } catch (rowErr) {
+        logger.error(`uploadPlayersSheet row failed: ${rowErr.message}`);
+        failed++;
       }
     }
-    if (headerRowIdx === -1) throw new ApolloError("لم يتم العثور على صف العناوين الصحيح في الملف.");
 
-    // Map columns to keys
-    const headerRow = sheetArr[headerRowIdx];
-    const idxMemberName = headerRow.indexOf("اسم العضو");
-    const idxCivilId = headerRow.indexOf("الرقم المدني");
-    const idxBirthDate = headerRow.indexOf("تاريخ الميلاد");
-    const idxClubName = headerRow.indexOf("اسم النادي");
-
-    // Build data rows under header
-    const dataRows = [];
-    for (let i = headerRowIdx + 1; i < sheetArr.length; i++) {
-      const row = sheetArr[i];
-      if (!row || row.length === 0) continue;
-      dataRows.push({
-        memberName: row[idxMemberName] || "",
-        civilId: row[idxCivilId] || "",
-        birthDate: row[idxBirthDate] || "",
-        clubName: row[idxClubName] || ""
-      });
-    }
-
-    let created = 0;
-    let refused = 0;
-
-    for (const row of dataRows) {
-      const civilId = (row.civilId || "").trim();
-      if (!civilId) continue;
-
-      // 1. Check if الرقم المدني exists in Person
-      const personExists = await Person.findOne({ where: { card_number: civilId } });
-      if (personExists) {
-        refused++;
-        continue;
-      }
-
-      // 2. Split name
-      const nameRaw = (row.memberName || "").trim();
-      let [first_name = "", second_name = "", third_name = "", tribe = ""] = nameRaw.split(" ");
-      [first_name, second_name, third_name, tribe] = [first_name, second_name, third_name, tribe].map(x => x || "");
-
-      // 3. Create new Person
-      const newPerson = await Person.create({
-        first_name,
-        second_name,
-        third_name,
-        tribe,
-        card_number: civilId,
-        phone: "",
-        date_birth: normalizeDate(row.birthDate),
-      });
-
-      // 4. Create Player for that person
-      await Players.create({
-        id_person: newPerson.id,
-        id_team: teamId,
-        activity: "",
-        player_center: "",
-        job: "",
-        type: "internal",
-      });
-
-      created++;
-    }
-
+    logger.info(`uploadPlayersSheet: created ${created}, duplicates ${duplicates}, failed ${failed}, total ${total}`);
     return {
       numberOfPersonCreated: created,
-      numberOfPersonRefused: refused
+      numberOfPersonRefused: duplicates + failed,
+      created, duplicates, failed, total,
     };
-
   } catch (error) {
-    console.error(error);
-    throw new ApolloError(error?.message || "خطأ أثناء معالجة الملف");
+    logger.error(`uploadPlayersSheet error: ${error?.message}`);
+    throw new ApolloError(error?.message || "خطأ أثناء معالجة الملف", "PLAYERS_SHEET_FAILED");
   }
 }
 

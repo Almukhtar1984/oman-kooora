@@ -48,6 +48,10 @@ export const typeDefs = gql`
 type UploadPlayersSheetResult {
   numberOfPersonCreated: Int!
   numberOfPersonRefused: Int!
+  created: Int
+  duplicates: Int
+  failed: Int
+  total: Int
 }
 
 type UploadAssemblySheetResult {

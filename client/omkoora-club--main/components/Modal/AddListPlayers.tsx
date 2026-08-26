@@ -1,304 +1,120 @@
-import { Alert, Box, Button, Col, Grid, Group, Loader, Overlay, Stack, Table, Text } from "@mantine/core";
-import {Check, InfoCircle, X} from "tabler-icons-react";
-import React, {useEffect, useRef, useState} from "react";
-import { useForm } from "@mantine/form";
+import { Alert, Box, Button, Group, List, Loader, Overlay, Stack, Text, ThemeIcon } from "@mantine/core";
+import { Check, InfoCircle, X, Upload, FileSpreadsheet } from "tabler-icons-react";
+import React, { useRef, useState } from "react";
 import Modal, { Props as ModalProps } from "./Modal";
-import useStore from "../../store/useStore";
-import {Dropzone, IMAGE_MIME_TYPE, MS_EXCEL_MIME_TYPE} from "@mantine/dropzone";
-import {Notyf} from "notyf";
-import * as XLSX from 'xlsx';
-import { useAddListPlayer } from "../../graphql";
-
+import { Dropzone, MS_EXCEL_MIME_TYPE } from "@mantine/dropzone";
+import { Notyf } from "notyf";
+import { useUploadPlayersSheet } from "../../graphql";
 
 type Props = {
-    setSelectedData?: (id: string) => void;
-    data?: any;
+    // team id (passed from the team card)
+    data?: string;
 } & ModalProps;
 
-export const AddListPlayers = ({data, ...props}: Props) => {
-    const userData = useStore((state: any) => state.userData);
-    const {getInputProps, reset, onSubmit, setValues} = useForm({
-        initialValues: {subject: "", short_description: ""}
-    });
-    const [attachments, setAttachments] = useState<File[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [allDataImported, setAllDataImported] = useState([]);
-    const [allData, setAllData] = useState([]);
-    const [allContents, setAllContents] = useState([]);
+// Uploads the Excel FILE to the server (multipart, up to 10MB) and lets the
+// backend parse it — no giant JSON payload, tolerant of missing fields.
+export const AddListPlayers = ({ data, ...props }: Props) => {
+    const [file, setFile] = useState<File | null>(null);
+    const [result, setResult] = useState<any | null>(null);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const openRef = useRef<() => void>(null);
-    const [createListPlayer] = useAddListPlayer()
-    const extractNameDetails = (fullName) => {
-        const nameParts = fullName.split(" ");
-        let firstName = nameParts[0];
-        let secondName = "";
-        let thirdName = "";
-        let tribe = nameParts.pop(); // Set the last word as the tribe name
-    
-        // Determine second name, considering "بن" or "ابن"
-        if (nameParts[1] === "بن" || nameParts[1] === "ابن") {
-            secondName = `${nameParts[1]} ${nameParts[2]}`;
-            nameParts.splice(1, 2); // Remove used parts
-        } else {
-            secondName = nameParts[1];
-            nameParts.splice(1, 1); // Remove used part
-        }
-    
-        // Determine third name, considering "بن" or "ابن"
-        if (nameParts[1] === "بن" || nameParts[1] === "ابن") {
-            thirdName = `${nameParts[1]} ${nameParts[2]}`;
-            nameParts.splice(1, 2); // Remove used parts
-        } else {
-            thirdName = nameParts[1];
-            nameParts.splice(1, 1); // Remove used part
-        }
-    
-        return {
-            firstname: firstName,
-            secondname: secondName,
-            thirdname: thirdName,
-            tribe: tribe
-        };
-    };
-    
-   
-    
-    
-    const readFile = (file) => {
-        const reader = new FileReader();
-        
-        reader.onload = (e: any) => {
-            const data = new Uint8Array(e?.target?.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
+    const [uploadPlayersSheet, { loading }] = useUploadPlayersSheet();
 
-            // console.log({excelData});
-            
-            for (let index = 0; index < excelData.length; index++) {
-                let element : any = excelData[index];
-           
-                // Reverse the element
-                //@ts-ignore
-                element = element.reverse();
-                //@ts-ignore
-                if (element?.length >= 14) {
-                    
-                   
-                    const names = extractNameDetails(element[3])
-                    element.splice(3, 1, names.firstname, names.secondname, names.thirdname, names.tribe);
-                    element = element.filter(item => item !== null);
-                    [element[6], element[7]] = [element[7], element[6]];
-                    [element[5], element[8]] = [element[8], element[5]];
-                 
-                    
-                    //@ts-ignore
-                    setAllDataImported((prv) => [...prv, element])
-                }
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    };
-
-    useEffect(() => {
-        const file = attachments[0];
-        if (file) {
-            readFile(file);
-        }
-    }, [attachments]);
-
-    useEffect(() => {
-        let allData = []
-        
-        //@ts-ignore
-        for (let index = 0; index < allDataImported?.length; index++) {
-            const element = allDataImported[index];
-            let allElements = []
-            //@ts-ignore
-            for (let index2 = 0; index2 < element?.length; index2++) {
-                const element2 = element[index2];
-                if(element2 !== undefined) {
-                    allElements.push(element2)
-                }
-            }
-            //@ts-ignore
-            allData.push(allElements)
-        }
-        console.log("allData nai:",allData)
-        setAllData(allData)
-    }, [allDataImported]);
-
-    useEffect(() => {
-        let allContent: any = []
-        for (let index = 0; index < allData.length; index++) {
-            if (index > 2) {
-                const element = allData[index];
-                allContent.push({
-                    activity: "",
-                    player_center: "",
-                    job: "",
-                    class: "firstDegree",
-    
-                    person: {
-                        //@ts-ignore
-                        first_name: element[1],
-                        //@ts-ignore
-                        second_name: element[2],
-                        //@ts-ignore
-                        third_name: element[3],
-                        //@ts-ignore
-                        tribe: element[4],
-
-                        //@ts-ignore
-                        phone: element[6]?.toString(),
-                        //@ts-ignore
-                        card_number: element[8]?.toString(),
-                        //@ts-ignore
-                        date_birth: element[7]?.toString(),
-
-                        //status :element[5]==="معتمد"? "accepted": "waiting",
-                    },
-                    id_team: data
-                })
-            }
-        }
-        setAllContents(allContent)
-    }, [allData]);
-
-    const onFormSubmit = () => {
-        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
-        console.log("allContents:", allContents);
-    
-        createListPlayer({
-            variables: { content: allContents },
-            onCompleted: ({ createListPlayer }) => {
-                console.log(createListPlayer);
-                notyf.success("تم اضافة اللاعبين بنجاح. انتقل إلى صفحة اللاعبين لتستطيع مشاهدة القائمة");
-                closeModal();
-            },
-            onError: (error) => {
-                const alreadyExistsCount = error?.graphQLErrors?.[0]?.extensions?.count;
-                const errorMessage = error?.graphQLErrors?.[0]?.message;
-            
-                // Check if "اللاعبون موجودون" is in the error message
-                if (errorMessage && errorMessage.includes("اضافة")) {
-                    notyf.error(errorMessage);
-                } else {
-                    notyf.error("فشلت إضافة اللاعبين");
-                }
-            
-                console.log("error?.graphQLErrors", error?.graphQLErrors?.[0]?.message);
-                console.log(error);
-            },
-            
-        });
-    };
-    
-    
     const closeModal = () => {
-        setLoading(false)
-        setAttachments([])
-        setAllDataImported([])
-        setAllData([])
-        setAllContents([])
+        setFile(null);
+        setResult(null);
+        setErrorMsg(null);
         props.onClose();
-        reset();
+    };
+
+    const onConfirm = async () => {
+        setErrorMsg(null);
+        setResult(null);
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!file) { setErrorMsg("يرجى اختيار ملف الإكسل أولاً"); return; }
+        if (!data) { setErrorMsg("تعذّر تحديد الفريق"); return; }
+        try {
+            const res = await uploadPlayersSheet({ variables: { teamId: data, file } });
+            const r = res?.data?.uploadPlayersSheet;
+            setResult(r);
+            notyf.success(`تم إضافة ${r?.created ?? r?.numberOfPersonCreated ?? 0} لاعب`);
+        } catch (e: any) {
+            const msg = e?.graphQLErrors?.[0]?.message || "فشل رفع الملف";
+            setErrorMsg(msg);
+            notyf.error(msg);
+        }
     };
 
     return (
         <Modal
-            {...props} onClose={closeModal}
+            {...props}
+            onClose={closeModal}
+            title="إضافة لاعبين من إكسل"
             footer={
                 <Box py={16} px={20} bg="slate.0">
-                    <Group position={"right"} spacing={"xs"}>
-                        <Button variant="outline" rightIcon={<X size={15} />} bg="white" onClick={closeModal}>إلغاء</Button>
-                        <Button rightIcon={<Check size={15} />} type="submit" form="submit_form">تأكيد</Button>
+                    <Group position="right" spacing="xs">
+                        <Button variant="outline" rightIcon={<X size={15} />} bg="white" onClick={closeModal} disabled={loading}>إغلاق</Button>
+                        <Button rightIcon={<Check size={15} />} onClick={onConfirm} loading={loading} disabled={!file}>استيراد</Button>
                     </Group>
                 </Box>
             }
         >
-            {loading ?
-                <Overlay opacity={0.9} color="#fff" zIndex={5} >
-                    <Stack align={"center"} justify={"center"} h={"100%"} w={"100%"}>
+            {loading ? (
+                <Overlay opacity={0.9} color="#fff" zIndex={5}>
+                    <Stack align="center" justify="center" h="100%" w="100%">
                         <Loader size="xl" variant="dots" />
-                        <Text size={"lg"} fw={500}>يتم تحميل الملف يرجى الانتظار</Text>
+                        <Text size="lg" fw={500}>جارٍ استيراد اللاعبين… قد يستغرق دقيقة للملفات الكبيرة</Text>
                     </Stack>
                 </Overlay>
-                : null
-            }
+            ) : null}
 
-            <Box sx={({ colors }) => ({padding: 20})}>
-                <form onSubmit={onSubmit(onFormSubmit)} id="submit_form">
-                    <Grid gutter={20}>
-                        <Col span={12} >
-                            <Alert variant="light" color="orange" icon={<InfoCircle />}>
-                                يجب ان تكون جميع حقول الجدول مملؤة بعد الرفع
-                            </Alert>
-                        </Col>
+            <Box p={20}>
+                <Alert variant="light" color="cyan" icon={<InfoCircle />} mb="md">
+                    يُرفع الملف ويُعالَج في الخادم مباشرة (حتى 10MB) — يقرأ حسب عناوين الأعمدة:
+                    <Text size="sm" mt={6} weight={600}>الاسم · الرقم المدني · تاريخ الميلاد · رقم الهاتف</Text>
+                    <Text size="xs" color="dimmed" mt={6}>يُقسَّم الاسم تلقائيًا، وتُتخطّى الصفوف المكرّرة (بالرقم المدني)، ولا يلزم اكتمال كل الحقول.</Text>
+                </Alert>
 
-                        <Col span={12} >
-                            <Text size={"sm"} mb={10} >
-                                المرفقات
-                                {attachments && attachments?.length > 0 ? <Text color={"green"} span={true}> تم الرفع </Text> : null}
-                            </Text>
-                            <Dropzone
-                                openRef={openRef}
-                                activateOnClick={false}
-                                multiple={true}
-                                onDrop={(file) => setAttachments(file)}
-                                styles={{ inner: { pointerEvents: 'all' } }}
-                                maxSize={20 * 1024 ** 2}
-                                accept={MS_EXCEL_MIME_TYPE}
-                                style={{
-                                    borderColor: attachments && attachments?.length > 0 ? "green" : "#9ca3af",
-                                    background: attachments && attachments?.length > 0 ? "#0080002e" : "#fff",
-                                }}
-                            >
-                                <Group position="center">
-                                    <Button onClick={() => {
-                                        // @ts-ignore
-                                        return openRef ? openRef?.current() : undefined
-                                    }}>اختار ملف / اسحب ملف الى هنا</Button>
-                                </Group>
-                            </Dropzone>
-                        </Col>
+                <Text size="sm" mb={10}>
+                    ملف الإكسل
+                    {file ? <Text color="green" span> — {file.name}</Text> : null}
+                </Text>
+                <Dropzone
+                    openRef={openRef}
+                    activateOnClick={false}
+                    multiple={false}
+                    onDrop={(files) => { setFile(files[0]); setResult(null); }}
+                    styles={{ inner: { pointerEvents: "all" } }}
+                    maxSize={20 * 1024 ** 2}
+                    accept={MS_EXCEL_MIME_TYPE}
+                    style={{ borderColor: file ? "green" : "#9ca3af", background: file ? "#0080002e" : "#fff" }}
+                >
+                    <Group position="center" py="md">
+                        <Button leftIcon={<Upload size={16} />} onClick={() => (openRef.current ? openRef.current() : undefined)}>
+                            اختر ملف / اسحب ملف إلى هنا
+                        </Button>
+                    </Group>
+                </Dropzone>
 
-                        {allData.length > 0
-                            ? <Col span={12} >
-                                <Table>
-                                    <thead>
-                                        <tr>
-                                            <th>م</th>
-                                            <th>الاسم الاول</th>
-                                            <th>الاسم الثاني</th>
-                                            <th>الاسم الثالث</th>
-                                            <th>القبيلة</th>
-                                            <th>الحالة</th>
-                                            <th>رقم الهاتف</th>
-                                            <th>تاريخ الميلاد</th>
-                                            <th>الرقم المدني</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {allData.slice(1, allData.length).map((item: any, index) => (
-                                            index >= 2
-                                                ? <tr key={index}>
-                                                    {item?.map((item2: any, index2) => (
-                                                        <td key={index2}>
-                                                            {item2}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                                : null
-                                        ))}
-                                    </tbody>
-                                </Table>
-                            </Col>
-                            : null
-                        }
-                    </Grid>
-                </form>
+                {errorMsg ? <Alert variant="light" color="red" icon={<X />} mt="md">{errorMsg}</Alert> : null}
+
+                {result ? (
+                    <Box mt="md" p="md" sx={({ colors, radius }) => ({ borderRadius: radius.md, border: "1px solid " + colors.green[2], background: colors.green[0] })}>
+                        <Group spacing={8} mb={8}>
+                            <ThemeIcon color="green" radius="xl" size={26}><Check size={16} /></ThemeIcon>
+                            <Text weight={700} color="green.8">تمّ الاستيراد</Text>
+                        </Group>
+                        <List spacing={4} size="sm" center>
+                            <List.Item icon={<ThemeIcon color="green" size={18} radius="xl"><FileSpreadsheet size={12} /></ThemeIcon>}>
+                                تمت الإضافة: <b>{result.created ?? result.numberOfPersonCreated}</b> لاعب
+                            </List.Item>
+                            {typeof result.duplicates === "number" ? <List.Item>مكرّر (تم تخطّيه): <b>{result.duplicates}</b></List.Item> : null}
+                            {result.failed ? <List.Item>تعذّر إدخال: <b>{result.failed}</b></List.Item> : null}
+                            {typeof result.total === "number" ? <List.Item>إجمالي الصفوف: <b>{result.total}</b></List.Item> : null}
+                        </List>
+                        <Text size="xs" color="gray.6" mt={6}>انتقل إلى صفحة اللاعبين لمشاهدة القائمة.</Text>
+                    </Box>
+                ) : null}
             </Box>
         </Modal>
     );

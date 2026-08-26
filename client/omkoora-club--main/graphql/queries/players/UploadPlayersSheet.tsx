@@ -5,6 +5,10 @@ export const UploadPlayersSheet = gql`
     uploadPlayersSheet(teamId: $teamId, file: $file) {
       numberOfPersonCreated
       numberOfPersonRefused
+      created
+      duplicates
+      failed
+      total
     }
   }
 `;
