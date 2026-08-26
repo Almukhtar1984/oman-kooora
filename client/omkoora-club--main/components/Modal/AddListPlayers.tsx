@@ -5,6 +5,7 @@ import Modal, { Props as ModalProps } from "./Modal";
 import { Dropzone, MS_EXCEL_MIME_TYPE } from "@mantine/dropzone";
 import { Notyf } from "notyf";
 import { useUploadPlayersSheet } from "../../graphql";
+import { useApolloClient } from "@apollo/client";
 
 type Props = {
     // team id (passed from the team card)
@@ -19,6 +20,7 @@ export const AddListPlayers = ({ data, ...props }: Props) => {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const openRef = useRef<() => void>(null);
     const [uploadPlayersSheet, { loading }] = useUploadPlayersSheet();
+    const client = useApolloClient();
 
     const closeModal = () => {
         setFile(null);
@@ -36,6 +38,9 @@ export const AddListPlayers = ({ data, ...props }: Props) => {
         try {
             const res = await uploadPlayersSheet({ variables: { teamId: data, file } });
             const r = res?.data?.uploadPlayersSheet;
+            // Drop the cached club roster so the team page shows the new players.
+            client.cache.evict({ id: "ROOT_QUERY", fieldName: "allPlayersClub" });
+            client.cache.gc();
             setResult(r);
             notyf.success(`تم إضافة ${r?.created ?? r?.numberOfPersonCreated ?? 0} لاعب`);
         } catch (e: any) {
@@ -112,7 +117,8 @@ export const AddListPlayers = ({ data, ...props }: Props) => {
                             {result.failed ? <List.Item>تعذّر إدخال: <b>{result.failed}</b></List.Item> : null}
                             {typeof result.total === "number" ? <List.Item>إجمالي الصفوف: <b>{result.total}</b></List.Item> : null}
                         </List>
-                        <Text size="xs" color="gray.6" mt={6}>انتقل إلى صفحة اللاعبين لمشاهدة القائمة.</Text>
+                        <Text size="xs" color="gray.6" mt={6}>افتح صفحة الفريق ← تبويب «الأعضاء» ← «اللاعبين» لمشاهدة القائمة المستوردة.</Text>
+                        <Text size="xs" color="orange.8" mt={4}>لا حاجة لإعادة الاستيراد — تكراره لن يضيف اللاعبين مرّة أخرى.</Text>
                     </Box>
                 ) : null}
             </Box>

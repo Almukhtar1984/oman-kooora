@@ -200,6 +200,21 @@ uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
     const cap = (v, n) => ("" + (v ?? "")).trim().slice(0, n);
     const val = (row, idx) => (idx >= 0 && row[idx] !== undefined && row[idx] !== null ? ("" + row[idx]).trim() : "");
 
+    // Rows with no civil id can't be deduped by card_number, so match them on the
+    // full name of the players already in this team — otherwise re-importing the
+    // same file creates a fresh copy of every id-less row.
+    const nameKey = (a, b, c, d) =>
+      [a, b, c, d].map((x) => ("" + (x ?? "")).replace(/\s+/g, " ").trim()).join("|");
+    const teamPlayers = await Players.findAll({
+      where: { id_team: teamId },
+      include: { model: Person, required: true },
+    });
+    const existingNames = new Set(
+      teamPlayers
+        .filter((p) => !p.person?.card_number)
+        .map((p) => nameKey(p.person?.first_name, p.person?.second_name, p.person?.third_name, p.person?.tribe))
+    );
+
     // Skip civil ids already present so re-runs don't duplicate people.
     let created = 0, duplicates = 0, failed = 0, total = 0;
 
@@ -220,6 +235,8 @@ uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
       if (civil) {
         const exists = await Person.findOne({ where: { card_number: civil } });
         if (exists) { duplicates++; continue; }
+      } else if (existingNames.has(nameKey(first_name, second_name, third_name, tribe))) {
+        duplicates++; continue;
       }
 
       try {

@@ -213,10 +213,12 @@ export default function TeamDetailsPage() {
 
     useEffect(() => {
         if (clubId) {
-            getAllPlayers({ variables: { idClub: clubId } });
-            getAllMembers({ variables: { idClub: clubId } });
-            getAllTechnical({ variables: { idClub: clubId } });
-            getAllAssembly({ variables: { idClub: clubId } });
+            // network-only: an import (or any edit) done elsewhere must show up
+            // here, and cache-first would keep serving the list from a past visit.
+            getAllPlayers({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
+            getAllMembers({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
+            getAllTechnical({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
+            getAllAssembly({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
         }
     }, [clubId]);
 
