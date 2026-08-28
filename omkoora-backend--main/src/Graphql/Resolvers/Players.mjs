@@ -217,35 +217,45 @@ export const resolvers = {
 
         allPlayersClubLoaned: async (obj, {idClub}, context, info) =>  {
             try {
-                // A loan belongs to a club when either side of the move (the team
-                // loaning the player out, the team receiving him, or an external
-                // destination club) is one of the club's teams — NOT when the
-                // player's *current* team happens to be in the club. A pending
-                // incoming loan still has the player sitting in the loaning team,
-                // so matching on the current team hid the request from the very
-                // club that has to accept it (and left the loans page empty).
-                const esc = Players.sequelize.escape(idClub);
                 return await Players.findAll({
-                    where: {
-                        id: {
-                            [Op.in]: literal(`(
-                                SELECT tr.id_player
-                                FROM transfers tr
-                                LEFT JOIN teams tf ON tf.id = tr.id_team_from
-                                LEFT JOIN teams tt ON tt.id = tr.id_team_to
-                                WHERE tr.deletedAt IS NULL
-                                  AND tr.transition_type IN ('loan', 'returning')
-                                  AND (tf.id_club = ${esc} OR tt.id_club = ${esc} OR tr.id_club_to = ${esc})
-                                  AND tr.id = (
-                                      SELECT t2.id FROM transfers t2
-                                      WHERE t2.id_player = tr.id_player
-                                        AND t2.deletedAt IS NULL
-                                      ORDER BY t2.createdAt DESC
-                                      LIMIT 1
-                                  )
-                            )`)
+                    include: [
+                        {
+                            model: Team,
+                            as: "team",
+                            required: true,
+                            right: true,
+                            where: {
+                                id_club: idClub
+                            }
+                        },
+                        {
+                            model: Transfer,
+                            as: "transfer",
+                            required: true,
+                            right: true,
+                            on: {
+                                id_player: {[Op.eq]: col("player.id")},
+                                [Op.or]: [
+                                    {id_team_from: {[Op.eq]: col("team.id")}},
+                                    {id_team_to: {[Op.eq]: col("team.id")}}
+                                ]
+                            },
+                            where: {
+                                id: {
+                                    [Op.eq]: literal(`(
+                                        SELECT transfers.id FROM transfers
+                                        WHERE transfers.id_player = transfer.id_player
+                                          AND transfers.deletedAt IS NULL
+                                        ORDER BY transfers.createdAt DESC
+                                        LIMIT 0, 1
+                                    )`)
+                                },
+                                transition_type: {
+                                    [Op.in]: ["loan", "returning"]
+                                }
+                            }
                         }
-                    }
+                    ]
                 })
             } catch (error) {
                 logger.error("")
