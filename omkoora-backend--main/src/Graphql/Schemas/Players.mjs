@@ -58,6 +58,7 @@ export const typeDefs = gql`
         transfer:       [Transfer]
         lastTransfer:   Transfer
         lastLoan:       Transfer
+        latestLoan:     Transfer
         attachmentsPlayer: [AttachmentPlayer]
 
         createdAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")

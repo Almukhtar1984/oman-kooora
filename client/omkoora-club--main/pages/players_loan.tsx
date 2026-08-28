@@ -16,6 +16,7 @@ import {UpdateLoanModal} from "../components/Modal/UpdateLoanModal";
 import {DeleteConfirmationModal} from "../components/Modal/DeleteConfirmationModal";
 import {useBackToOldTeamTransfer} from "../graphql";
 import { Notyf } from "notyf";
+import dayjs from "dayjs";
 
 export default function PlayersLoan() {
     const userData = useStore((state: any) => state.userData);
@@ -72,16 +73,33 @@ export default function PlayersLoan() {
 
     useEffect(() => {
         if (dataAllPlayersLoan && "allPlayersClubLoaned" in dataAllPlayersLoan) {
-            const fresh = dataAllPlayersLoan.allPlayersClubLoaned.filter(
-                (p: any) => p?.lastLoan?.status !== "rejected"
-            )
+            // latestLoan also carries loans the cleanup schedule already closed,
+            // so the page shows the club's whole loan record. It is mapped onto
+            // lastLoan because the card reads that name, and each row is tagged
+            // with loanEnded so a finished loan cannot be extended or cancelled.
+            const fresh = dataAllPlayersLoan.allPlayersClubLoaned
+                .filter((p: any) => p?.latestLoan?.status !== "rejected")
+                .map((p: any) => {
+                    const loan = p?.latestLoan
+                    const loanEnded = Boolean(
+                        loan?.deletedAt ||
+                        (loan?.date_end && dayjs(loan.date_end).isBefore(dayjs(), "day"))
+                    )
+                    return {...p, lastLoan: loan, loanEnded}
+                })
             setAllPlayers([...fresh])
         }
     }, [dataAllPlayersLoan])
 
     useEffect(() => {
         if (allPlayers.length >= 0) {
-            const filterAllPlayers = sortedData(allPlayers)
+            const filterAllPlayers = sortedData(allPlayers).sort((a: any, b: any) => {
+                if (Boolean(a?.loanEnded) !== Boolean(b?.loanEnded)) {
+                    return a?.loanEnded ? 1 : -1
+                }
+                const dateOf = (item: any) => item?.lastLoan?.date_start || item?.lastLoan?.createdAt || ""
+                return dateOf(b).localeCompare(dateOf(a))
+            })
 
             setAllPlayersSorting([...filterAllPlayers])
         }

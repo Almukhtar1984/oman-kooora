@@ -26,7 +26,7 @@ export const AllPlayersClubLoan = gql`
                 name
                 phone
             }
-            lastLoan {
+            latestLoan {
                 id
                 status
                 transition_type
@@ -54,6 +54,7 @@ export const AllPlayersClubLoan = gql`
                 id_player
                 createdAt
                 updatedAt
+                deletedAt
             }
             createdAt
             updatedAt

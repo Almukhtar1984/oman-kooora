@@ -60,6 +60,10 @@ export const MemberCard = ({
     
     const status = (type === 'transfer' || type === 'loan') ? data?.status || data?.lastTransfer?.status || data?.lastLoan?.status : data?.status;
     const isSuspended = status === 'suspended';
+    // A loan the club has finished with: the page tags it once the period is
+    // over (or the record was closed). It stays visible as part of the club's
+    // loan record, but it can no longer be extended or cancelled.
+    const isLoanEnded = type === 'loan' && Boolean(data?.loanEnded);
 
     const isAssemblyApproved = (() => {
         if (type === 'assembly') {
@@ -74,6 +78,10 @@ export const MemberCard = ({
     const renderStatusBadge = () => {
         if (type === 'assembly') {
             return !isAssemblyApproved ? <Badge color="red" variant="filled" size="xs">منتهي</Badge> : <Badge color="teal" variant="filled" size="xs">يعمل</Badge>;
+        }
+
+        if (isLoanEnded) {
+            return <Badge color="gray" variant="filled" size="xs">منتهية</Badge>;
         }
 
         switch (status) {
@@ -264,7 +272,7 @@ export const MemberCard = ({
                                 <Text size="10px" color="gray.5" weight={700}>العمر</Text>
                             </Col>
                             <Col span={4} sx={{ textAlign: 'center' }}>
-                                <Text weight={800} size={24} color="slate.9">{status === 'accepted' ? 'نشط' : 'غير نشط'}</Text>
+                                <Text weight={800} size={24} color="slate.9">{isLoanEnded ? 'منتهية' : status === 'accepted' ? 'نشط' : 'غير نشط'}</Text>
                                 <Text size="10px" color="gray.5" weight={700}>الحالة</Text>
                             </Col>
                         </Grid>
@@ -366,7 +374,7 @@ export const MemberCard = ({
                                                 </>
                                             )}
 
-                                            {type === 'loan' && (
+                                            {type === 'loan' && !isLoanEnded && (
                                                 <>
                                                     <Menu.Item icon={<CalendarStats size={14} />} onClick={() => onRenewSubscription && onRenewSubscription(data?.lastLoan)}>تمديد</Menu.Item>
                                                     <Menu.Item icon={<Trash size={14} color="red" />} onClick={() => onDelete && onDelete(data?.lastLoan)}>إلغاء</Menu.Item>

@@ -217,45 +217,36 @@ export const resolvers = {
 
         allPlayersClubLoaned: async (obj, {idClub}, context, info) =>  {
             try {
+                // The loans page is the club's loan record, mirroring the
+                // transfers page: every loan the club was a party to, whether it
+                // is still running, still waiting for an answer, or already over.
+                //
+                // Two earlier restrictions kept it empty. Matching on the
+                // player's *current* team hid pending incoming loans (the player
+                // still sits in the loaning team until the receiving club
+                // accepts), so we match on the club owning team_from, team_to or
+                // id_club_to instead. And keying on the player's *latest*
+                // transfer hid a live loan as soon as any newer transfer row was
+                // added, so we key on the loan rows themselves.
+                //
+                // Finished loans are soft-deleted by the loanCleanup schedule
+                // once date_end passes, which is why a club with hundreds of past
+                // loans saw nothing at all — so deletedAt is deliberately not
+                // filtered here. Player.latestLoan reads them back the same way.
+                const esc = Players.sequelize.escape(idClub);
                 return await Players.findAll({
-                    include: [
-                        {
-                            model: Team,
-                            as: "team",
-                            required: true,
-                            right: true,
-                            where: {
-                                id_club: idClub
-                            }
-                        },
-                        {
-                            model: Transfer,
-                            as: "transfer",
-                            required: true,
-                            right: true,
-                            on: {
-                                id_player: {[Op.eq]: col("player.id")},
-                                [Op.or]: [
-                                    {id_team_from: {[Op.eq]: col("team.id")}},
-                                    {id_team_to: {[Op.eq]: col("team.id")}}
-                                ]
-                            },
-                            where: {
-                                id: {
-                                    [Op.eq]: literal(`(
-                                        SELECT transfers.id FROM transfers
-                                        WHERE transfers.id_player = transfer.id_player
-                                          AND transfers.deletedAt IS NULL
-                                        ORDER BY transfers.createdAt DESC
-                                        LIMIT 0, 1
-                                    )`)
-                                },
-                                transition_type: {
-                                    [Op.in]: ["loan", "returning"]
-                                }
-                            }
+                    where: {
+                        id: {
+                            [Op.in]: literal(`(
+                                SELECT tr.id_player
+                                FROM transfers tr
+                                LEFT JOIN teams tf ON tf.id = tr.id_team_from
+                                LEFT JOIN teams tt ON tt.id = tr.id_team_to
+                                WHERE tr.transition_type IN ('loan', 'returning')
+                                  AND (tf.id_club = ${esc} OR tt.id_club = ${esc} OR tr.id_club_to = ${esc})
+                            )`)
                         }
-                    ]
+                    }
                 })
             } catch (error) {
                 logger.error("")
@@ -405,6 +396,28 @@ export const resolvers = {
                         }
                     },
                     order: [['createdAt', 'DESC']]
+                })
+            } catch (error) {
+                logger.error("")
+                throw new ApolloError(error)
+            }
+        },
+
+        // Same as lastLoan, but it also sees loans the loanCleanup schedule has
+        // already closed (soft-deleted once date_end passed). The loans page
+        // needs those to show the club's finished loans; lastLoan stays
+        // paranoid so the league/print squad lists keep counting live loans only.
+        latestLoan: async ({id}, {}, context, info) =>  {
+            try {
+                return await Transfer.findOne({
+                    where: {
+                        id_player: id,
+                        transition_type: {
+                            [Op.in]: ["loan", "returning"]
+                        }
+                    },
+                    order: [['createdAt', 'DESC']],
+                    paranoid: false
                 })
             } catch (error) {
                 logger.error("")
