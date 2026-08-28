@@ -81,9 +81,14 @@ export default function PlayersLoan() {
                 .filter((p: any) => p?.latestLoan?.status !== "rejected")
                 .map((p: any) => {
                     const loan = p?.latestLoan
+                    // A request still waiting for an answer is never "finished",
+                    // whatever its dates say — the club still has to accept or
+                    // reject it, and those actions are hidden on a finished loan.
                     const loanEnded = Boolean(
-                        loan?.deletedAt ||
-                        (loan?.date_end && dayjs(loan.date_end).isBefore(dayjs(), "day"))
+                        loan && loan.status !== "waiting" && (
+                            loan.deletedAt ||
+                            (loan.date_end && dayjs(loan.date_end).isBefore(dayjs(), "day"))
+                        )
                     )
                     return {...p, lastLoan: loan, loanEnded}
                 })

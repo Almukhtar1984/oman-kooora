@@ -409,13 +409,25 @@ export const resolvers = {
         // paranoid so the league/print squad lists keep counting live loans only.
         latestLoan: async ({id}, {}, context, info) =>  {
             try {
+                const forPlayer = {
+                    id_player: id,
+                    transition_type: {
+                        [Op.in]: ["loan", "returning"]
+                    }
+                };
+
+                // A request still waiting for an answer is the one the club has
+                // to act on, so it wins over a more recent row. Without this a
+                // pending loan is hidden behind a later (already finished) loan
+                // of the same player, and the accept/reject actions never show.
+                const pending = await Transfer.findOne({
+                    where: {...forPlayer, status: "waiting"},
+                    order: [['createdAt', 'DESC']]
+                });
+                if (pending) return pending;
+
                 return await Transfer.findOne({
-                    where: {
-                        id_player: id,
-                        transition_type: {
-                            [Op.in]: ["loan", "returning"]
-                        }
-                    },
+                    where: forPlayer,
                     order: [['createdAt', 'DESC']],
                     paranoid: false
                 })
