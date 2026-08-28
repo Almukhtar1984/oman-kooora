@@ -17,8 +17,8 @@ import {TeamManagersTable} from "./Tables/TeamManagersTable";
 import {ResetTeamPasswordModal, UpdateAdminMemberModal} from "./Modal";
 
 /**
- * Stand-alone section that lists every team manager (Member with
- * classification = 'manager') belonging to teams in the current club, plus
+ * Stand-alone section that lists every team manager (the member of a club
+ * team holding the team's login account, or classification = 'manager'), plus
  * the actions on each: edit profile / email / password and one-click
  * password reset. Pulled into the `إدارة الأعضاء` tabbed page so the club
  * admin no longer has to drill into each team card to manage its manager.
@@ -54,7 +54,16 @@ export const TeamManagersSection = () => {
 
     const allManagers = useMemo(() => {
         const list = data?.allMembersClub || [];
-        return list.filter((m: any) => m?.classification === "manager");
+        // A team manager is the member of a club team who owns a login account
+        // (User role "3") — that account is created together with the team, and
+        // it is the same signal the backend uses to resolve a team's manager.
+        // Only teams added through the newer flow store classification
+        // "manager"; the older one kept the board title (رئيس، نائب رئيس …),
+        // so filtering on classification alone left this tab empty for clubs
+        // whose teams predate it.
+        return list.filter(
+            (m: any) => m?.classification === "manager" || m?.person?.user?.role === "3"
+        );
     }, [data]);
 
     const teamOptions = useMemo(() => {

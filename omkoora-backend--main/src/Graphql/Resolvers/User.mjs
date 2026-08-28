@@ -722,14 +722,31 @@ export const resolvers = {
             const member = await Members.findOne({
                 where: { id_team: idTeam, classification: 'manager' }
             });
-            if (!member) {
-                return new ApolloError("No manager set for this team", "TEAM_MANAGER_NOT_FOUND");
-            }
-            const targetUser = await User.findOne({
-                where: { id_person: member.id_person, role: '3' }
-            });
+
+            let targetUser = member
+                ? await User.findOne({ where: { id_person: member.id_person, role: '3' } })
+                : null;
+
+            // Teams added before the current flow kept the member's board title
+            // (رئيس، نائب رئيس …) instead of classification "manager", so the
+            // lookup above finds nothing for them. The login account is the
+            // reliable signal: the role-3 User attached to any member of this
+            // team is that team's manager.
             if (!targetUser) {
-                return new ApolloError("Manager has no login account", "USER_NOT_EXIST");
+                const teamMembers = await Members.findAll({
+                    where: { id_team: idTeam },
+                    attributes: ['id_person']
+                });
+                const personIds = teamMembers.map((m) => m.id_person).filter(Boolean);
+                if (personIds.length) {
+                    targetUser = await User.findOne({
+                        where: { id_person: { [Op.in]: personIds }, role: '3' }
+                    });
+                }
+            }
+
+            if (!targetUser) {
+                return new ApolloError("No manager set for this team", "TEAM_MANAGER_NOT_FOUND");
             }
 
             const newPassword = generateRandomPassword(10);
