@@ -72,6 +72,18 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
+        team: async ({id_team}, {}, context, info) =>  {
+            if (!id_team) return null;
+            try {
+                if (context?.loaders?.team) {
+                    return await context.loaders.team.load(id_team);
+                }
+                return await Team.findByPk(id_team)
+            } catch (error) {
+                logger.error("")
+                throw new ApolloError(error)
+            }
+        },
         attachmentsTechnical: async (parent, {}, context, info) => {
             if (parent?.attachmentsTechnical) return parent.attachmentsTechnical;
             if (!parent?.id) return [];
