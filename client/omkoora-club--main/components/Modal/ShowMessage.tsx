@@ -12,7 +12,7 @@ import {
     Text,
     Select, Avatar,
 } from "@mantine/core";
-import {Calendar, Check, ChevronDown, X} from "tabler-icons-react";
+import {Calendar, Check, ChevronDown, Download, Printer, X} from "tabler-icons-react";
 import React, {useEffect, useRef, useState} from "react";
 import { useForm } from "@mantine/form";
 import Modal, { Props as ModalProps } from "./Modal";
@@ -34,6 +34,7 @@ import SubScript from '@tiptap/extension-subscript';
 import {IconChevronDown} from "@tabler/icons-react";
 import {RichTextBox} from "../RichTextEditor";
 import { getImageUrl } from "../../lib/helpers/image";
+import { printAttachment } from "../../lib/helpers/printAttachment";
 
 type Props = {
     setSelectedData?: (id: string) => void;
@@ -58,6 +59,16 @@ export const ShowMessage = (props: Props) => {
         }
     }, [props.data, props.opened]);
 
+
+    // Attachments are scans of the letter itself, so printing one straight from
+    // the message saves downloading it first. Popups are the only way to hand a
+    // cross-origin file to the print dialog, so say so when one is blocked.
+    const handlePrint = (fileName: string) => {
+        const opened = printAttachment(getImageUrl(fileName), dataMessage?.message?.subject || "طباعة المرفق");
+        if (!opened) {
+            new Notyf({position: {x: "right", y: "bottom"}}).error("المتصفح منع نافذة الطباعة، اسمح بالنوافذ المنبثقة لهذا الموقع");
+        }
+    };
 
     const closeModal = () => {
         setContent("")
@@ -106,9 +117,18 @@ export const ShowMessage = (props: Props) => {
                         <Col span={12} >
                             <Group spacing={10}>
                                 {dataMessage?.message?.attachment?.map((item: any) => (
-                                    <Button key={item?.id} component={"a"} target={"_blank"} href={getImageUrl(item.content)} >
-                                        تحميل
-                                    </Button>
+                                    <Button.Group key={item?.id}>
+                                        <Button component={"a"} target={"_blank"} href={getImageUrl(item.content)} leftIcon={<Download size={16} />} >
+                                            تحميل
+                                        </Button>
+                                        <Button
+                                            variant={"light"}
+                                            leftIcon={<Printer size={16} />}
+                                            onClick={() => handlePrint(item?.content)}
+                                        >
+                                            طباعة
+                                        </Button>
+                                    </Button.Group>
                                 ))}
                             </Group>
                         </Col>
