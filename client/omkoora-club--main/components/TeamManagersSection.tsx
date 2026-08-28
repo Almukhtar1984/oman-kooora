@@ -54,14 +54,7 @@ export const TeamManagersSection = () => {
 
     const allManagers = useMemo(() => {
         const list = data?.allMembersClub || [];
-        // A team manager is a member of a club team who owns a login account
-        // (User role "3") — that is exactly how Team.admin identifies one on the
-        // backend. Older managers were saved with a different `classification`
-        // (or none), so filtering on classification === "manager" alone left the
-        // list empty. Accept either signal.
-        return list.filter(
-            (m: any) => m?.classification === "manager" || m?.person?.user?.role === "3"
-        );
+        return list.filter((m: any) => m?.classification === "manager");
     }, [data]);
 
     const teamOptions = useMemo(() => {
