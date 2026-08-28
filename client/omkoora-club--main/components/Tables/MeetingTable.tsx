@@ -22,6 +22,9 @@ import {Filter} from "tabler-icons-react";
 
 import {Table, Header, HeaderRow, Body, Row, HeaderCell, Cell,} from "@table-library/react-table-library/table";
 import dayjs from "dayjs";
+import {Notyf} from "notyf";
+import {getImageUrl} from "../../lib/helpers/image";
+import {printDocument} from "../../lib/helpers/print";
 import {GiPlayerPrevious} from "react-icons/gi";
 import {TechnicalItemModel} from "../Modal/index"
 import { useMediaQuery } from "@mantine/hooks";
@@ -157,6 +160,30 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
         typeof setOpenDeleteModal === "function" && setOpenDeleteModal(true)
     }
 
+
+    // Printing the minute the user picked: subject, attendees, description and
+    // every scanned page, so it can go straight into the file.
+    const printMeeting = (item: any) => {
+        const attachments = (item?.attachment || []).map((a: any) => getImageUrl(a?.content));
+        const isImage = (url: string) => /\.(jpe?g|png|gif|webp|bmp|svg)(\?|#|$)/i.test(url);
+
+        const opened = printDocument({
+            title: item?.subject || "محضر اجتماع",
+            heading: item?.subject || "محضر اجتماع",
+            subtitle: "محضر اجتماع",
+            fields: [
+                {label: "التاريخ", value: item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD") : null},
+                {label: "الأعضاء الحضور", value: item?.names_attending || null},
+            ],
+            bodyHtml: item?.description ? `<p>${String(item.description).replace(/\n/g, "<br/>")}</p>` : null,
+            images: attachments.filter(isImage),
+            files: attachments.filter((url: string) => !isImage(url)).map((url: string, i: number) => ({label: `مرفق ${i + 1}`, url})),
+        });
+        if (!opened) {
+            new Notyf({position: {x: "right", y: "bottom"}}).error("المتصفح منع نافذة الطباعة، اسمح بالنوافذ المنبثقة لهذا الموقع");
+        }
+    };
+
     const openModelEdit = (id: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(id)
         typeof setOpenEditModal === "function" && setOpenEditModal(true)
@@ -231,6 +258,9 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
                       حذف
                     </Menu.Item>
                   )}
+                  <Menu.Item icon={<Printer size={14} />} onClick={() => printMeeting(item)}>
+                    طباعة المحضر
+                  </Menu.Item>
                 </Menu.Dropdown>
               </Menu>
             </Group>
@@ -306,6 +336,7 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
                                                         ? <Menu.Item icon={<Message size={14} />} onClick={() => openModelDelete(item?.id)} >حذف</Menu.Item>
                                                         : null
                                                     }
+                                                    <Menu.Item icon={<Printer size={14} />} onClick={() => printMeeting(item)} >طباعة المحضر</Menu.Item>
                                                 </Menu.Dropdown>
                                             </Menu>
                                         </Group>}

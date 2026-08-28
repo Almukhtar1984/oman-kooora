@@ -34,7 +34,7 @@ import SubScript from '@tiptap/extension-subscript';
 import {IconChevronDown} from "@tabler/icons-react";
 import {RichTextBox} from "../RichTextEditor";
 import { getImageUrl } from "../../lib/helpers/image";
-import { printAttachment } from "../../lib/helpers/printAttachment";
+import { printAttachment, printDocument } from "../../lib/helpers/print";
 
 type Props = {
     setSelectedData?: (id: string) => void;
@@ -63,11 +63,41 @@ export const ShowMessage = (props: Props) => {
     // Attachments are scans of the letter itself, so printing one straight from
     // the message saves downloading it first. Popups are the only way to hand a
     // cross-origin file to the print dialog, so say so when one is blocked.
+    const popupBlocked = () =>
+        new Notyf({position: {x: "right", y: "bottom"}}).error("المتصفح منع نافذة الطباعة، اسمح بالنوافذ المنبثقة لهذا الموقع");
+
+    // The whole letter: heading, sender, date, body and every scanned page —
+    // available on any message, including one that carries no attachment.
+    const handlePrintMessage = () => {
+        const msg = dataMessage?.message;
+        if (!msg) return;
+
+        const sender = msg?.club_sender?.name || msg?.team_sender?.name || "";
+        const attachments = (msg?.attachment || []).map((item: any) => getImageUrl(item?.content));
+        const isImage = (url: string) => /\.(jpe?g|png|gif|webp|bmp|svg)(\?|#|$)/i.test(url);
+
+        const opened = printDocument({
+            title: msg?.subject || "رسالة",
+            heading: msg?.subject || "رسالة",
+            subtitle: sender ? `من: ${sender}` : null,
+            logoUrl: msg?.club_sender?.logo || msg?.team_sender?.logo
+                ? getImageUrl(msg?.club_sender?.logo || msg?.team_sender?.logo)
+                : null,
+            fields: [
+                {label: "التاريخ", value: msg?.createdAt ? String(msg.createdAt).slice(0, 10) : null},
+                {label: "الجهة المرسلة", value: sender || null},
+                {label: "الجهة المستقبلة", value: msg?.team_receiver?.name || null},
+            ],
+            bodyHtml: content || msg?.content || null,
+            images: attachments.filter(isImage),
+            files: attachments.filter((url: string) => !isImage(url)).map((url: string, i: number) => ({label: `مرفق ${i + 1}`, url})),
+        });
+        if (!opened) popupBlocked();
+    };
+
     const handlePrint = (fileName: string) => {
         const opened = printAttachment(getImageUrl(fileName), dataMessage?.message?.subject || "طباعة المرفق");
-        if (!opened) {
-            new Notyf({position: {x: "right", y: "bottom"}}).error("المتصفح منع نافذة الطباعة، اسمح بالنوافذ المنبثقة لهذا الموقع");
-        }
+        if (!opened) popupBlocked();
     };
 
     const closeModal = () => {
@@ -78,7 +108,15 @@ export const ShowMessage = (props: Props) => {
     return (
         <Modal
             {...props} onClose={closeModal}
-            footer={<Box py={16} px={20} bg="slate.0" />}
+            footer={
+                <Box py={16} px={20} bg="slate.0">
+                    <Group position={"left"}>
+                        <Button leftIcon={<Printer size={16} />} onClick={handlePrintMessage} disabled={!dataMessage?.message}>
+                            طباعة الرسالة
+                        </Button>
+                    </Group>
+                </Box>
+            }
         >
 
             <Box sx={({ colors }) => ({padding: 20})}>

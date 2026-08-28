@@ -1,11 +1,14 @@
 import * as React from 'react';
 
 import {ActionIcon, Button, Group, Menu, Stack, Text} from '@mantine/core';
-import {DotsVertical, ExternalLink, Message} from "tabler-icons-react";
+import {DotsVertical, ExternalLink, Message, Printer} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
 
 import dayjs from "dayjs";
+import {Notyf} from "notyf";
+import {getImageUrl} from "../../lib/helpers/image";
+import {printDocument} from "../../lib/helpers/print";
 
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
@@ -71,6 +74,30 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
         typeof setOpenDeleteModal === "function" && setOpenDeleteModal(true)
     }
 
+
+    // Printing the minute the user picked: subject, attendees, description and
+    // every scanned page, so it can go straight into the file.
+    const printMeeting = (item: any) => {
+        const attachments = (item?.attachment || []).map((a: any) => getImageUrl(a?.content));
+        const isImage = (url: string) => /\.(jpe?g|png|gif|webp|bmp|svg)(\?|#|$)/i.test(url);
+
+        const opened = printDocument({
+            title: item?.subject || "محضر اجتماع",
+            heading: item?.subject || "محضر اجتماع",
+            subtitle: "محضر اجتماع",
+            fields: [
+                {label: "التاريخ", value: item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD") : null},
+                {label: "الأعضاء الحضور", value: item?.names_attending || null},
+            ],
+            bodyHtml: item?.description ? `<p>${String(item.description).replace(/\n/g, "<br/>")}</p>` : null,
+            images: attachments.filter(isImage),
+            files: attachments.filter((url: string) => !isImage(url)).map((url: string, i: number) => ({label: `مرفق ${i + 1}`, url})),
+        });
+        if (!opened) {
+            new Notyf({position: {x: "right", y: "bottom"}}).error("المتصفح منع نافذة الطباعة، اسمح بالنوافذ المنبثقة لهذا الموقع");
+        }
+    };
+
     const openModelEdit = (id: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(id)
         typeof setOpenEditModal === "function" && setOpenEditModal(true)
@@ -96,6 +123,7 @@ export const MeetingTable = ({ list, search, setSelectedRow, setOpenDeleteModal,
                             ? <Menu.Item icon={<Message size={14} />} onClick={() => openModelDelete(item?.id)} >حذف</Menu.Item>
                             : null
                         }
+                        <Menu.Item icon={<Printer size={14} />} onClick={() => printMeeting(item)} >طباعة المحضر</Menu.Item>
                     </Menu.Dropdown>
                 </Menu>
             </Group>

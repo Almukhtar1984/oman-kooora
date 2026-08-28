@@ -12,7 +12,7 @@ import {
     Text,
     Select,
 } from "@mantine/core";
-import {Calendar, Check, ChevronDown, X} from "tabler-icons-react";
+import {Calendar, Check, ChevronDown, Download, Printer, X} from "tabler-icons-react";
 import React, {useEffect, useRef, useState} from "react";
 import { useForm } from "@mantine/form";
 import Modal, { Props as ModalProps } from "./Modal";
@@ -21,6 +21,8 @@ import useStore from "../../store/useStore";
 import {DateInput} from "@mantine/dates";
 import {Dropzone, IMAGE_MIME_TYPE} from "@mantine/dropzone";
 import {Notyf} from "notyf";
+import { getImageUrl } from "../../lib/helpers/image";
+import { printAttachment, printDocument } from "../../lib/helpers/print";
 
 import {RichTextEditor, Link} from "@mantine/tiptap";
 
@@ -58,6 +60,45 @@ export const ShowMessage = (props: Props) => {
     }, [props.data, props.opened]);
 
 
+    const popupBlocked = () =>
+        new Notyf({position: {x: "right", y: "bottom"}}).error("المتصفح منع نافذة الطباعة، اسمح بالنوافذ المنبثقة لهذا الموقع");
+
+    // Attachments are scans of the letter itself, so printing one straight from
+    // the message saves downloading it first.
+    const handlePrint = (fileName: string) => {
+        const opened = printAttachment(getImageUrl(fileName), dataMessage?.message?.subject || "طباعة المرفق");
+        if (!opened) popupBlocked();
+    };
+
+    // The whole letter: heading, sender, date, body and every scanned page —
+    // available on any message, including one that carries no attachment.
+    const handlePrintMessage = () => {
+        const msg = dataMessage?.message;
+        if (!msg) return;
+
+        const sender = msg?.club_sender?.name || msg?.team_sender?.name || "";
+        const attachments = (msg?.attachment || []).map((item: any) => getImageUrl(item?.content));
+        const isImage = (url: string) => /\.(jpe?g|png|gif|webp|bmp|svg)(\?|#|$)/i.test(url);
+
+        const opened = printDocument({
+            title: msg?.subject || "رسالة",
+            heading: msg?.subject || "رسالة",
+            subtitle: sender ? `من: ${sender}` : null,
+            logoUrl: msg?.club_sender?.logo || msg?.team_sender?.logo
+                ? getImageUrl(msg?.club_sender?.logo || msg?.team_sender?.logo)
+                : null,
+            fields: [
+                {label: "التاريخ", value: msg?.createdAt ? String(msg.createdAt).slice(0, 10) : null},
+                {label: "الجهة المرسلة", value: sender || null},
+                {label: "الجهة المستقبلة", value: msg?.team_receiver?.name || null},
+            ],
+            bodyHtml: content || msg?.content || null,
+            images: attachments.filter(isImage),
+            files: attachments.filter((url: string) => !isImage(url)).map((url: string, i: number) => ({label: `مرفق ${i + 1}`, url})),
+        });
+        if (!opened) popupBlocked();
+    };
+
     const closeModal = () => {
         setContent("")
         props.onClose();
@@ -66,7 +107,15 @@ export const ShowMessage = (props: Props) => {
     return (
         <Modal
             {...props} onClose={closeModal}
-            footer={<Box py={16} px={20} bg="slate.0" />}
+            footer={
+                <Box py={16} px={20} bg="slate.0">
+                    <Group position={"left"}>
+                        <Button leftIcon={<Printer size={16} />} onClick={handlePrintMessage} disabled={!dataMessage?.message}>
+                            طباعة الرسالة
+                        </Button>
+                    </Group>
+                </Box>
+            }
         >
 
             <Box sx={({ colors }) => ({padding: 20})}>
@@ -105,9 +154,18 @@ export const ShowMessage = (props: Props) => {
                         <Col span={12} >
                             <Group spacing={10}>
                                 {dataMessage?.message?.attachment?.map((item: any) => (
-                                    <Button key={item?.id} component={"a"} target={"_blank"} href={`${process.env.NEXT_PUBLIC_API_URL}/images/${item.content}`} >
-                                        تحميل
-                                    </Button>
+                                    <Button.Group key={item?.id}>
+                                        <Button component={"a"} target={"_blank"} href={getImageUrl(item?.content)} leftIcon={<Download size={16} />} >
+                                            تحميل
+                                        </Button>
+                                        <Button
+                                            variant={"light"}
+                                            leftIcon={<Printer size={16} />}
+                                            onClick={() => handlePrint(item?.content)}
+                                        >
+                                            طباعة
+                                        </Button>
+                                    </Button.Group>
                                 ))}
                             </Group>
                         </Col>
