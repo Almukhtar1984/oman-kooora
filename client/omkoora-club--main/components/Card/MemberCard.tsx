@@ -374,7 +374,7 @@ export const MemberCard = ({
                                                 </>
                                             )}
 
-                                            {type === 'loan' && !isLoanEnded && (
+                                            {type === 'loan' && (
                                                 <>
                                                     <Menu.Item icon={<CalendarStats size={14} />} onClick={() => onRenewSubscription && onRenewSubscription(data?.lastLoan)}>تمديد</Menu.Item>
                                                     <Menu.Item icon={<Trash size={14} color="red" />} onClick={() => onDelete && onDelete(data?.lastLoan)}>إلغاء</Menu.Item>
