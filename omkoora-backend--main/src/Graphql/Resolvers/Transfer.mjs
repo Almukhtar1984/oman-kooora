@@ -206,8 +206,12 @@ export const resolvers = {
         },
         BackToOldTeamTransfer: async (obj, { id }, context, info) => {
             try {
-                // Fetch the transfer record
-                const transfer = await Transfer.findByPk(id);
+                // The loans page lists finished loans too — loanCleanup soft-deletes
+                // a loan as soon as date_end passes — and its إلغاء action sends that
+                // row's id. A paranoid findByPk cannot see it, so cancelling any
+                // ended loan failed with "Transfer ... not found". Read it with
+                // paranoid:false and make every step below idempotent instead.
+                const transfer = await Transfer.findByPk(id, { paranoid: false });
                 if (!transfer) {
                     throw new ApolloError(`Transfer with ID ${id} not found`);
                 }
@@ -215,31 +219,38 @@ export const resolvers = {
                 // Return the loan atomically: restore the player's team, drop
                 // his league enrolment(s) with the RECEIVING team, then
                 // soft-delete the transfer. If any step fails nothing commits.
-                const deleted = await DB.transaction(async (t) => {
-                    // 1) Restore player's team to the old (lending) team.
-                    const updatedPlayer = await Players.update(
-                        { id_team: transfer.id_team_from },
-                        { where: { id: transfer.id_player }, transaction: t }
-                    );
-
-                    if (updatedPlayer[0] === 0) {
+                await DB.transaction(async (t) => {
+                    // 1) Restore player's team to the old (lending) team. A player
+                    //    the cleanup already sent back is simply left where he is:
+                    //    an UPDATE that changes nothing reports 0 affected rows,
+                    //    which must not read as a failure.
+                    const player = await Players.findByPk(transfer.id_player, { transaction: t });
+                    if (!player) {
                         throw new ApolloError(`Failed to update player team for player ID ${transfer.id_player}`);
+                    }
+
+                    if (player.id_team !== transfer.id_team_from) {
+                        await Players.update(
+                            { id_team: transfer.id_team_from },
+                            { where: { id: transfer.id_player }, transaction: t }
+                        );
                     }
 
                     // 2) Remove his league squad enrolment(s) with the RECEIVING
                     //    team only — his original-team enrolments stay intact.
                     await removeReceivingTeamParticipations(transfer.id_player, transfer.id_team_to, t);
 
-                    // 3) Soft-delete the transfer record.
-                    const removed = await Transfer.destroy({ where: { id }, transaction: t });
-                    if (removed === 0) {
-                        throw new ApolloError(`Failed to delete transfer with ID ${id}`);
+                    // 3) Soft-delete the transfer record, unless it is already closed.
+                    if (!transfer.deletedAt) {
+                        const removed = await Transfer.destroy({ where: { id }, transaction: t });
+                        if (removed === 0) {
+                            throw new ApolloError(`Failed to delete transfer with ID ${id}`);
+                        }
                     }
-                    return removed;
                 });
 
                 return {
-                    status: deleted === 1 // Return true if deletion was successful
+                    status: true
                 };
             } catch (error) {
                 logger.error(`Error in BackToOldTeamTransfer resolver: ${error.message}`);

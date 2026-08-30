@@ -39,9 +39,24 @@ const read = (...parts) => {
     }
 };
 
+// Slice one resolver's body by matching its braces, so a resolver that grows
+// past a fixed character window does not silently drop its later steps out of
+// the guards below (`length` stays as the fallback when the braces don't pair).
 const sliceFn = (src, name, length = 1800) => {
     const m = src.match(new RegExp(`${name}\\s*:\\s*async`));
     if (!m || m.index === undefined) return "";
+
+    // Start at the arrow body, not at the destructured-args braces in
+    // `async (obj, { id }, context, info) =>`.
+    const arrow = src.indexOf("=>", m.index);
+    const open = arrow === -1 ? -1 : src.indexOf("{", arrow);
+    if (open === -1) return src.slice(m.index, m.index + length);
+
+    let depth = 0;
+    for (let i = open; i < src.length; i++) {
+        if (src[i] === "{") depth++;
+        else if (src[i] === "}" && --depth === 0) return src.slice(m.index, i + 1);
+    }
     return src.slice(m.index, m.index + length);
 };
 
