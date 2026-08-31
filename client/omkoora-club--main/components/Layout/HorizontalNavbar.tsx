@@ -42,12 +42,11 @@ const useStyles = createStyles((theme) => ({
     linksContainer: {
         display: 'flex',
         alignItems: 'center',
-        gap: theme.spacing.xl,
-        overflowX: 'auto',
-        '&::-webkit-scrollbar': {
-            display: 'none',
-        },
-        scrollbarWidth: 'none',
+        gap: theme.spacing.md,
+        // Take the full content width inside the ScrollArea viewport so the
+        // tabs that don't fit stay reachable by scrolling instead of being
+        // clipped off-screen (the bar now holds 15 items).
+        width: 'max-content',
     },
     link: {
         display: 'flex',
@@ -148,7 +147,7 @@ const HorizontalNavbar = () => {
     return (
         <Box className={classes.navbar}>
             <Container size="xl" h="100%">
-                <ScrollArea type="never" h="100%" sx={{ '& > div': { height: '100%' } }}>
+                <ScrollArea type="auto" h="100%" sx={{ '& > div': { height: '100%' } }}>
                     <Flex className={classes.linksContainer} h="100%" align="center">
                         {navItems.filter(item => item.show).map((item) => {
                             // Make members active for any of its sub-pages if we keep them separate temporarily
