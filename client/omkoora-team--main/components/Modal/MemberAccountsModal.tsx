@@ -2,7 +2,7 @@ import {
     ActionIcon, Badge, Box, Button, Group, Loader, NumberInput, ScrollArea,
     Select, Stack, Table, Text, TextInput,
 } from "@mantine/core";
-import { Check, ChevronDown, Trash } from "tabler-icons-react";
+import { Check, ChevronDown, Search, Trash } from "tabler-icons-react";
 import { DateInput } from "@mantine/dates";
 import React, { useEffect, useMemo, useState } from "react";
 import Modal, { Props as ModalProps } from "./Modal";
@@ -31,6 +31,7 @@ export const MemberAccountsModal = ({ idTeam, ...props }: Props) => {
     const [date, setDate] = useState<Date | null>(null);
     const [note, setNote] = useState("");
     const [expanded, setExpanded] = useState<string | null>(null);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
         if (props.opened && idTeam) {
@@ -41,9 +42,24 @@ export const MemberAccountsModal = ({ idTeam, ...props }: Props) => {
     const accounts: any[] = data?.memberAccountsTeam || [];
     const notyf = () => new Notyf({ position: { x: "right", y: "bottom" } });
 
+    // Filter by member name, civil number (الرقم المدني) or phone so the admin
+    // can jump straight to one member and pull his payments.
+    const filtered = useMemo(() => {
+        const needle = search.trim().toLowerCase();
+        if (!needle) return accounts;
+        return accounts.filter((a) => {
+            const p = a?.member?.person;
+            return [fullName(p), p?.card_number, p?.phone]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase()
+                .includes(needle);
+        });
+    }, [accounts, search]);
+
     const grandTotal = useMemo(
-        () => accounts.reduce((s, a) => s + (Number(a?.totalPaid) || 0), 0),
-        [accounts]
+        () => filtered.reduce((s, a) => s + (Number(a?.totalPaid) || 0), 0),
+        [filtered]
     );
 
     const memberOptions = accounts.map((a) => ({
@@ -135,9 +151,18 @@ export const MemberAccountsModal = ({ idTeam, ...props }: Props) => {
                     </Group>
                 </Box>
 
-                {/* Summary */}
+                {/* Search + summary */}
+                <TextInput
+                    mb="sm"
+                    icon={<Search size={16} />}
+                    placeholder="ابحث بالاسم أو الرقم المدني أو رقم الهاتف"
+                    value={search}
+                    onChange={(e) => setSearch(e.currentTarget.value)}
+                />
                 <Group position="apart" mb="sm">
-                    <Text fw={600}>إجمالي مدفوعات الأعضاء</Text>
+                    <Text fw={600}>
+                        {search.trim() ? "إجمالي المعروض" : "إجمالي مدفوعات الأعضاء"}
+                    </Text>
                     <Badge size="lg" color="green" variant="light">
                         {grandTotal.toLocaleString("en-US")} ر.ع
                     </Badge>
@@ -145,14 +170,17 @@ export const MemberAccountsModal = ({ idTeam, ...props }: Props) => {
 
                 {loading ? (
                     <Stack align="center" py="xl"><Loader /></Stack>
-                ) : accounts.length === 0 ? (
-                    <Text color="dimmed" align="center" py="xl">لا يوجد أعضاء لعرضهم</Text>
+                ) : filtered.length === 0 ? (
+                    <Text color="dimmed" align="center" py="xl">
+                        {accounts.length === 0 ? "لا يوجد أعضاء لعرضهم" : "لا يوجد عضو مطابق للبحث"}
+                    </Text>
                 ) : (
                     <ScrollArea>
                         <Table striped highlightOnHover>
                             <thead>
                                 <tr>
                                     <th>العضو</th>
+                                    <th>الرقم المدني</th>
                                     <th>رقم الهاتف</th>
                                     <th>إجمالي المدفوع</th>
                                     <th>عدد الدفعات</th>
@@ -160,10 +188,11 @@ export const MemberAccountsModal = ({ idTeam, ...props }: Props) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {accounts.map((a) => (
+                                {filtered.map((a) => (
                                     <React.Fragment key={a.member.id}>
                                         <tr>
                                             <td>{fullName(a.member.person) || "—"}</td>
+                                            <td>{a.member.person?.card_number || "—"}</td>
                                             <td>{a.member.person?.phone || "—"}</td>
                                             <td>
                                                 <Text fw={700} color="green.7">
@@ -183,7 +212,7 @@ export const MemberAccountsModal = ({ idTeam, ...props }: Props) => {
                                         </tr>
                                         {expanded === a.member.id && a.payments?.length ? (
                                             <tr>
-                                                <td colSpan={5} style={{ background: "#f8f9fa" }}>
+                                                <td colSpan={6} style={{ background: "#f8f9fa" }}>
                                                     <Stack spacing={6} p="xs">
                                                         {a.payments.map((p: any) => (
                                                             <Group key={p.id} position="apart" noWrap>
