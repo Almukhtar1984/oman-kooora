@@ -6,6 +6,10 @@ export const typeDefs = gql`
         # One row per team member with the running total they have paid and the
         # full list of their individual payments.
         memberAccountsTeam(idTeam: ID): [MemberAccount!] @auth(requires: user)
+        # Same, but for the team's players (used by the "لاعبون" toggle).
+        playerAccountsTeam(idTeam: ID): [PlayerAccount!] @auth(requires: user)
+        # A single player's own ledger — for the player portal ("مصروفاتي").
+        playerPayments(idPlayer: ID): PlayerAccount @auth(requires: user)
     }
 
     extend type Mutation {
@@ -29,11 +33,18 @@ export const typeDefs = gql`
         payments:  [MemberPayment!]
     }
 
+    type PlayerAccount {
+        player:    Player
+        totalPaid: Float
+        payments:  [MemberPayment!]
+    }
+
     input contentMemberPayment {
         amount:       Float!
         note:         String
         payment_date: String
-        id_member:    ID!
+        id_member:    ID
+        id_player:    ID
         id_team:      ID!
     }
 `;

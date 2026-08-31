@@ -1,6 +1,6 @@
 import {createStyles, Navbar, ScrollArea, Image, Tooltip, Box, getStylesRef} from '@mantine/core';
 import { useRouter } from 'next/router';
-import {ClipboardList, Bulb, Icon, AlertCircle, Settings} from "tabler-icons-react";
+import {ClipboardList, Bulb, Icon, AlertCircle, Settings, Coin} from "tabler-icons-react";
 
 interface _params {
     language: string;
@@ -99,7 +99,8 @@ interface Props  {
 const linksSide: {link: string, label: string, icon: Icon | any}[] = [
     {link: "/", label: "شكاوي", icon: AlertCircle},
     {link: "/proposals", label: "مقترحات", icon: Bulb},
-    {link: "/requests", label: "طلبات", icon: ClipboardList}
+    {link: "/requests", label: "طلبات", icon: ClipboardList},
+    {link: "/expenses", label: "مصروفاتي", icon: Coin}
 ]
 
 const Sidebar = ({hidden, toggleSideBar, language}: Props) => {

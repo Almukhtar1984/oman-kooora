@@ -412,9 +412,11 @@ Penalty.belongsTo(Match, {foreignKey: { name: 'id_match' },onDelete: 'CASCADE',o
 Team.hasMany(Event, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Event.belongsTo(Team, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
-// Member 1 * MemberPayment, Team 1 * MemberPayment
+// Member/Player 1 * MemberPayment, Team 1 * MemberPayment
 Members.hasMany(MemberPayment, { foreignKey: { name: 'id_member' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 MemberPayment.belongsTo(Members, { foreignKey: { name: 'id_member' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+Players.hasMany(MemberPayment, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+MemberPayment.belongsTo(Players, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 Team.hasMany(MemberPayment, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 MemberPayment.belongsTo(Team, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 

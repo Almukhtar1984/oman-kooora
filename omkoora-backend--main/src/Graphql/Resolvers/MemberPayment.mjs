@@ -1,6 +1,8 @@
 import { ApolloError } from 'apollo-server-express';
 import logger from "../../Config/logger.mjs";
-import { Members, Person, MemberPayment } from '../../Models/index.mjs';
+import { Members, Players, Person, MemberPayment } from '../../Models/index.mjs';
+
+const sumAmount = (payments) => payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
 export const resolvers = {
     Query: {
@@ -19,11 +21,46 @@ export const resolvers = {
                         where: { id_member: member.id },
                         order: [['createdAt', 'DESC']]
                     });
-                    const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-                    return { member, totalPaid, payments };
+                    return { member, totalPaid: sumAmount(payments), payments };
                 }));
 
                 return accounts;
+            } catch (error) {
+                logger.error("");
+                throw new ApolloError(error);
+            }
+        },
+
+        // Same ledger shape but for the team's players.
+        playerAccountsTeam: async (obj, { idTeam }, context, info) => {
+            try {
+                const players = await Players.findAll({
+                    where: { id_team: idTeam },
+                    include: [{ model: Person, as: "person" }]
+                });
+
+                return await Promise.all(players.map(async (player) => {
+                    const payments = await MemberPayment.findAll({
+                        where: { id_player: player.id },
+                        order: [['createdAt', 'DESC']]
+                    });
+                    return { player, totalPaid: sumAmount(payments), payments };
+                }));
+            } catch (error) {
+                logger.error("");
+                throw new ApolloError(error);
+            }
+        },
+
+        // A single player's own ledger — the player portal ("مصروفاتي").
+        playerPayments: async (obj, { idPlayer }, context, info) => {
+            try {
+                const player = await Players.findByPk(idPlayer);
+                const payments = await MemberPayment.findAll({
+                    where: { id_player: idPlayer },
+                    order: [['createdAt', 'DESC']]
+                });
+                return { player, totalPaid: sumAmount(payments), payments };
             } catch (error) {
                 logger.error("");
                 throw new ApolloError(error);
