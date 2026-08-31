@@ -29,6 +29,7 @@ export * from "./DeleteMessageModal"
 export * from "./AddCommentModal"
 
 export * from "./AddExpenseModal"
+export * from "./MemberAccountsModal"
 export * from "./UpdateExpenseModal"
 export * from "./DeleteExpenseModal"
 

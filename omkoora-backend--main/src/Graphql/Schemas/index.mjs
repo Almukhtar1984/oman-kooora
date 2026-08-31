@@ -24,3 +24,4 @@ export {typeDefs as typeStat} from "./Stat.mjs"
 export {typeDefs as typeDefsEvent} from "./Event.mjs"
 
 export {typeDefs as typeCommittee} from "./Committee.mjs"
+export {typeDefs as typeMemberPayment} from "./MemberPayment.mjs"

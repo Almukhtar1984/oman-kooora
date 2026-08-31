@@ -1,13 +1,13 @@
 import { useTheme } from "@emotion/react";
 import { Box, Button, Container, Group, MantineTheme, Stack, TextInput, Title, Menu, Table,Text,ActionIcon } from "@mantine/core";
-import { Lock, Plus, Search } from "tabler-icons-react";
+import { Lock, Plus, Search, Users } from "tabler-icons-react";
 import Head from "next/head";
 import React, { useEffect, useState } from "react";
 import { searchSortedData, sortedData } from "../lib/helpers/sort";
 import { useAllExpense, useExpenseSummary } from "../graphql";  // Import the new hook
 import useStore from "../store/useStore";
 import { ExpenseTable } from "../components/Tables";
-import { UpdateExpenseModal, AddExpenseModal, DeleteExpenseModal } from "../components/Modal";
+import { UpdateExpenseModal, AddExpenseModal, DeleteExpenseModal, MemberAccountsModal } from "../components/Modal";
 import { useDisclosure } from "@mantine/hooks";
 import { PaymentHandler } from "../thawani/index";
 import {Filter,Calendar,Refresh} from "tabler-icons-react";
@@ -21,6 +21,7 @@ export default function Expenses() {
     const [openAddModal, setOpenAddModal] = useState<boolean>(false);
     const [openEditModal, setOpenEditModal] = useState<boolean>(false);
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
+    const [openMemberAccounts, setOpenMemberAccounts] = useState<boolean>(false);
     const [searchValue, setSearchValue] = useState<string>("");
     const [selectedData, setSelectedData] = useState("");
     const [allExpenses, setAllExpenses] = useState<object[]>([]);
@@ -155,6 +156,16 @@ export default function Expenses() {
                 orderId={11}
             />
 
+            {/* Members' accounts ledger */}
+            <Button
+                variant={"light"}
+                color={"teal"}
+                rightIcon={<Users size={18} />}
+                onClick={() => setOpenMemberAccounts(true)}
+            >
+                حسابات الأعضاء
+            </Button>
+
             {/* Add Expense Button */}
             {hasPermission("2") && (
                 <Button
@@ -253,6 +264,7 @@ export default function Expenses() {
             <AddExpenseModal title="اضافة مصروف" opened={openAddModal} onClose={() => setOpenAddModal(false)} />
             <UpdateExpenseModal title="تعديل مصروف" opened={openEditModal} id={selectedData} onClose={() => setOpenEditModal(false)} />
             <DeleteExpenseModal title="" opened={openDeleteModal} data={selectedData} onClose={() => setOpenDeleteModal(false)} />
+            <MemberAccountsModal title="حسابات الأعضاء" opened={openMemberAccounts} idTeam={userData?.person?.member?.team?.id} onClose={() => setOpenMemberAccounts(false)} />
         </Box>
     );
 }
