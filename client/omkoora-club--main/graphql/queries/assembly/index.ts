@@ -6,3 +6,4 @@ export * from "./Assembly";
 export * from "./AllAssemblyTeam";
 
 export * from "./UploadAssemblySheet";
+export * from "./AddClubPeopleToAssembly";

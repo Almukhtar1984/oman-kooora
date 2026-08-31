@@ -14,6 +14,17 @@ export const typeDefs = gql`
         updateAssembly (id: ID!, content: contentAssembly!): statusUpdate @auth(requires: user)
 
         deleteAssembly ( id: ID! ): statusDelete @auth(requires: user)
+
+        # Bulk-add the club's existing players, technical staff and board members
+        # to the general assembly (same as adding each via "إضافة عضو موجود",
+        # done in one shot). Skips anyone already in the assembly by card number.
+        addClubPeopleToAssembly(idClub: ID!): AddAssemblyBulkResult @auth(requires: user)
+    }
+
+    type AddAssemblyBulkResult {
+        added:   Int
+        skipped: Int
+        total:   Int
     }
 
     type Assembly {

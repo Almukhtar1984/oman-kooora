@@ -6,7 +6,7 @@ import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
 
-import {Club, Members, Person, Assembly, User, Team, Players,} from '../../Models/index.mjs';
+import {Club, Members, Person, Assembly, User, Team, Players, TechnicalApparatus,} from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 
@@ -248,6 +248,74 @@ export const resolvers = {
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
+            }
+        },
+
+        // Bulk-add the club's players, technical staff and board members to the
+        // general assembly — the same record "إضافة عضو موجود" creates, done for
+        // every existing person at once. Idempotent by card number.
+        addClubPeopleToAssembly: async (obj, {idClub}, context, info) =>  {
+            try {
+                const withClub = (type) => ({
+                    include: [
+                        { model: Team, as: "team", required: true, where: { id_club: idClub } },
+                        { model: Person, as: "person", required: true },
+                    ],
+                });
+
+                const [players, technicals, members] = await Promise.all([
+                    Players.findAll(withClub()),
+                    TechnicalApparatus.findAll(withClub()),
+                    Members.findAll(withClub()),
+                ]);
+
+                const groups = [
+                    { rows: players, type: "لاعب" },
+                    { rows: technicals, type: "جهاز فني" },
+                    { rows: members, type: "عضو" },
+                ];
+
+                // Skip anyone already in the assembly (by card number).
+                const existing = await Assembly.findAll({ where: { id_club: idClub }, attributes: ["card_number"] });
+                const seen = new Set(existing.map((a) => ("" + (a.card_number ?? "")).trim()).filter(Boolean));
+
+                const cap = (s) => ("" + (s ?? "")).slice(0, 20);
+                const today = new Date().toISOString().slice(0, 10);
+                const toCreate = [];
+                let skipped = 0, total = 0;
+
+                for (const g of groups) {
+                    for (const row of g.rows) {
+                        const p = row.person;
+                        if (!p) continue;
+                        total++;
+                        const card = ("" + (p.card_number ?? "")).trim();
+                        if (card && seen.has(card)) { skipped++; continue; }
+                        if (card) seen.add(card);
+                        toCreate.push({
+                            first_name: cap(p.first_name),
+                            second_name: cap(p.second_name),
+                            third_name: cap(p.third_name),
+                            tribe: cap(p.tribe),
+                            card_number: p.card_number || null,
+                            phone: p.phone ? ("" + p.phone).slice(0, 20) : null,
+                            date_birth: p.date_birth || null,
+                            personal_picture: p.personal_picture || null,
+                            type: g.type,
+                            membership_date: today,
+                            id_club: idClub,
+                        });
+                    }
+                }
+
+                if (toCreate.length) {
+                    await Assembly.bulkCreate(toCreate, { validate: false });
+                }
+
+                return { added: toCreate.length, skipped, total };
+            } catch (error) {
+                logger.error(`addClubPeopleToAssembly error: ${error?.message}`);
+                throw new ApolloError(error);
             }
         }
     }

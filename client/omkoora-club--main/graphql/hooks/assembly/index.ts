@@ -5,3 +5,4 @@ export * from "./useAllAssembly";
 export * from "./useAssembly";
 export * from "./useAllAssemblyTeam";
 export * from "./useUploadAssemblySheet";
+export * from "./useAddClubPeopleToAssembly";

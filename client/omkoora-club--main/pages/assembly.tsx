@@ -10,7 +10,8 @@ import { exportToExcel } from "../lib/helpers/export";
 import { DatePickerInput } from "@mantine/dates";
 import { Calendar, Filter, Download } from "tabler-icons-react";
 
-import {useAllAssembly} from "../graphql";
+import {useAllAssembly, useAddClubPeopleToAssembly} from "../graphql";
+import {Notyf} from "notyf";
 import useStore from "../store/useStore";
 import {AssemblyTable} from "../components/Tables";
 import {
@@ -48,6 +49,23 @@ export default function Assembly() {
     const [permissions, setPermissions] = useState([]);
 
     const [getAllAssembly, { loading, error, data: dataAllAssembly }] = useAllAssembly();
+    const [addClubPeople, { loading: addingClubPeople }] = useAddClubPeopleToAssembly();
+
+    // One-click: pull the club's players + technical staff + board members into
+    // the general assembly (same record "إضافة عضو موجود" makes, in bulk).
+    const handleAddClubPeople = async () => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        const idClub = userData?.person?.clubManagement?.club?.id;
+        if (!idClub) return;
+        try {
+            const res = await addClubPeople({ variables: { idClub } });
+            const r = res?.data?.addClubPeopleToAssembly;
+            notyf.success(`تمت إضافة ${r?.added ?? 0} إلى العمومية${r?.skipped ? ` (تخطّي ${r.skipped} مكرّر)` : ""}`);
+            getAllAssembly({ variables: { idClub }, fetchPolicy: "network-only" });
+        } catch (e) {
+            notyf.error("تعذّرت إضافة أعضاء النادي إلى العمومية");
+        }
+    };
 
     useEffect(() => {
         if (userData?.person?.clubManagement?.club?.id) {
@@ -254,6 +272,10 @@ export default function Assembly() {
                                             <Menu.Item onClick={() => setOpenAddModal(true)}>إضافة عضو غير موجود</Menu.Item>
                                             <Menu.Item onClick={() => setOpenSearchModal(true)} >إضافة عضو موجود</Menu.Item>
                                             <Menu.Item onClick={() => setOpenImportModal(true)}>استيراد من إكسل</Menu.Item>
+                                            <Menu.Divider />
+                                            <Menu.Item color="teal" disabled={addingClubPeople} onClick={handleAddClubPeople}>
+                                                إضافة اللاعبين والجهاز الفني والمجلس
+                                            </Menu.Item>
                                         </Menu.Dropdown>
                                     </Menu>
                                     : null
