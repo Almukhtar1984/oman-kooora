@@ -8,6 +8,21 @@ import { Club, Team, Person, Players, TechnicalApparatus, Members, Assembly } fr
 const cap = (s) => ("" + (s ?? "")).slice(0, 20);
 const today = new Date().toISOString().slice(0, 10);
 
+// people.date_birth is a VARCHAR in production and holds junk for some rows
+// ("Invalid Date", Excel serials like 25569, "30-01-01", ""). assemblies.date_birth
+// is a real DATE column, so anything that is not a plain YYYY-MM-DD calendar date
+// has to become NULL — otherwise the whole club's insert is rejected.
+const asDate = (value) => {
+    const s = ("" + (value ?? "")).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    const [y, m, d] = s.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+    return s;
+};
+
+const CHUNK = 500;
+
 async function backfillClub(idClub) {
     const withClub = () => ({
         include: [
@@ -48,7 +63,7 @@ async function backfillClub(idClub) {
                 tribe: cap(p.tribe),
                 card_number: p.card_number || null,
                 phone: p.phone ? ("" + p.phone).slice(0, 20) : null,
-                date_birth: p.date_birth || null,
+                date_birth: asDate(p.date_birth),
                 personal_picture: p.personal_picture || null,
                 type: g.type,
                 membership_date: today,
@@ -57,7 +72,9 @@ async function backfillClub(idClub) {
         }
     }
 
-    if (toCreate.length) await Assembly.bulkCreate(toCreate, { validate: false });
+    for (let i = 0; i < toCreate.length; i += CHUNK) {
+        await Assembly.bulkCreate(toCreate.slice(i, i + CHUNK), { validate: false });
+    }
     return { added: toCreate.length, skipped, total };
 }
 
