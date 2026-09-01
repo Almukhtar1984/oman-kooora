@@ -53,7 +53,7 @@ export default function PlayersTransfer() {
             const idClub = userData?.person?.clubManagement?.club?.id;
             getAllPlayersTransferred({
                 variables: {idClub},
-                fetchPolicy: "network-only"
+                fetchPolicy: "cache-and-network"
             })
         }
         if (userData && "person" in userData && userData?.person?.clubManagement?.role !== null) {

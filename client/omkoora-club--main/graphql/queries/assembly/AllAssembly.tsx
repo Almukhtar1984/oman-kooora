@@ -19,7 +19,6 @@ export const AllAssembly = gql`
             subscription_date
             
             createdAt
-            updatedAt
         }
     }
 `;

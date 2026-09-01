@@ -86,7 +86,7 @@ export default function Players() {
             const idClub = userData?.person?.clubManagement?.club?.id;
             getAllPlayers({
                 variables: {idClub},
-                fetchPolicy: "network-only"
+                fetchPolicy: "cache-and-network"
             })
 
             getAllTeam({variables: {idClub}})

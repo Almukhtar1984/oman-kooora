@@ -51,7 +51,7 @@ export default function Home() {
             const idClub = userData?.person?.clubManagement?.club?.id;
             getAllTeam({
                 variables: {idClub},
-                fetchPolicy: "network-only"
+                fetchPolicy: "cache-and-network"
             })
         }
         if (userData && "person" in userData && userData?.person?.clubManagement?.role !== null) {

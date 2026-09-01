@@ -39,7 +39,7 @@ export default function PlayersLoan() {
         if (idTeam) {
             getAllTransferTeam({
                 variables: { idTeam, transitionType: ["loan", "returning"] },
-                fetchPolicy: "network-only",
+                fetchPolicy: "cache-and-network",
             });
         }
     }, [idTeam]);

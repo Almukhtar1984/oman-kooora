@@ -58,7 +58,7 @@ export default function PlayersLoan() {
             const idClub = userData?.person?.clubManagement?.club?.id;
             getAllPlayersLoan({
                 variables: {idClub},
-                fetchPolicy: "network-only"
+                fetchPolicy: "cache-and-network"
             })
         }
         if (userData && "person" in userData && userData?.person?.clubManagement?.role !== null) {

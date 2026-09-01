@@ -47,8 +47,8 @@ export const TeamManagersSection = () => {
 
     useEffect(() => {
         if (idClub) {
-            getAllTeamManagers({variables: {idClub}, fetchPolicy: "network-only"});
-            getAllTeam({variables: {idClub}, fetchPolicy: "network-only"});
+            getAllTeamManagers({variables: {idClub}, fetchPolicy: "cache-and-network"});
+            getAllTeam({variables: {idClub}, fetchPolicy: "cache-and-network"});
         }
     }, [idClub]);
 

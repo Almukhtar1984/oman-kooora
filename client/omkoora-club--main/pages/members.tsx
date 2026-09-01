@@ -102,11 +102,11 @@ function MembersContent() {
             const idClub = userData?.person?.clubManagement?.club?.id;
             getAllMembers({
                 variables: {idClub},
-                fetchPolicy: "network-only"
+                fetchPolicy: "cache-and-network"
             })
             getAllTeam({
                 variables: {idClub},
-                fetchPolicy: "network-only"
+                fetchPolicy: "cache-and-network"
             })
         }
         if (userData && "person" in userData && userData?.person?.clubManagement?.role !== null) {
@@ -393,4 +393,4 @@ export default function Members() {
             </Tabs>
         </Container>
     );
-}
+}

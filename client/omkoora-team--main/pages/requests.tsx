@@ -33,7 +33,7 @@ export default function Requests() {
             const idTeam = userData?.person?.member?.team?.id;
             getAllRequests({
                 variables: {idTeam},
-                fetchPolicy: "network-only"
+                fetchPolicy: "cache-and-network"
             })
         }
 

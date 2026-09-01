@@ -1,4 +1,3 @@
-import { format as formatDate } from 'date-fns'
 import {defaultFieldResolver } from 'graphql'
 import { mapSchema, getDirective, MapperKind } from '@graphql-tools/utils'
 import dotenv from 'dotenv'
@@ -18,10 +17,7 @@ export default function imgUrlDirective(directiveName) {
                 if (imgUrlDirective) {
                     const { resolve = defaultFieldResolver } = fieldConfig
 
-                    fieldConfig.resolve = async (source, args, context, info) => {
-                        const imgName = await resolve(source, args, context, info)
-
-                        //console.log(imgName)
+                    const apply = (imgName) => {
                         if (imgName !== null && imgName !== undefined && imgName !== "") {
                             if (typeof imgName === 'string' && imgName.startsWith('http')) {
                                 const parts = imgName.split('/')
@@ -30,6 +26,14 @@ export default function imgUrlDirective(directiveName) {
                             return imgName
                         }
                         return ``
+                    }
+
+                    // Kept synchronous: awaiting here allocated a promise per
+                    // field per row on every list query.
+                    fieldConfig.resolve = (source, args, context, info) => {
+                        const imgName = resolve(source, args, context, info)
+                        if (imgName && typeof imgName.then === "function") return imgName.then(apply)
+                        return apply(imgName)
                     }
                     return fieldConfig
                 }

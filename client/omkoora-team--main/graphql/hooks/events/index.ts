@@ -2,7 +2,7 @@ import { useMutation, useLazyQuery } from "@apollo/client";
 import { ALL_EVENTS, CREATE_EVENT, UPDATE_EVENT, DELETE_EVENT } from "../../queries/events/Event";
 
 export const useAllEvents = () => {
-    return useLazyQuery(ALL_EVENTS, { fetchPolicy: "network-only" });
+    return useLazyQuery(ALL_EVENTS, { fetchPolicy: "cache-and-network" });
 };
 
 export const useCreateEvent = () => {

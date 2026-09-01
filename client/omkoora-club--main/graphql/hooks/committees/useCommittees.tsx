@@ -4,7 +4,7 @@ import {
   CreateCommitteeMember, UpdateCommitteeMember, DeleteCommitteeMember,
 } from "../..";
 
-export const useAllCommittees = () => useLazyQuery(AllCommittees, { fetchPolicy: "network-only" });
+export const useAllCommittees = () => useLazyQuery(AllCommittees, { fetchPolicy: "cache-and-network" });
 export const useCreateCommittee = () => useMutation(CreateCommittee);
 export const useUpdateCommittee = () => useMutation(UpdateCommittee);
 export const useDeleteCommittee = () => useMutation(DeleteCommittee);

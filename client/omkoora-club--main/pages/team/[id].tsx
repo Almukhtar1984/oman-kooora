@@ -189,7 +189,8 @@ export default function TeamDetailsPage() {
             getAllPlayers({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
             getAllMembers({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
             getAllTechnical({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
-            getAllAssembly({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
+            // Only worth re-fetching once the (very large) assembly list is on screen.
+            if (assemblyVisible) getAllAssembly({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
         }
     };
 
@@ -213,14 +214,25 @@ export default function TeamDetailsPage() {
 
     useEffect(() => {
         if (clubId) {
-            // network-only: an import (or any edit) done elsewhere must show up
-            // here, and cache-first would keep serving the list from a past visit.
-            getAllPlayers({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
-            getAllMembers({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
-            getAllTechnical({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
-            getAllAssembly({ variables: { idClub: clubId }, fetchPolicy: 'network-only' });
+            // cache-and-network, not cache-first: an import (or any edit) done
+            // elsewhere must show up here, so every visit still refetches — it
+            // just paints the previous list first instead of an empty page.
+            getAllPlayers({ variables: { idClub: clubId }, fetchPolicy: 'cache-and-network' });
+            getAllMembers({ variables: { idClub: clubId }, fetchPolicy: 'cache-and-network' });
+            getAllTechnical({ variables: { idClub: clubId }, fetchPolicy: 'cache-and-network' });
         }
     }, [clubId]);
+
+    // The assembly can be ~10k rows for a big club and is only ever rendered in
+    // the العمومية tab, so loading it with the page made every visit — including
+    // the ones that never open that tab — wait on a multi-megabyte response.
+    const assemblyVisible = activeTab === "members" && memberTab === "assembly";
+
+    useEffect(() => {
+        if (clubId && assemblyVisible) {
+            getAllAssembly({ variables: { idClub: clubId }, fetchPolicy: 'cache-and-network' });
+        }
+    }, [clubId, assemblyVisible]);
 
     const team = data?.team;
     const stats = data?.statisticsTeam;

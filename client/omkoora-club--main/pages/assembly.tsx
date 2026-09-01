@@ -2,7 +2,7 @@ import { useTheme } from "@emotion/react";
 import {Box, Button, Col, Container, Grid, Group, MantineTheme, Menu, Stack, TextInput, Title} from "@mantine/core";
 import {Lock, Plus, Printer, Search,} from "tabler-icons-react";
 import Head from "next/head";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useState } from "react";
 import dayjs from "dayjs";
 import {searchSortedData} from "../lib/helpers/sort";
@@ -61,7 +61,7 @@ export default function Assembly() {
             const res = await addClubPeople({ variables: { idClub } });
             const r = res?.data?.addClubPeopleToAssembly;
             notyf.success(`تمت إضافة ${r?.added ?? 0} إلى العمومية${r?.skipped ? ` (تخطّي ${r.skipped} مكرّر)` : ""}`);
-            getAllAssembly({ variables: { idClub }, fetchPolicy: "network-only" });
+            getAllAssembly({ variables: { idClub }, fetchPolicy: "no-cache" });
         } catch (e) {
             notyf.error("تعذّرت إضافة أعضاء النادي إلى العمومية");
         }
@@ -72,7 +72,7 @@ export default function Assembly() {
             const idClub = userData?.person?.clubManagement?.club?.id;
             getAllAssembly({
                 variables: {idClub},
-                fetchPolicy: "network-only"
+                fetchPolicy: "no-cache"
             })
         }
         if (userData && "person" in userData && userData?.person?.clubManagement?.role !== null) {
@@ -91,6 +91,29 @@ export default function Assembly() {
         }
     }, [dataAllAssembly])
 
+    // Parsing the dates inside the filter and the sort comparator meant building
+    // a couple of hundred thousand dayjs objects on every keystroke once a club
+    // has ~10k members. Parse each row once instead, and keep the exact same
+    // rules (including how invalid dates behave).
+    const rowDates = useMemo(() => {
+        const now = Date.now();
+        const map = new Map<any, { expired: boolean; sortMs: number }>();
+
+        allAssembly.forEach((item: any) => {
+            const subMs = new Date(item?.subscription_date).getTime();
+            const expiresMs = Number.isNaN(subMs)
+                ? NaN
+                : new Date(`${new Date(subMs).getFullYear() + 1}-01-01`).getTime();
+
+            map.set(item, {
+                expired: !Number.isNaN(expiresMs) && now >= expiresMs,
+                sortMs: new Date(item?.membership_date || item?.createdAt).getTime(),
+            });
+        });
+
+        return map;
+    }, [allAssembly]);
+
     useEffect(() => {
         let filtered = [...allAssembly];
 
@@ -102,35 +125,34 @@ export default function Assembly() {
         // 2. Status Filter
         if (statusFilter !== "all") {
             filtered = filtered.filter((item: any) => {
-                const year = dayjs(item?.subscription_date).format("YYYY");
-                const date1 = new Date(`${parseInt(year) + 1}-01-01`);
-                const date2 = new Date();
-                const isExpired = date2 >= date1;
+                const isExpired = rowDates.get(item)?.expired ?? false;
                 return statusFilter === "active" ? !isExpired : isExpired;
             });
         }
 
         // 3. Date Range Filter (Subscription Date)
         if (dateFrom || dateTo) {
+            const from = dateFrom ? dayjs(dateFrom) : null;
+            const to = dateTo ? dayjs(dateTo) : null;
             filtered = filtered.filter((item: any) => {
                 const subDate = dayjs(item?.subscription_date);
-                if (dateFrom && subDate.isBefore(dayjs(dateFrom), 'day')) return false;
-                if (dateTo && subDate.isAfter(dayjs(dateTo), 'day')) return false;
+                if (from && subDate.isBefore(from, 'day')) return false;
+                if (to && subDate.isAfter(to, 'day')) return false;
                 return true;
             });
         }
 
         // 4. Sort
         filtered.sort((a: any, b: any) => {
-            const dateA = dayjs(a.membership_date || a.createdAt);
-            const dateB = dayjs(b.membership_date || b.createdAt);
-            return sortOrder === "desc" 
-                ? (dateB.isAfter(dateA) ? 1 : -1) 
-                : (dateA.isAfter(dateB) ? 1 : -1);
+            const msA = rowDates.get(a)?.sortMs ?? NaN;
+            const msB = rowDates.get(b)?.sortMs ?? NaN;
+            return sortOrder === "desc"
+                ? (msB > msA ? 1 : -1)
+                : (msA > msB ? 1 : -1);
         });
 
         setAllAssemblySorting([...filtered]);
-    }, [allAssembly, searchValue, statusFilter, sortOrder, dateFrom, dateTo]);
+    }, [allAssembly, rowDates, searchValue, statusFilter, sortOrder, dateFrom, dateTo]);
 
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });
@@ -319,7 +341,7 @@ export default function Assembly() {
                 onClose={() => setOpenImportModal(false)}
                 onImported={() => {
                     const idClub = userData?.person?.clubManagement?.club?.id;
-                    if (idClub) getAllAssembly({ variables: { idClub }, fetchPolicy: "network-only" });
+                    if (idClub) getAllAssembly({ variables: { idClub }, fetchPolicy: "no-cache" });
                 }}
             />
         </Box>
