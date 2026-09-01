@@ -4,6 +4,7 @@ import {alreadyExistUser,  isExistUser, sameUserAgent} from "./Check.mjs";
 import {hashPassword, comparePassword} from "./Password.mjs";
 import {isIdentical} from "./isIdentical.mjs"
 import {CreateNotificationClub,CreateNotificationTeam} from "./Notification.mjs"
+import {normalizePhone, normalizeCardNumber, cardNumberLookupValues} from "./PortalIdentity.mjs"
 
 
 export {
@@ -19,5 +20,8 @@ export {
     comparePassword,
     isIdentical,
     CreateNotificationClub,
-    CreateNotificationTeam
+    CreateNotificationTeam,
+    normalizePhone,
+    normalizeCardNumber,
+    cardNumberLookupValues
 }

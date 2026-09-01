@@ -14,11 +14,31 @@ type Props = {};
 const Header = (props: Props) => {
     const theme = useTheme() as MantineTheme;
     const userData = useStore((state: any) => state.userData);
+    const portalData = useStore((state: any) => state.portalData);
     const [openprofileOptionMenu, setopenprofileOptionMenu] = useState<boolean>(false);
     const router = useRouter()
     const [logOut, { data }] = useLogout()
 
+    const goToLogin = () => {
+        clearAuth();
+        // Full reload drops Apollo's in-memory cache and any zombie
+        // tokens held by other code paths, so the next request truly
+        // starts from scratch.
+        if (typeof window !== "undefined") {
+            window.location.replace("/login/");
+        } else {
+            router.replace("/login/");
+        }
+    };
+
     const onLogout = () => {
+        // The logout mutation is behind @auth(requires: user); a member signed
+        // in with phone + civil ID has no such session, so just drop the token.
+        if (portalData) {
+            goToLogin();
+            return;
+        }
+
         logOut({
             onCompleted: () => {
                 clearAuth();
@@ -83,9 +103,16 @@ const Header = (props: Props) => {
                                                 </Box>
                                                 <Flex direction={"column"} gap="0">
                                                     <Text size={"xs"} color={"gray.6"} fw="400">
-                                                        {`${userData?.person?.first_name} ${userData?.person?.second_name} ${userData?.person?.third_name} ${userData?.person?.tribe}`}
+                                                        {[
+                                                            (portalData?.person || userData?.person)?.first_name,
+                                                            (portalData?.person || userData?.person)?.second_name,
+                                                            (portalData?.person || userData?.person)?.third_name,
+                                                            (portalData?.person || userData?.person)?.tribe,
+                                                        ].filter(Boolean).join(" ")}
                                                     </Text>
-                                                    <Text size={"2xs" as any} color={"gray.4"} fw="400">{userData?.email}</Text>
+                                                    <Text size={"2xs" as any} color={"gray.4"} fw="400">
+                                                        {portalData ? portalData?.person?.card_number : userData?.email}
+                                                    </Text>
                                                 </Flex>
                                             </Flex>
                                             <ChevronDown size="20px" strokeWidth={2} color={theme.colors.gray[5]} />

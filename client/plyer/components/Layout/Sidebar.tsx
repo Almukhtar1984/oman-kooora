@@ -1,6 +1,7 @@
 import {createStyles, Navbar, ScrollArea, Image, Tooltip, Box, getStylesRef} from '@mantine/core';
 import { useRouter } from 'next/router';
-import {ClipboardList, Bulb, Icon, AlertCircle, Settings, Coin} from "tabler-icons-react";
+import useStore from "../../store/useStore";
+import {ClipboardList, Bulb, Icon, AlertCircle, Settings, Coin, Id} from "tabler-icons-react";
 
 interface _params {
     language: string;
@@ -103,12 +104,20 @@ const linksSide: {link: string, label: string, icon: Icon | any}[] = [
     {link: "/expenses", label: "مصروفاتي", icon: Coin}
 ]
 
+// A member signed in with phone + civil ID has no account behind the complaint,
+// proposal and request pages — those all key off a `users` row. Show them the
+// one page that is theirs.
+const portalLinks: {link: string, label: string, icon: Icon | any}[] = [
+    {link: "/me", label: "بطاقتي", icon: Id}
+]
+
 const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
     const router = useRouter()
     const { classes, cx, theme } = useStyles();
+    const portalData = useStore((state: any) => state.portalData);
     // const langSite:LangInterface = useStore((state: any) => state.langSite);
 
-    const links = linksSide.map((item: any) => (
+    const links = (portalData ? portalLinks : linksSide).map((item: any) => (
         <Tooltip key={item.label} label={item.label} position={"left"}>
             <a
                 className={cx(classes.link, { [classes.linkActive]: item.link === router.pathname })}
@@ -156,7 +165,7 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                 {links}
 
 
-                <Tooltip label={"إعدادات الحساب"} position={"left"}>
+                {!portalData && <Tooltip label={"إعدادات الحساب"} position={"left"}>
                     <a
                         className={cx(classes.link, classes.lastLink, { [classes.linkActive]: "/profile" === router.pathname })}
                         href={"/profile"}
@@ -168,7 +177,7 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                     >
                         <Settings color={theme.colors.cyan[5]} size={24} />
                     </a>
-                </Tooltip>
+                </Tooltip>}
             </Navbar.Section>
         </Navbar>
     );

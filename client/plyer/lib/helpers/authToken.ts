@@ -37,6 +37,20 @@ export const decodeExpiryMs = (token?: string | null): number | null => {
     }
 };
 
+// A member-portal token (phone + civil ID sign-in) carries `kind: "portal"`
+// instead of a user id. It has no refresh cookie behind it, so the session
+// simply ends when the token expires and the member signs in again.
+export const isPortalToken = (token?: string | null): boolean => {
+    const t = stripBearer(token);
+    if (!t) return false;
+    try {
+        const decoded: any = decode(t);
+        return decoded?.kind === "portal";
+    } catch {
+        return false;
+    }
+};
+
 export const loadStoredToken = (): string | null => {
     if (typeof window === "undefined") return null;
     try {
@@ -102,6 +116,7 @@ export const setUnauthenticatedHandler = (cb: () => void) => {
 export const applyNewToken = (token: string) => {
     useStore.setState({ isAuth: true, token });
     persist(token);
+    if (isPortalToken(token)) return;
     if (registeredRefreshFn) {
         scheduleNext(token, registeredRefreshFn);
         attachVisibility(registeredRefreshFn);
@@ -122,6 +137,16 @@ const forceLogout = () => {
 // Single-flight: every concurrent caller awaits the same network round-trip,
 // so a burst of 10 expired requests triggers exactly one refresh.
 export const runRefresh = (fn?: RefreshFn): Promise<string | null> => {
+    // Portal sessions have nothing to refresh against; treat the current token
+    // as final rather than forcing a logout the member cannot recover from.
+    const current = (useStore.getState() as any).token || loadStoredToken();
+    if (isPortalToken(current)) {
+        const exp = decodeExpiryMs(current);
+        if (exp && exp > Date.now()) return Promise.resolve(current);
+        forceLogout();
+        return Promise.resolve(null);
+    }
+
     if (inflight) return inflight;
     const effective = fn || registeredRefreshFn;
     if (!effective) return Promise.resolve(null);
@@ -152,6 +177,7 @@ export const hydrateAuthFromStorage = (): string | null => {
     if (typeof window === "undefined") return null;
     const current = (useStore.getState() as any).token;
     if (current) {
+        if (isPortalToken(current)) return current;
         if (registeredRefreshFn) {
             scheduleNext(current, registeredRefreshFn);
             attachVisibility(registeredRefreshFn);
@@ -161,6 +187,7 @@ export const hydrateAuthFromStorage = (): string | null => {
     const stored = loadStoredToken();
     if (!stored) return null;
     useStore.setState({ token: stored, isAuth: true });
+    if (isPortalToken(stored)) return stored;
     if (registeredRefreshFn) {
         scheduleNext(stored, registeredRefreshFn);
         attachVisibility(registeredRefreshFn);

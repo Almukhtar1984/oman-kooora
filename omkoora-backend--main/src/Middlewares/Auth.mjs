@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { User } from '../Models/index.mjs';
+import { Person, User } from '../Models/index.mjs';
 import dotenv from 'dotenv'
 import {serializeUser} from "../Helpers/index.mjs";
 import { getAppKeyFromOrigin } from "../Config/runtime.mjs";
@@ -50,6 +50,20 @@ export const AuthMiddleware = async (req, res, next) => {
             req.isAuth = false;
             return next();
         }
+    }
+
+    // A member-portal token identifies a person signed in with their phone and
+    // civil ID on player.omkooora.com. It is deliberately kept off the `user`
+    // path: it never sets req.isAuth, so it cannot satisfy @auth(requires: user)
+    // anywhere in the schema. Only the portal* resolvers look at req.portalPerson.
+    if (decodedToken.kind === "portal") {
+        const person = decodedToken.id_person
+            ? await Person.findByPk(decodedToken.id_person)
+            : null;
+
+        req.isAuth = false;
+        req.portalPerson = person || undefined;
+        return next();
     }
 
     // If the user has valid token then Find the user by decoded token's id

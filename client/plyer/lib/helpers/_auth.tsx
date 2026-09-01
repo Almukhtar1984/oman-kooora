@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useState } from "react";
 import Route, { useRouter } from "next/router";
 import { Loader, Stack } from "@mantine/core";
 import useStore from "../../store/useStore";
-import { useGetCurrentUser } from "../../graphql";
+import { useGetCurrentUser, usePortalMe } from "../../graphql";
 import {
     applyNewToken,
     clearAuth,
     decodeExpiryMs,
     hydrateAuthFromStorage,
+    isPortalToken,
     runRefresh,
 } from "./authToken";
 
@@ -21,7 +22,7 @@ const PUBLIC_ROUTES = [
 
 const isPublicRoute = (pathname: string) => PUBLIC_ROUTES.includes(pathname);
 
-const useAuth = (getCurrentUserLazy: any) => {
+const useAuth = (getCurrentUserLazy: any, getPortalMeLazy?: any) => {
     const loadCurrentUser = useCallback(async () => {
         return await new Promise((resolve) => {
             getCurrentUserLazy({
@@ -39,11 +40,46 @@ const useAuth = (getCurrentUserLazy: any) => {
         });
     }, [getCurrentUserLazy]);
 
+    // A member signed in with phone + civil ID has no `users` row, so
+    // CURRENT_USER would (correctly) reject the token. Load the person's own
+    // record instead and keep the account path untouched.
+    const loadPortalMe = useCallback(async () => {
+        if (!getPortalMeLazy) return false;
+        return await new Promise((resolve) => {
+            getPortalMeLazy({
+                fetchPolicy: "network-only",
+                onCompleted: (data: any) => {
+                    if (!data?.portalMe) {
+                        useStore.setState({ portalData: null });
+                        resolve(false);
+                        return;
+                    }
+                    useStore.setState({ portalData: data.portalMe, userData: {} });
+                    resolve(true);
+                },
+                onError: () => {
+                    useStore.setState({ portalData: null });
+                    resolve(false);
+                }
+            });
+        });
+    }, [getPortalMeLazy]);
+
     const checkAuth = useCallback(async (): Promise<boolean> => {
         try {
             const restored = hydrateAuthFromStorage();
             const expMs = decodeExpiryMs(restored);
             const stillValid = restored && expMs && expMs > Date.now();
+
+            if (isPortalToken(restored)) {
+                if (!stillValid) {
+                    clearAuth();
+                    return false;
+                }
+                const ok = await loadPortalMe();
+                if (!ok) clearAuth();
+                return ok as boolean;
+            }
 
             if (stillValid) {
                 const ok = await loadCurrentUser();
@@ -62,7 +98,7 @@ const useAuth = (getCurrentUserLazy: any) => {
             clearAuth();
             return false;
         }
-    }, [loadCurrentUser]);
+    }, [loadCurrentUser, loadPortalMe]);
 
     return { checkAuth };
 };
@@ -77,8 +113,9 @@ const ProtectedPage = ({ children }: Props): any => {
     const isAuth = useStore((state: any) => state.isAuth);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     const [getCurrentUserLazy]: any = useGetCurrentUser();
+    const [getPortalMeLazy]: any = usePortalMe();
 
-    const { checkAuth } = useAuth(getCurrentUserLazy);
+    const { checkAuth } = useAuth(getCurrentUserLazy, getPortalMeLazy);
 
     useEffect(() => {
         let mounted = true;
@@ -96,6 +133,14 @@ const ProtectedPage = ({ children }: Props): any => {
 
             if (!authenticated) {
                 await Route.replace("/login");
+                return;
+            }
+
+            // The complaint / proposal / request / expense pages all read
+            // `userData.person.player.id`, which a portal member does not have.
+            const isPortalSession = Boolean((useStore.getState() as any).portalData);
+            if (isPortalSession && router.pathname !== "/me") {
+                await Route.replace("/me");
                 return;
             }
 

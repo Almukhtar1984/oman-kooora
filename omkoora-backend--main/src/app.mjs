@@ -181,7 +181,7 @@ let socket = null;
             ],
             persistedQueries: false,
             context: ({ req, res }) => {
-                let {user, isAuth } = req;
+                let {user, isAuth, portalPerson } = req;
                 const origin = req.header('Origin');
                 const appKey = getAppKeyFromOrigin(origin);
                 const cookieName = refreshCookieName(appKey);
@@ -207,7 +207,7 @@ let socket = null;
                 // to batch lookups across all rows in the same response.
                 const loaders = buildLoaders();
 
-                return { res, req, user, isAuth, refreshToken, loaders, appKey, origin };
+                return { res, req, user, isAuth, portalPerson, refreshToken, loaders, appKey, origin };
             }
         });
 
