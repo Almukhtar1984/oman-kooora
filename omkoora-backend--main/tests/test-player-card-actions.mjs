@@ -49,9 +49,15 @@ console.log(`${c.cyan}▶ Print app — no endless loading${c.reset}`);
     assert(/print-card-notfound/.test(card), "print card has a not-found state");
     assert(/print-card-error/.test(card), "print card has an error state");
     const app = read("client", "print", "src", "App.tsx");
-    assert(/loading, error, called/.test(app) || /error, called/.test(app),
-        "App.tsx reads the query lifecycle");
-    assert(/loaded=\{called && !loading\}/.test(app), "App.tsx passes a finished flag to the card");
+    // The single-card route resolves player → member → technical, so the
+    // lifecycle flags are read per-hook (loading:/called:/error:) rather than
+    // as a single {loading, error, called}. Guard the intent: it still reads
+    // the query lifecycle and hands the card a computed finished flag + error,
+    // so a fallback lookup never flashes "not found" and never spins forever.
+    assert(/loading: \w+Loading/.test(app) && /called: \w+Called/.test(app),
+        "App.tsx reads the query lifecycle (called/loading)");
+    assert(/const loaded\s*=/.test(app) && /loaded=\{loaded\}/.test(app) && /error=\{error\}/.test(app),
+        "App.tsx computes and passes a finished flag + error to the card");
 }
 
 // ── Every card action is wired: menu item -> handler ─────────────────────────
