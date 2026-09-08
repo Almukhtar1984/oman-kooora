@@ -14,6 +14,7 @@ import QRCode from "qrcode";
 import dayjs from "dayjs";
 
 import { apiUrl, printUrl } from "../../config";
+import CardImageExport from "../CardImageExport";
 
 interface Props {
     player?: any;
@@ -504,15 +505,20 @@ const CardTemplate = ({ player, error, loaded }: Props) => {
     }
 
     return (
-        <PDFViewer
-            data-testid="print-card-pdfviewer"
-            style={{ minHeight: "calc(100vh - 25px )", minWidth: "calc(100vw - 10px )" }}
-        >
-            <Document>
-                <CardFrontPage qrDataUrl={qrDataUrl} player={player} />
-                <CardBackPage player={player} />
-            </Document>
-        </PDFViewer>
+        <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+            {/* Download the card as a real-size PNG (front/back) so it can be
+                printed at the right size instead of one card per full A4 page. */}
+            <CardImageExport player={player} />
+            <PDFViewer
+                data-testid="print-card-pdfviewer"
+                style={{ flex: 1, width: "100%", border: "none" }}
+            >
+                <Document>
+                    <CardFrontPage qrDataUrl={qrDataUrl} player={player} />
+                    <CardBackPage player={player} />
+                </Document>
+            </PDFViewer>
+        </div>
     );
 };
 
