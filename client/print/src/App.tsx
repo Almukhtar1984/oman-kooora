@@ -57,11 +57,22 @@ function App() {
 
   const error = Boolean(!entity && (playerError || memberError || techError));
 
+  // Title follows the table the id actually matched (same order as the lookup)
+  // so a coach's card no longer reads "بطاقة لاعب".
+  const title = player
+    ? "بطاقة لاعب"
+    : member
+    ? "بطاقة عضو مجلس الإدارة"
+    : technical
+    ? "بطاقة عضو الجهاز الفني"
+    : "بطاقة";
+
   return (
     <CardTemplate
       player={entity as any}
       error={error}
       loaded={loaded}
+      title={title}
     />
   );
 }

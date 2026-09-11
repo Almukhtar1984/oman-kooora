@@ -10,6 +10,7 @@ const H = 638;
 
 interface Props {
     player: any;
+    title?: string;
 }
 
 // Fetch an image as a same-origin data URI so drawing it onto the canvas never
@@ -131,7 +132,7 @@ interface Assets {
     font: string;
 }
 
-const drawFront = (ctx: CanvasRenderingContext2D, player: any, a: Assets) => {
+const drawFront = (ctx: CanvasRenderingContext2D, player: any, a: Assets, title: string) => {
     const font = a.font;
     const team = player?.team;
     const club = team?.club;
@@ -143,7 +144,7 @@ const drawFront = (ctx: CanvasRenderingContext2D, player: any, a: Assets) => {
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, W - 2, H - 2);
 
-    headerFooter(ctx, font, "بطاقة لاعب", team?.name || "");
+    headerFooter(ctx, font, title || "بطاقة لاعب", team?.name || "");
 
     // Photo (right, RTL)
     const photoW = 300;
@@ -223,7 +224,7 @@ const drawFront = (ctx: CanvasRenderingContext2D, player: any, a: Assets) => {
     if (a.clubLogo) drawCover(ctx, a.clubLogo, dataLeft, rowY + (qr - cl) / 2, cl, cl);
 };
 
-const drawBack = (ctx: CanvasRenderingContext2D, player: any, a: Assets) => {
+const drawBack = (ctx: CanvasRenderingContext2D, player: any, a: Assets, title: string) => {
     const font = a.font;
     const team = player?.team;
     const club = team?.club;
@@ -234,7 +235,7 @@ const drawBack = (ctx: CanvasRenderingContext2D, player: any, a: Assets) => {
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, W - 2, H - 2);
 
-    headerFooter(ctx, font, "بطاقة لاعب", "");
+    headerFooter(ctx, font, title || "بطاقة لاعب", "");
 
     const logoSize = 190;
     const cy = H / 2 - 30;
@@ -276,7 +277,7 @@ const download = (canvas: HTMLCanvasElement | null, filename: string) => {
     document.body.removeChild(link);
 };
 
-export default function CardImageExport({ player }: Props) {
+export default function CardImageExport({ player, title }: Props) {
     // Defined inside the component (not at module scope) so a circular import
     // with ./PDF/Card can't read cardPalette before it is initialised.
     const btnStyle: React.CSSProperties = {
@@ -319,14 +320,14 @@ export default function CardImageExport({ player }: Props) {
             const assets: Assets = { photo, teamLogo, clubLogo, qr, font };
             const fc = frontRef.current?.getContext("2d");
             const bc = backRef.current?.getContext("2d");
-            if (fc) drawFront(fc, player, assets);
-            if (bc) drawBack(bc, player, assets);
+            if (fc) drawFront(fc, player, assets, title || "بطاقة لاعب");
+            if (bc) drawBack(bc, player, assets, title || "بطاقة لاعب");
             setReady(true);
         })();
         return () => {
             cancelled = true;
         };
-    }, [player]);
+    }, [player, title]);
 
     return (
         <div

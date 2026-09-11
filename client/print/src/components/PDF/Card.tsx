@@ -22,6 +22,9 @@ interface Props {
     // endless "loading" spinner when the request fails or finds nothing.
     error?: boolean;
     loaded?: boolean; // the query finished (called && !loading)
+    // Header title chosen by the caller from the entity type (player / board
+    // member / technical staff) so a coach's card isn't labelled "بطاقة لاعب".
+    title?: string;
 }
 
 const statusMessageStyle: React.CSSProperties = {
@@ -465,7 +468,7 @@ export const CardBackPage = ({
     );
 };
 
-const CardTemplate = ({ player, error, loaded }: Props) => {
+const CardTemplate = ({ player, error, loaded, title }: Props) => {
     const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
     useEffect(() => {
@@ -508,14 +511,14 @@ const CardTemplate = ({ player, error, loaded }: Props) => {
         <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
             {/* Download the card as a real-size PNG (front/back) so it can be
                 printed at the right size instead of one card per full A4 page. */}
-            <CardImageExport player={player} />
+            <CardImageExport player={player} title={title} />
             <PDFViewer
                 data-testid="print-card-pdfviewer"
                 style={{ flex: 1, width: "100%", border: "none" }}
             >
                 <Document>
-                    <CardFrontPage qrDataUrl={qrDataUrl} player={player} />
-                    <CardBackPage player={player} />
+                    <CardFrontPage qrDataUrl={qrDataUrl} player={player} headerTitle={title} />
+                    <CardBackPage player={player} headerTitle={title} />
                 </Document>
             </PDFViewer>
         </div>

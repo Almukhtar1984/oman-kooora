@@ -58,6 +58,10 @@ console.log(`${c.cyan}▶ Print app — no endless loading${c.reset}`);
         "App.tsx reads the query lifecycle (called/loading)");
     assert(/const loaded\s*=/.test(app) && /loaded=\{loaded\}/.test(app) && /error=\{error\}/.test(app),
         "App.tsx computes and passes a finished flag + error to the card");
+    // The header title must follow the matched entity type, so a technical
+    // staff / board member card isn't mislabelled "بطاقة لاعب".
+    assert(/بطاقة عضو الجهاز الفني/.test(app) && /title=\{title\}/.test(app),
+        "App.tsx titles the card by entity type (technical/member not 'بطاقة لاعب')");
 }
 
 // ── Every card action is wired: menu item -> handler ─────────────────────────
