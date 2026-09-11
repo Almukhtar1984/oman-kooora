@@ -25,6 +25,10 @@ export const AllTechnicals = gql`
                 name
                 phone
             }
+            attachmentsTechnical {
+                id
+                content
+            }
             createdAt
             updatedAt
         }

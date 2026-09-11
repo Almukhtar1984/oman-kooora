@@ -109,6 +109,42 @@ console.log(`${c.cyan}▶ Team app — home page cards (the primary staff view)$
     assert(/<ShowAttachmentsTechnical[\s\S]*opened=\{openShowAttachmentTechnicalModal\}/.test(home), "home mounts the technical review modal");
 }
 
+console.log(`${c.cyan}▶ Club app — technical staff cards${c.reset}`);
+{
+    const CLUB = "client/omkoora-club--main";
+
+    // GraphQL: mutations + hooks + the attachmentsTechnical selection.
+    assert(/addAttachmentTechnical\(idTechnical: \$idTechnical, attachments: \$attachments\)/.test(
+        read(CLUB, "graphql", "queries", "technical", "AddAttachmentTechnical.tsx")), "club add mutation exists");
+    assert(/deleteAttachmentTechnical\(id: \$id\)/.test(
+        read(CLUB, "graphql", "queries", "technical", "DeleteAttachmentTechnical.tsx")), "club delete mutation exists");
+    assert(read(CLUB, "graphql", "hooks", "technical", "useAddAttachmentTechnical.tsx") !== "", "club add hook exists");
+    assert(read(CLUB, "graphql", "hooks", "technical", "useDeleteAttachmentTechnical.tsx") !== "", "club delete hook exists");
+    assert(/attachmentsTechnical\s*\{[\s\S]*id[\s\S]*content/.test(
+        read(CLUB, "graphql", "queries", "technical", "AllTechnicals.tsx")), "club AllTechnicals selects attachmentsTechnical");
+
+    // Modals.
+    assert(read(CLUB, "components", "Modal", "AddAttachmentTechnicalModal.tsx") !== "", "club upload modal exists");
+    assert(read(CLUB, "components", "Modal", "ShowAttachmentsTechnical.tsx") !== "", "club review modal exists");
+
+    // Card actions on the technical staff card.
+    const card = read(CLUB, "components", "Card", "MemberCard.tsx");
+    assert(/type === 'technical' && hasPermission\("3"\)[\s\S]*?onAddAttachment && onAddAttachment\(data\?\.id\)/.test(card),
+        "club MemberCard technical block has 'إضافة مرفقات'");
+    assert(/type === 'technical'[\s\S]*?onShowAttachments && onShowAttachments\(data\)/.test(card),
+        "club MemberCard technical block has 'عرض المرفقات'");
+
+    // Table forwards the handlers, page wires + mounts the modals.
+    const table = read(CLUB, "components", "Tables", "TechnicalsTable.tsx");
+    assert(/onAddAttachment=\{onAddAttachment\}/.test(table) && /onShowAttachments=\{onShowAttachments\}/.test(table),
+        "club TechnicalsTable forwards the attachment handlers to MemberCard");
+    const page = read(CLUB, "pages", "technicalApparatus.tsx");
+    assert(/onAddAttachment=\{handleAddAttachment\}/.test(page) && /onShowAttachments=\{handleShowAttachments\}/.test(page),
+        "club page passes the attachment handlers to the table");
+    assert(/<AddAttachmentTechnicalModal[\s\S]*id=\{selectedData\}/.test(page), "club page mounts the upload modal");
+    assert(/<ShowAttachmentsTechnical[\s\S]*data=\{selectedTechnical\}/.test(page), "club page mounts the review modal");
+}
+
 console.log("");
 if (failures === 0) {
     console.log(`${c.green}All technical-attachment guards passed.${c.reset}`);

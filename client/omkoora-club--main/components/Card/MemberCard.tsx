@@ -350,6 +350,8 @@ export const MemberCard = ({
                                                     {hasPermission("3") && <Menu.Item icon={<EditCircle size={14} />} onClick={() => onEdit && onEdit(data)}>تعديل المعلومات</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<Upload size={14} />} onClick={() => onAddImage && onAddImage(data?.person?.id || data?.id)}>إضافة صورة</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<ArrowsLeftRight size={14} />} onClick={() => onChangeClassification && onChangeClassification(data)}>تغيير التصنيف</Menu.Item>}
+                                                    {type === 'technical' && hasPermission("3") && <Menu.Item icon={<Paperclip size={14} />} onClick={() => onAddAttachment && onAddAttachment(data?.id)}>إضافة مرفقات</Menu.Item>}
+                                                    {type === 'technical' && <Menu.Item icon={<Eye size={14} />} onClick={() => onShowAttachments && onShowAttachments(data)}>عرض المرفقات{data?.attachmentsTechnical?.length ? ` (${data.attachmentsTechnical.length})` : ""}</Menu.Item>}
                                                     {(type === 'technical' || type === 'member') && hasPermission("5") && status !== 'accepted' && (
                                                         <Menu.Item icon={<Check size={14} />} color="teal" onClick={() => onChangeStatus && onChangeStatus(data?.id, "accepted")}>قبول</Menu.Item>
                                                     )}

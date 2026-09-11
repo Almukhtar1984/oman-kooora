@@ -5,3 +5,5 @@ export * from "./useDeleteTechnical";
 export * from "./useAllTechnicals";
 export * from "./useTechnical";
 export * from "./useUpdateTechnical";
+export * from "./useAddAttachmentTechnical";
+export * from "./useDeleteAttachmentTechnical";

@@ -9,7 +9,7 @@ import {openPrint} from "../lib/helpers/openPrint";
 import {AllTechnicals, useAllTeams, useAllTechnicals, useChangeStatusTechnicalApparatusBulk} from "../graphql";
 import useStore from "../store/useStore";
 import {TechnicalsTable} from "../components/Tables";
-import {ChangeStatusTechnicalsModal, DeleteTechnicalModal, UpdateTechnicalModal, ChangeClassificationModal} from "../components/Modal";
+import {ChangeStatusTechnicalsModal, DeleteTechnicalModal, UpdateTechnicalModal, ChangeClassificationModal, AddAttachmentTechnicalModal, ShowAttachmentsTechnical} from "../components/Modal";
 import { Select } from "@mantine/core";
 import {BulkActionToolbar, BulkStatusConfirmModal} from "../components/BulkSelection";
 import {Notyf} from "notyf";
@@ -23,6 +23,9 @@ export default function TechnicalApparatus() {
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
     const [openChangeStatusModal, setOpenChangeStatusModal] = useState<boolean>(false);
     const [openChangeClassificationModal, setOpenChangeClassificationModal] = useState<boolean>(false);
+    const [openAddAttachmentModal, setOpenAddAttachmentModal] = useState<boolean>(false);
+    const [openShowAttachmentsModal, setOpenShowAttachmentsModal] = useState<boolean>(false);
+    const [selectedTechnical, setSelectedTechnical] = useState<any>(null);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [teamFilter, setTeamFilter] = useState<string | null>(null);
 
@@ -137,6 +140,9 @@ export default function TechnicalApparatus() {
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });
     }, []);
+
+    const handleAddAttachment = (id: string) => { setSelectedData(id); setOpenAddAttachmentModal(true); };
+    const handleShowAttachments = (data: any) => { setSelectedTechnical(data); setOpenShowAttachmentsModal(true); };
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { value } = event.currentTarget;
@@ -287,6 +293,8 @@ export default function TechnicalApparatus() {
                     onToggleSelect={handleToggleSelect}
                     onPageItemsChange={handlePageItemsChange}
                     selectionEnabled={hasPermission("5")}
+                    onAddAttachment={handleAddAttachment}
+                    onShowAttachments={handleShowAttachments}
                 />
             </Container>
 
@@ -295,6 +303,8 @@ export default function TechnicalApparatus() {
 
             <UpdateTechnicalModal title="تعديل عضو الجهاز فني" opened={openEditModal} id={selectedData} onClose={() => setOpenEditModal(false)} />
             <DeleteTechnicalModal title="حذف عضو" opened={openDeleteModal} id={selectedData} onClose={() => setOpenDeleteModal(false)}/>
+            <AddAttachmentTechnicalModal title="إضافة مرفقات" opened={openAddAttachmentModal} id={selectedData} onClose={() => setOpenAddAttachmentModal(false)}/>
+            <ShowAttachmentsTechnical title="المرفقات" opened={openShowAttachmentsModal} data={selectedTechnical} onClose={() => setOpenShowAttachmentsModal(false)}/>
             <ChangeClassificationModal
                 opened={openChangeClassificationModal}
                 onClose={() => setOpenChangeClassificationModal(false)}

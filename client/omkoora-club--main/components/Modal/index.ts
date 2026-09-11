@@ -93,3 +93,6 @@ export * from "./FreePlayerModal"
 export * from "./UploadAssemblyBySheetModal";
 
 export * from "./ChangeMyPasswordModal";
+
+export * from "./AddAttachmentTechnicalModal"
+export * from "./ShowAttachmentsTechnical"

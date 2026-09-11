@@ -21,9 +21,11 @@ interface Props {
     onToggleSelect?: (id: string) => void;
     onPageItemsChange?: (ids: string[]) => void;
     selectionEnabled?: boolean;
+    onAddAttachment?: (id: string) => void;
+    onShowAttachments?: (data: any) => void;
 }
 
-export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setNewStatus, setSelectedRow, setOpenChangeStatusModal, hasPermission, setOpenChangeClassificationModal, selectedIds, onToggleSelect, onPageItemsChange, selectionEnabled }: Props) => {
+export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setNewStatus, setSelectedRow, setOpenChangeStatusModal, hasPermission, setOpenChangeClassificationModal, selectedIds, onToggleSelect, onPageItemsChange, selectionEnabled, onAddAttachment, onShowAttachments }: Props) => {
     const [allMembers, setAllMembers] = useState<{ nodes: any }>({ nodes: [] });
     const [allTeams, setAllTeams] = useState<string[]>([]);
     const [valueCheck, setValueCheck] = useState<string[]>([]);
@@ -85,6 +87,8 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
                                     onDelete={handleDelete}
                                     onChangeStatus={handleChangeStatus}
                                     onChangeClassification={handleChangeClassification}
+                                    onAddAttachment={onAddAttachment}
+                                    onShowAttachments={onShowAttachments}
                                 />
                             );
                             return (
