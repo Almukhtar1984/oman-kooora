@@ -5,7 +5,6 @@ import Head from "next/head";
 import React, { useEffect, useMemo } from "react";
 import { useState } from "react";
 import dayjs from "dayjs";
-import {searchSortedData} from "../lib/helpers/sort";
 import { exportToExcel } from "../lib/helpers/export";
 import { DatePickerInput } from "@mantine/dates";
 import { Calendar, Filter, Download } from "tabler-icons-react";
@@ -117,9 +116,16 @@ export default function Assembly() {
     useEffect(() => {
         let filtered = [...allAssembly];
 
-        // 1. Search Filter
-        if (searchValue) {
-            filtered = searchSortedData(filtered, ['first_name', 'second_name', 'third_name', 'tribe', 'card_number', 'membership_number'], searchValue);
+        // 1. Search Filter — strict substring "contains" across the fields so a
+        // short رقم العضوية (e.g. "9894") narrows to that one person, exactly like
+        // الرقم المدني does, instead of the fuzzy matchSorter ranking that kept
+        // loosely-matching rows in the list.
+        if (searchValue && searchValue.trim()) {
+            const q = searchValue.trim().toLowerCase();
+            const fields = ['first_name', 'second_name', 'third_name', 'tribe', 'card_number', 'membership_number'];
+            filtered = filtered.filter((item: any) =>
+                fields.some((k) => ("" + (item?.[k] ?? "")).toLowerCase().includes(q))
+            );
         }
 
         // 2. Status Filter
