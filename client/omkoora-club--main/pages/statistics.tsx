@@ -79,7 +79,7 @@ const Statistics = () => {
                             <StatCard label="الأعضاء" value={s.members} color="indigo" icon={<Users size={26} />} />
                             <StatCard label="الجهاز الفني" value={s.technicals} color="grape" icon={<ClipboardList size={26} />} />
                             <StatCard label="مجلس الإدارة" value={s.boardManagement} color="violet" icon={<License size={26} />} />
-                            <StatCard label="الجمعية العمومية" value={s.assembly} color="pink" icon={<Friends size={26} />} />
+                            <StatCard label="العضوية" value={s.assembly} color="pink" icon={<Friends size={26} />} />
                             <StatCard label="الملاعب الخضراء" value={s.stadiums} color="green" icon={<SoccerField size={26} />} />
                             <StatCard label="المسابقات" value={s.leagues} color="orange" icon={<Trophy size={26} />} />
                             <StatCard label="الإعارات" value={s.loans} color="cyan" icon={<Repeat size={26} />} />
@@ -104,7 +104,7 @@ const Statistics = () => {
                                     </Box>
                                 </Group>
                                 <Text size="sm" sx={{ opacity: 0.9, maxWidth: 320, textAlign: "left" }}>
-                                    اللاعبون + الأعضاء + الجهاز الفني + الجمعية العمومية + مجلس الإدارة
+                                    اللاعبون + الأعضاء + الجهاز الفني + العضوية + مجلس الإدارة
                                 </Text>
                             </Group>
                         </Box>

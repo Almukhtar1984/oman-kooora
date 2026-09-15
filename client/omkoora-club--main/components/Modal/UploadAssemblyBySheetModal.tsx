@@ -57,7 +57,7 @@ export const UploadAssemblyBySheetModal = ({ opened, onClose, onImported, ...pro
       {...props}
       opened={opened}
       onClose={closeModal}
-      title="استيراد الجمعية العمومية من إكسل"
+      title="استيراد العضوية من إكسل"
       footer={
         <Box py={16} px={20} bg="slate.0">
           <Group position="right" spacing="xs">

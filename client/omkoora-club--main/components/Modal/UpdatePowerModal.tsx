@@ -407,7 +407,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                                     <Col span={12}>
                                         <Checkbox.Group
                                             defaultValue={['1']}
-                                            label="صلاحيات الجمعية العمومية"
+                                            label="صلاحيات العضوية"
                                             value={assembly} onChange={setAssembly}
                                         >
                                             <Group mt="xs">
@@ -417,7 +417,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                                                 <Checkbox value="4" label="حذف" />
                                                 <Checkbox value="5" label="تجديد الاشتراك" />
                                                 <Checkbox value="6" label="طباعة" />
-                                                <Checkbox value="7" label="عرض الجمعيات العمومية للفرق" />
+                                                <Checkbox value="7" label="عرض عضويات الفرق" />
                                             </Group>
                                         </Checkbox.Group>
                                     </Col>

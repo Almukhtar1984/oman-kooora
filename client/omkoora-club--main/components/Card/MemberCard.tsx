@@ -154,7 +154,7 @@ export const MemberCard = ({
                                 <Group spacing={8} mb={20}>
                                     {renderStatusBadge()}
                                     <Badge color="dark" variant="filled">
-                                        {type === 'player' ? 'لاعب' : type === 'technical' ? 'جهاز فني' : type === 'member' ? 'عضو' : type === 'assembly' ? 'عمومية' : 'آخر'}
+                                        {type === 'player' ? 'لاعب' : type === 'technical' ? 'جهاز فني' : type === 'member' ? 'عضو' : type === 'assembly' ? 'عضوية' : 'آخر'}
                                     </Badge>
                                 </Group>
                                 <Flex align="center" gap={8} mb={16}>

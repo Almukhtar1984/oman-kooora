@@ -501,7 +501,7 @@ export default function TeamDetailsPage() {
                                 <Tabs.Tab value="players">اللاعبين</Tabs.Tab>
                                 <Tabs.Tab value="technicals">الجهاز الفني</Tabs.Tab>
                                 <Tabs.Tab value="board">مجلس الإدارة</Tabs.Tab>
-                                <Tabs.Tab value="assembly">العمومية</Tabs.Tab>
+                                <Tabs.Tab value="assembly">العضوية</Tabs.Tab>
                             </Tabs.List>
 
                             <Tabs.Panel value="players">
@@ -574,7 +574,7 @@ export default function TeamDetailsPage() {
                             <Tabs.Panel value="assembly">
                                 <Box py="lg">
                                     <Group position="apart" mb="md">
-                                        <Text weight={700}>الجمعية العمومية</Text>
+                                        <Text weight={700}>العضوية</Text>
                                         <Menu shadow="md" width={200}>
                                             <Menu.Target>
                                                 <Button size="xs" leftIcon={<Plus size={16} />}>إضافة عضو للجمعية</Button>
@@ -660,7 +660,7 @@ export default function TeamDetailsPage() {
             <UpdateMemberModal title="تعديل عضو مجلس الأدارة" opened={openEditMember} id={editData?.id} onClose={() => setOpenEditMember(false)} onSuccess={refetchAll} />
             <DeleteMembersModal title="حذف عضو مجلس الأدارة" opened={openDeleteMember} id={deleteData} onClose={() => setOpenDeleteMember(false)} onSuccess={refetchAll} />
 
-            <AddAssemblyModal title="إضافة عضو عمومية" opened={openAddAssembly} data={editData} onClose={() => setOpenAddAssembly(false)} onCompleted={refetchAll}/>
+            <AddAssemblyModal title="إضافة عضوية" opened={openAddAssembly} data={editData} onClose={() => setOpenAddAssembly(false)} onCompleted={refetchAll}/>
             <UpdateAssemblyModal title="تعديل معلومات العضو" data={editData} opened={openEditModal} onClose={() => setOpenEditModal(false)} onSuccess={refetchAll} />
             <DeleteAssemblyModal title="حذف عضو الجمعية" data={deleteData} opened={openDeleteModal} onClose={() => setOpenDeleteModal(false)} onSuccess={refetchAll} />
 

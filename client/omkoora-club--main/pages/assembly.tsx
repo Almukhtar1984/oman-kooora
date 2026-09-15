@@ -60,10 +60,10 @@ export default function Assembly() {
         try {
             const res = await addClubPeople({ variables: { idClub } });
             const r = res?.data?.addClubPeopleToAssembly;
-            notyf.success(`تمت إضافة ${r?.added ?? 0} إلى العمومية${r?.skipped ? ` (تخطّي ${r.skipped} مكرّر)` : ""}`);
+            notyf.success(`تمت إضافة ${r?.added ?? 0} إلى العضوية${r?.skipped ? ` (تخطّي ${r.skipped} مكرّر)` : ""}`);
             getAllAssembly({ variables: { idClub }, fetchPolicy: "no-cache" });
         } catch (e) {
-            notyf.error("تعذّرت إضافة أعضاء النادي إلى العمومية");
+            notyf.error("تعذّرت إضافة أعضاء النادي إلى العضوية");
         }
     };
 
@@ -274,7 +274,7 @@ export default function Assembly() {
                                         onClick={() => setOpenShowAssemblyTeam(true)}
                                         color={"primary"}
                                     >
-                                        عرض الجمعية العمومية لفريق
+                                        عرض عضوية فريق
                                     </Button>
                                     : null
                                 }
@@ -334,7 +334,7 @@ export default function Assembly() {
             <DeleteAssemblyModal title="" data={selectedData} opened={openDeleteModal} onClose={() => setOpenDeleteModal(false)} />
             <RenewAssemblyModal title="تجديد اشتراك العضو" data={selectedData} opened={openRenewModal} onClose={() => setOpenRenewModal(false)} />
 
-            <ShowAssemblyTeamModal title="الجمعية العمومية للفريق" opened={openShowAssemblyTeam} onClose={() => setOpenShowAssemblyTeam(false)} hasPermission={hasPermission} />
+            <ShowAssemblyTeamModal title="عضوية الفريق" opened={openShowAssemblyTeam} onClose={() => setOpenShowAssemblyTeam(false)} hasPermission={hasPermission} />
 
             <UploadAssemblyBySheetModal
                 opened={openImportModal}

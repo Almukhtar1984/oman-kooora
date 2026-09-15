@@ -372,7 +372,7 @@ export default function Members() {
                     <Tabs.Tab value="technicals" fz={isMobile ? "xs" : "md"} fw={600}>الجهاز الفني</Tabs.Tab>
                     <Tabs.Tab value="members" fz={isMobile ? "xs" : "md"} fw={600}>مجلس الإدارة</Tabs.Tab>
                     <Tabs.Tab value="managers" fz={isMobile ? "xs" : "md"} fw={600}>مدراء الفرق</Tabs.Tab>
-                    <Tabs.Tab value="assembly" fz={isMobile ? "xs" : "md"} fw={600}>العمومية</Tabs.Tab>
+                    <Tabs.Tab value="assembly" fz={isMobile ? "xs" : "md"} fw={600}>العضوية</Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value="players">
