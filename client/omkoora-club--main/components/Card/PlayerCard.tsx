@@ -7,6 +7,8 @@ import { DotsVertical, EditCircle, Trash, Id, Paperclip, Upload, ChartDots, Xbox
 import { GiPlayerPrevious as GiPlayerPreviousIcon, GiPlayerNext as GiPlayerNextIcon } from "react-icons/gi";
 import { getImageUrl } from '../../lib/helpers/image';
 import { openPrint } from '../../lib/helpers/openPrint';
+import useStore from '../../store/useStore';
+import { TeamLine } from './MemberCard';
 
 export interface PlayerData {
   id: string;
@@ -87,6 +89,7 @@ export function PlayerCard1({
   const avatarUrl = getAvatarUrl(person?.personal_picture);
   const age = person?.date_birth ? dayjs().diff(dayjs(person.date_birth), 'year') : 'N/A';
   const isSuspended = data?.status === 'suspended';
+  const clubName = useStore((state: any) => state.userData?.person?.clubManagement?.club?.name) || '-';
   
   const statistics = [
     {
@@ -309,7 +312,10 @@ export function PlayerCard1({
 
           <Box sx={{ textAlign: 'center', paddingTop: 12 }}>
             <Text size="lg" weight={700} color="slate.9" mb={4}>{fullName}</Text>
-            <Text size="xs" color="gray.6">{data?.player_center || 'لاعب'} / {age} سنة</Text>
+            <Text size="xs" color="gray.6" mb={6}>{data?.player_center || 'لاعب'}{age !== 'N/A' ? ` / ${age} سنة` : ''}</Text>
+            <Flex justify="center">
+              <TeamLine teams={data?.team ? [data.team] : []} teamLogo={(logo) => logo ? getImageUrl(logo) : null} clubName={clubName} />
+            </Flex>
           </Box>
         </Box>
 
@@ -337,6 +343,7 @@ export function PlayerCard1({
  * Detailed Player Stats View (Full View)
  */
 export function PlayerStats1({ data }: PlayerCardProps) {
+  const club = useStore((state: any) => state.userData?.person?.clubManagement?.club);
   const person = data?.person;
   const fullName = getFullName(person);
   const avatarUrl = getAvatarUrl(person?.personal_picture);
@@ -351,11 +358,12 @@ export function PlayerStats1({ data }: PlayerCardProps) {
     { label: 'تاريخ الميلاد', value: birthDate },
     { label: 'العمر', value: age },
     { label: 'رقم الهاتف', value: person?.phone || '-' },
+    { label: 'الفريق', value: data?.team?.name || 'غير مسجل في فريق' },
+    { label: 'النادي', value: club?.name || '-' },
     { label: 'تاريخ الانضمام', value: joinDate },
+    { label: 'مركز اللاعب', value: data?.player_center || '-' },
     { label: 'النشاط', value: data?.activity || '-' },
     { label: 'الوظيفة', value: data?.job || '-' },
-    { label: 'مركز اللاعب', value: data?.player_center || '-' },
-    { label: 'التصنيف', value: data?.classification || '-' },
     { 
       label: 'الدرجة', 
       value: data?.class === 'firstDegree' ? 'الفريق الاول' : 
@@ -369,10 +377,13 @@ export function PlayerStats1({ data }: PlayerCardProps) {
     { label: 'البطاقة المدنية (خلف)', value: data?.nationalIDBack ? 'عرض المرفق' : '-' }
   ];
 
+  const statusLabel = ({ accepted: 'نشط', rejected: 'مرفوض', waiting: 'بانتظار الفريق', waiting_club: 'بانتظار النادي', suspended: 'معاقب' } as Record<string, string>)[data?.status || ''] || 'قيد الانتظار';
+
   const statistics = [
     { label: 'الرقم المدني', value: person?.card_number || '-' },
     { label: 'العمر', value: age },
-    { label: 'الحالة', value: data?.status === 'accepted' ? 'نشط' : 'غير نشط' },
+    { label: 'الفريق', value: data?.team?.name || '-' },
+    { label: 'الحالة', value: statusLabel },
   ];
 
   return (
@@ -402,7 +413,7 @@ export function PlayerStats1({ data }: PlayerCardProps) {
             <Group spacing={8} mb={20}>
               <Badge color="yellow" variant="filled" size="xs" sx={{ color: '#000' }}>{data?.player_center || 'لاعب'}</Badge>
               <Badge color="dark" variant="filled" size="xs">
-                {data?.status === 'accepted' ? 'نشط' : 'غير نشط'}
+                {statusLabel}
               </Badge>
             </Group>
 
@@ -415,7 +426,13 @@ export function PlayerStats1({ data }: PlayerCardProps) {
               >
                 {data?.team?.name?.charAt(0) || 'L'}
               </Avatar>
-              <Text weight={800} size="md" color="white">{data?.team?.name || 'النادي الرياضي'}</Text>
+              <Text weight={800} size="md" color="white">{data?.team?.name || 'غير مسجل في فريق'}</Text>
+            </Flex>
+            <Flex align="center" gap={8} mb={16}>
+              <Avatar size={28} radius="xl" color="orange" src={club?.logo ? getImageUrl(club.logo) : null}>
+                {club?.name?.charAt(0) || '-'}
+              </Avatar>
+              <Text weight={700} size="sm" color="white">{club?.name || '-'}</Text>
             </Flex>
           </Col>
 
@@ -423,7 +440,7 @@ export function PlayerStats1({ data }: PlayerCardProps) {
             <Grid grow gutter="md">
               <Col span={6}>
                 <Stack spacing={8}>
-                    {metrics.slice(0, 7).map((metric) => (
+                    {metrics.slice(0, 8).map((metric) => (
                     <Box key={metric.label}>
                         <Text color="white" opacity={0.8} size="10px" weight={500}>{metric.label}</Text>
                         <Text color="white" weight={800} size="sm">{metric.value}</Text>
@@ -433,7 +450,7 @@ export function PlayerStats1({ data }: PlayerCardProps) {
               </Col>
               <Col span={6}>
                 <Stack spacing={8}>
-                    {metrics.slice(7).map((metric) => (
+                    {metrics.slice(8).map((metric) => (
                     <Box key={metric.label}>
                         <Text color="white" opacity={0.8} size="10px" weight={500}>{metric.label === 'البطاقة المدنية (أمام)' || metric.label === 'البطاقة المدنية (خلف)' ? '' : metric.label}</Text>
                         {metric.label === 'البطاقة المدنية (أمام)' || metric.label === 'البطاقة المدنية (خلف)' ? (
@@ -483,11 +500,11 @@ export function PlayerStats1({ data }: PlayerCardProps) {
         })}>
           <Grid grow gutter={0}>
             {statistics.map((stat, idx) => (
-              <Col key={stat.label} span={4} sx={(theme) => ({
+              <Col key={stat.label} span={3} sx={(theme) => ({
                 textAlign: 'center',
                 borderLeft: idx < statistics.length - 1 ? `1px solid ${theme.colors.gray[2]}` : 'none'
               })}>
-                <Text weight={800} size={24} color="slate.9">{stat.value}</Text>
+                <Text weight={800} size={24} color="slate.9" lineClamp={1} px={8}>{stat.value}</Text>
                 <Text size="10px" color="gray.5" weight={700} transform="uppercase">{stat.label}</Text>
               </Col>
             ))}

@@ -115,6 +115,17 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
+
+        affiliations: async ({card_number}, {}, context, info) =>  {
+            const card = ("" + (card_number ?? "")).trim();
+            if (!card || !context?.loaders?.affiliationsByCardNumber) return [];
+            try {
+                return await context.loaders.affiliationsByCardNumber.load(card);
+            } catch (error) {
+                logger.error(`Assembly.affiliations error: ${error?.message}`);
+                return [];
+            }
+        },
     },
 
     Mutation: {

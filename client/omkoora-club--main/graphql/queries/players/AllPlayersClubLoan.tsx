@@ -24,6 +24,7 @@ export const AllPlayersClubLoan = gql`
             team {
                 id
                 name
+                logo
                 phone
             }
             latestLoan {

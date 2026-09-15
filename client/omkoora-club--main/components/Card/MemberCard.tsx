@@ -9,6 +9,7 @@ import dayjs from 'dayjs';
 import { useTheme } from '@emotion/react';
 import { getImageUrl } from '../../lib/helpers/image';
 import { openPrint } from '../../lib/helpers/openPrint';
+import useStore from '../../store/useStore';
 
 interface MemberCardProps {
     data: any;
@@ -34,11 +35,68 @@ interface MemberCardProps {
     onShowDetails?: (data: any) => void;
 }
 
-const allClasses = {
-    firstDegree: { label: "الفريق الاول", color: "lime" },
-    secondDegree: { label: "تحت 23 سنة", color: "orange" },
-    young: { label: "تحت 18 سنة", color: "grape" },
-    rookies: { label: "تحت 16 سنة", color: "indigo" }
+const CLASS_LABELS: Record<string, string> = {
+    firstDegree: "الفريق الاول",
+    secondDegree: "تحت 23 سنة",
+    young: "تحت 18 سنة",
+    rookies: "تحت 16 سنة",
+};
+
+const TYPE_LABELS: Record<MemberCardProps['type'], string> = {
+    player: 'لاعب',
+    technical: 'جهاز فني',
+    member: 'مجلس الإدارة',
+    assembly: 'عضوية',
+    transfer: 'انتقال',
+    loan: 'إعارة',
+};
+
+// Roles an assembly member can hold in the club's teams (see Assembly.affiliations).
+const ROLE_LABELS: Record<string, string> = {
+    player: 'لاعب',
+    technical: 'جهاز فني',
+    member: 'مجلس الإدارة',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+    accepted: 'نشط',
+    rejected: 'مرفوض',
+    waiting_club: 'بانتظار النادي',
+    waiting: 'بانتظار الفريق',
+    suspended: 'معاقب',
+};
+
+const formatDate = (value?: string | null) => value && dayjs(value).isValid() ? dayjs(value).format('YYYY-MM-DD') : '-';
+
+type DetailField = { label: string; value: React.ReactNode };
+
+type TeamRef = { id?: string; name: string; logo?: string; role?: string; position?: string };
+
+// "Which team" line on the card face: the team logo + name (first team and a
+// +N when an assembly member sits in several), or a clear "not in a team".
+export const TeamLine = ({ teams, teamLogo, clubName }: { teams: TeamRef[]; teamLogo: (logo?: string) => string | null; clubName: string }) => {
+    if (teams.length === 0) {
+        return (
+            <Badge color="gray" variant="light" size="sm" radius="sm">غير مسجل في فريق</Badge>
+        );
+    }
+    const [first, ...rest] = teams;
+    return (
+        <Tooltip
+            label={teams.map((t) => [t.name, t.role].filter(Boolean).join(' - ')).join('، ') + (clubName !== '-' ? ` • ${clubName}` : '')}
+            withArrow
+            multiline
+            maw={260}
+        >
+            <Flex align="center" gap={6} sx={(theme) => ({ backgroundColor: theme.colors.blue[0], borderRadius: 999, padding: '2px 10px 2px 4px', maxWidth: '100%' })}>
+                <Avatar size={18} radius="xl" color="blue" src={teamLogo(first.logo)}>
+                    {first.name?.charAt(0) || '-'}
+                </Avatar>
+                <Text size="xs" weight={700} color="blue.8" lineClamp={1}>{first.name}</Text>
+                {rest.length > 0 && <Text size="10px" weight={700} color="blue.6">+{rest.length}</Text>}
+            </Flex>
+        </Tooltip>
+    );
 };
 
 export const MemberCard = ({
@@ -50,6 +108,7 @@ export const MemberCard = ({
 }: MemberCardProps) => {
     const [detailsOpen, setDetailsOpen] = useState(false);
     const theme = useTheme() as MantineTheme;
+    const userClub = useStore((state: any) => state.userData?.person?.clubManagement?.club);
 
     const person = (type === 'assembly' || type === 'transfer' || type === 'loan') ? data?.person || data : data?.person;
     if (!person) return null;
@@ -65,19 +124,16 @@ export const MemberCard = ({
     // loan record, but it can no longer be extended or cancelled.
     const isLoanEnded = type === 'loan' && Boolean(data?.loanEnded);
 
-    const isAssemblyApproved = (() => {
-        if (type === 'assembly') {
-            const year = dayjs(data?.subscription_date).format("YYYY");
-            const date1 = new Date(`${parseInt(year) + 1}-01-01`);
-            const date2 = new Date();
-            return date2 < date1;
-        }
-        return false;
-    })();
+    // The subscription covers the calendar year it was paid in. A row with no
+    // subscription date (e.g. bulk-added from the teams) was never subscribed.
+    const hasSubscription = type === 'assembly' && Boolean(data?.subscription_date) && dayjs(data.subscription_date).isValid();
+    const subscriptionYear = hasSubscription ? dayjs(data.subscription_date).year() : null;
+    const isAssemblyApproved = subscriptionYear !== null && dayjs().year() <= subscriptionYear;
 
     const renderStatusBadge = () => {
         if (type === 'assembly') {
-            return !isAssemblyApproved ? <Badge color="red" variant="filled" size="xs">منتهي</Badge> : <Badge color="teal" variant="filled" size="xs">يعمل</Badge>;
+            if (!hasSubscription) return <Badge color="gray" variant="filled" size="xs">غير مشترك</Badge>;
+            return !isAssemblyApproved ? <Badge color="red" variant="filled" size="xs">منتهي</Badge> : <Badge color="teal" variant="filled" size="xs">ساري</Badge>;
         }
 
         if (isLoanEnded) {
@@ -94,36 +150,150 @@ export const MemberCard = ({
         }
     };
 
+    const statusText = type === 'assembly'
+        ? (!hasSubscription ? 'غير مشترك' : isAssemblyApproved ? 'ساري' : 'منتهي')
+        : isLoanEnded ? 'منتهية' : (STATUS_LABELS[status] || 'قيد الانتظار');
+
+    // Teams: players/staff/board rows carry their own team; assembly rows are
+    // matched to the teams the same civil ID is registered in.
+    const affiliations: any[] = type === 'assembly' ? (data?.affiliations || []).filter((a: any) => a?.team) : [];
+    const teams: { id?: string; name: string; logo?: string; role?: string; position?: string }[] = type === 'assembly'
+        ? (affiliations.length > 0
+            ? affiliations.map((a: any) => ({ ...a.team, role: ROLE_LABELS[a.role], position: a.position }))
+            : (data?.team ? [data.team] : []))
+        : (data?.team ? [data.team] : []);
+    const club = data?.club || userClub;
+    const clubName = club?.name || '-';
+    const teamLogo = (logo?: string) => logo ? getImageUrl(logo) : null;
+    const teamsText = teams.length > 0 ? teams.map((t) => t.name).filter(Boolean).join('، ') : 'غير مسجل في فريق';
+
+    const joinDate = formatDate(data?.membership_date || data?.createdAt);
+    const classLabel = data?.class ? (CLASS_LABELS[data.class] || data.class) : '-';
+
+    // Short "what they do" line under the name.
+    const roleText = (() => {
+        switch (type) {
+            case 'player': return data?.player_center || 'لاعب';
+            case 'technical': return data?.classification || data?.occupation || 'جهاز فني';
+            case 'member': return data?.classification || data?.occupation || 'عضو مجلس إدارة';
+            case 'assembly': {
+                const roles = Array.from(new Set(affiliations.map((a: any) => ROLE_LABELS[a.role]).filter(Boolean)));
+                return [data?.type || 'عضو', ...roles].join(' • ');
+            }
+            default: return data?.player_center || 'لاعب';
+        }
+    })();
+
     const statistics = [
-        {
-            label: 'الرقم المدني',
-            value: person?.card_number || '-',
-        },
-        {
-            label: 'التاريخ',
-            value: data?.membership_date ? dayjs(data.membership_date).format('YYYY-MM-DD') : (data?.createdAt ? dayjs(data.createdAt).format('YYYY-MM-DD') : '-'),
-        },
-        (type === 'assembly'
+        { label: 'الرقم المدني', value: person?.card_number || '-' },
+        type === 'assembly'
+            ? { label: 'تاريخ العضوية', value: formatDate(data?.membership_date || data?.createdAt) }
+            : type === 'technical'
+                ? { label: 'تاريخ العقد', value: joinDate }
+                : { label: 'تاريخ الانضمام', value: joinDate },
+        type === 'assembly'
             ? { label: 'رقم العضوية', value: data?.membership_number || '-' }
-            : {
-                label: 'النوع',
-                value: type === 'player' ? 'لاعب' : type === 'technical' ? 'جهاز فني' : type === 'member' ? 'عضو' : type === 'transfer' ? 'انتقال' : 'إعارة',
-            }),
+            : type === 'player' || type === 'transfer' || type === 'loan'
+                ? { label: 'مركز اللاعب', value: data?.player_center || '-' }
+                : { label: 'رقم الهاتف', value: person?.phone || '-' },
     ];
 
     const getTransferInfo = () => {
         if (type === 'transfer' || type === 'loan') {
             const transfer = type === 'transfer' ? data?.lastTransfer : data?.lastLoan;
             const fromClub = transfer?.team_from?.name  || '-';
-            const toClub = transfer?.team_to?.name  || '-';
+            const toClub = transfer?.team_to?.name || transfer?.club_to?.name || '-';
+            const fromClubName = transfer?.team_from?.club?.name || null;
+            const toClubName = transfer?.team_to?.club?.name || transfer?.club_to?.name || null;
             const dateStart = transfer?.date_start ? dayjs(transfer.date_start).format('YYYY-MM-DD') : null;
             const dateEnd = transfer?.date_end ? dayjs(transfer.date_end).format('YYYY-MM-DD') : null;
-            return { fromClub, toClub, dateStart, dateEnd };
+            return { fromClub, toClub, fromClubName, toClubName, dateStart, dateEnd };
         }
         return null;
     };
 
     const transferInfo = getTransferInfo();
+
+    const withClub = (team: string, clubOf: string | null) => clubOf && clubOf !== team ? `${team} (${clubOf})` : team;
+
+    // Detail rows shown in the "عرض التفاصيل" modal, relevant to each kind of card.
+    const detailFields: DetailField[] = [
+        { label: 'الرقم المدني', value: person?.card_number || '-' },
+        { label: 'تاريخ الميلاد', value: formatDate(person?.date_birth) },
+        { label: 'العمر', value: age === 'N/A' ? '-' : `${age} سنة` },
+        { label: 'رقم الهاتف', value: person?.phone || '-' },
+        ...(type === 'player' ? [
+            { label: 'مركز اللاعب', value: data?.player_center || '-' },
+            { label: 'الدرجة', value: classLabel },
+            { label: 'الفريق', value: teamsText },
+            { label: 'النادي', value: clubName },
+            { label: 'تاريخ الانضمام', value: joinDate },
+            { label: 'النشاط', value: data?.activity || '-' },
+            { label: 'الوظيفة', value: data?.job || '-' },
+            { label: 'ملاحظات', value: data?.note || '-' },
+        ] : []),
+        ...(type === 'technical' ? [
+            { label: 'التصنيف', value: data?.classification || '-' },
+            { label: 'الوظيفة', value: data?.occupation || '-' },
+            { label: 'الفريق', value: teamsText },
+            { label: 'النادي', value: clubName },
+            { label: 'تاريخ العقد', value: joinDate },
+            { label: 'تاريخ نهاية العقد', value: formatDate(data?.membership_date_end) },
+            { label: 'ملاحظات', value: data?.note || '-' },
+        ] : []),
+        ...(type === 'member' ? [
+            { label: 'المنصب', value: data?.classification || '-' },
+            { label: 'الوظيفة', value: data?.occupation || '-' },
+            { label: 'الفريق', value: teamsText },
+            { label: 'النادي', value: clubName },
+            { label: 'تاريخ العضوية', value: joinDate },
+            { label: 'تاريخ نهاية العضوية', value: formatDate(data?.membership_date_end) },
+            { label: 'ملاحظات', value: data?.note || '-' },
+        ] : []),
+        ...(type === 'assembly' ? [
+            { label: 'رقم العضوية', value: data?.membership_number || '-' },
+            { label: 'التصنيف', value: data?.type || '-' },
+            { label: 'الجنس', value: data?.gender === 'male' ? 'ذكر' : data?.gender === 'female' ? 'أنثى' : '-' },
+            { label: 'النادي', value: clubName },
+            { label: 'تاريخ العضوية', value: formatDate(data?.membership_date || data?.createdAt) },
+            { label: 'تاريخ الاشتراك', value: formatDate(data?.subscription_date) },
+            { label: 'الاشتراك صالح حتى', value: subscriptionYear !== null ? `${subscriptionYear}-12-31` : '-' },
+            {
+                label: 'الفرق',
+                value: teams.length > 0
+                    ? teams.map((t) => [t.role, t.name, t.position].filter(Boolean).join(' - ')).join('، ')
+                    : 'غير مسجل في فريق',
+            },
+        ] : []),
+        ...((type === 'transfer' || type === 'loan') ? [
+            { label: 'مركز اللاعب', value: data?.player_center || '-' },
+            { label: 'الدرجة', value: classLabel },
+            { label: 'الفريق الحالي', value: teamsText },
+            { label: 'من', value: transferInfo ? withClub(transferInfo.fromClub, transferInfo.fromClubName) : '-' },
+            { label: 'إلى', value: transferInfo ? withClub(transferInfo.toClub, transferInfo.toClubName) : '-' },
+            { label: type === 'loan' ? 'تاريخ بداية الإعارة' : 'تاريخ الانتقال', value: transferInfo?.dateStart || '-' },
+            ...(type === 'loan' ? [{ label: 'تاريخ نهاية الإعارة', value: transferInfo?.dateEnd || '-' }] : []),
+            { label: 'ملاحظات', value: data?.note || '-' },
+        ] : []),
+    ];
+    const detailColumns = [
+        detailFields.slice(0, Math.ceil(detailFields.length / 2)),
+        detailFields.slice(Math.ceil(detailFields.length / 2)),
+    ];
+
+    const attachmentLink = (file: string, label: string) => (
+        <Box
+            component="a"
+            href={getImageUrl(file)}
+            target="_blank"
+            sx={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', '&:hover': { opacity: 0.8 } }}
+        >
+            <Text color="white" weight={800} size="sm">{label}</Text>
+            <Box sx={{ backgroundColor: '#f0fdf4', padding: 6, borderRadius: 8, display: 'flex' }}>
+                <Id size={20} color="#15803d" />
+            </Box>
+        </Box>
+    );
 
     return (
         <>
@@ -153,127 +323,78 @@ export const MemberCard = ({
                                 </Stack>
                                 <Group spacing={8} mb={20}>
                                     {renderStatusBadge()}
-                                    <Badge color="dark" variant="filled">
-                                        {type === 'player' ? 'لاعب' : type === 'technical' ? 'جهاز فني' : type === 'member' ? 'عضو' : type === 'assembly' ? 'عضوية' : 'آخر'}
-                                    </Badge>
+                                    <Badge color="dark" variant="filled">{TYPE_LABELS[type]}</Badge>
+                                    {roleText && roleText !== TYPE_LABELS[type] && (
+                                        <Badge color="yellow" variant="filled" sx={{ color: '#000' }}>{roleText}</Badge>
+                                    )}
                                 </Group>
-                                <Flex align="center" gap={8} mb={16}>
-                                    <Avatar 
-                                        size={28} 
-                                        radius="xl" 
-                                        color="blue" 
-                                        src={data?.team?.logo ? `${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${data.team.logo}` : null}
-                                    >
-                                        {data?.team?.name?.charAt(0) || 'L'}
-                                    </Avatar>
-                                    <Text weight={800} size="md" color="white">{data?.team?.name || 'النادي الرياضي'}</Text>
-                                </Flex>
+                                <Stack spacing={8} mb={16}>
+                                    {teams.length > 0 ? teams.map((t, idx) => (
+                                        <Flex key={`${t.id || t.name}-${idx}`} align="center" gap={8}>
+                                            <Avatar size={28} radius="xl" color="blue" src={teamLogo(t.logo)}>
+                                                {t.name?.charAt(0) || '-'}
+                                            </Avatar>
+                                            <Box>
+                                                <Text weight={800} size="md" color="white" sx={{ lineHeight: 1.2 }}>{t.name}</Text>
+                                                {(t.role || t.position) && (
+                                                    <Text size="xs" color="white" opacity={0.85}>{[t.role, t.position].filter(Boolean).join(' - ')}</Text>
+                                                )}
+                                            </Box>
+                                        </Flex>
+                                    )) : (
+                                        <Text weight={700} size="sm" color="white" opacity={0.85}>غير مسجل في فريق</Text>
+                                    )}
+                                    <Flex align="center" gap={8}>
+                                        <Avatar size={28} radius="xl" color="orange" src={teamLogo(club?.logo)}>
+                                            {clubName.charAt(0)}
+                                        </Avatar>
+                                        <Text weight={700} size="sm" color="white">{clubName}</Text>
+                                    </Flex>
+                                </Stack>
                             </Col>
                             <Col md={6} order={2}>
                                 <Grid grow gutter="md">
-                                    <Col span={6}>
-                                        <Stack spacing={8}>
-                                            <Box><Text color="white" opacity={0.8} size="10px">الرقم المدني</Text><Text color="white" weight={800}>{person?.card_number || '-'}</Text></Box>
-                                            <Box><Text color="white" opacity={0.8} size="10px">تاريخ الميلاد</Text><Text color="white" weight={800}>{person?.date_birth ? dayjs(person.date_birth).format('YYYY-MM-DD') : '-'}</Text></Box>
-                                            <Box><Text color="white" opacity={0.8} size="10px">العمر</Text><Text color="white" weight={800}>{age} سنة</Text></Box>
-                                            <Box><Text color="white" opacity={0.8} size="10px">النشاط</Text><Text color="white" weight={800}>{data?.activity || '-'}</Text></Box>
-                                            <Box><Text color="white" opacity={0.8} size="10px">الوظيفة</Text><Text color="white" weight={800}>{data?.job || '-'}</Text></Box>
-                                        </Stack>
-                                    </Col>
-                                    <Col span={6}>
-                                        <Stack spacing={8}>
-                                            <Box><Text color="white" opacity={0.8} size="10px">رقم الهاتف</Text><Text color="white" weight={800}>{person?.phone || '-'}</Text></Box>
-                                            <Box><Text color="white" opacity={0.8} size="10px">تاريخ الانضمام</Text><Text color="white" weight={800}>{data?.membership_date ? dayjs(data.membership_date).format('YYYY-MM-DD') : '-'}</Text></Box>
-                                            <Box><Text color="white" opacity={0.8} size="10px">التصنيف</Text><Text color="white" weight={800}>{data?.classification || '-'}</Text></Box>
-                                            {transferInfo?.dateStart && (
-                                                <Box>
-                                                    <Text color="white" opacity={0.8} size="10px">{type === 'loan' ? 'تاريخ بداية الإعارة' : 'تاريخ الانتقال'}</Text>
-                                                    <Text color="white" weight={800}>{transferInfo.dateStart}</Text>
-                                                </Box>
-                                            )}
-                                            {transferInfo?.dateEnd && type === 'loan' && (
-                                                <Box>
-                                                    <Text color="white" opacity={0.8} size="10px">تاريخ نهاية الإعارة</Text>
-                                                    <Text color="white" weight={800}>{transferInfo.dateEnd}</Text>
-                                                </Box>
-                                            )}
-                                            <Box>
-                                                <Text color="white" opacity={0.8} size="10px">الدرجة</Text>
-                                                <Text color="white" weight={800}>
-                                                    {data?.class === 'firstDegree' ? 'الفريق الاول' : 
-                                                     data?.class === 'secondDegree' ? 'تحت 23 سنة' :
-                                                     data?.class === 'young' ? 'تحت 18 سنة' : 
-                                                     data?.class === 'rookies' ? 'تحت 16 سنة' : (data?.class || '-')}
-                                                </Text>
-                                            </Box>
-                                            <Box><Text color="white" opacity={0.8} size="10px">ملاحظات</Text><Text color="white" weight={800}>{data?.note || '-'}</Text></Box>
-                                            {data?.parentApproval && (
-                                                <Box>
-                                                    <Text color="white" opacity={0.8} size="10px">موافقة ولي الأمر</Text>
-                                                    <Text component="a" href={`${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${data.parentApproval}`} target="_blank" weight={800} color="white" sx={{ textDecoration: 'underline' }}>عرض المرفق</Text>
-                                                </Box>
-                                            )}
-                                            {data?.nationalID && (
-                                                <Box>
-                                                    <Box 
-                                                        component="a" 
-                                                        href={`${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${data.nationalID}`} 
-                                                        target="_blank" 
-                                                        sx={{ 
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: 12,
-                                                            textDecoration: 'none', 
-                                                            '&:hover': { opacity: 0.8 } 
-                                                        }}
-                                                    >
-                                                        <Text color="white" weight={800} size="sm">واجهة امامية</Text>
-                                                        <Box sx={{ backgroundColor: '#f0fdf4', padding: 6, borderRadius: 8, display: 'flex' }}>
-                                                            <Id size={20} color="#15803d" />
-                                                        </Box>
+                                    {detailColumns.map((column, colIdx) => (
+                                        <Col span={6} key={colIdx}>
+                                            <Stack spacing={8}>
+                                                {column.map((field) => (
+                                                    <Box key={field.label}>
+                                                        <Text color="white" opacity={0.8} size="10px">{field.label}</Text>
+                                                        <Text color="white" weight={800}>{field.value}</Text>
                                                     </Box>
-                                                </Box>
-                                            )}
-                                            {data?.nationalIDBack && (
-                                                <Box>
-                                                    <Box 
-                                                        component="a" 
-                                                        href={`${process.env.NEXT_PUBLIC_UPLOAD_URL}/images/${data.nationalIDBack}`} 
-                                                        target="_blank" 
-                                                        sx={{ 
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: 12,
-                                                            textDecoration: 'none', 
-                                                            '&:hover': { opacity: 0.8 } 
-                                                        }}
-                                                    >
-                                                        <Text color="white" weight={800} size="sm">واجهة خلفية</Text>
-                                                        <Box sx={{ backgroundColor: '#f0fdf4', padding: 6, borderRadius: 8, display: 'flex' }}>
-                                                            <Id size={20} color="#15803d" />
-                                                        </Box>
+                                                ))}
+                                                {colIdx === 1 && data?.parentApproval && (
+                                                    <Box>
+                                                        <Text color="white" opacity={0.8} size="10px">موافقة ولي الأمر</Text>
+                                                        <Text component="a" href={getImageUrl(data.parentApproval)} target="_blank" weight={800} color="white" sx={{ textDecoration: 'underline' }}>عرض المرفق</Text>
                                                     </Box>
-                                                </Box>
-                                            )}
-                                        </Stack>
-                                    </Col>
+                                                )}
+                                                {colIdx === 1 && data?.nationalID && attachmentLink(data.nationalID, 'واجهة امامية')}
+                                                {colIdx === 1 && data?.nationalIDBack && attachmentLink(data.nationalIDBack, 'واجهة خلفية')}
+                                            </Stack>
+                                        </Col>
+                                    ))}
                                 </Grid>
                             </Col>
                         </Grid>
                     </Box>
                     <Box sx={{ backgroundColor: 'white', padding: '24px 0', borderTop: '1px solid #eee' }}>
                         <Grid grow gutter={0}>
-                            <Col span={4} sx={{ textAlign: 'center', borderLeft: '1px solid #eee' }}>
+                            <Col span={3} sx={{ textAlign: 'center', borderLeft: '1px solid #eee' }}>
                                 <Text weight={800} size={24} color="slate.9">{person?.card_number || '-'}</Text>
                                 <Text size="10px" color="gray.5" weight={700}>الرقم المدني</Text>
                             </Col>
-                            <Col span={4} sx={{ textAlign: 'center', borderLeft: '1px solid #eee' }}>
-                                <Text weight={800} size={24} color="slate.9">{age}</Text>
+                            <Col span={3} sx={{ textAlign: 'center', borderLeft: '1px solid #eee' }}>
+                                <Text weight={800} size={24} color="slate.9">{age === 'N/A' ? '-' : age}</Text>
                                 <Text size="10px" color="gray.5" weight={700}>العمر</Text>
                             </Col>
-                            <Col span={4} sx={{ textAlign: 'center' }}>
-                                <Text weight={800} size={24} color="slate.9">{isLoanEnded ? 'منتهية' : status === 'accepted' ? 'نشط' : 'غير نشط'}</Text>
-                                <Text size="10px" color="gray.5" weight={700}>الحالة</Text>
+                            <Col span={3} sx={{ textAlign: 'center', borderLeft: '1px solid #eee' }}>
+                                <Text weight={800} size={24} color="slate.9" lineClamp={1} px={8}>{teams[0]?.name || '-'}</Text>
+                                <Text size="10px" color="gray.5" weight={700}>الفريق</Text>
+                            </Col>
+                            <Col span={3} sx={{ textAlign: 'center' }}>
+                                <Text weight={800} size={24} color="slate.9">{statusText}</Text>
+                                <Text size="10px" color="gray.5" weight={700}>{type === 'assembly' ? 'الاشتراك' : 'الحالة'}</Text>
                             </Col>
                         </Grid>
                     </Box>
@@ -457,9 +578,15 @@ export const MemberCard = ({
                                             من: {transferInfo.dateStart} إلى: {transferInfo.dateEnd || 'غير محدد'}
                                         </Text>
                                     )}
+                                    {type === 'transfer' && transferInfo.dateStart && (
+                                        <Text size="8px" color="gray.6" weight={500}>تاريخ الانتقال: {transferInfo.dateStart}</Text>
+                                    )}
                                 </Stack>
                             ) : (
-                                <Text size="10px" color="gray.6">{data?.occupation || data?.player_center || 'عضو'} / {age} سنة</Text>
+                                <Stack spacing={6} align="center">
+                                    <Text size="10px" color="gray.6">{roleText}{age !== 'N/A' ? ` / ${age} سنة` : ''}</Text>
+                                    <TeamLine teams={teams} teamLogo={teamLogo} clubName={clubName} />
+                                </Stack>
                             )}
                         </Box>
                     </Box>

@@ -24,12 +24,14 @@ export const AllPlayersClubTransferred = gql`
             team {
                 id
                 name
+                logo
                 phone
             }
             lastTransfer {
                 id
                 status
                 transition_type
+                date_start
                 date_end
 
                 team_from {

@@ -6,6 +6,9 @@ import {
     Team,
     AttachmentPerson,
     Transfer,
+    Players,
+    TechnicalApparatus,
+    Members,
 } from "../Models/index.mjs";
 
 const { Op } = sequelize;
@@ -59,5 +62,33 @@ export const buildLoaders = () => ({
             order: [["createdAt", "DESC"]],
         });
         return groupByKey(playerIds, rows, "id_player");
+    }),
+
+    // Where a person (by civil ID) currently sits in a team: as a player,
+    // technical staff or board member. Assembly rows are flat copies of a
+    // person with no link back, so this is how their card learns the team.
+    // Three queries for the whole list, regardless of its size.
+    affiliationsByCardNumber: new DataLoader(async (cardNumbers) => {
+        const cards = [...new Set(cardNumbers.map((c) => String(c)))];
+        const withPersonAndTeam = {
+            include: [
+                { model: Person, as: "person", required: true, attributes: ["id", "card_number"], where: { card_number: { [Op.in]: cards } } },
+                { model: Team, as: "team", required: true },
+            ],
+        };
+
+        const [players, technicals, members] = await Promise.all([
+            Players.findAll(withPersonAndTeam),
+            TechnicalApparatus.findAll(withPersonAndTeam),
+            Members.findAll(withPersonAndTeam),
+        ]);
+
+        const card = (r) => ("" + (r.person.card_number ?? "")).trim();
+        const rows = [
+            ...players.map((r) => ({ role: "player", status: r.status, position: r.player_center, card: card(r), team: r.team })),
+            ...technicals.map((r) => ({ role: "technical", status: r.status, position: r.occupation, card: card(r), team: r.team })),
+            ...members.map((r) => ({ role: "member", status: r.status, position: r.occupation, card: card(r), team: r.team })),
+        ];
+        return groupByKey(cardNumbers, rows, "card");
     }),
 });

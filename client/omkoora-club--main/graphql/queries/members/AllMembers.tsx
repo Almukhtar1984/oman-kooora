@@ -7,6 +7,7 @@ export const AllMembers = gql`
             occupation
             classification
             membership_date
+            membership_date_end
             status
             note
             person {
@@ -23,6 +24,7 @@ export const AllMembers = gql`
             team {
                 id
                 name
+                logo
                 phone
             }
             createdAt

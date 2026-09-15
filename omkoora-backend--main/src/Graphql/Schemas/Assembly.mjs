@@ -23,6 +23,13 @@ export const typeDefs = gql`
         addClubPeopleToAssembly(idClub: ID!): AddAssemblyBulkResult @auth(requires: user)
     }
 
+    type AssemblyAffiliation {
+        role:       String   # player | technical | member
+        status:     String
+        position:   String   # player_center for players, occupation otherwise
+        team:       Team
+    }
+
     type AddAssemblyBulkResult {
         added:   Int
         skipped: Int
@@ -44,6 +51,8 @@ export const typeDefs = gql`
 
         club:               Club
         team:               Team
+        # Teams this person is registered in (matched by card_number).
+        affiliations:       [AssemblyAffiliation!]
 
         nationalID:         String
         nationalIDBack:     String
