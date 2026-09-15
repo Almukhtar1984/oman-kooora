@@ -1,131 +1,125 @@
 import * as React from 'react';
-
-import { CompactTable } from '@table-library/react-table-library/compact';
-import { useTheme } from '@table-library/react-table-library/theme';
-import {DEFAULT_OPTIONS, getTheme,} from '@table-library/react-table-library/mantine';
-import { usePagination } from '@table-library/react-table-library/pagination';
-import {ActionIcon, Badge, Group, Menu, Pagination, Text} from '@mantine/core';
-import {DotsVertical, Check, X, Id, FileCertificate, History, CalendarStats} from "tabler-icons-react";
+import {ActionIcon, Badge, Box, Group, Pagination, ScrollArea, Stack, Table, Text} from '@mantine/core';
+import {Id} from "tabler-icons-react";
+import {IconDatabaseOff} from '@tabler/icons-react';
 import {useEffect, useState} from "react";
-import {searchSortedData} from "../../lib/helpers/sort";
 import {getImageUrl} from "../../lib/helpers/image";
 import dayjs from "dayjs";
-
-const key = 'Pagination';
-
-const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
 interface Props {
     list: any;
 }
 
+const PAGE_SIZE = 10;
+
+const fullName = (item: any) =>
+    [item?.first_name, item?.second_name, item?.third_name, item?.tribe].filter(Boolean).join(" ");
+
+const formatDate = (value: any) => {
+    const date = dayjs(value);
+    return value && date.isValid() ? date.format("YYYY-MM-DD") : "-";
+};
+
+// Same rule as the assembly member card: a subscription runs until the end of
+// its calendar year.
+const isSubscriptionActive = (value: any) => {
+    const date = dayjs(value);
+    if (!value || !date.isValid()) return false;
+    return new Date() < new Date(`${date.year() + 1}-01-01`);
+};
+
+const CardLink = ({file}: { file?: string }) => (
+    file ?
+        <Group spacing={6} noWrap>
+            <ActionIcon
+                color="green"
+                variant="light"
+                component="a"
+                target="_blank"
+                rel="noopener noreferrer"
+                href={getImageUrl(file)}
+            >
+                <Id size={18} />
+            </ActionIcon>
+            <Text size={"sm"}>البطاقة</Text>
+        </Group>
+        : <Text size={"sm"} color={"dimmed"}>-</Text>
+);
+
+const COLUMNS: { label: string, width: number, render: (item: any) => React.ReactNode }[] = [
+    {label: 'الاسم الكامل', width: 240, render: (item) => fullName(item) || "-"},
+    {label: 'الرقم المدني', width: 120, render: (item) => item?.card_number || "-"},
+    {label: 'رقم العضوية', width: 110, render: (item) => item?.membership_number || "-"},
+    {label: 'رقم الهاتف', width: 120, render: (item) => item?.phone || "-"},
+    {label: 'تاريخ الميلاد', width: 110, render: (item) => formatDate(item?.date_birth)},
+    {label: 'الجنس', width: 70, render: (item) => item?.gender === "male" ? "ذكر" : item?.gender === "female" ? "أنثى" : "-"},
+    {label: 'العضوية', width: 110, render: (item) => item?.type || "-"},
+    {label: 'تاريخ العضوية', width: 110, render: (item) => formatDate(item?.membership_date)},
+    {label: 'تاريخ الاشتراك', width: 110, render: (item) => formatDate(item?.subscription_date)},
+    {label: 'حالة الاشتراك', width: 100, render: (item) => isSubscriptionActive(item?.subscription_date)
+        ? <Badge color="teal">يعمل</Badge>
+        : <Badge color="red">منتهي</Badge>},
+    {label: 'صورة البطاقة المدنية', width: 130, render: (item) => <CardLink file={item?.nationalID} />},
+    {label: 'صورة البطاقة الخلفية', width: 130, render: (item) => <CardLink file={item?.nationalIDBack} />},
+];
+
 export const AssemblyTableTeam = ({ list }: Props) => {
-    const [allMembers, setAllMembers] = useState<{nodes: any}>({
-        nodes: []
-    });
+    const [page, setPage] = useState(1);
+    const rows: any[] = Array.isArray(list) ? list : [];
 
-    const theme = useTheme({
-        ...mantineTheme,
-        HeaderRow: `
-            .th {
-                text-align: right;
-                border-bottom: 1px solid #dee2e6;
-            }
-        `,
-        BaseCell: `
-            padding: 10px 10px;
-            text-align: right;
-        `,
-        Table: `
-            --data-table-library_grid-template-columns:  20% 10% 10% 12% 12% 10% 10% 10% 12% 15% ;
-            min-height: 200px;
-        `,
-    });
-
-    const pagination = usePagination(allMembers, {
-        state: {
-            page: 0,
-            size: 10,
-        },
-        onChange: onPaginationChange,
-    });
-
+    // A new team's list must start from its first page — otherwise a short list
+    // opened while on page 3 of the previous one renders as an empty table.
     useEffect(() => {
-        setAllMembers({nodes: list})
+        setPage(1);
     }, [list]);
 
-    function onPaginationChange(action, state) {
-        console.log(action, state);
+    const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    if (rows.length === 0) {
+        return (
+            <Stack mih={200} align='center' justify='center'>
+                <IconDatabaseOff size={"4rem"} strokeWidth={1} color={"#ADB5BD"} />
+                <Text size={"md"} c={"gray.8"}>لا يوجد أعضاء لهذا الفريق</Text>
+            </Stack>
+        );
     }
 
-    const COLUMNS = [
-        {label: 'الاسم الكامل', renderCell: (item) => `${item?.first_name} ${item?.second_name} ${item?.third_name} ${item?.tribe}`  },
-        {label: 'تاريخ الميلاد', renderCell: (item) => dayjs(item?.date_birth).format("YYYY-MM-DD") },
-        {label: 'الرقم المدني', renderCell: (item) => item?.card_number },
-        {label: 'رقم الهاتف', renderCell: (item) => item?.phone },
-        {label: 'العضوية', renderCell: (item) => item?.type },
-
-        {label: 'تاريخ العضويه', renderCell: (item) => dayjs(item?.membership_date).format("YYYY-MM-DD") },
-        {label: 'الجنس', renderCell: (item) => item?.gender == "male" ? "ذكر" : "أنثى" },
-
-        {label: 'تاريخ الاشتراك', renderCell: (item) => dayjs(item?.subscription_date).format("YYYY-MM-DD") },
-        {label: 'حالة الاشتراك', renderCell: (item) => {
-            const year = dayjs(item?.subscription_date).format("YYYY")
-
-            const date1 = new Date(`${parseInt(year)+1}-01-01`);
-            const date2 = new Date();
-
-            return date2 >= date1 ? <Badge color="red">منتهي</Badge> : <Badge color="teal">يعمل</Badge>
-        } },
-
-        {label: 'صورة البطاقة المدنية', renderCell: (item) => (
-            item.nationalID && item.nationalID !== "" ?
-                <Group position={"center"}>
-                    <ActionIcon
-                        color="green"
-                        variant="light"
-                        component="a"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        href={getImageUrl(item.nationalID)}
-                    >
-                        <Id size={18} />
-                    </ActionIcon>
-                    <Text size={"sm"}>البطاقة</Text>
-                </Group>
-                : null
-        )},
-        {label: 'صورة البطاقة الخلفية', renderCell: (item) => (
-            item.nationalIDBack && item.nationalIDBack !== "" ?
-                <Group position={"center"}>
-                    <ActionIcon
-                        color="green"
-                        variant="light"
-                        component="a"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        href={getImageUrl(item.nationalIDBack)}
-                    >
-                        <Id size={18} />
-                    </ActionIcon>
-                    <Text size={"sm"}>البطاقة</Text>
-                </Group>
-                : null
-        )}
-    ];
-
     return (
-        <>
-            <CompactTable columns={COLUMNS} data={allMembers} theme={theme} pagination={pagination} layout={{ custom: true, horizontalScroll: true }} />
+        <Box>
+            <ScrollArea type="auto" offsetScrollbars>
+                <Table
+                    verticalSpacing="sm"
+                    horizontalSpacing="sm"
+                    highlightOnHover
+                    sx={{
+                        minWidth: COLUMNS.reduce((sum, column) => sum + column.width, 0),
+                        tableLayout: "fixed",
+                        "& th, & td": {textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"},
+                    }}
+                >
+                    <colgroup>
+                        {COLUMNS.map((column) => <col key={column.label} style={{width: column.width}} />)}
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            {COLUMNS.map((column) => <th key={column.label}>{column.label}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {pageRows.map((item) => (
+                            <tr key={item.id}>
+                                {COLUMNS.map((column) => <td key={column.label}>{column.render(item)}</td>)}
+                            </tr>
+                        ))}
+                    </tbody>
+                </Table>
+            </ScrollArea>
 
-            <br />
-            <Group position="right" mx={10}>
-                <Pagination
-                    total={pagination.state.getTotalPages(allMembers.nodes)}
-                    value={pagination.state.page + 1}
-                    onChange={(page) => pagination.fns.onSetPage(page - 1)}
-                />
+            <Group position="apart" mt={16} mx={10}>
+                <Text size="sm" color="dimmed">{rows.length} عضو</Text>
+                {totalPages > 1 ? <Pagination total={totalPages} value={page} onChange={setPage} /> : null}
             </Group>
-        </>
+        </Box>
     );
 };

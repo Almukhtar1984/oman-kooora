@@ -15,7 +15,7 @@ export default function Assembly() {
         if (id && id !== "") {
             if (type && type === "team") {
                 getAllAssemblyTeam({
-                    variables: {idTeam: id},
+                    variables: {idTeam: id, withClubMembers: true},
                     fetchPolicy: "network-only",
                     onCompleted: ({allAssemblyTeam}: any) => {
                         setAllAssembly(allAssemblyTeam)

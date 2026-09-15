@@ -1,8 +1,8 @@
-import {Box, Button, Group, Menu, Select, Text, TextInput, useMantineTheme} from "@mantine/core";
-import {Check, ChevronDown, Printer, Search, X} from "tabler-icons-react";
-import React, {useEffect, useState} from "react";
+import {Box, Button, Center, Group, Loader, Select, Text} from "@mantine/core";
+import {ChevronDown, Printer, Search, X} from "tabler-icons-react";
+import React, {useEffect, useMemo, useState} from "react";
 import Modal, { Props as ModalProps } from "./Modal";
-import {AllBlog, AllPlayers, useAllAssembly, useAllAssemblyTeam, useAllTeams, useDeleteBlog} from "../../graphql";
+import {useAllAssemblyTeam, useAllTeams} from "../../graphql";
 import {openPrint} from "../../lib/helpers/openPrint";
 import useStore from "../../store/useStore";
 import {AssemblyTableTeam} from "../Tables";
@@ -13,54 +13,50 @@ type Props = {
 
 export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
+    const idClub = userData?.person?.clubManagement?.club?.id;
     const [team, setTeam] = useState<string | null>(null);
-    const [allTeams, setAllTeams] = useState<{label: string, value: string}[]>([]);
-    const [allAssembly, setAllAssembly] = useState<object[]>([]);
-    const [getAllTeams, { loading: loadingAllTeams, error: errorAllTeams, data: dataAllTeams }] = useAllTeams();
-    const [getAllAssemblyTeam, { loading, error, data: dataAllAssemblyTeam }] = useAllAssemblyTeam();
+    const [getAllTeams, { data: dataAllTeams }] = useAllTeams();
+    const [getAllAssemblyTeam, { loading, error, data, called, variables }] = useAllAssemblyTeam();
 
     useEffect(() => {
-        if (userData?.person?.clubManagement?.club?.id) {
-            const idClub = userData?.person?.clubManagement?.club?.id;
+        if (props.opened && idClub) {
             getAllTeams({
                 variables: {idClub},
                 fetchPolicy: "cache-and-network"
             })
         }
-    }, [props.opened])
+    }, [props.opened, idClub])
 
-    useEffect(() => {
-        if (dataAllTeams && "allTeam" in dataAllTeams && dataAllTeams?.allTeam?.length >= 0) {
-            const allTeams: {label: string, value: string}[] = []
+    const allTeams = useMemo(
+        () => (dataAllTeams?.allTeam || [])
+            .map((item: any) => ({label: item?.name, value: item?.id}))
+            .sort((a: any, b: any) => ("" + (a.label ?? "")).localeCompare("" + (b.label ?? ""), "ar")),
+        [dataAllTeams]
+    );
 
-            dataAllTeams?.allTeam?.map((item: any) => {
-                allTeams.push({label: item?.name, value: item?.id})
-            })
-
-            setAllTeams([...allTeams])
-        }
-    }, [dataAllTeams])
-
-    useEffect(() => {
-        if (dataAllAssemblyTeam && "allAssemblyTeam" in dataAllAssemblyTeam) {
-            setAllAssembly([...dataAllAssemblyTeam.allAssemblyTeam])
-        }
-    }, [dataAllAssemblyTeam])
-
-    const onSubmit = () => {
+    const loadTeam = (idTeam: string | null) => {
+        if (!idTeam) return;
         getAllAssemblyTeam({
-            variables: {idTeam: team},
+            variables: {idTeam, withClubMembers: true},
             fetchPolicy: "network-only",
             onError: error => console.log(error)
         })
     };
+
+    const onChangeTeam = (value: string | null) => {
+        setTeam(value);
+        loadTeam(value);
+    };
+
+    // Only show the result that belongs to the currently selected team.
+    const showingTeam = called && team && variables?.idTeam === team;
+    const allAssembly: any[] = showingTeam ? (data?.allAssemblyTeam || []) : [];
 
     const closeModal = () => {
         props.onClose();
         setTeam(null)
     };
 
-    // @ts-ignore
     return (
         <Modal
             {...props}
@@ -85,7 +81,7 @@ export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
                     data={allTeams}
 
                     value={team}
-                    onChange={setTeam}
+                    onChange={onChangeTeam}
 
                     searchable={true}
                     clearable={true}
@@ -96,7 +92,9 @@ export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
                 <Button
                     rightIcon={<Search size={16} strokeWidth="3" />}
                     sx={{ fontWeight: 500 }}
-                    onClick={onSubmit}
+                    onClick={() => loadTeam(team)}
+                    disabled={!team}
+                    loading={loading}
                     color={"primary"}
                 >
                     عرض
@@ -108,11 +106,12 @@ export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
                         sx={{ fontWeight: 500 }}
                         color={"primary"}
                         variant={"outline"}
+                        disabled={!team}
 
                         component={"a"}
                         href={`https://print.omkooora.com/#/assembly/${team}/team`}
                         target={"_blank"}
-                        onClick={(e) => { e.preventDefault(); openPrint(`/assembly/${team}/team`); }}
+                        onClick={(e) => { e.preventDefault(); if (team) openPrint(`/assembly/${team}/team`); }}
                     >
                         طباعة القائمة
                     </Button>
@@ -121,7 +120,15 @@ export const ShowAssemblyTeamModal = ({hasPermission, ...props}: Props) => {
             </Group>
 
             <Box mt={20}>
-                <AssemblyTableTeam list={allAssembly}/>
+                {!team ? (
+                    <Text size="sm" color="dimmed" ta="center" py="xl">اختر الفريق لعرض أعضائه</Text>
+                ) : loading ? (
+                    <Center py="xl"><Loader size="sm" /></Center>
+                ) : error && showingTeam ? (
+                    <Text size="sm" color="red" ta="center" py="xl">تعذر تحميل البيانات، حاول مرة أخرى</Text>
+                ) : (
+                    <AssemblyTableTeam list={allAssembly}/>
+                )}
             </Box>
         </Modal>
     );

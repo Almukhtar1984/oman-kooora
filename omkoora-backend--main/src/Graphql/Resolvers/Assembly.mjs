@@ -40,12 +40,54 @@ export const resolvers = {
             }
         },
 
-        allAssemblyTeam: async (obj, {idTeam}, context, info) =>  {
+        allAssemblyTeam: async (obj, {idTeam, withClubMembers}, context, info) =>  {
             try {
-                return await Assembly.findAll({
-                    where: {
-                        id_team: idTeam
-                    }
+                if (!idTeam) return []
+
+                const order = [["first_name", "ASC"], ["second_name", "ASC"], ["third_name", "ASC"], ["tribe", "ASC"]]
+
+                if (!withClubMembers) {
+                    return await Assembly.findAll({ where: { id_team: idTeam }, order })
+                }
+
+                // Membership records added from the club app, the sheet import or
+                // the bulk "add club people" action carry only id_club, never
+                // id_team — so a plain id_team lookup comes back empty for them.
+                // Link those records to the team through the civil ID numbers of
+                // the team's players, technical staff and members.
+                const team = await Team.findByPk(idTeam, { attributes: ["id", "id_club"] })
+                if (!team) return []
+
+                const ofTeam = {
+                    where: { id_team: idTeam },
+                    attributes: ["id"],
+                    include: [{ model: Person, as: "person", required: true, attributes: ["card_number"] }],
+                }
+                const [players, technicals, members] = await Promise.all([
+                    Players.findAll(ofTeam),
+                    TechnicalApparatus.findAll(ofTeam),
+                    Members.findAll(ofTeam),
+                ])
+                const cards = [...new Set(
+                    [...players, ...technicals, ...members]
+                        .map((row) => ("" + (row.person?.card_number ?? "")).trim())
+                        .filter(Boolean)
+                )]
+
+                const matches = [{ id_team: idTeam }]
+                if (team.id_club && cards.length) {
+                    matches.push({ id_club: team.id_club, card_number: { [Op.in]: cards } })
+                }
+
+                const rows = await Assembly.findAll({ where: { [Op.or]: matches }, order })
+
+                // The same person can be on file twice (team record + club record).
+                const seen = new Set()
+                return rows.filter((row) => {
+                    const key = ("" + (row.card_number ?? "")).trim() || row.id
+                    if (seen.has(key)) return false
+                    seen.add(key)
+                    return true
                 })
             } catch (error) {
                 logger.error("")

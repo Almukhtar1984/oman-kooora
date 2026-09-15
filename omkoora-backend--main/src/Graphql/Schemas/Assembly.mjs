@@ -5,7 +5,9 @@ export const typeDefs = gql`
     extend type Query {
         assembly(id: ID): Assembly #@auth(requires: user)
         allAssemblyClub(idClub: ID): [Assembly!] #@auth(requires: user)
-        allAssemblyTeam(idTeam: ID): [Assembly!] #@auth(requires: user)
+        # withClubMembers: also include the club's membership records for the
+        # team's players / staff / members (matched by civil ID).
+        allAssemblyTeam(idTeam: ID, withClubMembers: Boolean): [Assembly!] #@auth(requires: user)
     }
 
     extend type Mutation {

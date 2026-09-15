@@ -1,8 +1,8 @@
 import {gql} from "@apollo/client";
 
 export const AllAssemblyTeam = gql`
-    query AllAssemblyTeam($idTeam: ID) {
-        allAssemblyTeam(idTeam: $idTeam) {
+    query AllAssemblyTeam($idTeam: ID, $withClubMembers: Boolean) {
+        allAssemblyTeam(idTeam: $idTeam, withClubMembers: $withClubMembers) {
             id
             first_name
             second_name
