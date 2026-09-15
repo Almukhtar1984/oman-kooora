@@ -25,6 +25,8 @@ export const AllTechnicals = gql`
             }
             team {
                 id
+                name
+                logo
             }
             attachmentsTechnical {
                 id

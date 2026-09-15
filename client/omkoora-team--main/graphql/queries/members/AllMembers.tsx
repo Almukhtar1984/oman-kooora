@@ -24,6 +24,8 @@ export const AllMembers = gql`
             }
             team {
                 id
+                name
+                logo
             }
             createdAt
             updatedAt

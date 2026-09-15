@@ -10,6 +10,7 @@ export const AllAssembly = gql`
             tribe
             date_birth
             card_number
+            membership_number
             phone
             type
             nationalID
@@ -17,7 +18,28 @@ export const AllAssembly = gql`
             membership_date
             gender
             subscription_date
-            
+
+            club {
+                id
+                name
+                logo
+            }
+            team {
+                id
+                name
+                logo
+            }
+            affiliations {
+                role
+                status
+                position
+                team {
+                    id
+                    name
+                    logo
+                }
+            }
+
             createdAt
             updatedAt
             personal_picture

@@ -27,6 +27,8 @@ export const AllPlayers = gql`
             }
             team {
                 id
+                name
+                logo
             }
             attachmentsPlayer {
                 id
