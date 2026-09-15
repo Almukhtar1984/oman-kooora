@@ -1,8 +1,8 @@
 import {
+    ActionIcon,
     Box,
     Button,
     Col,
-    FileInput,
     Grid,
     Group,
     Loader,
@@ -12,14 +12,20 @@ import {
     Text,
     Select,
 } from "@mantine/core";
-import {Calendar, Check, ChevronDown, X} from "tabler-icons-react";
-import React, {useEffect, useRef, useState} from "react";
+import {Check, Paperclip, Trash, X} from "tabler-icons-react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import { useForm } from "@mantine/form";
 import Modal, { Props as ModalProps } from "./Modal";
 import {AllMessagesSender, useAddMessage, useAllTeams} from "../../graphql";
 import useStore from "../../store/useStore";
-import {DateInput} from "@mantine/dates";
-import {Dropzone, IMAGE_MIME_TYPE} from "@mantine/dropzone";
+import {
+    Dropzone,
+    FileRejection,
+    MS_EXCEL_MIME_TYPE,
+    MS_POWERPOINT_MIME_TYPE,
+    MS_WORD_MIME_TYPE,
+    PDF_MIME_TYPE,
+} from "@mantine/dropzone";
 import {Notyf} from "notyf";
 
 import {RichTextEditor, Link} from "@mantine/tiptap";
@@ -31,42 +37,69 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Superscript from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
-import {IconChevronDown} from "@tabler/icons-react";
 
 type Props = {
     setSelectedData?: (id: string) => void;
 } & ModalProps;
 
+// Only the extensions createMessage stores (see Resolvers/Message.mjs) — the
+// backend rejects anything else after the message row is already created.
+const ATTACHMENT_MIME_TYPES = [
+    "image/png",
+    "image/jpeg",
+    "video/mp4",
+    "text/csv",
+    "application/zip",
+    "application/x-zip-compressed",
+    ...PDF_MIME_TYPE,
+    ...MS_WORD_MIME_TYPE,
+    ...MS_EXCEL_MIME_TYPE,
+    ...MS_POWERPOINT_MIME_TYPE,
+];
+const MAX_ATTACHMENT_SIZE = 10 * 1024 ** 2; // graphqlUploadExpress maxFileSize
+
+const PRIORITIES = [
+    {label: "عادي", value: "normal"},
+    {label: "عاجل", value: "urgent"},
+    {label: "عاجل جدا", value: "very_urgent"}
+];
+
+const initialValues = {
+    subject: "",
+    priority: null as string | null,
+    id_team_receiver: null as string | null,
+};
+
 export const AddMessage = (props: Props) => {
     const userData = useStore((state: any) => state.userData);
-    const {getInputProps, reset, onSubmit, setValues} = useForm();
-    const [logo, setLogo] = useState<File | null>(null);
+    const idClub = userData?.person?.clubManagement?.club?.id;
+    const {getInputProps, reset, onSubmit} = useForm({
+        initialValues,
+        validate: {
+            subject: (value) => (value?.trim() ? null : "الموضوع مطلوب"),
+            priority: (value) => (value ? null : "اختر الاولوية"),
+            id_team_receiver: (value) => (value ? null : "اختر الفريق المرسل اليه"),
+        },
+    });
     const [attachments, setAttachments] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
     const [content, setContent] = useState("");
-    const [teams, setTeams] = useState<{label: string; value: string;}[]>([]);
 
     const openRef = useRef<() => void>(null);
     const [createMessage] = useAddMessage();
-    const [getAllTeam, {data: dataAllTeams }] = useAllTeams();
+    const [getAllTeam, {data: dataAllTeams, loading: loadingTeams}] = useAllTeams();
 
     useEffect(() => {
-        if (userData?.person?.clubManagement?.club?.id) {
-            const idClub = userData?.person?.clubManagement?.club?.id;
-         
-            getAllTeam({
-                variables: {idClub},
-                onCompleted: ({allTeam}) => {
-                    let listTeam: any = []
-                    allTeam.map((item: any) => {
-                        listTeam.push({label: item.name, value: item.id})
-                    })
+        if (idClub) getAllTeam({variables: {idClub}});
+    }, [idClub]);
 
-                    setTeams(listTeam)
-                }
-            })
-        }
-    }, [userData])
+    // Read the list straight from the query result: a per-call onCompleted is
+    // skipped when Apollo answers from cache, which left the dropdown empty
+    // (and an empty Mantine Select never opens).
+    const teams = useMemo(
+        () => (dataAllTeams?.allTeam || []).map((item: any) => ({label: item.name, value: item.id})),
+        [dataAllTeams]
+    );
 
     const editor = useEditor({
         extensions: [
@@ -79,10 +112,11 @@ export const AddMessage = (props: Props) => {
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
         ],
         content,
-        onUpdate: ({editor}) => setContent(editor.getHTML())
+        onUpdate: ({editor}) => setContent(editor.isEmpty ? "" : editor.getHTML())
     });
 
-    const onFormSubmit = ({subject, priority, id_team_receiver}: any) => {
+    const onFormSubmit = ({subject, priority, id_team_receiver}: typeof initialValues) => {
+        if (loading) return;
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
         setLoading(true)
@@ -90,10 +124,10 @@ export const AddMessage = (props: Props) => {
             variables: {
                 content: {
                     content: content,
-                    subject,
-                    priority,
+                    subject: subject.trim(),
+                    priority: priority as string,
                     attachment: attachments,
-                    id_club_sender: userData?.person?.clubManagement?.club?.id,
+                    id_club_sender: idClub,
                     id_team_receiver,
                     id_team_sender: ""
                 }
@@ -103,20 +137,38 @@ export const AddMessage = (props: Props) => {
                 closeModal();
                 notyf.success("تم ارسال الرسالة")
             },
-            onError: ({graphQLErrors}) => {
+            onError: () => {
                 setLoading(false)
                 notyf.error("حدث خطأ أثناء إرسال الرسالة");
             }
         })
     };
 
+    const onDrop = (files: File[]) => setAttachments((current) => [...current, ...files]);
+
+    const onReject = (rejections: FileRejection[]) => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        const names = rejections.map(({file}) => file.name).join("، ");
+        notyf.error(`لم يتم إرفاق: ${names} (الأنواع المسموحة: صور PNG/JPG، PDF، Word، Excel، PowerPoint، CSV، ZIP، MP4 — حتى 10MB)`);
+    };
+
+    const removeAttachment = (index: number) =>
+        setAttachments((current) => current.filter((_, i) => i !== index));
+
     const closeModal = () => {
         setLoading(false)
         setAttachments([])
-        setLogo(null)
         setContent("")
-        props.onClose();
+        editor?.commands.clearContent()
         reset();
+        props.onClose();
+    };
+
+    const selectProps = {
+        withinPortal: true,
+        clearable: true,
+        withAsterisk: true,
+        maxDropdownHeight: 240,
     };
 
     return (
@@ -126,7 +178,7 @@ export const AddMessage = (props: Props) => {
                 <Box py={16} px={20} bg="slate.0">
                     <Group position={"right"} spacing={"xs"}>
                         <Button variant="outline" rightIcon={<X size={15} />} bg="white" onClick={closeModal}>إلغاء</Button>
-                        <Button rightIcon={<Check size={15} />} type="submit" form="submit_form">تأكيد</Button>
+                        <Button rightIcon={<Check size={15} />} type="submit" form="submit_form" loading={loading} disabled={loading}>تأكيد</Button>
                     </Group>
                 </Box>
             }
@@ -135,13 +187,13 @@ export const AddMessage = (props: Props) => {
                 <Overlay opacity={0.9} color="#fff" zIndex={5} >
                     <Stack align={"center"} justify={"center"} h={"100%"} w={"100%"}>
                         <Loader size="xl" variant="dots" />
-                        <Text size={"lg"} fw={500}>يتم تحميل الملف يرجى الانتظار</Text>
+                        <Text size={"lg"} fw={500}>جاري إرسال الرسالة يرجى الانتظار</Text>
                     </Stack>
                 </Overlay>
                 : null
             }
 
-            <Box sx={({ colors }) => ({padding: 20})}>
+            <Box sx={() => ({padding: 20})}>
                 <form onSubmit={onSubmit(onFormSubmit)} id="submit_form">
                     <Grid gutter={20}>
                         <Col span={12} >
@@ -156,7 +208,7 @@ export const AddMessage = (props: Props) => {
                         <Col span={12}>
                             <Text component={"label"} >المحتوى</Text>
                             <RichTextEditor editor={editor} mih={120} >
-                                <RichTextEditor.Toolbar sticky stickyOffset={60}>
+                                <RichTextEditor.Toolbar>
                                     <RichTextEditor.ControlsGroup>
                                         <RichTextEditor.Bold />
                                         <RichTextEditor.Italic />
@@ -199,69 +251,64 @@ export const AddMessage = (props: Props) => {
                             </RichTextEditor>
                         </Col>
 
-                        <Col span={6}>
+                        <Col xs={12} sm={6}>
                             <Select
+                                {...selectProps}
                                 label="الاولوية"
                                 placeholder="اختر نوع الاولوية"
-                                // rightSection={<IconChevronDown size="1rem" />}
-                                rightSectionWidth={30}
-                                withAsterisk
-                                styles={{ rightSection: { pointerEvents: 'none' } }}
-                                data={[
-                                    {label: "عادي", value: "normal"},
-                                    {label: "عاجل", value: "urgent"},
-                                    {label: "عاجل جدا", value: "very_urgent"}
-                                ]}
+                                data={PRIORITIES}
                                 {...getInputProps("priority")}
-                                clearable={true}
                             />
                         </Col>
 
-                        <Col span={6} >
+                        <Col xs={12} sm={6}>
                             <Select
+                                {...selectProps}
+                                searchable
                                 label="الفريق المرسل اليه"
                                 placeholder="اختر الفريق المرسل اليه"
-                                // rightSection={<IconChevronDown size="1rem" />}
-                                rightSectionWidth={30}
-                                withAsterisk
-                                styles={{ rightSection: { pointerEvents: 'none' } }}
                                 data={teams}
+                                nothingFound={loadingTeams ? "جاري تحميل الفرق..." : "لا توجد فرق لهذا النادي"}
                                 {...getInputProps("id_team_receiver")}
-                                clearable={true}
                             />
                         </Col>
-
-                        {/*<Col span={4} >*/}
-                        {/*    <FileInput*/}
-                        {/*        accept={"image/png, image/jpeg"}*/}
-                        {/*        multiple={false}*/}
-                        {/*        placeholder="التوقيع"*/}
-                        {/*        label="التوقيع"*/}
-                        {/*        withAsterisk*/}
-                        {/*    />*/}
-                        {/*</Col>*/}
 
                         <Col span={12} >
                             <Text size={"sm"} mb={10} >
                                 المرفقات
-                                {logo && logo?.length > 0 ? <Text color={"green"} span={true}> تم الرفع </Text> : null}
+                                {attachments.length > 0 ? <Text color={"green"} span={true}> ({attachments.length}) </Text> : null}
                             </Text>
                             <Dropzone
                                 openRef={openRef}
                                 activateOnClick={false}
                                 multiple={true}
-                                onDrop={(file) => setAttachments(file)}
+                                onDrop={onDrop}
+                                onReject={onReject}
                                 styles={{ inner: { pointerEvents: 'all' } }}
-                                maxSize={3 * 1024 ** 2}
-                                accept={IMAGE_MIME_TYPE}
+                                maxSize={MAX_ATTACHMENT_SIZE}
+                                accept={ATTACHMENT_MIME_TYPES}
                             >
                                 <Group position="center">
-                                    <Button onClick={() => {
-                                        // @ts-ignore
-                                        return openRef ? openRef?.current() : undefined
-                                    }}>اختار ملف / اسحب ملف الى هنا</Button>
+                                    <Button onClick={() => openRef.current?.()}>اختار ملف / اسحب ملف الى هنا</Button>
                                 </Group>
                             </Dropzone>
+
+                            {attachments.length > 0 ?
+                                <Stack spacing={6} mt={10}>
+                                    {attachments.map((file, index) => (
+                                        <Group key={`${file.name}-${index}`} position="apart" noWrap data-attachment>
+                                            <Group spacing={6} noWrap>
+                                                <Paperclip size={16} />
+                                                <Text size="sm">{file.name}</Text>
+                                            </Group>
+                                            <ActionIcon color="red" aria-label="حذف المرفق" onClick={() => removeAttachment(index)}>
+                                                <Trash size={16} />
+                                            </ActionIcon>
+                                        </Group>
+                                    ))}
+                                </Stack>
+                                : null
+                            }
                         </Col>
                     </Grid>
                 </form>

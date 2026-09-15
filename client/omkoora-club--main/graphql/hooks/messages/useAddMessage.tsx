@@ -11,7 +11,7 @@ interface VariableProps {
         attachment?:           any
         id_club_sender:        string;
         id_team_sender:        string;
-        id_team_receiver:      string;
+        id_team_receiver:      string | null;
     };
 }
 
