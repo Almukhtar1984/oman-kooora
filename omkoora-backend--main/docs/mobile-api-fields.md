@@ -107,20 +107,28 @@ query {
 }
 ```
 
-## 8) قوائم عامة جاهزة ✅
-- كل الأندية: `allClub { id name logo }`
-- كل الأعضاء: `allMembers(idTeam)` · لكل نادٍ: `allMembersClub(idClub)`
-- الأجهزة الفنية: `allTechnicalApparatus(idTeam)` · لكل نادٍ: `allTechnicalApparatusClub(idClub)`
-- مجالس الإدارة: `allClubManagement(idClub)`
-- الحجوزات: `allReservations(idStadium)` · الفعاليات: `allEvents(idTeam)`
+## 8) تجميعات وقوائم عامة — أُضيفت 🆕
+```graphql
+query { statsTeamsWithPlayerCount { team { id name } clubName playersCount } }
+query { statsPlayersByAgeCategory { ageCategory ageLabel playersCount clubsCount teamsCount } }
+query { statsTransfersByTeam { team { id name } clubName transfersCount loansCount } }
+query { allTechnicalStaff { id occupation person { first_name } team { name } } }
+query { allBoardMembers { id role person { first_name } club { name } } }
+query { allEventsGlobal(idTeam: null) { id } }   # idTeam اختياري
+query { allBookings { id booking_date } }
+query { globalSearch(query: "مسقط") {
+  clubs { id name logo } teams { id name } players { id person { first_name card_number } } competitions { id name }
+} }
+```
+قوائم موجودة أصلًا ✅: `allClub`, `allMembers(idTeam)`, `allMembersClub(idClub)`, `allTechnicalApparatus(idTeam)`, `allClubManagement(idClub)`, `allReservations(idStadium)`, `allEvents(idTeam)`.
 
 ---
 
-## قيد التنفيذ (مراحل لاحقة) 🔜
-تحتاج تعديلات قاعدة بيانات أو استعلامات تجميعية جديدة:
+## قيد التنفيذ (مرحلة أخيرة — تحتاج تعديل قاعدة بيانات) 🔜
 - **الأخبار (Blog):** `category`, `category_label`, `author_name`, `views_count` (+ عدّاد مشاهدات). `time_ago` يُشتق من `createdAt`.
-- **المباريات:** `venue`, `minute`, `subMinute`, وترقية `manOfMatch`/`best_player` لنوع Player.
-- **استعلامات تجميعية باسم مخصّص:** `statsTeamsWithPlayerCount`, `statsPlayersByAgeCategory`, `statsTransfersByTeam`, `allEventsGlobal`, `allBookings`, `globalSearch` — وأنواعها المساعدة (`TeamWithCount`, `PlayersByAge`, `TeamTransfersStats`, `Loan`, `GlobalSearchResult`).
-- **اختياري:** `MatchStats`, `Substitution`.
+- **المباريات:** `venue`, `minute`, `subMinute`، وترقية `manOfMatch`/`best_player` لنوع Player.
+- **اختياري:** `MatchStats` (استحواذ/تسديدات…)، `Substitution`.
+
+> كل ما سبق هذا القسم **جاهز الآن** ويعمل. المتبقّي أعلاه يحتاج أعمدة جديدة + migration.
 
 > ملاحظة تسمية: الحقول الجديدة أُنشئت بأسماء `snake_case` كما طُلبت (transfers_count, status_label, clubs_count …) لتتطابق مع أكواد التطبيق مباشرة.
