@@ -4,6 +4,7 @@ import sequelize from "sequelize";
 import {
     Person,
     Team,
+    Club,
     AttachmentPerson,
     Transfer,
     Players,
@@ -73,7 +74,12 @@ export const buildLoaders = () => ({
         const withPersonAndTeam = {
             include: [
                 { model: Person, as: "person", required: true, attributes: ["id", "card_number"], where: { card_number: { [Op.in]: cards } } },
-                { model: Team, as: "team", required: true },
+                // Require a *live* team AND a *live* club: a person's record under
+                // a soft-deleted (duplicate) club — e.g. an old "النادي الشباب"
+                // from 2023 — must not surface as a current affiliation. Both
+                // models are paranoid, so requiring the Club join drops teams
+                // whose club was deleted.
+                { model: Team, as: "team", required: true, include: [{ model: Club, as: "club", required: true, attributes: ["id"] }] },
             ],
         };
 
