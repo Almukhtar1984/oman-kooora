@@ -124,6 +124,18 @@ export const typeDefs = gql`
     blogs: Int
     acceptedPlayer: Int
     leagues: Int
+    # Platform-wide totals (mobile app overview).
+    totalTeams: Int
+    totalClubs: Int
+    totalVenues: Int
+    totalMatches: Int
+    totalTransfers: Int
+    totalLoans: Int
+    totalEvents: Int
+    totalBookings: Int
+    totalTechnicalStaff: Int
+    totalBoardMembers: Int
+    totalAgeCategories: Int
   }
   # ... other type definitions like Club, Team, League
 `;

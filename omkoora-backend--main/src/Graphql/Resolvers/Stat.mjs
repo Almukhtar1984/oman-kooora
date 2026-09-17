@@ -6,6 +6,7 @@ import logger from "../../Config/logger.mjs";
 import {
   Club, Team, League, Players, Match, Stadium, Members, Blog,
   TechnicalApparatus, Assembly, ClubManagement, Transfer, User,
+  Event, Reservations,
 } from '../../Models/index.mjs';
 
 dotenv.config();
@@ -479,11 +480,33 @@ export const resolvers = {
         });
         const leaguesCount = await League.count();
 
+        // Platform-wide totals for the mobile app's overview screen.
+        const [
+          totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
+          totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
+          totalBoardMembers, totalAgeCategories,
+        ] = await Promise.all([
+          Team.count(),
+          Club.count(),
+          Stadium.count(),
+          Match.count(),
+          Transfer.count({ where: { transition_type: "transition" } }),
+          Transfer.count({ where: { transition_type: "loan" } }),
+          Event.count(),
+          Reservations.count(),
+          TechnicalApparatus.count(),
+          ClubManagement.count(),
+          Team.count({ distinct: true, col: "category" }),
+        ]);
+
         const GeneralStat = {
           Members: membersCount,
           blogs: blogsCount,
           acceptedPlayer: acceptedPlayerCount,
           leagues: leaguesCount,
+          totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
+          totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
+          totalBoardMembers, totalAgeCategories,
         };
 
         
@@ -642,11 +665,33 @@ export const resolvers = {
         });
         const leaguesCount = await League.count();
 
+        // Platform-wide totals for the mobile app's overview screen.
+        const [
+          totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
+          totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
+          totalBoardMembers, totalAgeCategories,
+        ] = await Promise.all([
+          Team.count(),
+          Club.count(),
+          Stadium.count(),
+          Match.count(),
+          Transfer.count({ where: { transition_type: "transition" } }),
+          Transfer.count({ where: { transition_type: "loan" } }),
+          Event.count(),
+          Reservations.count(),
+          TechnicalApparatus.count(),
+          ClubManagement.count(),
+          Team.count({ distinct: true, col: "category" }),
+        ]);
+
         const GeneralStat = {
           Members: membersCount,
           blogs: blogsCount,
           acceptedPlayer: acceptedPlayerCount,
           leagues: leaguesCount,
+          totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
+          totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
+          totalBoardMembers, totalAgeCategories,
         };
 
         return {
