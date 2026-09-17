@@ -395,12 +395,14 @@ export const PlayersTableMobile = ({ list, search, setOpenEditModal, setOpenAddI
                 >احصائيات اللاعب</Menu.Item>
                 
                 {hasPermission("5")
-                    ? <Menu.Item
-                        component={"a"} icon={<Printer size={18} />}
-                        href={`https://print.omkooora.com/#/${item?.id}`}
-                        target={"_blank"}
-                        onClick={(e) => { e.preventDefault(); openPrint(`/${item?.id}`); }}
-                    >طباعة البطاقة</Menu.Item>
+                    ? (item?.status === "accepted"
+                        ? <Menu.Item
+                            component={"a"} icon={<Printer size={18} />}
+                            href={`https://print.omkooora.com/#/${item?.id}`}
+                            target={"_blank"}
+                            onClick={(e) => { e.preventDefault(); openPrint(`/${item?.id}`); }}
+                        >طباعة البطاقة</Menu.Item>
+                        : <Menu.Item icon={<Printer size={18} />} disabled>طباعة البطاقة (بعد الاعتماد)</Menu.Item>)
                     : null
                 }
 

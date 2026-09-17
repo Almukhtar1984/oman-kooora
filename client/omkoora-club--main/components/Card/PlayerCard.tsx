@@ -223,15 +223,19 @@ export function PlayerCard1({
                       <Menu.Item icon={<XboxX size={14} />} onClick={() => onUpdateSanction && onUpdateSanction(data)}>تحديث عقوبة</Menu.Item>
                     )}
                     {hasPermission("8") && (
-                      <Menu.Item
-                        component="a"
-                        icon={<Printer size={14} />}
-                        href={`https://print.omkooora.com/#/${data?.id}`}
-                        target="_blank"
-                        onClick={(e) => { e.preventDefault(); openPrint(`/${data?.id}`); }}
-                      >
-                        طباعة البطاقة
-                      </Menu.Item>
+                      data?.status === "accepted" ? (
+                        <Menu.Item
+                          component="a"
+                          icon={<Printer size={14} />}
+                          href={`https://print.omkooora.com/#/${data?.id}`}
+                          target="_blank"
+                          onClick={(e) => { e.preventDefault(); openPrint(`/${data?.id}`); }}
+                        >
+                          طباعة البطاقة
+                        </Menu.Item>
+                      ) : (
+                        <Menu.Item icon={<Printer size={14} />} disabled>طباعة البطاقة (بعد الاعتماد)</Menu.Item>
+                      )
                     )}
                   </Menu.Dropdown>
                 </Menu>

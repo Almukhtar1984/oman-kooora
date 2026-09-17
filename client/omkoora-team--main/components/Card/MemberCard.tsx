@@ -475,7 +475,11 @@ export const MemberCard = ({
                                             )}
 
                                             {hasPermission("8") && type !== 'assembly' && (
-                                                <Menu.Item component="a" icon={<Printer size={14} />} href={`https://print.omkooora.com/#/${data?.id}`} target="_blank" onClick={(e) => { e.preventDefault(); openPrint(`/${data?.id}`); }}>طباعة البطاقة</Menu.Item>
+                                                (['player', 'technical', 'member'].includes(type) && status !== 'accepted') ? (
+                                                    <Menu.Item icon={<Printer size={14} />} disabled>طباعة البطاقة (بعد الاعتماد)</Menu.Item>
+                                                ) : (
+                                                    <Menu.Item component="a" icon={<Printer size={14} />} href={`https://print.omkooora.com/#/${data?.id}`} target="_blank" onClick={(e) => { e.preventDefault(); openPrint(`/${data?.id}`); }}>طباعة البطاقة</Menu.Item>
+                                                )
                                             )}
                                         </Menu.Dropdown>
                                     </Menu>
