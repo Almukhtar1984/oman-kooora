@@ -89,6 +89,20 @@ const isLeagueEnded = (league) => {
     return new Date() > expiry;
 };
 
+// Competition lifecycle from its start/expiry dates → { code, label }.
+const leagueStatus = (startDate, expiryDate) => {
+    const now = new Date();
+    const start = startDate ? new Date(startDate) : null;
+    const end = expiryDate ? new Date(expiryDate) : null;
+    const startOk = start && !isNaN(start.getTime());
+    const endOk = end && !isNaN(end.getTime());
+    if (endOk) end.setHours(23, 59, 59, 999);
+    if (startOk && now < start) return { code: "upcoming", label: "قادمة" };
+    if (endOk && now > end) return { code: "finished", label: "منتهية" };
+    if (startOk || endOk) return { code: "live", label: "جارية" };
+    return { code: "unknown", label: "" };
+};
+
 const toIdList = (value) =>
     [...new Set((Array.isArray(value) ? value : [value]).filter((v) => v && v !== ""))];
 
@@ -1155,6 +1169,42 @@ export const resolvers = {
     },
 
     League: {
+        // Competition lifecycle derived from its dates (no stored column).
+        status: ({ startDate, expiryDate }) => leagueStatus(startDate, expiryDate).code,
+        status_label: ({ startDate, expiryDate }) => leagueStatus(startDate, expiryDate).label,
+        // Distinct clubs taking part, via the participating teams.
+        clubs: async ({ id }) => {
+            try {
+                const pts = await ParticipatingTeams.findAll({
+                    where: { id_league: id },
+                    include: [{ model: Team, as: "team", required: true, include: [{ model: Club, as: "club", required: true }] }],
+                });
+                const seen = new Set(); const out = [];
+                for (const pt of pts) { const c = pt.team?.club; if (c && !seen.has(c.id)) { seen.add(c.id); out.push(c); } }
+                return out;
+            } catch (error) { logger.error(""); return []; }
+        },
+        clubs_count: async ({ id }) => {
+            try {
+                const pts = await ParticipatingTeams.findAll({
+                    where: { id_league: id },
+                    include: [{ model: Team, as: "team", required: true, attributes: ["id_club"] }],
+                });
+                return new Set(pts.map((p) => p.team?.id_club).filter(Boolean)).size;
+            } catch (error) { logger.error(""); return 0; }
+        },
+        // The organizing body: the club that owns the league (else the creator).
+        organizer_name: async ({ id_club, id_user }) => {
+            try {
+                if (id_club) { const c = await Club.findByPk(id_club); if (c?.name) return c.name; }
+                if (id_user) {
+                    const u = await User.findByPk(id_user, { include: [{ model: Person, as: "person" }] });
+                    const p = u?.person;
+                    if (p) return [p.first_name, p.second_name, p.third_name].filter(Boolean).join(" ") || null;
+                }
+                return null;
+            } catch (error) { logger.error(""); return null; }
+        },
         participatingTeams: async ({id}, {}, context, info) =>  {
             
             try {

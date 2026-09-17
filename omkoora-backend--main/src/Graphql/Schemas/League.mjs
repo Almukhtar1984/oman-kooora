@@ -128,6 +128,13 @@ export const typeDefs = gql`
         club:           Club
         user:           User
 
+        # Computed for the mobile app (no stored columns).
+        status:         String   # upcoming | live | finished
+        status_label:   String   # قادمة | جارية | منتهية
+        clubs:          [Club]    # distinct participating clubs
+        clubs_count:    Int
+        organizer_name: String
+
         createdAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         updatedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         deletedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")

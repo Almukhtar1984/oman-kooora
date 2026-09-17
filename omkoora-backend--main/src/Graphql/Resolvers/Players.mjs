@@ -358,6 +358,22 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
+        // Lightweight counts for the mobile app (no migration — computed).
+        transfers_count: async ({ id }) => {
+            if (!id) return 0;
+            try { return await Transfer.count({ where: { id_player: id, transition_type: "transition" } }); }
+            catch (error) { logger.error(""); return 0; }
+        },
+        loans_count: async ({ id }) => {
+            if (!id) return 0;
+            try { return await Transfer.count({ where: { id_player: id, transition_type: "loan" } }); }
+            catch (error) { logger.error(""); return 0; }
+        },
+        competitions_count: async ({ id }) => {
+            if (!id) return 0;
+            try { return await ParticipatingPlayers.count({ where: { id_player: id } }); }
+            catch (error) { logger.error(""); return 0; }
+        },
         transfer: async ({id}, {}, context, info) =>  {
             if (!id) return [];
             try {

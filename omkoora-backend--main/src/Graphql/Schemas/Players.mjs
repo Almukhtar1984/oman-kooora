@@ -61,6 +61,11 @@ export const typeDefs = gql`
         latestLoan:     Transfer
         attachmentsPlayer: [AttachmentPlayer]
 
+        # Computed counts for the mobile app (no extra tables).
+        transfers_count:     Int
+        loans_count:         Int
+        competitions_count:  Int
+
         createdAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         updatedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         deletedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
