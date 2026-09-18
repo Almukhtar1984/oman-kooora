@@ -196,11 +196,14 @@ export const typeDefs = gql`
         type:               String
         
         manOfMatch:         String
-        
+
         matchState:     String
 
         code:               String
         note:               String
+
+        venue:              String   # اسم الملعب
+        minute:             String   # الدقيقة الحالية (للمباشر)
 
         firstTeam:      ParticipatingTeams
         secondTeam:     ParticipatingTeams
@@ -251,6 +254,9 @@ export const typeDefs = gql`
         manOfMatch:         String
 
         note:               String
+
+        venue:              String
+        minute:             String
 
         first_team:      ID
         second_team:     ID

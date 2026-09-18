@@ -23,6 +23,20 @@ export default (db, types) => {
             values: ["accepted", "rejected", "waiting"],
             defaultValue: "waiting"
         },
+        // Mobile app fields.
+        category: {
+            type: types.STRING(50),
+            allowNull: true
+        },
+        author_name: {
+            type: types.STRING(100),
+            allowNull: true
+        },
+        views_count: {
+            type: types.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        },
     },{
         timestamps: true,
         createdAt: true,

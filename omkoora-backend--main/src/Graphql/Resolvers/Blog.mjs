@@ -85,6 +85,42 @@ export const resolvers = {
     },
 
     Blog: {
+        // Arabic label for the mobile app's news category chip.
+        category_label: ({category}) => {
+            const labels = {
+                news: "أخبار",
+                competitions: "مسابقات",
+                players: "لاعبين",
+                clubs: "أندية",
+            };
+            return category ? (labels[category] || category) : null;
+        },
+        // Human-readable relative time ("منذ 3 ساعات") derived from createdAt.
+        time_ago: ({createdAt}) => {
+            if (!createdAt) return null;
+            const then = new Date(createdAt).getTime();
+            if (Number.isNaN(then)) return null;
+            let s = Math.floor((Date.now() - then) / 1000);
+            if (s < 0) s = 0;
+            const units = [
+                { limit: 60, div: 1, one: "منذ ثانية", two: "منذ ثانيتين", few: "منذ %d ثوانٍ", many: "منذ %d ثانية" },
+                { limit: 3600, div: 60, one: "منذ دقيقة", two: "منذ دقيقتين", few: "منذ %d دقائق", many: "منذ %d دقيقة" },
+                { limit: 86400, div: 3600, one: "منذ ساعة", two: "منذ ساعتين", few: "منذ %d ساعات", many: "منذ %d ساعة" },
+                { limit: 2592000, div: 86400, one: "منذ يوم", two: "منذ يومين", few: "منذ %d أيام", many: "منذ %d يوماً" },
+                { limit: 31536000, div: 2592000, one: "منذ شهر", two: "منذ شهرين", few: "منذ %d أشهر", many: "منذ %d شهراً" },
+                { limit: Infinity, div: 31536000, one: "منذ سنة", two: "منذ سنتين", few: "منذ %d سنوات", many: "منذ %d سنة" },
+            ];
+            for (const u of units) {
+                if (s < u.limit) {
+                    const n = Math.floor(s / u.div);
+                    if (n <= 1) return u.one;
+                    if (n === 2) return u.two;
+                    if (n >= 3 && n <= 10) return u.few.replace("%d", n);
+                    return u.many.replace("%d", n);
+                }
+            }
+            return null;
+        },
         club: async ({id_club}, {}, context, info) =>  {
             try {
                 return await Club.findByPk(id_club)
@@ -201,6 +237,21 @@ export const resolvers = {
                 }
             } catch (error) {
                 logger.error("")
+                throw new ApolloError(error)
+            }
+        },
+
+        // Mobile app: bump the view counter when a news article is opened.
+        incrementBlogViews: async (obj, {id}, context, info) =>  {
+            try {
+                const [affected] = await Blog.increment("views_count", { by: 1, where: { id } })
+                // Sequelize.increment returns [[rows, meta]]; treat any match as success.
+                const changed = Array.isArray(affected) ? (affected[1] ?? affected[0]) : affected
+                return {
+                    status: (typeof changed === "number" ? changed : 1) >= 0
+                }
+            } catch (error) {
+                logger.error(`incrementBlogViews: ${error?.message}`)
                 throw new ApolloError(error)
             }
         }

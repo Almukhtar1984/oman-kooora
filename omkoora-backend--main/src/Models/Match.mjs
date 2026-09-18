@@ -57,6 +57,15 @@ export default (db, types) => {
             type: types.TEXT,
             allowNull: true
         },
+        // Mobile app: match venue name and the current live minute.
+        venue: {
+            type: types.STRING(150),
+            allowNull: true
+        },
+        minute: {
+            type: types.STRING(10),
+            allowNull: true
+        },
     },{
         timestamps: true,
         createdAt: true,

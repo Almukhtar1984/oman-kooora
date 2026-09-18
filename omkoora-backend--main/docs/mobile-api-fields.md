@@ -81,7 +81,7 @@ query {
   }
 }
 ```
-> 🔜 `venue` (الملعب) و`minute` (الدقيقة المباشرة) و`subMinute`: تحتاج أعمدة جديدة — قيد التنفيذ في مرحلة لاحقة.
+> 🆕 `venue` (الملعب) و`minute` (الدقيقة المباشرة) أُضيفا كعمودين على المباراة (يحتاجان الـmigration أدناه). يُضبطان عبر `contentMatch`/تحديث المباراة ويُقرآن من `getMatch`/قوائم المباريات.
 > `manOfMatch` حاليًا نصّي (String) — يمكن ترقيته لنوع Player لاحقًا.
 
 ## 7) الإحصائيات العامة
@@ -124,11 +124,33 @@ query { globalSearch(query: "مسقط") {
 
 ---
 
-## قيد التنفيذ (مرحلة أخيرة — تحتاج تعديل قاعدة بيانات) 🔜
-- **الأخبار (Blog):** `category`, `category_label`, `author_name`, `views_count` (+ عدّاد مشاهدات). `time_ago` يُشتق من `createdAt`.
-- **المباريات:** `venue`, `minute`, `subMinute`، وترقية `manOfMatch`/`best_player` لنوع Player.
+## الأخبار (Blog) — أُضيفت 🆕 (تحتاج الـmigration أدناه)
+```graphql
+query { allBlogs {
+  id subject short_description description status
+  category         # news | competitions | players | clubs
+  category_label   # أخبار | مسابقات | لاعبين | أندية
+  author_name
+  views_count
+  time_ago         # منذ 3 ساعات / منذ يومين (يُشتق من createdAt)
+  club { id name } team { id name }
+} }
+# عند فتح الخبر في التطبيق:
+mutation { incrementBlogViews(id: "…") { status } }
+```
+> إدخال `category` و`author_name` متاح في `contentBlog` (إنشاء/تعديل الخبر).
+
+## تشغيل الـmigration المطلوب 🛠️
+الحقول الجديدة للأخبار والمباريات تحتاج أعمدة قاعدة بيانات. نفّذ مرّة واحدة على قاعدة الإنتاج:
+```
+deploy/sql/2026-09-18_blog_match_mobile_fields.sql
+```
+يضيف: `blogs.category`, `blogs.author_name`, `blogs.views_count`, `matches.venue`, `matches.minute`.
+
+## اختياري (مرحلة لاحقة) 🔜
+- **المباريات:** `subMinute`، وترقية `manOfMatch`/`best_player` لنوع Player.
 - **اختياري:** `MatchStats` (استحواذ/تسديدات…)، `Substitution`.
 
-> كل ما سبق هذا القسم **جاهز الآن** ويعمل. المتبقّي أعلاه يحتاج أعمدة جديدة + migration.
+> كل ما سبق هذا القسم **جاهز الآن** ويعمل بعد تنفيذ الـmigration.
 
 > ملاحظة تسمية: الحقول الجديدة أُنشئت بأسماء `snake_case` كما طُلبت (transfers_count, status_label, clubs_count …) لتتطابق مع أكواد التطبيق مباشرة.
