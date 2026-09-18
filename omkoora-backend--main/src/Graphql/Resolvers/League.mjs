@@ -1193,6 +1193,39 @@ export const resolvers = {
                 return new Set(pts.map((p) => p.team?.id_club).filter(Boolean)).size;
             } catch (error) { logger.error(""); return 0; }
         },
+        // Top scorer of the competition (mobile app). Counts scorer records
+        // across the league's matches; returns the player with the most goals.
+        best_player: async ({ id }) => {
+            try {
+                const matches = await Match.findAll({ where: { id_league: id }, attributes: ["id"] });
+                const matchIds = matches.map((m) => m.id);
+                if (!matchIds.length) return null;
+                const scorers = await ScorerMatch.findAll({
+                    where: { id_match: { [Op.in]: matchIds } },
+                    attributes: ["id_participating_player"],
+                });
+                const goals = new Map();
+                for (const s of scorers) {
+                    const ppid = s.id_participating_player;
+                    if (ppid) goals.set(ppid, (goals.get(ppid) || 0) + 1);
+                }
+                if (goals.size === 0) return null;
+                let topPP = null, topGoals = -1;
+                for (const [ppid, g] of goals) if (g > topGoals) { topGoals = g; topPP = ppid; }
+                const pp = await ParticipatingPlayers.findByPk(topPP, {
+                    include: [
+                        { model: Players, as: "player", include: [{ model: Person, as: "person" }] },
+                        { model: ParticipatingTeams, as: "participating_team", include: [{ model: Team, as: "team" }] },
+                    ],
+                });
+                if (!pp || !pp.player) return null;
+                return {
+                    player: pp.player,
+                    goals: topGoals,
+                    team_name: pp.participating_team?.team?.name || null,
+                };
+            } catch (error) { logger.error(`best_player: ${error?.message}`); return null; }
+        },
         // The organizing body: the club that owns the league (else the creator).
         organizer_name: async ({ id_club, id_user }) => {
             try {

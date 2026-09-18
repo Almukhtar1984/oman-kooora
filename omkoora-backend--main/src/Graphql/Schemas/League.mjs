@@ -134,10 +134,18 @@ export const typeDefs = gql`
         clubs:          [Club]    # distinct participating clubs
         clubs_count:    Int
         organizer_name: String
+        best_player:    LeagueBestPlayer  # أفضل هدّاف في البطولة
 
         createdAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         updatedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         deletedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
+    }
+
+    # Top scorer of a competition (computed, no stored column).
+    type LeagueBestPlayer {
+        player:     Player
+        goals:      Int
+        team_name:  String
     }
 
 

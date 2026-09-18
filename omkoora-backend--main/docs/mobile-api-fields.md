@@ -57,6 +57,10 @@ query {
     organizer_name  # 🆕 الجهة المنظمة (اسم النادي/المنشئ)
     clubs_count     # 🆕 عدد الأندية المشاركة
     clubs { id name logo }   # 🆕 قائمة الأندية المشاركة
+    best_player {   # 🆕 أفضل هدّاف في البطولة (يُحسب من أهداف المباريات)
+      goals team_name
+      player { id person { first_name second_name } }
+    }
     participatingTeams { id team { id name } }
     matchs { id firstTeamGoal secondTeamGoal }
   }
@@ -148,9 +152,21 @@ deploy/sql/2026-09-18_blog_match_mobile_fields.sql
 يضيف: `blogs.category`, `blogs.author_name`, `blogs.views_count`, `matches.venue`, `matches.minute`.
 
 ## اختياري (مرحلة لاحقة) 🔜
-- **المباريات:** `subMinute`، وترقية `manOfMatch`/`best_player` لنوع Player.
-- **اختياري:** `MatchStats` (استحواذ/تسديدات…)، `Substitution`.
+- **المباريات:** `subMinute`.
+- `manOfMatch` مخزَّن حاليًا كـ**اسم نصّي حرّ** (مثل "حسين أحمد") وليس مُعرِّف لاعب، لذا لم يُرقَّ لنوع Player (الربط بالاسم غير موثوق). لترقيته لاحقًا يلزم تخزين `id` اللاعب عند اختياره في تطبيق الفريق.
+- **اختياري:** `MatchStats` (استحواذ/تسديدات…)، `Substitution` — يحتاجان جدولين جديدين + واجهة إدخال؛ مؤجَّلان حتى تُطلب فعلاً (وإلا سيعودان فارغين دائمًا).
 
 > كل ما سبق هذا القسم **جاهز الآن** ويعمل بعد تنفيذ الـmigration.
+
+---
+
+## اختبار آلي للتأكّد أن الـAPI يُرجع بيانات 🧪
+سكربت يفحص وجود الحقول الجديدة في المخطّط ويؤكّد رجوع بيانات فعلية (بدون أخطاء):
+```
+/opt/homebrew/opt/node@20/bin/node scripts/mobile-api-smoke.mjs
+# أو ضد الإنتاج:
+API=https://api.omkooora.com/graphql node scripts/mobile-api-smoke.mjs
+```
+يغطّي: حقول Blog/Match/League/Player الجديدة، `incrementBlogViews`، إجماليات `FetchAllData.GeneralStat`، وتجميعات الموبايل والبحث العام. آخر تشغيل محلّي: **19/19 ✅**.
 
 > ملاحظة تسمية: الحقول الجديدة أُنشئت بأسماء `snake_case` كما طُلبت (transfers_count, status_label, clubs_count …) لتتطابق مع أكواد التطبيق مباشرة.
