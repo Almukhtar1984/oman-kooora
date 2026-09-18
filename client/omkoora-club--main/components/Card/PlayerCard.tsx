@@ -9,6 +9,7 @@ import { getImageUrl } from '../../lib/helpers/image';
 import { openPrint } from '../../lib/helpers/openPrint';
 import useStore from '../../store/useStore';
 import { TeamLine } from './MemberCard';
+import { ageInYears } from "../../lib/helpers/date";
 
 export interface PlayerData {
   id: string;
@@ -87,7 +88,7 @@ export function PlayerCard1({
   const person = data?.person;
   const fullName = getFullName(person);
   const avatarUrl = getAvatarUrl(person?.personal_picture);
-  const age = person?.date_birth ? dayjs().diff(dayjs(person.date_birth), 'year') : 'N/A';
+  const age = ageInYears(person?.date_birth) ?? 'N/A';
   const isSuspended = data?.status === 'suspended';
   const clubName = useStore((state: any) => state.userData?.person?.clubManagement?.club?.name) || '-';
   
@@ -352,7 +353,7 @@ export function PlayerStats1({ data }: PlayerCardProps) {
   const fullName = getFullName(person);
   const avatarUrl = getAvatarUrl(person?.personal_picture);
   const birthDate = person?.date_birth ? dayjs(person.date_birth).format('YYYY-MM-DD') : '-';
-  const age = person?.date_birth ? dayjs().diff(dayjs(person.date_birth), 'year') : '-';
+  const age = ageInYears(person?.date_birth) ?? '-';
   const joinDate = (data?.membership_date || data?.subscription_date || data?.createdAt) 
     ? dayjs(data?.membership_date || data?.subscription_date || data?.createdAt).format('YYYY-MM-DD') 
     : '-';

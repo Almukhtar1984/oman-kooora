@@ -9,7 +9,7 @@ import {DateInput, DatePicker} from "@mantine/dates";
 import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
 import {Dropzone, IMAGE_MIME_TYPE} from "@mantine/dropzone";
-import {dateDiff } from "date-differencer";
+import {ageInYears, parseDate} from "../../lib/helpers/date";
 import {Notyf} from "notyf";
 
 type Props = {
@@ -81,7 +81,7 @@ export const AddPlayersModal = (props: Props) => {
                 }
             });
             setCardNumberConfirmation(person?.card_number || "");
-            setAge(person?.date_birth ? new Date(person?.date_birth) : null);
+            setAge(parseDate(person?.date_birth));
         } else if (props.opened) {
             form.reset();
             setCardNumberConfirmation("");
@@ -92,6 +92,10 @@ export const AddPlayersModal = (props: Props) => {
     const [createPlayer] = useAddPlayer();
     const [load, setLoade] = useState(false);
 
+    // null (unknown) when the date can't be read — never throws during render.
+    const playerAge = ageInYears(age);
+    const isMinor = playerAge !== null && playerAge < 18;
+
     const onSubmit = (data: any) => {
         setLoade(true)
         const {classes, activity, player_center, job,type, person } = data
@@ -99,6 +103,11 @@ export const AddPlayersModal = (props: Props) => {
         console.log("form.values.person.card_number",form.values.person.card_number)
         if (form.values.person.card_number !== cardNumberConfirmation) {
             notyf?.error("الرقم المدني غير مطابق");
+            setLoade(false);
+            return;
+        }
+        if (!parseDate(age)) {
+            notyf?.error("تاريخ الميلاد مطلوب");
             setLoade(false);
             return;
         }
@@ -385,7 +394,7 @@ export const AddPlayersModal = (props: Props) => {
                             </Dropzone>
                         </Col>
 
-                        {age && dateDiff(age, new Date())?.years < 18 ?
+                        {isMinor ?
                             <Col span={12} >
                                 <Text size={"sm"} mb={10} >استمارة موافقة ولي الامر (PDF)</Text>
                                 <Dropzone

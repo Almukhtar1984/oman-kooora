@@ -11,6 +11,7 @@ import {Dropzone, IMAGE_MIME_TYPE} from "@mantine/dropzone";
 import {searchSortedData} from "../../lib/helpers/sort";
 import dayjs from "dayjs";
 import { Notyf } from "notyf";
+import { parseDate } from "../../lib/helpers/date";
 
 type Props = {
     data: any;
@@ -38,7 +39,7 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                 third_name:     data.third_name,
                 tribe:          data.tribe,
 
-                date_birth:     new Date(data?.date_birth),
+                date_birth:     parseDate(data?.date_birth),
                 card_number:    data.card_number,
                 phone:          data.phone,
                 type:           data.type,

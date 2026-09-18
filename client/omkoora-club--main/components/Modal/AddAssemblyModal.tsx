@@ -9,6 +9,7 @@ import useStore from "../../store/useStore";
 import {DateInput} from "@mantine/dates";
 import {Dropzone, IMAGE_MIME_TYPE} from "@mantine/dropzone";
 import {Notyf} from "notyf";
+import { parseDate } from "../../lib/helpers/date";
 
 type Props = {
     setSelectedData?: (id: string) => void;
@@ -70,7 +71,7 @@ export const AddAssemblyModal = (props: Props) => {
                     third_name:     person?.third_name || "",
                     tribe:          person?.tribe || "",
 
-                    date_birth:     person?.date_birth ? new Date(person.date_birth) : null,
+                    date_birth:     parseDate(person?.date_birth),
                     card_number:    person?.card_number || "",
                     phone:          person?.phone || "",
                     type:           "",

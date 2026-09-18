@@ -10,6 +10,7 @@ import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
 import { Dropzone, IMAGE_MIME_TYPE } from "@mantine/dropzone";
 import { Notyf } from "notyf";
+import { parseDate } from "../../lib/helpers/date";
 
 type Props = {
     id: string;
@@ -28,14 +29,20 @@ const init = {
         tribe: "",
         phone: "",
         card_number: "",
-        date_birth: new Date(),
+        date_birth: null as Date | null,
     }
 }
 
 export const UpdatePlayerModal = ({id, opened, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
     const form = useForm({
-        initialValues: init
+        initialValues: init,
+        // An unreadable stored date must not be saved back as "Invalid Date".
+        validate: {
+            person: {
+                date_birth: (value) => (parseDate(value) ? null : "تاريخ الميلاد مطلوب"),
+            },
+        },
     });
     const openRef = useRef<() => void>(null);
     const openRefBack = useRef<() => void>(null);
@@ -69,7 +76,7 @@ export const UpdatePlayerModal = ({id, opened, ...props}: Props) => {
                     third_name: dataPlayer?.player?.person?.third_name,
                     tribe: dataPlayer?.player?.person?.tribe,
                     card_number: dataPlayer?.player?.person?.card_number,
-                    date_birth: new Date(dataPlayer?.player?.person?.date_birth),
+                    date_birth: parseDate(dataPlayer?.player?.person?.date_birth),
                     phone: dataPlayer?.player?.person?.phone
                 }
             })

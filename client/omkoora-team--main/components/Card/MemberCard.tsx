@@ -10,6 +10,7 @@ import { useTheme } from '@emotion/react';
 import { getImageUrl } from '../../lib/helpers/image';
 import { openPrint } from '../../lib/helpers/openPrint';
 import useStore from '../../store/useStore';
+import { ageInYears } from "../../lib/helpers/date";
 
 interface MemberCardProps {
     data: any;
@@ -113,7 +114,7 @@ export const MemberCard = ({
 
     const fullName = `${person?.first_name || ''} ${person?.second_name || ''} ${person?.third_name || ''} ${person?.tribe || ''}`.trim();
     const avatarUrl = person?.personal_picture ? getImageUrl(person.personal_picture) : '/unknow player.png';
-    const age = person?.date_birth ? dayjs().diff(dayjs(person.date_birth), 'year') : 'N/A';
+    const age = ageInYears(person?.date_birth) ?? 'N/A';
     
     const status = (type === 'transfer' || type === 'loan') ? data?.status || data?.lastTransfer?.status || data?.lastLoan?.status : data?.status;
     const isSuspended = status === 'suspended';

@@ -10,6 +10,7 @@ import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
 import {Dropzone} from "@mantine/dropzone";
 import {Notyf} from "notyf";
+import { parseDate } from "../../lib/helpers/date";
 
 type Props = {
     id: string;
@@ -69,7 +70,7 @@ export const UpdateTechnicalModal = ({id, opened, ...props}: Props) => {
                     third_name: tech?.person?.third_name || "",
                     tribe: tech?.person?.tribe || "",
                     card_number: tech?.person?.card_number || "",
-                    date_birth: tech?.person?.date_birth ? new Date(tech.person.date_birth) : null,
+                    date_birth: parseDate(tech?.person?.date_birth),
                     phone: tech?.person?.phone || ""
                 }
             })

@@ -5,6 +5,7 @@ import Head from "next/head";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
+import {ageInYears} from "../lib/helpers/date";
 import {IconDatabaseOff} from "@tabler/icons-react";
 import {AllPlayers, useAllPlayers, useAllTeams, useChangeStatusPlayersBulk} from "../graphql";
 import useStore from "../store/useStore";
@@ -31,7 +32,6 @@ import {
 } from "../components/Modal";
 import {useDisclosure} from "@mantine/hooks";
 import {DrawerTransfer} from "../components/Drawer";
-import dayjs from "dayjs";
 
 export default function Players() {
     const userData = useStore((state: any) => state.userData);
@@ -146,9 +146,9 @@ export default function Players() {
         if (ageCheck !== "" && age2Check !== "") {
             filtered = filtered.filter((item: any) => {
                 if (age2Check == ">") {
-                    return dayjs().diff(dayjs(item?.person?.date_birth), 'year') >= parseInt(ageCheck)
+                    return (ageInYears(item?.person?.date_birth) ?? -1) >= parseInt(ageCheck)
                 } else {
-                    return dayjs().diff(dayjs(item?.person?.date_birth), 'year') <= parseInt(ageCheck)
+                    return (ageInYears(item?.person?.date_birth) ?? Infinity) <= parseInt(ageCheck)
                 }
             })
         }

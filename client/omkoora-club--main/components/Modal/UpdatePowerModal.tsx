@@ -9,6 +9,7 @@ import {DateInput, DatePicker} from "@mantine/dates";
 import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
 import { Notyf } from "notyf";
+import { parseDate } from "../../lib/helpers/date";
 
 type Props = {
     id: string;
@@ -24,7 +25,7 @@ const init = {
         tribe: "",
         phone: "",
         card_number: "",
-        date_birth: new Date(),
+        date_birth: null as Date | null,
     },
     user: {
         email: "",
@@ -81,7 +82,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                     third_name: clubManagement?.person?.third_name,
                     tribe: clubManagement?.person?.tribe,
                     card_number: clubManagement?.person?.card_number,
-                    date_birth: new Date(clubManagement?.person?.date_birth) || null,
+                    date_birth: parseDate(clubManagement?.person?.date_birth),
                     phone: clubManagement?.person?.phone
                 },
                 user: {

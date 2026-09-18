@@ -10,6 +10,7 @@ import {DateInput, DatePicker} from "@mantine/dates";
 import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
 import {Notyf} from "notyf";
+import { parseDate } from "../../lib/helpers/date";
 
 type Props = {
     data?: any;
@@ -67,7 +68,7 @@ export const AddTechnicalModal = (props: Props) => {
                     tribe: person?.tribe || "",
                     phone: person?.phone || "",
                     card_number: person?.card_number || "",
-                    date_birth: person?.date_birth ? new Date(person?.date_birth) : null
+                    date_birth: parseDate(person?.date_birth)
                 }
             });
         } else if (props.opened) {
