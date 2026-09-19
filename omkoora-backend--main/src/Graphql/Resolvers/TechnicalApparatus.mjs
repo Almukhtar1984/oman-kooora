@@ -211,6 +211,28 @@ export const resolvers = {
             }
         },
 
+        // Bulk-assign the same classification (الصفة/الدور) to many rows.
+        changeClassificationTechnicalApparatusBulk: async (obj, {ids, classification}, context, info) =>  {
+            try {
+                if (!ids || ids.length === 0) {
+                    return { success: 0, total: 0 }
+                }
+                if (!classification || !classification.trim()) {
+                    throw new ApolloError("التصنيف مطلوب")
+                }
+
+                const [affected] = await TechnicalApparatus.update(
+                    { classification: classification.trim() },
+                    { where: { id: { [Op.in]: ids } } }
+                )
+
+                return { success: affected, total: ids.length }
+            } catch (error) {
+                logger.error(`changeClassificationTechnicalApparatusBulk error: ${error.message}`)
+                throw new ApolloError(error)
+            }
+        },
+
         deleteTechnicalApparatus: async (obj, {id}, context, info) =>  {
             try {
                 const technicalApparatus = await TechnicalApparatus.findByPk(id)

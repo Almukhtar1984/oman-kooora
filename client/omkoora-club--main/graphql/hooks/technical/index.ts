@@ -1,6 +1,7 @@
 export * from "./useAddTechnical";
 export * from "./useChangeStatusTechnicalApparatus";
 export * from "./useChangeStatusTechnicalApparatusBulk";
+export * from "./useChangeClassificationTechnicalApparatusBulk";
 export * from "./useDeleteTechnical";
 export * from "./useAllTechnicals";
 export * from "./useTechnical";

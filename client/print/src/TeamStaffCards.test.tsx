@@ -49,7 +49,10 @@ import { AllParticipatingTechnicalStaff } from "./graphql";
 
 const TEAM_ID = "PT1";
 
-const staffRow = (id: string, firstName: string, occupation: string) => ({
+// The 3rd arg is the technical ROLE (classification) — that is what a staff
+// card shows as "الصفة". occupation is the person's generic job and must NOT
+// appear on the card.
+const staffRow = (id: string, firstName: string, role: string) => ({
     id,
     participating_team: {
         id: TEAM_ID,
@@ -59,8 +62,8 @@ const staffRow = (id: string, firstName: string, occupation: string) => ({
     },
     technicalApparatus: {
         id: `ta-${id}`,
-        occupation,
-        classification: "أ",
+        occupation: "موظف",
+        classification: role,
         person: {
             id: `person-${id}`,
             personal_picture: null,
@@ -105,10 +108,12 @@ describe("<TeamStaffCards />", () => {
             expect(screen.getByTestId("league-cards-pdfviewer")).toBeInTheDocument();
         });
 
-        // Occupation values render on the cards via the new "الصفة" row.
+        // The technical role (classification) renders on the cards as "الصفة".
         expect(screen.getAllByText("الصفة").length).toBe(2);
         expect(screen.getByText("مدرب")).toBeInTheDocument();
         expect(screen.getByText("مدرب حراس")).toBeInTheDocument();
+        // The generic job (occupation) must NOT appear on the card.
+        expect(screen.queryByText("موظف")).not.toBeInTheDocument();
         // League name is the card header, names compose without 'undefined'.
         expect(screen.getAllByText("دوري تجريبي").length).toBeGreaterThan(0);
         expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();

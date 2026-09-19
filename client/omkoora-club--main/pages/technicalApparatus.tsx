@@ -6,12 +6,12 @@ import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
 import {openPrint} from "../lib/helpers/openPrint";
-import {AllTechnicals, useAllTeams, useAllTechnicals, useChangeStatusTechnicalApparatusBulk} from "../graphql";
+import {AllTechnicals, useAllTeams, useAllTechnicals, useChangeStatusTechnicalApparatusBulk, useChangeClassificationTechnicalApparatusBulk} from "../graphql";
 import useStore from "../store/useStore";
 import {TechnicalsTable} from "../components/Tables";
 import {ChangeStatusTechnicalsModal, DeleteTechnicalModal, UpdateTechnicalModal, ChangeClassificationModal, AddAttachmentTechnicalModal, ShowAttachmentsTechnical} from "../components/Modal";
 import { Select } from "@mantine/core";
-import {BulkActionToolbar, BulkStatusConfirmModal} from "../components/BulkSelection";
+import {BulkActionToolbar, BulkStatusConfirmModal, BulkClassificationModal} from "../components/BulkSelection";
 import {Notyf} from "notyf";
 
 export default function TechnicalApparatus() {
@@ -42,10 +42,12 @@ export default function TechnicalApparatus() {
     const [getAllTechnicals, { loading, error, data: dataAllTechnicals }] = useAllTechnicals();
     const [getAllTeam, { data: dataAllTeams }] = useAllTeams();
     const [changeStatusBulk, { loading: bulkLoading }] = useChangeStatusTechnicalApparatusBulk();
+    const [changeClassificationBulk, { loading: bulkClassificationLoading }] = useChangeClassificationTechnicalApparatusBulk();
 
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [pageIds, setPageIds] = useState<string[]>([]);
     const [bulkAction, setBulkAction] = useState<null | "accepted" | "rejected">(null);
+    const [openBulkClassification, setOpenBulkClassification] = useState<boolean>(false);
 
     const handleToggleSelect = React.useCallback((id: string) => {
         setSelectedIds((prev) =>
@@ -89,6 +91,26 @@ export default function TechnicalApparatus() {
             .catch((e) => {
                 console.log(e);
                 notyf.error("حدث خطأ أثناء التحديث الجماعي");
+            });
+    };
+
+    const handleConfirmBulkClassification = (classification: string) => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!classification || selectedIds.length === 0) return;
+        changeClassificationBulk({
+            variables: { ids: selectedIds, classification },
+            refetchQueries: [AllTechnicals],
+            awaitRefetchQueries: true,
+        })
+            .then((res) => {
+                const r = res?.data?.changeClassificationTechnicalApparatusBulk;
+                notyf.success(`تم تحديث صفة ${r?.success ?? 0} من أصل ${r?.total ?? selectedIds.length}`);
+                setSelectedIds([]);
+                setOpenBulkClassification(false);
+            })
+            .catch((e) => {
+                console.log(e);
+                notyf.error("حدث خطأ أثناء تعديل الصفة الجماعي");
             });
     };
 
@@ -274,8 +296,9 @@ export default function TechnicalApparatus() {
                     onAcceptSelected={() => setBulkAction("accepted")}
                     onRejectSelected={() => setBulkAction("rejected")}
                     onClearSelection={handleClearSelection}
-                    loading={bulkLoading}
+                    loading={bulkLoading || bulkClassificationLoading}
                     canChangeStatus={hasPermission("5")}
+                    onEditClassificationSelected={hasPermission("5") ? () => setOpenBulkClassification(true) : undefined}
                 />
 
                 <TechnicalsTable
@@ -325,6 +348,14 @@ export default function TechnicalApparatus() {
                 status={bulkAction || "accepted"}
                 loading={bulkLoading}
                 onConfirm={handleConfirmBulk}
+            />
+
+            <BulkClassificationModal
+                opened={openBulkClassification}
+                onClose={() => setOpenBulkClassification(false)}
+                count={selectedIds.length}
+                loading={bulkClassificationLoading}
+                onConfirm={handleConfirmBulkClassification}
             />
         </Box>
     );

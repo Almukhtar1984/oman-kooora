@@ -1,4 +1,5 @@
 import {Box, Button, Col, FileInput, Grid, Group, Loader, Overlay, Select, Stack, Switch, Text,} from "@mantine/core";
+import { TECHNICAL_CLASSIFICATIONS } from "../../constants/technicalClassifications";
 import {Calendar, Check, ChevronDown, X} from "tabler-icons-react";
 import { Dropzone } from '@mantine/dropzone';
 import React, {useRef, useState} from "react";
@@ -237,7 +238,7 @@ export const AddTechnicalModal = (props: Props) => {
                                 rightSection={<ChevronDown size={14} />}
                                 rightSectionWidth={30}
                                 styles={{ rightSection: { pointerEvents: 'none' } }}
-                                data={['مدرب', 'مساعد مدرب', 'مدير الفريق', 'مدرب اللياقة',"مسؤول مهمات","مدرب حراس","طبي", "اعلامي"]}
+                                data={TECHNICAL_CLASSIFICATIONS}
                                 {...form.getInputProps("classification")}
                             />
                         </Col>

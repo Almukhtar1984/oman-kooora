@@ -110,7 +110,7 @@ const ListTechnicals = ({ players }: Props) => {
                             <View key={player?.id || index} style={{display: "flex", flexDirection: "row", width: "100%", alignItems: "center", justifyContent: "space-between", padding: "0.2cm 0.2cm 0"}}>
                                 <View style={{flex: 0.7, border: "1px solid #555", height: "1cm", display: "flex", alignItems: "center", justifyContent: "center"}}>
                                     <Text style={{fontSize: 9, fontWeight: 400}}>
-                                        {player?.occupation}
+                                        {player?.classification || player?.occupation}
                                     </Text>
                                 </View>
                                 <View style={{flex: 1, border: "1px solid #555", height: "1cm", display: "flex", alignItems: "center", justifyContent: "center"}}>

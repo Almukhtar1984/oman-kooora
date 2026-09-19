@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Button, Checkbox, Group, Text, Tooltip } from "@mantine/core";
-import { Check, X, ListCheck } from "tabler-icons-react";
+import { Check, X, ListCheck, Edit } from "tabler-icons-react";
 
 interface Props {
     totalOnPage:        number;
@@ -14,6 +14,8 @@ interface Props {
     onClearSelection:   () => void;
     loading?:           boolean;
     canChangeStatus:    boolean;
+    // Optional: when provided, shows a "تعديل الصفة (جماعي)" button (technical staff only).
+    onEditClassificationSelected?: () => void;
 }
 
 export const BulkActionToolbar = ({
@@ -28,6 +30,7 @@ export const BulkActionToolbar = ({
     onClearSelection,
     loading,
     canChangeStatus,
+    onEditClassificationSelected,
 }: Props) => {
     if (!canChangeStatus) return null;
 
@@ -94,6 +97,18 @@ export const BulkActionToolbar = ({
                             disabled={loading}
                         >
                             إلغاء التحديد
+                        </Button>
+                    )}
+                    {onEditClassificationSelected && (
+                        <Button
+                            size="xs"
+                            color="blue"
+                            variant="light"
+                            leftIcon={<Edit size={16} />}
+                            onClick={onEditClassificationSelected}
+                            disabled={!hasSelection || loading}
+                        >
+                            تعديل الصفة {hasSelection ? `(${selectedCount})` : ""}
                         </Button>
                     )}
                     <Button

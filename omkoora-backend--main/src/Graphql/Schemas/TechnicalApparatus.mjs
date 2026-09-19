@@ -17,6 +17,9 @@ export const typeDefs = gql`
 
         changeStatusTechnicalApparatusBulk (ids: [ID!]!, status: String!, note: String): bulkStatusResult @auth(requires: user)
 
+        # Assign one classification (الصفة/الدور) to many technical-staff rows at once.
+        changeClassificationTechnicalApparatusBulk (ids: [ID!]!, classification: String!): bulkStatusResult @auth(requires: user)
+
         deleteTechnicalApparatus ( id: ID! ): statusDelete @auth(requires: user)
 
         addAttachmentTechnical (idTechnical: ID!, attachments: [Upload!]): [AttachmentTechnical] @auth(requires: user)
