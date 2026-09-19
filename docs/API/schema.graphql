@@ -65,17 +65,65 @@ type statusDelete {
   message: String
 }
 
+# ===================== typeCommittee =====================
+extend type Query {
+  allCommittees(idClub: ID): [Committee!] @auth(requires: user)
+  committee(id: ID!): Committee @auth(requires: user)
+}
+
+extend type Mutation {
+  createCommittee(idClub: ID, name: String!): Committee! @auth(requires: user)
+  updateCommittee(id: ID!, name: String!): statusUpdate @auth(requires: user)
+  deleteCommittee(id: ID!): statusDelete @auth(requires: user)
+  createCommitteeMember(idCommittee: ID!, name: String!, phone: String): CommitteeMember! @auth(requires: user)
+  updateCommitteeMember(id: ID!, name: String, phone: String, idCommittee: ID): statusUpdate @auth(requires: user)
+  deleteCommitteeMember(id: ID!): statusDelete @auth(requires: user)
+}
+
+type Committee {
+  id: ID
+  name: String
+  membersCount: Int
+  members: [CommitteeMember]
+  club: Club
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type CommitteeMember {
+  id: ID
+  name: String
+  phone: String
+  committee: Committee
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
 # ===================== Assembly =====================
 extend type Query {
   assembly(id: ID): Assembly
   allAssemblyClub(idClub: ID): [Assembly!]
-  allAssemblyTeam(idTeam: ID): [Assembly!]
+  allAssemblyTeam(idTeam: ID, withClubMembers: Boolean): [Assembly!]
 }
 
 extend type Mutation {
   createAssembly(content: contentAssembly!): Assembly! @auth(requires: user)
   updateAssembly(id: ID!, content: contentAssembly!): statusUpdate @auth(requires: user)
   deleteAssembly(id: ID!): statusDelete @auth(requires: user)
+  addClubPeopleToAssembly(idClub: ID!): AddAssemblyBulkResult @auth(requires: user)
+}
+
+type AssemblyAffiliation {
+  role: String
+  status: String
+  position: String
+  team: Team
+}
+
+type AddAssemblyBulkResult {
+  added: Int
+  skipped: Int
+  total: Int
 }
 
 type Assembly {
@@ -87,10 +135,12 @@ type Assembly {
   tribe: String
   date_birth: Date @date(format: "yyyy-MM-dd")
   card_number: String
+  membership_number: String
   phone: String
   type: String
   club: Club
   team: Team
+  affiliations: [AssemblyAffiliation!]
   nationalID: String
   nationalIDBack: String
   membership_date: Date @date(format: "yyyy-MM-dd")
@@ -110,6 +160,7 @@ input contentAssembly {
   tribe: String
   date_birth: String
   card_number: String
+  membership_number: String
   phone: String
   type: String
   nationalID: Upload
@@ -135,6 +186,7 @@ extend type Mutation {
   createBlog(content: contentBlog!): Blog! @auth(requires: user)
   updateBlog(id: ID!, content: contentBlog!): statusUpdate @auth(requires: user)
   deleteBlog(id: ID!): statusDelete @auth(requires: user)
+  incrementBlogViews(id: ID!): statusUpdate
 }
 
 type Blog {
@@ -144,6 +196,11 @@ type Blog {
   description: String
   attachment: [AttachmentBlog]
   status: String
+  category: String
+  category_label: String
+  author_name: String
+  views_count: Int
+  time_ago: String
   club: Club
   team: Team
   createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
@@ -165,6 +222,8 @@ input contentBlog {
   description: String
   attachment: [Upload]
   status: String
+  category: String
+  author_name: String
   id_club: ID
   id_team: ID
 }
@@ -180,6 +239,7 @@ extend type Mutation {
   updateClub(id: ID!, content: contentClub!): statusUpdate @auth(requires: user)
   deleteClub(id: ID!): statusDelete @auth(requires: user)
   uploadPlayersSheet(teamId: ID!, file: Upload!): UploadPlayersSheetResult!
+  uploadAssemblySheet(idClub: ID!, file: Upload!): UploadAssemblySheetResult! @auth(requires: user)
 }
 
 type Club {
@@ -190,10 +250,23 @@ type Club {
   phone: String
   account_status: Boolean
   teams: [Team]
+  founded_year: String
+  president_name: String
+  head_coach_name: String
+  affiliated_team_label: String
+  star_players: [StarPlayer]
   admin: User
   createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type StarPlayer {
+  id: ID
+  name: String
+  position_label: String
+  number: String
+  goals: Int
 }
 
 input contentClub {
@@ -202,11 +275,24 @@ input contentClub {
   logo: Upload
   phone: String
   account_status: Boolean
+  founded_year: String
 }
 
 type UploadPlayersSheetResult {
   numberOfPersonCreated: Int!
   numberOfPersonRefused: Int!
+  created: Int
+  duplicates: Int
+  failed: Int
+  total: Int
+}
+
+type UploadAssemblySheetResult {
+  created: Int!
+  skipped: Int!
+  duplicates: Int!
+  totalRows: Int!
+  message: String
 }
 
 # ===================== ClubManagement =====================
@@ -445,9 +531,21 @@ type League {
   matchs: [Match]
   club: Club
   user: User
+  status: String
+  status_label: String
+  clubs: [Club]
+  clubs_count: Int
+  organizer_name: String
+  best_player: LeagueBestPlayer
   createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type LeagueBestPlayer {
+  player: Player
+  goals: Int
+  team_name: String
 }
 
 input contentLeague {
@@ -502,6 +600,8 @@ type Match {
   matchState: String
   code: String
   note: String
+  venue: String
+  minute: String
   firstTeam: ParticipatingTeams
   secondTeam: ParticipatingTeams
   firstTeamScorersMatch: [ScorerMatch]
@@ -545,6 +645,8 @@ input contentMatch {
   type: String
   manOfMatch: String
   note: String
+  venue: String
+  minute: String
   first_team: ID
   second_team: ID
   id_league: ID
@@ -1060,6 +1162,7 @@ type Player {
   id: ID
   activity: String
   player_center: String
+  number: String
   job: String
   nationalID: String
   nationalIDBack: String
@@ -1074,7 +1177,11 @@ type Player {
   transfer: [Transfer]
   lastTransfer: Transfer
   lastLoan: Transfer
+  latestLoan: Transfer
   attachmentsPlayer: [AttachmentPlayer]
+  transfers_count: Int
+  loans_count: Int
+  competitions_count: Int
   createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
@@ -1083,6 +1190,7 @@ type Player {
 input contentPlayer {
   activity: String
   player_center: String
+  number: String
   job: String
   nationalID: Upload
   nationalIDBack: Upload
@@ -1163,7 +1271,7 @@ extend type Query {
   allStadiums: [Stadium!]
   allReservations(idStadium: ID): [Reservations]
   reservationsByTeam(idTeam: ID!): [Reservations!]
-  availableTimeSlots(idStadium: ID!, booking_date: String!): [String!]
+  availableTimeSlots(idStadium: ID!, booking_date: String!): [TimeSlot!]
 }
 
 extend type Mutation {
@@ -1173,6 +1281,14 @@ extend type Mutation {
   createReservations(content: contentReservations!): Reservations!
   updateReservationStatus(id: ID!, status: String!): statusUpdate @auth(requires: user)
   deleteReservation(id: ID!): statusDelete @auth(requires: user)
+}
+
+type TimeSlot {
+  label: String
+  start_time: String
+  end_time: String
+  is_available: Boolean
+  price: Float
 }
 
 type Stadium {
@@ -1189,6 +1305,9 @@ type Stadium {
   sport: String
   end_time: String
   start_time: String
+  badge_label: String
+  features_label: String
+  min_booking_minutes: Int
   createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
@@ -1205,23 +1324,30 @@ input contentStadium {
   mohafada: String
   wiliya: String
   images: [Upload]
+  badge_label: String
+  features_label: String
+  min_booking_minutes: Int
   id_team: ID
 }
 
 type Reservations {
   id: ID
+  full_name: String
   phone: String
   booking_date: Date
   booking_start: String
   booking_end: String
   stadium: Stadium
   status: String
+  duration_minutes: Int
+  total_price: Float
   createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
 }
 
 input contentReservations {
+  full_name: String
   phone: String
   booking_date: String
   booking_start: String
@@ -1320,6 +1446,7 @@ extend type Mutation {
   updateTechnicalApparatus(id: ID!, idPerson: ID!, content: contentTechnicalApparatus!): statusUpdate @auth(requires: user)
   changeStatusTechnicalApparatus(id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
   changeStatusTechnicalApparatusBulk(ids: [ID!]!, status: String!, note: String): bulkStatusResult @auth(requires: user)
+  changeClassificationTechnicalApparatusBulk(ids: [ID!]!, classification: String!): bulkStatusResult @auth(requires: user)
   deleteTechnicalApparatus(id: ID!): statusDelete @auth(requires: user)
   addAttachmentTechnical(idTechnical: ID!, attachments: [Upload!]): [AttachmentTechnical] @auth(requires: user)
   deleteAttachmentTechnical(id: ID!): statusDelete @auth(requires: user)
@@ -1410,6 +1537,7 @@ extend type Query {
   user(id: ID): User @auth(requires: user)
   allUser: [User!] @auth(requires: user)
   person(cardNumber: String): Person @auth(requires: user)
+  searchPersons(query: String!): [Person!] @auth(requires: user)
   personExternal(cardNumber: String, phone: String): Person
   currentUser: User! @auth(requires: user)
   refreshToken: AuthUser
@@ -1428,6 +1556,7 @@ extend type Mutation {
   resendVerificationEmail(email: String): statusUpdate!
   forgetPassword(email: String): statusUpdate!
   changePassword(content: contentChangePassword): statusUpdate!
+  updatePassword(oldPassword: String!, newPassword: String!): statusUpdate! @auth(requires: user)
   activeUser(id: ID!, activation: Boolean): statusUpdate! @auth(requires: user)
   logOut: statusDelete
   resetTeamPassword(idTeam: ID!): ResetTeamPasswordPayload!
@@ -1540,6 +1669,87 @@ type Home {
   League: [League]
 }
 
+# ===================== typeMemberPayment =====================
+extend type Query {
+  memberAccountsTeam(idTeam: ID): [MemberAccount!] @auth(requires: user)
+  playerAccountsTeam(idTeam: ID): [PlayerAccount!] @auth(requires: user)
+  playerPayments(idPlayer: ID): PlayerAccount @auth(requires: user)
+}
+
+extend type Mutation {
+  createMemberPayment(content: contentMemberPayment!): MemberPayment! @auth(requires: user)
+  deleteMemberPayment(id: ID!): statusDelete @auth(requires: user)
+}
+
+type MemberPayment {
+  id: ID
+  amount: Float
+  note: String
+  payment_date: String
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type MemberAccount {
+  member: Member
+  totalPaid: Float
+  payments: [MemberPayment!]
+}
+
+type PlayerAccount {
+  player: Player
+  totalPaid: Float
+  payments: [MemberPayment!]
+}
+
+input contentMemberPayment {
+  amount: Float!
+  note: String
+  payment_date: String
+  id_member: ID
+  id_player: ID
+  id_team: ID!
+}
+
+# ===================== typeMobileStats =====================
+extend type Query {
+  statsTeamsWithPlayerCount: [TeamWithCount!]
+  statsPlayersByAgeCategory: [PlayersByAge!]
+  statsTransfersByTeam: [TeamTransfersStats!]
+  allTechnicalStaff: [TechnicalApparatus!]
+  allBoardMembers: [ClubManagement!]
+  allEventsGlobal(idTeam: ID): [Event!]
+  allBookings: [Reservations!]
+  globalSearch(query: String!): GlobalSearchResult
+}
+
+type TeamWithCount {
+  team: Team
+  clubName: String
+  playersCount: Int
+}
+
+type PlayersByAge {
+  ageCategory: String
+  ageLabel: String
+  playersCount: Int
+  clubsCount: Int
+  teamsCount: Int
+}
+
+type TeamTransfersStats {
+  team: Team
+  clubName: String
+  transfersCount: Int
+  loansCount: Int
+}
+
+type GlobalSearchResult {
+  clubs: [Club]
+  teams: [Team]
+  players: [Player]
+  competitions: [League]
+}
+
 # ===================== typeNotification =====================
 extend type Query {
   allNotificationClub(idClub: ID!): [Notification] @auth(requires: user)
@@ -1557,6 +1767,54 @@ type Notification {
   createdAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
   updatedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
   deletedAt: Date @date(format: "dd/MM/yyyy HH:mm:ss")
+}
+
+# ===================== typePortal =====================
+extend type Query {
+  portalMe: PortalMe
+  portalPayments: PortalAccount
+}
+
+extend type Mutation {
+  authenticatePortalPerson(phone: String!, card_number: String!): PortalAuth!
+}
+
+type PortalAuth {
+  token: String!
+  person: Person!
+}
+
+type PortalMe {
+  person: Person!
+  memberships: [PortalMembership!]!
+  assemblies: [Assembly!]!
+}
+
+type PortalMembership {
+  kind: String!
+  id: ID
+  status: String
+  class: String
+  occupation: String
+  classification: String
+  membership_date: String
+  team: Team
+  club: Club
+}
+
+type PortalAccount {
+  totalPaid: Float!
+  payments: [PortalPayment!]!
+}
+
+type PortalPayment {
+  id: ID
+  amount: Float
+  note: String
+  payment_date: String
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  team: Team
+  paid_as: String
 }
 
 # ===================== typeSanction =====================
@@ -1598,6 +1856,68 @@ extend type Query {
   StateFilter: Filters
   SearchData(filters: FiltersInput): SearchResult
   FetchAllData: SearchResult
+  platformStatistics: PlatformStatistics @auth(requires: user)
+  clubStatistics(idClub: ID): ClubStatistics @auth(requires: user)
+}
+
+type ClubStatistics {
+  club: String
+  governorate: String
+  teams: Int
+  players: Int
+  members: Int
+  technicals: Int
+  boardManagement: Int
+  assembly: Int
+  stadiums: Int
+  leagues: Int
+  loans: Int
+  transfers: Int
+  totalPeople: Int
+  activities: [ChartResult]
+  ageCategories: [ChartResult]
+  playersByStatus: [ChartResult]
+}
+
+type PlatformStatistics {
+  clubs: Int
+  teams: Int
+  players: Int
+  members: Int
+  technicals: Int
+  boardManagement: Int
+  assembly: Int
+  stadiums: Int
+  leagues: Int
+  loans: Int
+  transfers: Int
+  viewers: Int
+  totalPeople: Int
+  activities: [ChartResult]
+  ageCategories: [ChartResult]
+  playersByStatus: [ChartResult]
+  clubsByGovernorate: [ChartResult]
+  usersByRole: [ChartResult]
+  clubTotals: [ClubTotalStat]
+}
+
+type ClubTotalStat {
+  id: ID
+  name: String
+  governorate: String
+  teams: Int
+  players: Int
+  members: Int
+  technicals: Int
+  assembly: Int
+  board: Int
+  leagues: Int
+  stadiums: Int
+  loans: Int
+  transfers: Int
+  total: Int
+  activities: [ChartResult]
+  ageCategories: [ChartResult]
 }
 
 type Filters {
@@ -1652,4 +1972,15 @@ type generalStatType {
   blogs: Int
   acceptedPlayer: Int
   leagues: Int
+  totalTeams: Int
+  totalClubs: Int
+  totalVenues: Int
+  totalMatches: Int
+  totalTransfers: Int
+  totalLoans: Int
+  totalEvents: Int
+  totalBookings: Int
+  totalTechnicalStaff: Int
+  totalBoardMembers: Int
+  totalAgeCategories: Int
 }

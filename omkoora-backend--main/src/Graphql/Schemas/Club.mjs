@@ -30,12 +30,27 @@ export const typeDefs = gql`
         account_status: Boolean
 
         teams:          [Team]
-        
+
+        # حقول صفحة النادي في تطبيق الموبايل
+        founded_year:           String        # سنة التأسيس (تُدخل يدويًا)
+        president_name:         String        # رئيس النادي = مدير النادي (club_managements.role = 1)
+        head_coach_name:        String        # المدرب الأول في فرق النادي
+        affiliated_team_label:  String        # الفريق الأساسي: "الفريق الأول" إن وُجد وإلا أقدم فريق
+        star_players:           [StarPlayer]  # يُشتقّ من الهدّافين، وإلا من اللاعبين المعتمدين
+
         admin:          User
         
         createdAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         updatedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
         deletedAt:  Date  @date(format: "yyyy-MM-dd HH:mm:ss")
+    }
+
+    type StarPlayer {
+        id:             ID
+        name:           String
+        position_label: String   # مركز اللاعب (مهاجم / وسط / دفاع / حارس)
+        number:         String   # رقم القميص (يُدخل يدويًا، قد يكون فارغًا)
+        goals:          Int      # عدد الأهداف المسجَّلة (0 إن لم يكن هدّافًا)
     }
 
     input contentClub {
@@ -44,6 +59,7 @@ export const typeDefs = gql`
         logo:           Upload
         phone:          String
         account_status: Boolean
+        founded_year:   String
     }
 type UploadPlayersSheetResult {
   numberOfPersonCreated: Int!

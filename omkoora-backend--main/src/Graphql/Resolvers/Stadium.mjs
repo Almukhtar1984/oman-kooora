@@ -9,6 +9,7 @@ import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
 import {createWriteStream} from "fs";
+import {bookingPrice, buildTimeSlots, durationMinutes} from "../../Helpers/timeSlots.mjs";
 
 dotenv.config();
 
@@ -86,84 +87,31 @@ export const resolvers = {
                 throw new ApolloError("Error fetching reservations by team", "RESERVATION_FETCH_FAILED");
             }
         },
-        availableTimeSlots: async (obj, { idStadium, booking_date }, context, info) => {
+        // Every slot of the day with its state and price — the mobile app greys
+        // out the taken ones instead of only listing the free times.
+        availableTimeSlots: async (obj, { idStadium, booking_date }) => {
             try {
-              // Get the stadium's working hours (start_time and end_time)
-              const stadium = await Stadium.findByPk(idStadium);
-              if (!stadium) {
-                throw new ApolloError("Stadium not found", "STADIUM_NOT_FOUND");
-              }
-          
-              // Parse the start and end time for the stadium as dayjs objects
-              const startTime = dayjs(`${booking_date} ${stadium.start_time}`, "YYYY-MM-DD HH:mm:ss");
-              const endTime = dayjs(`${booking_date} ${stadium.end_time}`, "YYYY-MM-DD HH:mm:ss");
-          
-              // Fetch existing reservations for the given stadium and booking date
-              const reservations = await Reservations.findAll({
-                where: {
-                  id_stadium: idStadium,
-                  booking_date: booking_date
-                },
-                order: [['booking_start', 'ASC']] // Ensure reservations are sorted by start time
-              });
-          
-          
-              // Generate all time slots (e.g., every 1 hour) between start and end time
-              const availableSlots = [];
-              let currentTime = startTime;
-          
-              // Generate slots every 1 hour from start_time to end_time
-              while (currentTime.add(1, 'hour').isBefore(endTime) || currentTime.isSame(endTime)) {
-                availableSlots.push(currentTime.format("HH:mm"));
-                currentTime = currentTime.add(1, 'hour');
-              }
-          
-          
-              // Filter out the slots that are already reserved
-              reservations.forEach((reservation, index) => {
-          
-                // Combine booking_date with the time to create a valid date-time string for parsing
-                const reservedStart = dayjs(`${booking_date} ${reservation.booking_start}`, "YYYY-MM-DD HH:mm:ss");
-                const reservedEnd = dayjs(`${booking_date} ${reservation.booking_end}`, "YYYY-MM-DD HH:mm:ss");
-          
-                // Debugging invalid dates
-                if (!reservedStart.isValid() || !reservedEnd.isValid()) {
-                  //console.log(`Invalid reservation times detected for reservation ${index + 1}.`);
-                  return;
+                const stadium = await Stadium.findByPk(idStadium);
+                if (!stadium) {
+                    throw new ApolloError("Stadium not found", "STADIUM_NOT_FOUND");
                 }
-          
-                // Remove any slot that falls between the reserved times by manually comparing
-                for (let i = availableSlots.length - 1; i >= 0; i--) {
-                  const slotTime = dayjs(`${booking_date} ${availableSlots[i]}`, "YYYY-MM-DD HH:mm");
-          
-                  // Manually compare slotTime to check if it overlaps with the reserved time
-                  if (slotTime.isValid() && 
-                      (slotTime.isSame(reservedStart) || 
-                       slotTime.isAfter(reservedStart)) && 
-                      (
-                       slotTime.isBefore(reservedEnd))) {
-                    console.log(`Slot ${availableSlots[i]} is reserved and will be removed.`);
-                    availableSlots.splice(i, 1); // Remove the unavailable slot
-                  }
-                }
-              });
-          
-          
-              return availableSlots;
+
+                const reservations = await Reservations.findAll({
+                    where: { id_stadium: idStadium, booking_date },
+                    order: [["booking_start", "ASC"]],
+                });
+
+                return buildTimeSlots(stadium, reservations);
             } catch (error) {
-              console.error(error);
-              throw new ApolloError("Error fetching available time slots", "TIME_SLOT_ERROR");
+                logger.error(`availableTimeSlots: ${error?.message}`);
+                throw new ApolloError("Error fetching available time slots", "TIME_SLOT_ERROR");
             }
-          }
-          
-          
-          
-          
-          
-          
+        },
     },
 
     Stadium: {
+        // Falls back to the slot length the generator uses.
+        min_booking_minutes: ({ min_booking_minutes }) => min_booking_minutes || 60,
         team: async ({id_team}, {}, context, info) =>  {
             try {
                 return await Team.findByPk(id_team)
@@ -181,6 +129,20 @@ export const resolvers = {
             } catch (error) {
                 logger.error("")
                 throw new ApolloError(error)
+            }
+        },
+        // Derived — nothing extra is stored on the booking itself.
+        duration_minutes: ({ booking_start, booking_end }) =>
+            durationMinutes(booking_start, booking_end),
+        total_price: async ({ id_stadium, booking_start, booking_end }) => {
+            try {
+                const minutes = durationMinutes(booking_start, booking_end);
+                if (minutes === null) return null;
+                const stadium = await Stadium.findByPk(id_stadium);
+                return bookingPrice(stadium?.rent, minutes);
+            } catch (error) {
+                logger.error(`total_price: ${error?.message}`);
+                return null;
             }
         }
     },

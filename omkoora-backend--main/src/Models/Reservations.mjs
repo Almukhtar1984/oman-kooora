@@ -6,6 +6,11 @@ export default (db, types) => {
             allowNull: false,
             primaryKey: true
         },
+        // Mobile app: اسم صاحب الحجز.
+        full_name: {
+            type: types.STRING(150),
+            allowNull: true
+        },
         phone: {
             type: types.STRING(15),
             allowNull: false

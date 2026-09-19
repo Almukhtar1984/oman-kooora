@@ -22,6 +22,11 @@ export default (db, types) => {
             type: types.STRING(255),
             allowNull: false
         },
+        // Mobile app: سنة تأسيس النادي — نص لتقبل "1972" أو "1972م".
+        founded_year: {
+            type: types.STRING(10),
+            allowNull: true
+        },
         account_status: {
             type: types.BOOLEAN,
             allowNull: false,

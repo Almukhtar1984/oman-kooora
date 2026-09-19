@@ -124,6 +124,20 @@ export default (db, types) => {
             type: types.TIME,
             allowNull: false,
             defaultValue: "20:00:00" // Default to 8:00 PM
+        },
+        // Mobile app: بادج الملعب ومميزاته، والحد الأدنى لمدة الحجز
+        // (فارغ = 60 دقيقة، وهي مدة الفترة في مولّد الأوقات).
+        badge_label: {
+            type: types.STRING(100),
+            allowNull: true
+        },
+        features_label: {
+            type: types.STRING(255),
+            allowNull: true
+        },
+        min_booking_minutes: {
+            type: types.INTEGER,
+            allowNull: true
         }
     }, {
         timestamps: true,

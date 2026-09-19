@@ -6,12 +6,47 @@ import { v4 as UUID } from 'uuid';
 import xlsx from 'xlsx';
 import fs from 'fs';
 import logger from "../../Config/logger.mjs";;
-import {Club, ClubManagement, Members, Person, Team, User, Players, Assembly} from '../../Models/index.mjs';
+import {
+    Club, ClubManagement, Members, Person, Team, User, Players, Assembly,
+    TechnicalApparatus, ParticipatingPlayers, ScorerMatch,
+} from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 
 
 dotenv.config();
+
+// ---- helpers for the mobile club page ----
+const STAR_PLAYERS_LIMIT = 5;
+
+const fullName = (person) =>
+    person
+        ? [person.first_name, person.second_name, person.third_name, person.tribe]
+              .filter(Boolean).join(" ").trim() || null
+        : null;
+
+/** playerId -> goals, counted over every match the players took part in. */
+const clubGoalsByPlayer = async (playerIds) => {
+    const goals = new Map();
+    if (!playerIds.length) return goals;
+
+    const participations = await ParticipatingPlayers.findAll({
+        where: { id_player: { [Op.in]: playerIds } },
+        attributes: ["id", "id_player"],
+    });
+    if (!participations.length) return goals;
+
+    const playerByParticipation = new Map(participations.map((p) => [p.id, p.id_player]));
+    const scorers = await ScorerMatch.findAll({
+        where: { id_participating_player: { [Op.in]: [...playerByParticipation.keys()] } },
+        attributes: ["id_participating_player"],
+    });
+    for (const s of scorers) {
+        const playerId = playerByParticipation.get(s.id_participating_player);
+        if (playerId) goals.set(playerId, (goals.get(playerId) || 0) + 1);
+    }
+    return goals;
+};
 
 function normalizeDate(raw) {
   if (!raw) return "";
@@ -157,6 +192,79 @@ export const resolvers = {
                 logger.error("")
                 throw new ApolloError(error)
             }
+        },
+
+        // ---- mobile club page (derived — nothing new is stored) ----
+
+        // There is no "رئيس النادي" role: club_managements.role is 1 = مدير
+        // and 2 = مشرف, so the club manager is reported as the president.
+        president_name: async ({ id }) => {
+            try {
+                const row = await ClubManagement.findOne({
+                    where: { id_club: id, role: "1" },
+                    include: [{ model: Person, as: "person" }],
+                    order: [["createdAt", "ASC"]],
+                });
+                return fullName(row?.person);
+            } catch (error) { logger.error(`president_name: ${error?.message}`); return null; }
+        },
+
+        // The first-team head coach; any coach counts when none is marked أول.
+        head_coach_name: async ({ id }) => {
+            try {
+                const teams = await Team.findAll({ where: { id_club: id }, attributes: ["id"] });
+                if (!teams.length) return null;
+                const teamIds = teams.map((t) => t.id);
+                const staff = await TechnicalApparatus.findAll({
+                    where: { id_team: { [Op.in]: teamIds }, occupation: { [Op.like]: "%مدرب%" } },
+                    include: [{ model: Person, as: "person" }],
+                    order: [["createdAt", "ASC"]],
+                });
+                const head = staff.find((s) => String(s.occupation || "").includes("أول"))
+                    || staff.find((s) => !String(s.occupation || "").includes("مساعد"))
+                    || staff[0];
+                return fullName(head?.person);
+            } catch (error) { logger.error(`head_coach_name: ${error?.message}`); return null; }
+        },
+
+        // The club's main team: الدرجة الأولى (category 1) if it has one,
+        // otherwise its oldest team.
+        affiliated_team_label: async ({ id }) => {
+            try {
+                const teams = await Team.findAll({ where: { id_club: id }, order: [["createdAt", "ASC"]] });
+                if (!teams.length) return null;
+                const main = teams.find((t) => Number(t.category) === 1) || teams[0];
+                return main?.name || null;
+            } catch (error) { logger.error(`affiliated_team_label: ${error?.message}`); return null; }
+        },
+
+        // Top scorers of the club. With no goals recorded yet the newest
+        // approved players are returned so the section is never empty.
+        star_players: async ({ id }) => {
+            try {
+                const teams = await Team.findAll({ where: { id_club: id }, attributes: ["id"] });
+                if (!teams.length) return [];
+                const teamIds = teams.map((t) => t.id);
+
+                const players = await Players.findAll({
+                    where: { id_team: { [Op.in]: teamIds }, status: "accepted" },
+                    include: [{ model: Person, as: "person" }],
+                    order: [["createdAt", "DESC"]],
+                });
+                if (!players.length) return [];
+
+                const goalsByPlayer = await clubGoalsByPlayer(players.map((p) => p.id));
+                const shaped = players.map((p) => ({
+                    id: p.id,
+                    name: fullName(p.person),
+                    position_label: p.player_center || null,
+                    number: p.number || null,
+                    goals: goalsByPlayer.get(p.id) || 0,
+                }));
+
+                const scorers = shaped.filter((p) => p.goals > 0).sort((a, b) => b.goals - a.goals);
+                return (scorers.length ? scorers : shaped).slice(0, STAR_PLAYERS_LIMIT);
+            } catch (error) { logger.error(`star_players: ${error?.message}`); return []; }
         },
     },
 

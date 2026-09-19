@@ -14,6 +14,11 @@ export default (db, types) => {
             type: types.STRING(50),
             allowNull: false
         },
+        // Mobile app: رقم قميص اللاعب (نص ليقبل "07").
+        number: {
+            type: types.STRING(10),
+            allowNull: true
+        },
         job: {
             type: types.STRING(15),
             allowNull: false

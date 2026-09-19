@@ -210,6 +210,66 @@ async function main() {
         console.log("  (skipped) no accepted player in DB to test computed counts");
     }
 
+    // ---- club page (derived fields) ----
+    console.log("— Club page —");
+    await testFields("Club", [
+        "founded_year", "president_name", "head_coach_name", "affiliated_team_label", "star_players",
+    ]);
+    await testFields("StarPlayer", ["id", "name", "position_label", "number", "goals"]);
+    await test("club page fields resolve", `{ allClub {
+        id name founded_year president_name head_coach_name affiliated_team_label
+        star_players { id name position_label number goals }
+    } }`, (d) => {
+        const clubs = d.allClub || [];
+        if (!clubs.length) return "no clubs in DB";
+        for (const club of clubs) {
+            if (!Array.isArray(club.star_players)) throw new Error(`${club.name}: star_players is not a list`);
+            for (const p of club.star_players) {
+                if (!p.id || !p.name) throw new Error(`${club.name}: star player without id/name`);
+                if (typeof p.goals !== "number") throw new Error(`${club.name}: goals not a number`);
+            }
+        }
+        const withCoach = clubs.filter((c) => c.head_coach_name).length;
+        const withTeam = clubs.filter((c) => c.affiliated_team_label).length;
+        return `${clubs.length} clubs, ${withCoach} with a coach, ${withTeam} with a main team`;
+    });
+
+    // ---- stadium booking ----
+    console.log("— Stadium booking —");
+    await testFields("Stadium", ["badge_label", "features_label", "min_booking_minutes"]);
+    await testFields("Reservations", ["full_name", "duration_minutes", "total_price"]);
+    await testFields("TimeSlot", ["label", "start_time", "end_time", "is_available", "price"]);
+
+    const stadiums = await gql(`{ allStadiums { id rent min_booking_minutes } }`);
+    const stadium = stadiums.data?.allStadiums?.[0];
+    if (stadium) {
+        await test("availableTimeSlots returns objects", `{
+            availableTimeSlots(idStadium: "${stadium.id}", booking_date: "2030-01-01") {
+                label start_time end_time is_available price
+            }
+        }`, (d) => {
+            const slots = d.availableTimeSlots || [];
+            if (!slots.length) throw new Error("no slots for a stadium with working hours");
+            const first = slots[0];
+            if (!/^\d{2}:\d{2}$/.test(first.label)) throw new Error(`bad label ${first.label}`);
+            if (typeof first.is_available !== "boolean") throw new Error("is_available is not a boolean");
+            if (stadium.rent && first.price !== stadium.rent * ((stadium.min_booking_minutes || 60) / 60))
+                throw new Error(`price ${first.price} does not match the hourly rent ${stadium.rent}`);
+            return `${slots.length} slots, first ${first.label} (${first.price})`;
+        });
+    } else {
+        console.log("  (skipped) no stadium in DB to test time slots");
+    }
+
+    await test("bookings expose name/duration/price", `{ allBookings { id full_name duration_minutes total_price } }`, (d) => {
+        const rows = d.allBookings || [];
+        for (const r of rows) {
+            if (r.duration_minutes !== null && typeof r.duration_minutes !== "number")
+                throw new Error("duration_minutes is not a number");
+        }
+        return `${rows.length} bookings`;
+    });
+
     // Cleanup seeded blog.
     if (seededId) {
         try { await Blog.destroy({ where: { id: seededId }, force: true }); }

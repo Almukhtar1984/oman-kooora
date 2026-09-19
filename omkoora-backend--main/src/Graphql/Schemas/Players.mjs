@@ -42,6 +42,7 @@ export const typeDefs = gql`
         id:             ID
         activity:       String
         player_center:  String
+        number:         String   # رقم القميص
         job:            String
         nationalID:     String
         nationalIDBack: String
@@ -74,6 +75,7 @@ export const typeDefs = gql`
     input contentPlayer {
         activity:       String
         player_center:  String
+        number:         String
         job:            String
         nationalID:     Upload
         nationalIDBack: Upload

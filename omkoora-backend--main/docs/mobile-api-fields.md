@@ -154,9 +154,14 @@ mutation { incrementBlogViews(id: "…") { status } }
 ## تشغيل الـmigration المطلوب 🛠️
 الحقول الجديدة للأخبار والمباريات تحتاج أعمدة قاعدة بيانات. نفّذ مرّة واحدة على قاعدة الإنتاج:
 ```
-deploy/sql/2026-09-18_blog_match_mobile_fields.sql
+deploy/sql/2026-09-18_blog_match_mobile_fields.sql   # الأخبار والمباريات
+deploy/sql/2026-09-19_events_table.sql               # جدول الفعاليات (غير موجود على الإنتاج)
+deploy/sql/2026-09-19_mobile_club_stadium_fields.sql # حقول صفحة النادي وحجز الملاعب
 ```
-يضيف: `blogs.category`, `blogs.author_name`, `blogs.views_count`, `matches.venue`, `matches.minute`.
+تضيف: `blogs.category`, `blogs.author_name`, `blogs.views_count`, `matches.venue`, `matches.minute`,
+جدول `events`، و`clubs.founded_year`, `players.number`, `reservations.full_name`,
+`stadia.badge_label`, `stadia.features_label`, `stadia.min_booking_minutes`.
+كل الملفات آمنة لإعادة التشغيل (تتحقق من وجود العمود/الجدول أولًا).
 
 ## اختياري (مرحلة لاحقة) 🔜
 - **المباريات:** `subMinute`.
@@ -167,32 +172,55 @@ deploy/sql/2026-09-18_blog_match_mobile_fields.sql
 
 ---
 
-## 9) طلبات جديدة: صفحة النادي وحجز الملاعب — الحالة والخطة 📋
-> قاعدة عامة: أي حقل جديد يحتاج **مصدر بيانات**. إن لم تكن هناك شاشة إدخال في
-> تطبيق النادي/الفريق، سيرجع الحقل فارغًا دائمًا مهما أضفناه في الـAPI.
+## 9) صفحة النادي وحجز الملاعب — أُضيفت 🆕
+> قاعدة عامة: أي حقل يحتاج **مصدر بيانات**. الحقول المشتقّة تعمل فورًا، أمّا الحقول
+> التي تُدخل يدويًا فستبقى فارغة حتى تُضاف شاشة إدخال في تطبيق النادي/الفريق.
 
-### صفحة النادي (Club Details)
-| الحقل | الحالة | ما يلزم |
-| --- | --- | --- |
-| `achievements` | 🔴 لا يوجد | جدول جديد `club_achievements` (title, subtitle, is_video) + شاشة إدخال في تطبيق النادي |
-| `star_players` | 🟠 جزئيًا | اللاعبون موجودون، و`player_center` يصلح `position_label`. **رقم القميص غير مخزَّن** ولا توجد علامة "نجم" → إمّا عمودان جديدان (`number`, `is_star`) بإدخال يدوي، أو اشتقاق النجوم من الهدّافين (`ScorerMatch`) بدون رقم قميص |
-| `founded_year` | 🟠 عمود جديد | `clubs.founded_year` + حقل في شاشة بيانات النادي |
-| `affiliated_team_label` | 🟠 يحتاج تعريف | يمكن اشتقاقه من فرق النادي، لكن ما القاعدة؟ (الفريق الأول؟ أول نشاط؟) أو عمود جديد يُدخَل يدويًا |
-| `president_name` | 🟠 يحتاج قرار | `club_managements.role` حاليًا `1=مدير` و`2=مشرف` فقط، لا يوجد دور "رئيس". إمّا نعتبر مدير النادي (role=1) هو الرئيس، أو نضيف دورًا/عمودًا |
-| `head_coach_name` | 🟢 مشتق جاهز | من الجهاز الفني (`occupation = "مدرب أول"`) لفرق النادي — ينفَّذ بدون تغيير قاعدة بيانات |
+### صفحة النادي
+```graphql
+query { allClub {
+  id name logo
+  founded_year           # يُدخل يدويًا (عمود جديد)
+  president_name         # مشتق: مدير النادي (club_managements.role = 1)
+  head_coach_name        # مشتق: المدرب الأول في فرق النادي
+  affiliated_team_label  # مشتق: فريق الدرجة الأولى إن وُجد، وإلا أقدم فريق
+  star_players { id name position_label number goals }   # مشتق: أعلى الهدّافين
+} }
+```
+- **`star_players`**: يُرتَّب بعدد الأهداف (من `scorer_matches`) وبحدّ أقصى 5 لاعبين. إن لم تُسجَّل أهداف بعد، يرجع أحدث اللاعبين المعتمدين حتى لا يظهر القسم فارغًا.
+- **`position_label`** = `player_center` (مهاجم / وسط / دفاع / حارس)، و**`number`** = رقم القميص (عمود جديد، يبقى فارغًا حتى يُدخل).
+- **`president_name`**: لا يوجد دور "رئيس نادٍ" في النظام (الأدوار: 1 مدير، 2 مشرف)، لذا يُرجَع **مدير النادي**. لو أردتم رئيسًا منفصلًا فهو دور/عمود جديد.
 
-### حجز الملاعب (Stadiums / Reservations)
-| الحقل | الحالة | ما يلزم |
-| --- | --- | --- |
-| `duration_minutes` | 🟢 مشتق جاهز | من `booking_start` و`booking_end` |
-| `full_name` (input + type) | 🟠 عمود جديد | `reservations.full_name` + إضافته في `contentReservations` والـresolver |
-| `total_price` | 🟠 يحتاج تأكيد | حسابه = `stadiums.rent` × عدد الساعات (هل `rent` سعر الساعة؟) أو تخزينه وقت الحجز |
-| `payment_method` / `payment_status` | 🟠 عمودان جديدان | لا توجد بوابة دفع؛ القيم ستكون يدوية (cash افتراضيًا + pending/paid) — يلزم تحديد من يغيّرها |
-| `availableTimeSlots` → `[TimeSlot]` | 🟢 قابل للتنفيذ | تغيير شكل الإرجاع آمن (لا يستخدمه أي تطبيق ويب). `is_available` يُحسب من الحجوزات، `price` من `rent`، والمدة حاليًا ساعة ثابتة |
-| `rating` / `reviews_count` | 🔴 لا يوجد | جدول تقييمات `stadium_reviews` + شاشة تقييم في تطبيق الموبايل، وإلا القيم صفر دائمًا |
-| `badge_label` / `features_label` / `min_booking_minutes` | 🟠 أعمدة جديدة | على `stadiums` + إدخال في تطبيق النادي (`min_booking_minutes` حاليًا ثابت 60 دقيقة في مولّد الأوقات) |
+### حجز الملاعب
+```graphql
+query { availableTimeSlots(idStadium: "…", booking_date: "2026-09-25") {
+  label start_time end_time is_available price
+} }
 
-**المقترح للتنفيذ بالترتيب:** (1) المشتقّات بلا قاعدة بيانات — `head_coach_name`, `duration_minutes`, `TimeSlot`. (2) أعمدة بسيطة بـmigration واحد — `full_name`, `founded_year`, `number`, `badge_label`, `features_label`, `min_booking_minutes`, حقول الدفع. (3) الجداول الجديدة + شاشات الإدخال — الإنجازات والتقييمات.
+query { allReservations(idStadium: "…") {
+  id full_name phone booking_date booking_start booking_end status
+  duration_minutes   # مشتق من وقتي البداية والنهاية
+  total_price        # مشتق: rent (سعر الساعة) × مدة الحجز
+  stadium { id name rent badge_label features_label min_booking_minutes }
+} }
+
+mutation { createReservations(content: {
+  full_name: "…", phone: "…", booking_date: "2026-09-25",
+  booking_start: "10:00:00", booking_end: "12:00:00", id_stadium: "…"
+}) { id full_name duration_minutes total_price } }
+```
+- **`availableTimeSlots` صار يرجع كائنات `TimeSlot` بدل نصوص**، ويرجع **كل** فترات اليوم مع `is_available` (المحجوزة تظهر معطّلة بدل اختفائها). الحجز الملغى (`status: cancel`) لا يحجز الفترة.
+- **التسعير**: `stadiums.rent` = **سعر الساعة**؛ سعر الفترة = rent × (مدة الفترة ÷ 60)، و`total_price` = rent × ساعات الحجز.
+- **`min_booking_minutes`** يحدّد طول الفترة (فارغ = 60 دقيقة)، و`badge_label`/`features_label` أعمدة جديدة تُدخل يدويًا.
+
+### مؤجَّل — يحتاج قرارًا أو شاشة إدخال 🔜
+| الطلب | سبب التأجيل |
+| --- | --- |
+| `achievements` (إنجازات النادي) | يحتاج جدولًا جديدًا + شاشة إدخال في تطبيق النادي، وإلا يرجع فارغًا دائمًا |
+| `rating` / `reviews_count` للملعب | يحتاج جدول تقييمات + من يقيّم (مستخدمو الموبايل؟)، وإلا صفر دائمًا |
+| `payment_method` / `payment_status` | لا توجد بوابة دفع؛ مؤجَّل حتى تتحدد آلية الدفع |
+| شاشات إدخال للحقول اليدوية | `founded_year`, `number`, `badge_label`, `features_label`, `min_booking_minutes` — تعمل عبر الـAPI الآن، وتحتاج حقولًا في تطبيق النادي لاحقًا |
+
 
 ## اختبار آلي للتأكّد أن الـAPI يُرجع بيانات 🧪
 سكربت يفحص وجود الحقول الجديدة في المخطّط ويؤكّد رجوع بيانات فعلية (بدون أخطاء):
