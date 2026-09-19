@@ -11,6 +11,45 @@ import {
 
 dotenv.config();
 
+// A platform total must never take the whole statistics payload down with it.
+// Deployments where a newer model's table was never created (DB_SYNC off) made
+// one missing table fail SearchData/FetchAllData entirely — the mobile app's
+// statistics screen then showed "Failed to fetch all data".
+export const safeCount = async (model, options, label) => {
+  try {
+    return await model.count(options);
+  } catch (error) {
+    logger.error(`statistics: count(${label}) failed — ${error?.parent?.sqlMessage || error?.message}`);
+    return 0;
+  }
+};
+
+const platformTotals = async () => {
+  const [
+    totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
+    totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
+    totalBoardMembers, totalAgeCategories,
+  ] = await Promise.all([
+    safeCount(Team, undefined, "teams"),
+    safeCount(Club, undefined, "clubs"),
+    safeCount(Stadium, undefined, "stadiums"),
+    safeCount(Match, undefined, "matches"),
+    safeCount(Transfer, { where: { transition_type: "transition" } }, "transfers"),
+    safeCount(Transfer, { where: { transition_type: "loan" } }, "loans"),
+    safeCount(Event, undefined, "events"),
+    safeCount(Reservations, undefined, "reservations"),
+    safeCount(TechnicalApparatus, undefined, "technical staff"),
+    safeCount(ClubManagement, undefined, "board members"),
+    safeCount(Team, { distinct: true, col: "category" }, "age categories"),
+  ]);
+
+  return {
+    totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
+    totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
+    totalBoardMembers, totalAgeCategories,
+  };
+};
+
 export const resolvers = {
   Query: {
     // Aggregate-only statistics for the super-admin dashboard. No personal
@@ -481,32 +520,14 @@ export const resolvers = {
         const leaguesCount = await League.count();
 
         // Platform-wide totals for the mobile app's overview screen.
-        const [
-          totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
-          totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
-          totalBoardMembers, totalAgeCategories,
-        ] = await Promise.all([
-          Team.count(),
-          Club.count(),
-          Stadium.count(),
-          Match.count(),
-          Transfer.count({ where: { transition_type: "transition" } }),
-          Transfer.count({ where: { transition_type: "loan" } }),
-          Event.count(),
-          Reservations.count(),
-          TechnicalApparatus.count(),
-          ClubManagement.count(),
-          Team.count({ distinct: true, col: "category" }),
-        ]);
+        const totals = await platformTotals();
 
         const GeneralStat = {
           Members: membersCount,
           blogs: blogsCount,
           acceptedPlayer: acceptedPlayerCount,
           leagues: leaguesCount,
-          totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
-          totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
-          totalBoardMembers, totalAgeCategories,
+          ...totals,
         };
 
         
@@ -666,32 +687,14 @@ export const resolvers = {
         const leaguesCount = await League.count();
 
         // Platform-wide totals for the mobile app's overview screen.
-        const [
-          totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
-          totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
-          totalBoardMembers, totalAgeCategories,
-        ] = await Promise.all([
-          Team.count(),
-          Club.count(),
-          Stadium.count(),
-          Match.count(),
-          Transfer.count({ where: { transition_type: "transition" } }),
-          Transfer.count({ where: { transition_type: "loan" } }),
-          Event.count(),
-          Reservations.count(),
-          TechnicalApparatus.count(),
-          ClubManagement.count(),
-          Team.count({ distinct: true, col: "category" }),
-        ]);
+        const totals = await platformTotals();
 
         const GeneralStat = {
           Members: membersCount,
           blogs: blogsCount,
           acceptedPlayer: acceptedPlayerCount,
           leagues: leaguesCount,
-          totalTeams, totalClubs, totalVenues, totalMatches, totalTransfers,
-          totalLoans, totalEvents, totalBookings, totalTechnicalStaff,
-          totalBoardMembers, totalAgeCategories,
+          ...totals,
         };
 
         return {
