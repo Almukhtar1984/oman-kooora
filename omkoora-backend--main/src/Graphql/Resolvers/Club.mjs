@@ -11,6 +11,7 @@ import {
     TechnicalApparatus, ParticipatingPlayers, ScorerMatch,
 } from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
+import {pickHeadCoach} from "../../Helpers/staffRoles.mjs";
 import {__dirname} from "../../app.mjs";
 
 
@@ -216,14 +217,21 @@ export const resolvers = {
                 if (!teams.length) return null;
                 const teamIds = teams.map((t) => t.id);
                 const staff = await TechnicalApparatus.findAll({
-                    where: { id_team: { [Op.in]: teamIds }, occupation: { [Op.like]: "%مدرب%" } },
+                    where: {
+                        id_team: { [Op.in]: teamIds },
+                        // The role lives in `classification` (الصفة); `occupation`
+                        // is the member's day job (موظف/طالب…) and only older rows
+                        // carry the role there.
+                        [Op.or]: [
+                            { classification: { [Op.like]: "%مدرب%" } },
+                            { occupation: { [Op.like]: "%مدرب%" } },
+                        ],
+                    },
                     include: [{ model: Person, as: "person" }],
                     order: [["createdAt", "ASC"]],
                 });
-                const head = staff.find((s) => String(s.occupation || "").includes("أول"))
-                    || staff.find((s) => !String(s.occupation || "").includes("مساعد"))
-                    || staff[0];
-                return fullName(head?.person);
+
+                return fullName(pickHeadCoach(staff)?.person);
             } catch (error) { logger.error(`head_coach_name: ${error?.message}`); return null; }
         },
 
