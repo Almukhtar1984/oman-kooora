@@ -157,6 +157,7 @@ mutation { incrementBlogViews(id: "…") { status } }
 deploy/sql/2026-09-18_blog_match_mobile_fields.sql   # الأخبار والمباريات
 deploy/sql/2026-09-19_events_table.sql               # جدول الفعاليات (غير موجود على الإنتاج)
 deploy/sql/2026-09-19_mobile_club_stadium_fields.sql # حقول صفحة النادي وحجز الملاعب
+deploy/sql/2026-09-24_users_fcm_token.sql            # توكن FCM للإشعارات (users.fcm_token/fcm_platform)
 ```
 تضيف: `blogs.category`, `blogs.author_name`, `blogs.views_count`, `matches.venue`, `matches.minute`,
 جدول `events`، و`clubs.founded_year`, `players.number`, `reservations.full_name`,
@@ -232,3 +233,22 @@ API=https://api.omkooora.com/graphql node scripts/mobile-api-smoke.mjs
 يغطّي: حقول Blog/Match/League/Player الجديدة، `incrementBlogViews`، إجماليات `FetchAllData.GeneralStat`، وتجميعات الموبايل والبحث العام. آخر تشغيل محلّي: **19/19 ✅**.
 
 > ملاحظة تسمية: الحقول الجديدة أُنشئت بأسماء `snake_case` كما طُلبت (transfers_count, status_label, clubs_count …) لتتطابق مع أكواد التطبيق مباشرة.
+
+---
+
+## 10) إشعارات FCM (Push) — أُضيفت 🆕 (تحتاج migration + مفتاح Firebase)
+حفظ توكن الجهاز بعد تسجيل الدخول ليصل الإشعار حتى والتطبيق مقفول:
+```graphql
+mutation { saveFcmToken(token: "<FCM_DEVICE_TOKEN>", platform: "android") { status } }
+```
+- تتطلّب توكن مصادقة (`@auth`) — تُستدعى بعد `authenticateUser`.
+- `platform`: "android" | "ios" | "web".
+- تُخزَّن في `users.fcm_token` / `users.fcm_platform` (migration: `deploy/sql/2026-09-24_users_fcm_token.sql`).
+
+**على السيرفر** (لتفعيل الإرسال فعليًا):
+- ثبّت الحزمة: `firebase-admin` (مضافة في package.json).
+- وفّر مفتاح الخدمة كسرّ (لا يُرفع في الكود) بأحد الطريقتين:
+  - `FIREBASE_SERVICE_ACCOUNT` = محتوى `serviceAccountKey.json` (JSON أو base64)، أو
+  - `FIREBASE_SERVICE_ACCOUNT_PATH` = مسار الملف خارج المستودع.
+- الإرسال من الكود عبر `sendPushToUser(userId, { title, body, data })` من `src/Config/firebase.mjs`.
+- بدون المفتاح: كل شيء يعمل عاديًا والإرسال مُعطَّل بأمان (يُسجَّل في اللوج فقط).

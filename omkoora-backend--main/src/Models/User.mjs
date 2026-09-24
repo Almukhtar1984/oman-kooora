@@ -32,6 +32,17 @@ export default (db, types) => {
         email_verify: {
             type: types.BOOLEAN,
             defaultValue: false
+        },
+        // Firebase Cloud Messaging device token, so the server can push a
+        // notification to this user even while the app is closed. Set via the
+        // saveFcmToken mutation after the client obtains it from FCM.
+        fcm_token: {
+            type: types.STRING(512),
+            allowNull: true
+        },
+        fcm_platform: {
+            type: types.STRING(20),
+            allowNull: true
         }
     },{
         timestamps: true,

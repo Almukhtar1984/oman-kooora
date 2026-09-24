@@ -43,6 +43,9 @@ export const typeDefs = gql`
         activeUser (id: ID!, activation: Boolean): statusUpdate! @auth(requires: user)
         logOut: statusDelete
 
+        # Store the logged-in user's FCM device token for push notifications.
+        saveFcmToken(token: String!, platform: String!): statusUpdate @auth(requires: user)
+
         resetTeamPassword(idTeam: ID!): ResetTeamPasswordPayload!
     }
 

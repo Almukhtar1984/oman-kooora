@@ -663,6 +663,25 @@ export const resolvers = {
             }
         },
 
+        // Save the authenticated user's FCM device token so the server can push
+        // notifications to them while the app is closed.
+        saveFcmToken: async (obj, {token, platform}, context, info) => {
+            try {
+                const {user, isAuth} = context;
+                if (!isAuth || !user) return new AuthenticationError("Authentication required");
+                if (!token || !token.trim()) return new ApolloError("token مطلوب", "FCM_TOKEN_REQUIRED");
+
+                const result = await User.update(
+                    { fcm_token: token.trim(), fcm_platform: (platform || "").trim() || null },
+                    { where: { id: user.id } }
+                );
+                return {status: result[0] === 1};
+            } catch (error) {
+                logger.error("saveFcmToken: " + error.message);
+                throw new ApolloError(error);
+            }
+        },
+
         activeUser: async (obj, {id, activation}, context, info) => {
             try {
                 let user = await User.update({activation}, { where: { id } })
