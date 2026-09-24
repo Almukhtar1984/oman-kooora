@@ -28,13 +28,14 @@ export const resolvers = {
 
         allTechnicalApparatus: async (obj, {idTeam}, context, info) =>  {
             try {
+                // idTeam is optional: filter by team when given, otherwise return
+                // all technical staff. (Passing id_team: undefined makes Sequelize
+                // throw "WHERE parameter id_team has invalid undefined value".)
                 return await TechnicalApparatus.findAll({
-                    where: {
-                        id_team: idTeam
-                    }
+                    where: idTeam ? { id_team: idTeam } : {}
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`allTechnicalApparatus: ${error?.message}`)
                 throw new ApolloError(error)
             }
         },
