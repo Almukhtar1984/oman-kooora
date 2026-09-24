@@ -14,13 +14,17 @@
  * Idempotent: keyed on the email. Safe to re-run (updates the password).
  */
 import db from "../src/Config/DBContact.mjs";
-import { Club, Person, User, ClubManagement, Permission } from "../src/Models/index.mjs";
+import { Club, Team, Players, Person, User, ClubManagement, Permission } from "../src/Models/index.mjs";
 import { hashPassword } from "../src/Helpers/Password.mjs";
 
 const EMAIL = process.env.TEST_ACCOUNT_EMAIL;
 const PASSWORD = process.env.TEST_ACCOUNT_PASSWORD;
 const ROLE = process.env.TEST_ACCOUNT_ROLE || "2";
 const CLUB_ID = process.env.TEST_ACCOUNT_CLUB_ID || null;
+// Portal (mobile-app) login is by phone + civil number, no password. These
+// create a test PLAYER the developer can log in with via authenticatePortalPerson.
+const PORTAL_PHONE = process.env.TEST_PORTAL_PHONE || "90000001";
+const PORTAL_CARD = process.env.TEST_PORTAL_CARD || "10000001";
 const fullGrant = "1,2,3,4,5,6,7,8,9,10";
 
 const run = async () => {
@@ -65,6 +69,34 @@ const run = async () => {
     }
 
     console.log("   Share these credentials with the developer (not committed anywhere).");
+
+    // --- Portal (mobile app) test player: login by phone + civil number ------
+    let portalPerson = await Person.findOne({ where: { card_number: PORTAL_CARD } });
+    if (portalPerson) {
+        // Make sure phone matches what we advertise.
+        if (portalPerson.phone !== PORTAL_PHONE) {
+            await Person.update({ phone: PORTAL_PHONE }, { where: { id: portalPerson.id } });
+        }
+        console.log(`\n✅ Portal test player already exists — phone ${PORTAL_PHONE} / civil ${PORTAL_CARD}`);
+    } else {
+        const team = await Team.findOne({ where: { id_club: club.id }, order: [["createdAt", "ASC"]] });
+        if (!team) {
+            console.log("\n⚠️ No team under the club — skipped the portal player (create a team first, then re-run).");
+        } else {
+            const p = await Person.create({
+                first_name: "لاعب", second_name: "تجريبي", third_name: "للمطوّرة",
+                tribe: "تموه", phone: PORTAL_PHONE, card_number: PORTAL_CARD, date_birth: "2000-01-01",
+            });
+            await Players.create({
+                activity: "لاعب", player_center: "وسط", job: "لاعب",
+                type: "internal", class: "firstDegree", status: "accepted",
+                id_person: p.id, id_team: team.id,
+            });
+            console.log(`\n✅ Portal test player created — phone ${PORTAL_PHONE} / civil ${PORTAL_CARD} (team: ${team.name})`);
+        }
+    }
+    console.log("   Mobile-app login: authenticatePortalPerson(phone, card_number) — no password.");
+
     await db.close();
 };
 
