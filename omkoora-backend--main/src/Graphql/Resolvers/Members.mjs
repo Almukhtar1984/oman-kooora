@@ -26,12 +26,12 @@ export const resolvers = {
         },
 
         allMembers: async (obj, {idTeam}, context, info) =>  {
+            // Returns member PII: require a team. Never dump all members to an
+            // unauthenticated caller. (id_team: undefined also made Sequelize throw.)
+            if (!idTeam) return []
             try {
-                // idTeam is optional: filter by team when given, otherwise return
-                // all members. (Passing id_team: undefined makes Sequelize throw
-                // "WHERE parameter id_team has invalid undefined value".)
                 return await Members.findAll({
-                    where: idTeam ? { id_team: idTeam } : {}
+                    where: { id_team: idTeam }
                 })
             } catch (error) {
                 logger.error(`allMembers: ${error?.message}`)

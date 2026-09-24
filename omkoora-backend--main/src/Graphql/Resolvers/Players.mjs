@@ -47,11 +47,13 @@ export const resolvers = {
         },
         
         allPlayers: async (obj, {idTeam}, context, info) =>  {
+            // Public query returning player PII: require a team. Never dump ALL
+            // players (that was a bulk-PII exposure to unauthenticated callers).
+            // For a global list use allPlayersAcceptedExternal (paginated, @auth).
+            if (!idTeam) return []
             try {
-                // idTeam optional: filter by team when given, else all players.
-                // (id_team: undefined makes Sequelize throw before returning.)
                 return await Players.findAll({
-                    where: idTeam ? { id_team: idTeam } : {}
+                    where: { id_team: idTeam }
                 })
             } catch (error) {
                 logger.error(`allPlayers: ${error?.message}`)
@@ -118,11 +120,10 @@ export const resolvers = {
         },
 
         allPlayersByClass: async (obj, {idTeam, className}, context, info) =>  {
+            // Require a team — never dump all players' PII (see allPlayers).
+            if (!idTeam) return []
             try {
-                // Both args optional: filter by whichever is given (undefined in a
-                // where clause makes Sequelize throw).
-                const where = {}
-                if (idTeam) where.id_team = idTeam
+                const where = { id_team: idTeam }
                 if (className) where.class = className
                 return await Players.findAll({ where })
             } catch (error) {

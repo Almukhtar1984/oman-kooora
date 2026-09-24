@@ -27,12 +27,12 @@ export const resolvers = {
         },
 
         allTechnicalApparatus: async (obj, {idTeam}, context, info) =>  {
+            // Returns staff PII: require a team. For a global list use the
+            // dedicated allTechnicalStaff query. (undefined id_team also threw.)
+            if (!idTeam) return []
             try {
-                // idTeam is optional: filter by team when given, otherwise return
-                // all technical staff. (Passing id_team: undefined makes Sequelize
-                // throw "WHERE parameter id_team has invalid undefined value".)
                 return await TechnicalApparatus.findAll({
-                    where: idTeam ? { id_team: idTeam } : {}
+                    where: { id_team: idTeam }
                 })
             } catch (error) {
                 logger.error(`allTechnicalApparatus: ${error?.message}`)
