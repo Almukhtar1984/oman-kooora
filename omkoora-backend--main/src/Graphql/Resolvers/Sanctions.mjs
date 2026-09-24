@@ -1,6 +1,7 @@
 import { ApolloError } from 'apollo-server-express';
+import { Op } from 'sequelize';
 import { v4 as UUID } from "uuid";
-import { Sanction, Players as Player } from '../../Models/index.mjs';
+import { Sanction, Players as Player, Team } from '../../Models/index.mjs';
 import logger from "../../Config/logger.mjs";
 import {CreateNotificationTeam} from "../../Helpers/index.mjs"
 export const resolvers = {
@@ -32,8 +33,15 @@ export const resolvers = {
         allSanctionsTeam: async (obj, { idTeam }, context, info) => {
             if (!idTeam) return [];   // require a team; don't dump all sanctions publicly
             try {
+                // sanctions have no id_team column — they belong to a player.
+                // Fetch the team's players, then their sanctions.
+                const players = await Player.findAll({
+                    where: { id_team: idTeam }, attributes: ["id"], raw: true,
+                });
+                const playerIds = players.map((p) => p.id);
+                if (playerIds.length === 0) return [];
                 return await Sanction.findAll({
-                    where: { id_team: idTeam }
+                    where: { id_player: { [Op.in]: playerIds } }
                 });
             } catch (error) {
                 logger.error("Error fetching all sanctions for team", error);
@@ -41,11 +49,18 @@ export const resolvers = {
             }
         },
         allSanctionsClub: async (obj, { idClub }, context, info) => {
+            if (!idClub) return [];
             try {
+                // sanctions have no id_club column — they belong to a player.
+                // Club → its teams → their players → those players' sanctions.
+                const players = await Player.findAll({
+                    attributes: ["id"], raw: true,
+                    include: [{ model: Team, as: "team", required: true, attributes: [], where: { id_club: idClub } }],
+                });
+                const playerIds = players.map((p) => p.id);
+                if (playerIds.length === 0) return [];
                 return await Sanction.findAll({
-                    where: {
-                        id_club: idClub
-                    }
+                    where: { id_player: { [Op.in]: playerIds } }
                 });
             } catch (error) {
                 logger.error("Error fetching all sanctions for club", error);
