@@ -48,19 +48,21 @@ export const resolvers = {
         
         allPlayers: async (obj, {idTeam}, context, info) =>  {
             try {
+                // idTeam optional: filter by team when given, else all players.
+                // (id_team: undefined makes Sequelize throw before returning.)
                 return await Players.findAll({
-                    where: {
-                        id_team: idTeam
-                    }
+                    where: idTeam ? { id_team: idTeam } : {}
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`allPlayers: ${error?.message}`)
                 throw new ApolloError(error)
             }
         },
 
         allPlayersAccpted: async (obj, {idTeam}, context, info) =>  {
-         
+            // Team-scoped admin query: no team → no rows (avoids the crash and a
+            // global cross-team dump).
+            if (!idTeam) return []
             try {
                 return await Players.findAll({
                     where: {
@@ -69,7 +71,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("errore !!;:")
+                logger.error(`allPlayersAccpted: ${error?.message}`)
                 throw new ApolloError(error)
             }
         },
@@ -117,29 +119,26 @@ export const resolvers = {
 
         allPlayersByClass: async (obj, {idTeam, className}, context, info) =>  {
             try {
-                return await Players.findAll({
-                    where: {
-                        id_team: idTeam,
-                        class: className,
-                        
-                    }
-                })
+                // Both args optional: filter by whichever is given (undefined in a
+                // where clause makes Sequelize throw).
+                const where = {}
+                if (idTeam) where.id_team = idTeam
+                if (className) where.class = className
+                return await Players.findAll({ where })
             } catch (error) {
-                logger.error("")
+                logger.error(`allPlayersByClass: ${error?.message}`)
                 throw new ApolloError(error)
             }
         },
         allPlayersByClassAccpted: async (obj, {idTeam, className}, context, info) =>  {
+            // Team-scoped admin query: no team → no rows.
+            if (!idTeam) return []
             try {
-                return await Players.findAll({
-                    where: {
-                        id_team: idTeam,
-                        class: className,
-                        status: 'accepted'
-                    }
-                })
+                const where = { id_team: idTeam, status: 'accepted' }
+                if (className) where.class = className
+                return await Players.findAll({ where })
             } catch (error) {
-                logger.error("")
+                logger.error(`allPlayersByClassAccpted: ${error?.message}`)
                 throw new ApolloError(error)
             }
         },

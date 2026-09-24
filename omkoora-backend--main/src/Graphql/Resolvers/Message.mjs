@@ -78,6 +78,7 @@ export const resolvers = {
         },
 
         allMessageTeamSender: async (obj, {idTeam}, context, info) =>  {
+            if (!idTeam) return []   // team-scoped: no team → no rows (avoids the undefined-where crash)
             try {
                 return await Message.findAll({
                     where: {
@@ -90,6 +91,7 @@ export const resolvers = {
             }
         },
         allMessageTeamReceiver: async (obj, {idTeam}, context, info) =>  {
+            if (!idTeam) return []   // team-scoped: no team → no rows (avoids the undefined-where crash)
             try {
                 const message = await Message.findAll({
                     where: {

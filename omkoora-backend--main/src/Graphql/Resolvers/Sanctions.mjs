@@ -31,10 +31,9 @@ export const resolvers = {
         },
         allSanctionsTeam: async (obj, { idTeam }, context, info) => {
             try {
+                // idTeam optional (public query): filter by team when given, else all.
                 return await Sanction.findAll({
-                    where: {
-                        id_team: idTeam
-                    }
+                    where: idTeam ? { id_team: idTeam } : {}
                 });
             } catch (error) {
                 logger.error("Error fetching all sanctions for team", error);

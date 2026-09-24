@@ -373,7 +373,7 @@ export const resolvers = {
             }
         },
         allLeaguesTeam: async (obj, { idTeam }, context, info) => {
-           
+            if (!idTeam) return []   // team-scoped: no team → no rows (avoids the undefined-where crash)
             try {
                 //Fetch participating teams and include the associated leagues
                 const participatingTeams = await ParticipatingTeams.findAll({

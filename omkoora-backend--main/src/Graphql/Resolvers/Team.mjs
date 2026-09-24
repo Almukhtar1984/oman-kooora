@@ -52,6 +52,7 @@ export const resolvers = {
         },
 
         statisticsTeam: async (obj, {idTeam}, context, info) =>  {
+            if (!idTeam) return null   // team-scoped: no team → no stats (avoids the undefined-where crash)
             try {
                 /* status: ["accepted", "rejected", "waiting", "waiting_club"] */
                 const numberPlayers = await Players.count({ where: { id_team: idTeam } })

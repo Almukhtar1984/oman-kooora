@@ -42,6 +42,7 @@ export const resolvers = {
         },
 
         allTransferTeam: async (obj, {idTeam, transitionType}, context, info) =>  {
+            if (!idTeam) return []   // team-scoped: no team → no rows (avoids the undefined-where crash)
             try {
                 return await Transfer.findAll({
                     where: {

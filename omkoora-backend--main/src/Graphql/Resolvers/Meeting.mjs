@@ -39,6 +39,7 @@ export const resolvers = {
         },
 
         allMeetingsTeam: async (obj, {idTeam}, context, info) =>  {
+            if (!idTeam) return []   // team-scoped: no team → no rows (avoids the undefined-where crash)
             try {
                 return await Meeting.findAll({
                     where: {

@@ -10,6 +10,7 @@ export const resolvers = {
         // the running total — so the "حسابات الأعضاء" tab can list name, phone
         // and amount paid in one shot.
         memberAccountsTeam: async (obj, { idTeam }, context, info) => {
+            if (!idTeam) return []   // team-scoped: no team → no rows (avoids the undefined-where crash)
             try {
                 const members = await Members.findAll({
                     where: { id_team: idTeam },
@@ -33,6 +34,7 @@ export const resolvers = {
 
         // Same ledger shape but for the team's players.
         playerAccountsTeam: async (obj, { idTeam }, context, info) => {
+            if (!idTeam) return []   // team-scoped: no team → no rows (avoids the undefined-where crash)
             try {
                 const players = await Players.findAll({
                     where: { id_team: idTeam },
