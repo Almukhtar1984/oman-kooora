@@ -11,7 +11,8 @@ export const typeDefs = gql`
         allPlayersByClass(idTeam: ID, className: String): [Player!] #@auth(requires: user)
         allPlayersByClassAccpted(idTeam: ID, className: String): [Player!] @auth(requires: user)
         allPlayersClubByClass(idClub: ID, className: String): [Player!] #@auth(requires: user)
-        allPlayersAcceptedExternal(limit: Int, offset: Int): PlayerPage!  @auth(requires: user)
+        # Public (mobile app): paginated accepted-players list, page size capped server-side.
+        allPlayersAcceptedExternal(limit: Int, offset: Int): PlayerPage!
         allPlayersClubTransferred(idClub: ID): [Player!] @auth(requires: user)
         allPlayersClubLoaned(idClub: ID): [Player!] @auth(requires: user)
         statPlayer(id: ID!): StatPlayer @auth(requires: user) # New query to get StatPlayer

@@ -77,14 +77,17 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
+        // Public, paginated list of accepted players for the mobile app.
+        // Cap the page size so a public caller can't pull the whole table at once.
         allPlayersAcceptedExternal: async (obj, { limit = 50, offset = 0 }, context, info) => {
-            console.log("zabi zabi")
             try {
+                const safeLimit = Math.min(Math.max(1, Number(limit) || 50), 100);
+                const safeOffset = Math.max(0, Number(offset) || 0);
                 const [players, totalCount] = await Promise.all([
                     Players.findAll({
                         where: { status: 'accepted' },
-                        limit,
-                        offset
+                        limit: safeLimit,
+                        offset: safeOffset
                     }),
                     Players.count({
                         where: { status: 'accepted' }
