@@ -7,7 +7,7 @@ export const typeDefs = gql`
         allLeaguesTeam(idTeam: ID): [League!] @auth(requires: user)
         leagueFull(id: ID): League @auth(requires: user)
         allLeaguesExternal: [League!]
-        getMatch(id: ID) : Match @auth(requires: user)
+        getMatch(id: ID) : Match   # public: match detail (mobile app "متابعة المباراة")
 
         # Printable match player list (starters + substitutes). Public like the
         # other print reads so the token-less print app can render it.
@@ -30,7 +30,7 @@ export const typeDefs = gql`
         calculatePoints(leagueId: ID!): [TeamPoints]
 
         calculateGoalPlayer(leagueId: ID!) :[TopGoalPlayer]
-        ExternalMatch(id: ID!): MatchExternal @auth(requires: user)
+        ExternalMatch(id: ID!): MatchExternal   # public: match detail (mobile app browsing)
         GetParticipatingPlayer(id: ID!): ParticipatingPlayers
         getCardsByLeague(leagueId: ID!): LeagueCards
         countExternalPlayers(idTeam: ID!, idLeague: ID!): Int

@@ -3,7 +3,7 @@ import {gql} from "apollo-server-express";
 export const typeDefs = gql`
 
     extend type Query {
-        club(id: ID): Club @auth(requires: user)
+        club(id: ID): Club   # public: club detail page (mobile app browsing)
         allClub: [Club!] #@auth(requires: user)
     }
 
