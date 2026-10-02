@@ -12,7 +12,9 @@ import {
     UpdateTechnicalModal,
     ConvertTechnicalToPlayerModal,
     AddAttachmentTechnicalModal,
-    ShowAttachmentsTechnical
+    ShowAttachmentsTechnical,
+    TechnicalLoanModal,
+    TechnicalTransferModal
 } from "../components/Modal";
 import {useAllTechnicals} from "../graphql";
 import useStore from "../store/useStore";
@@ -33,6 +35,8 @@ export default function TechnicalApparatus() {
     const [openChangeStatusModal, setOpenChangeStatusModal] = useState<boolean>(false);
     const [openAddAttachmentModal, setOpenAddAttachmentModal] = useState<boolean>(false);
     const [openShowAttachmentsModal, setOpenShowAttachmentsModal] = useState<boolean>(false);
+    const [openTechnicalLoanModal, setOpenTechnicalLoanModal] = useState<boolean>(false);
+    const [openTechnicalTransferModal, setOpenTechnicalTransferModal] = useState<boolean>(false);
     const [selectedTechnical, setSelectedTechnical] = useState<any>(null);
 
 
@@ -158,6 +162,8 @@ export default function TechnicalApparatus() {
                     setOpenAddAttachmentModal={setOpenAddAttachmentModal}
                     setOpenShowAttachmentsModal={setOpenShowAttachmentsModal}
                     setSelectedData={setSelectedTechnical}
+                    setOpenTechnicalLoanModal={setOpenTechnicalLoanModal}
+                    setOpenTechnicalTransferModal={setOpenTechnicalTransferModal}
                 />
             </Container>
 
@@ -170,6 +176,8 @@ export default function TechnicalApparatus() {
             <ConvertTechnicalToPlayerModal title="تحويل عضو الى لاعب" opened={openConvertTechnicalToPlayerModal} id={selectedData} onClose={() => setopenConvertTechnicalToPlayerModal(false)}/>
             <AddAttachmentTechnicalModal title="إضافة مرفقات" opened={openAddAttachmentModal} id={selectedData} onClose={() => setOpenAddAttachmentModal(false)}/>
             <ShowAttachmentsTechnical title="المرفقات" opened={openShowAttachmentsModal} data={selectedTechnical} onClose={() => setOpenShowAttachmentsModal(false)}/>
+            <TechnicalLoanModal title="إعارة عضو الجهاز الفني" opened={openTechnicalLoanModal} id={selectedData} onClose={() => setOpenTechnicalLoanModal(false)}/>
+            <TechnicalTransferModal title="انتقال عضو الجهاز الفني" opened={openTechnicalTransferModal} id={selectedData} onClose={() => setOpenTechnicalTransferModal(false)}/>
         </Box>
     );
 }

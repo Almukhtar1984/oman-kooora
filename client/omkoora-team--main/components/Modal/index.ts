@@ -97,6 +97,8 @@ export * from "./AssemblyModel"
 export * from "./ClubMangModel"
 export * from "./ConvertPlayerToTechnicalModal"
 export * from "./ConvertTechnicalToPlayerModal"
+export * from "./TechnicalLoanModal"
+export * from "./TechnicalTransferModal"
 export * from "./DeletePersonModal"
 
 

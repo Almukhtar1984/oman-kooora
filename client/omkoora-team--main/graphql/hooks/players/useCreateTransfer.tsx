@@ -8,7 +8,9 @@ interface VariableProps {
         type: string;
         id_team_from: string;
         id_team_to: string;
-        id_player: string;
+        // A transfer moves either a player or a technical-staff member.
+        id_player?: string;
+        id_technical_apparatus?: string;
 
         transition_type?: string;
         date_end?: string;

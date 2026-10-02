@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { CompactTable } from '@table-library/react-table-library/compact';
 import {ActionIcon, Badge, Group, Menu, Pagination, Stack, Text} from '@mantine/core';
-import {Check, DotsVertical, EditCircle, FileCertificate, Paperclip, Trash, X,InfoCircle,TransferOut} from "tabler-icons-react";
+import {Check, DotsVertical, EditCircle, FileCertificate, Paperclip, Trash, X,InfoCircle,TransferOut,ArrowsLeftRight} from "tabler-icons-react";
 import dayjs from "dayjs";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
@@ -55,9 +55,21 @@ interface Props {
     setOpenAddAttachmentModal?: (open: boolean) => void;
     setOpenShowAttachmentsModal?: (open: boolean) => void;
     setSelectedData?: (data: any) => void;
+    setOpenTechnicalLoanModal?: (open: boolean) => void;
+    setOpenTechnicalTransferModal?: (open: boolean) => void;
 }
 
-export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, setNewStatus, setOpenChangeStatusModal, hasPermission, setopenConvertTechnicalToPlayerModal, setOpenAddAttachmentModal, setOpenShowAttachmentsModal, setSelectedData }: Props) => {
+export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, setNewStatus, setOpenChangeStatusModal, hasPermission, setopenConvertTechnicalToPlayerModal, setOpenAddAttachmentModal, setOpenShowAttachmentsModal, setSelectedData, setOpenTechnicalLoanModal, setOpenTechnicalTransferModal }: Props) => {
+
+    // إعارة/انتقال عضو الجهاز الفني — نمرّر المعرّف ثم نفتح النافذة المناسبة.
+    const openTechnicalLoan = (id: string) => {
+        typeof setSelectedRow === "function" && setSelectedRow(id)
+        typeof setOpenTechnicalLoanModal === "function" && setOpenTechnicalLoanModal(true)
+    }
+    const openTechnicalTransfer = (id: string) => {
+        typeof setSelectedRow === "function" && setSelectedRow(id)
+        typeof setOpenTechnicalTransferModal === "function" && setOpenTechnicalTransferModal(true)
+    }
 
     const openModelAddAttachment = (id: string) => {
         typeof setSelectedRow === "function" && setSelectedRow(id)
@@ -182,6 +194,8 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
 
                         <Menu.Item icon={<EditCircle size={18} />} onClick={() => openModelUpdate(item?.id)} >تعديل</Menu.Item>
                         {item?.status == "accepted" && <Menu.Item icon={<TransferOut size={18} />} onClick={() => openModelConvert(item?.id)} >نقل الى اللاعب</Menu.Item>}
+                        {item?.status == "accepted" && hasPermission("2") && <Menu.Item icon={<ArrowsLeftRight size={18} />} onClick={() => openTechnicalLoan(item?.id)} >إعارة</Menu.Item>}
+                        {item?.status == "accepted" && hasPermission("2") && <Menu.Item icon={<TransferOut size={18} />} onClick={() => openTechnicalTransfer(item?.id)} >انتقال</Menu.Item>}
                         <Menu.Item icon={<Paperclip size={18} />} onClick={() => openModelAddAttachment(item?.id)} >إضافة مرفقات</Menu.Item>
                         <Menu.Item icon={<Paperclip size={18} />} onClick={() => openModelShowAttachments(item)} >المرفقات</Menu.Item>
                         <Menu.Item icon={<Trash size={18} />} onClick={() => openModelDelete(item?.id)} >حذف</Menu.Item>
@@ -243,6 +257,8 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
                         }
 
                         <Menu.Item icon={<EditCircle size={18} />} onClick={() => openModelUpdate(item?.id)} >تعديل</Menu.Item>
+                        {item?.status == "accepted" && hasPermission("2") && <Menu.Item icon={<ArrowsLeftRight size={18} />} onClick={() => openTechnicalLoan(item?.id)} >إعارة</Menu.Item>}
+                        {item?.status == "accepted" && hasPermission("2") && <Menu.Item icon={<TransferOut size={18} />} onClick={() => openTechnicalTransfer(item?.id)} >انتقال</Menu.Item>}
                         <Menu.Item icon={<Trash size={18} />} onClick={() => openModelDelete(item?.id)} >حذف</Menu.Item>
                     </Menu.Dropdown>
               </Menu>
