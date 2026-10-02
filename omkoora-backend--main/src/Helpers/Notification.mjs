@@ -1,6 +1,6 @@
 import {Notification} from "../Models/index.mjs"
 import {getSocketServerInstance } from "../Socket/index.mjs"
-import { Team,Players ,Person} from "../Models/index.mjs"
+import { Team,Players ,Person, TechnicalApparatus} from "../Models/index.mjs"
 
 
 const operationTypes = {
@@ -39,6 +39,17 @@ const getPName = async (Category, id) => {
             } catch (error) {
                 console.error("Error fetching player name:", error);
                 return "Error fetching player name";
+            }
+        case "technical":
+            try {
+                const tech = await TechnicalApparatus.findByPk(id, { include: [{ model: Person, as: 'person' }] });
+                if (tech && tech.person) {
+                    return tech.person.first_name + " " + tech.person.second_name + " " + tech.person.third_name;
+                }
+                return "";
+            } catch (error) {
+                console.error("Error fetching technical-staff name:", error);
+                return "";
             }
         case "team":
             return " فريق النور";
@@ -81,7 +92,7 @@ export const CreateNotificationClub = async (Category , FunctionType ,id_club,te
 }
 
 //CreateNotificationTeam("memeber","update",Members.id_team,Members.id)
-export const CreateNotificationTeam = async (Category , FunctionType ,id_team,id_Player) => {
+export const CreateNotificationTeam = async (Category , FunctionType ,id_team,id_Player, subjectType = "player") => {
     
     let functionType = operationTypes[FunctionType]
     let BodyText = ''
@@ -111,15 +122,17 @@ export const CreateNotificationTeam = async (Category , FunctionType ,id_team,id
                 break
 
             case "loan":
-                let loanName = await getPName("player", id_Player)
+                let loanName = await getPName(subjectType, id_Player)
+                // "اللاعب" for a player, "عضو الجهاز الفني" for technical staff.
+                let subjectWord = subjectType === "technical" ? "عضو الجهاز الفني" : "اللاعب"
                 if (FunctionType === "request") {
-                    BodyText = "لديك طلب إعارة جديد للاعب " + loanName + " بانتظار القبول أو الرفض"
+                    BodyText = "لديك طلب إعارة جديد لـ" + subjectWord + " " + loanName + " بانتظار القبول أو الرفض"
                 } else if (FunctionType === "accepted") {
-                    BodyText = "تم قبول طلب إعارة اللاعب " + loanName
+                    BodyText = "تم قبول طلب إعارة " + subjectWord + " " + loanName
                 } else if (FunctionType === "rejected") {
-                    BodyText = "تم رفض طلب إعارة اللاعب " + loanName
+                    BodyText = "تم رفض طلب إعارة " + subjectWord + " " + loanName
                 } else if (FunctionType === "returned") {
-                    BodyText = "انتهت مدة إعارة اللاعب " + loanName + " وعاد إلى فريقه الأصلي"
+                    BodyText = "انتهت مدة إعارة " + subjectWord + " " + loanName + " وعاد إلى فريقه الأصلي"
                 }
                 break
 

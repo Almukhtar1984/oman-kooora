@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { ParticipatingTeams, ParticipatingPlayers } from '../Models/index.mjs';
+import { ParticipatingTeams, ParticipatingPlayers, ParticipatingTechnicalStaff } from '../Models/index.mjs';
 
 /**
  * Remove a player's league-squad enrolment(s) that belong to ONE specific
@@ -40,6 +40,29 @@ export async function removeReceivingTeamParticipations(idPlayer, idTeamTo, tran
     return ParticipatingPlayers.destroy({
         where: {
             id_player: idPlayer,
+            id_participating_team: { [Op.in]: participatingTeamIds }
+        },
+        transaction
+    });
+}
+
+/**
+ * Same as removeReceivingTeamParticipations but for a TECHNICAL-STAFF member:
+ * drop their league-squad enrolment(s) with the receiving team when a loan is
+ * returned. ParticipatingTechnicalStaff is keyed by id_technical_apparatus.
+ */
+export async function removeReceivingTeamParticipationsTechnical(idTechnical, idTeamTo, transaction) {
+    const receivingTeams = await ParticipatingTeams.findAll({
+        where: { id_team: idTeamTo },
+        attributes: ['id'],
+        transaction
+    });
+    const participatingTeamIds = receivingTeams.map((pt) => pt.id);
+    if (participatingTeamIds.length === 0) return 0;
+
+    return ParticipatingTechnicalStaff.destroy({
+        where: {
+            id_technical_apparatus: idTechnical,
             id_participating_team: { [Op.in]: participatingTeamIds }
         },
         transaction

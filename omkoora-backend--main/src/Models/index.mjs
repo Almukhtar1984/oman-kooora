@@ -168,6 +168,12 @@ Transfer.belongsTo(Club, { foreignKey: { name: 'id_club_to' }, onDelete: 'CASCAD
 Players.hasOne(Transfer, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Transfer.belongsTo(Players, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
+// TechnicalApparatus 1 * Transfer — a transfer/loan can move a technical-staff
+// member between teams, exactly like a player (id_technical_apparatus set instead
+// of id_player).
+TechnicalApparatus.hasOne(Transfer, { foreignKey: { name: 'id_technical_apparatus' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+Transfer.belongsTo(TechnicalApparatus, { foreignKey: { name: 'id_technical_apparatus' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
+
 // Players 1 * Request
 Players.hasOne(Request, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Request.belongsTo(Players, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });

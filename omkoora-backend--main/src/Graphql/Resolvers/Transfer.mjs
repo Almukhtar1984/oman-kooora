@@ -6,10 +6,10 @@ import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
 
-import {Transfer, Players, Team, Club} from '../../Models/index.mjs';
+import {Transfer, Players, Team, Club, TechnicalApparatus} from '../../Models/index.mjs';
 import DB from '../../Config/DBContact.mjs';
 import {CreateNotificationTeam} from "../../Helpers/index.mjs";
-import {removeReceivingTeamParticipations} from "../../Helpers/LoanReturn.mjs";
+import {removeReceivingTeamParticipations, removeReceivingTeamParticipationsTechnical} from "../../Helpers/LoanReturn.mjs";
 
 
 dotenv.config();
@@ -122,6 +122,14 @@ export const resolvers = {
                 logger.error("")
                 throw new ApolloError(error)
             }
+        },
+        technicalApparatus: async ({id_technical_apparatus}, {}, context, info) =>  {
+            try {
+                return id_technical_apparatus ? await TechnicalApparatus.findByPk(id_technical_apparatus) : null
+            } catch (error) {
+                logger.error("")
+                throw new ApolloError(error)
+            }
         }
     },
 
@@ -131,17 +139,22 @@ export const resolvers = {
                 let transfer = await Transfer.create(content)
 
                 const isLoan = content.transition_type === "loan"
+                // A transfer moves either a player or a technical-staff member.
+                const isTech = !content.id_player && !!content.id_technical_apparatus
+                const Subject = isTech ? TechnicalApparatus : Players
+                const subjectId = isTech ? content.id_technical_apparatus : content.id_player
+                const subjectType = isTech ? "technical" : "player"
 
                 if (content.status === "accepted") {
-                    await Players.update({id_team: content.id_team_to}, { where: { id: content.id_player } })
-                } else if (transfer && content.id_player && !isLoan) {
-                    await Players.update({status: "waiting"}, { where: { id: content.id_player } })
+                    await Subject.update({id_team: content.id_team_to}, { where: { id: subjectId } })
+                } else if (transfer && subjectId && !isLoan) {
+                    await Subject.update({status: "waiting"}, { where: { id: subjectId } })
                 }
 
                 // A pending loan request notifies the receiving team so it can
                 // accept or reject it from its loans page.
                 if (isLoan && content.status !== "accepted" && content.id_team_to) {
-                    await CreateNotificationTeam("loan", "request", content.id_team_to, content.id_player)
+                    await CreateNotificationTeam("loan", "request", content.id_team_to, subjectId, subjectType)
                 }
 
                 return transfer
@@ -162,24 +175,28 @@ export const resolvers = {
 
                 if (result[0] === 1) {
                     const isLoan = transfer.transition_type === "loan"
-                    // Fall back to the stored transfer ids so the move works even
-                    // when the client only sends the new status.
-                    const idPlayer = content.id_player || transfer.id_player
+                    // Works for a player or a technical-staff member, from stored ids.
+                    const isTech = !transfer.id_player && !!transfer.id_technical_apparatus
+                    const Subject = isTech ? TechnicalApparatus : Players
+                    const subjectType = isTech ? "technical" : "player"
+                    const subjectId = isTech
+                        ? (content.id_technical_apparatus || transfer.id_technical_apparatus)
+                        : (content.id_player || transfer.id_player)
                     const idTeamTo = content.id_team_to || transfer.id_team_to
 
                     if (content.status === "accepted") {
                         await Transfer.update({id_team_to: idTeamTo, id_club_to: null}, { where: { id } })
 
-                        await Players.update({status: "accepted", id_team: idTeamTo}, { where: { id: idPlayer } })
+                        await Subject.update({status: "accepted", id_team: idTeamTo}, { where: { id: subjectId } })
 
                         if (isLoan) {
-                            await CreateNotificationTeam("loan", "accepted", transfer.id_team_from, idPlayer)
+                            await CreateNotificationTeam("loan", "accepted", transfer.id_team_from, subjectId, subjectType)
                         }
                     } else if (content.status === "rejected") {
-                        await Players.update({status: "accepted"}, { where: { id: idPlayer } })
+                        await Subject.update({status: "accepted"}, { where: { id: subjectId } })
 
                         if (isLoan) {
-                            await CreateNotificationTeam("loan", "rejected", transfer.id_team_from, idPlayer)
+                            await CreateNotificationTeam("loan", "rejected", transfer.id_team_from, subjectId, subjectType)
                         }
                     }
                 }
@@ -221,25 +238,34 @@ export const resolvers = {
                 // his league enrolment(s) with the RECEIVING team, then
                 // soft-delete the transfer. If any step fails nothing commits.
                 await DB.transaction(async (t) => {
-                    // 1) Restore player's team to the old (lending) team. A player
-                    //    the cleanup already sent back is simply left where he is:
-                    //    an UPDATE that changes nothing reports 0 affected rows,
-                    //    which must not read as a failure.
-                    const player = await Players.findByPk(transfer.id_player, { transaction: t });
-                    if (!player) {
-                        throw new ApolloError(`Failed to update player team for player ID ${transfer.id_player}`);
+                    // Works for a player or a technical-staff member.
+                    const isTech = !transfer.id_player && !!transfer.id_technical_apparatus;
+                    const Subject = isTech ? TechnicalApparatus : Players;
+                    const subjectId = isTech ? transfer.id_technical_apparatus : transfer.id_player;
+
+                    // 1) Restore the member's team to the old (lending) team. One
+                    //    the cleanup already sent back is left where it is: an
+                    //    UPDATE that changes nothing reports 0 affected rows, which
+                    //    must not read as a failure.
+                    const subject = await Subject.findByPk(subjectId, { transaction: t });
+                    if (!subject) {
+                        throw new ApolloError(`Failed to update team for subject ID ${subjectId}`);
                     }
 
-                    if (player.id_team !== transfer.id_team_from) {
-                        await Players.update(
+                    if (subject.id_team !== transfer.id_team_from) {
+                        await Subject.update(
                             { id_team: transfer.id_team_from },
-                            { where: { id: transfer.id_player }, transaction: t }
+                            { where: { id: subjectId }, transaction: t }
                         );
                     }
 
-                    // 2) Remove his league squad enrolment(s) with the RECEIVING
-                    //    team only — his original-team enrolments stay intact.
-                    await removeReceivingTeamParticipations(transfer.id_player, transfer.id_team_to, t);
+                    // 2) Remove the league squad enrolment(s) with the RECEIVING
+                    //    team only — original-team enrolments stay intact.
+                    if (isTech) {
+                        await removeReceivingTeamParticipationsTechnical(subjectId, transfer.id_team_to, t);
+                    } else {
+                        await removeReceivingTeamParticipations(subjectId, transfer.id_team_to, t);
+                    }
 
                     // 3) Soft-delete the transfer record, unless it is already closed.
                     if (!transfer.deletedAt) {

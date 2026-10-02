@@ -32,6 +32,10 @@ export const typeDefs = gql`
         id_player:    ID
         player:       Player
 
+        # Set instead of id_player when the transfer/loan moves a technical-staff member.
+        id_technical_apparatus: ID
+        technicalApparatus:     TechnicalApparatus
+
         transition_type:  String
         date_end:         Date  @date(format: "yyyy-MM-dd")
         date_start:       Date  @date(format: "yyyy-MM-dd")
@@ -52,6 +56,7 @@ export const typeDefs = gql`
         id_team_from: ID
         id_team_to:   ID
         id_player:    ID
+        id_technical_apparatus: ID
         id_club_to:   ID
     }
 `;
