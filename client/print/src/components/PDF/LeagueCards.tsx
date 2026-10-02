@@ -63,7 +63,7 @@ const playerForCard = (pp: ParticipatingPlayer) => ({
     person: pp.player?.person,
     team: pp.participating_team?.team,
     // Set on technical-staff envelopes (TeamStaffCards) — renders a "الصفة" row.
-    occupation: pp.player?.occupation,
+    classification: (pp.player as any)?.classification,
 });
 
 const toolbarStyle: React.CSSProperties = {

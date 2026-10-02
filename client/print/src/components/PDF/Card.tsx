@@ -15,6 +15,7 @@ import dayjs from "dayjs";
 
 import { apiUrl, printUrl } from "../../config";
 import CardImageExport from "../CardImageExport";
+import { roleLabel } from "../../lib/roleLabel";
 
 interface Props {
     player?: any;
@@ -290,10 +291,10 @@ export const CardFrontPage = ({
                                 }}
                             />
 
-                            {player?.occupation ? (
+                            {roleLabel(player) ? (
                                 <>
                                     <Text style={styles.label}>الصفة</Text>
-                                    <Text style={styles.value}>{player.occupation}</Text>
+                                    <Text style={styles.value}>{roleLabel(player)}</Text>
                                     <View style={{ height: 3 }} />
                                 </>
                             ) : null}

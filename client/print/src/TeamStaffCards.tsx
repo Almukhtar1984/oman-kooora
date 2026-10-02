@@ -18,11 +18,10 @@ const staffToCardEnvelope = (row: any) => ({
     id: row?.id,
     player: {
         id: row?.technicalApparatus?.id,
-        // "الصفة" on a staff card is the technical role (classification:
-        // مدرب/مساعد مدرب/أخصائي علاج…), NOT the person's generic job
-        // (occupation: موظف/طالب/متقاعد). classification is required on every
-        // row, so the generic job never reaches the printed card.
-        occupation: row?.technicalApparatus?.classification,
+        // "الصفة" is the technical role; the person's generic job
+        // (occupation: موظف/طالب/متقاعد) is private and never printed — see
+        // lib/roleLabel.
+        classification: row?.technicalApparatus?.classification,
         person: row?.technicalApparatus?.person,
     },
     participating_team: row?.participating_team,

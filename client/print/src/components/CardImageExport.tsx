@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { apiUrl } from "../config";
 import { buildFullName, formatBirthLine, generateQrDataUrl, cardPalette } from "./PDF/Card";
+import { roleLabel } from "../lib/roleLabel";
 
 // Real ID-1 card at 300 dpi, landscape (85.6 × 54 mm). Printing this PNG at
 // 100% gives a credit-card-sized card — no full A4 page, no cutting guesswork.
@@ -203,9 +204,10 @@ const drawFront = (ctx: CanvasRenderingContext2D, player: any, a: Assets, title:
     label("الاسم الكامل");
     value(buildFullName(player?.person), true);
     divider();
-    if (player?.occupation) {
+    const role = roleLabel(player);
+    if (role) {
         label("الصفة");
-        value(String(player.occupation));
+        value(role);
     }
     label("تاريخ الميلاد");
     value(formatBirthLine(player?.person?.date_birth) || "—");
