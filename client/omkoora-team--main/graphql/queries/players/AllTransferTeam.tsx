@@ -38,7 +38,24 @@ export const AllTransferTeam = gql`
                     date_birth
                 }
             }
-            
+
+            technicalApparatus {
+                id
+                occupation
+                classification
+                person {
+                    id
+                    personal_picture
+                    first_name
+                    second_name
+                    third_name
+                    tribe
+                    phone
+                    card_number
+                    date_birth
+                }
+            }
+
             createdAt
             updatedAt
         }

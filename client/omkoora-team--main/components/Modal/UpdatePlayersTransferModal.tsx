@@ -20,6 +20,7 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
                 content: {
                     status: data?.status,
                     id_player: data?.player?.id,
+                    id_technical_apparatus: data?.technicalApparatus?.id,
                     id_team_to: data?.team_to?.id,
                 }
             },

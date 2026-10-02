@@ -137,11 +137,12 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
                     : <Badge fw={500} color="red">منتهي</Badge>
         )},
 
-        {label: 'الاسم الكامل', renderCell: (item) => `${item?.player?.person?.first_name} ${item?.player?.person?.second_name} ${item?.player?.person?.third_name} ${item?.player?.person?.tribe}` },
-        {label: 'رقم الهاتف', renderCell: (item) => item?.player?.person?.phone },
-        {label: 'رقم البطاقه', renderCell: (item) => item?.player?.person?.card_number },
-        {label: 'تاريخ الميلاد', renderCell: (item) => item?.player?.person?.date_birth },
-        {label: 'النشاط', renderCell: (item) => item?.activity },
+        {label: 'الاسم الكامل', renderCell: (item) => { const s = item?.player || item?.technicalApparatus; return `${s?.person?.first_name ?? ''} ${s?.person?.second_name ?? ''} ${s?.person?.third_name ?? ''} ${s?.person?.tribe ?? ''}`; } },
+        {label: 'النوع', renderCell: (item) => item?.technicalApparatus ? 'جهاز فني' : 'لاعب' },
+        {label: 'رقم الهاتف', renderCell: (item) => (item?.player || item?.technicalApparatus)?.person?.phone },
+        {label: 'رقم البطاقه', renderCell: (item) => (item?.player || item?.technicalApparatus)?.person?.card_number },
+        {label: 'تاريخ الميلاد', renderCell: (item) => (item?.player || item?.technicalApparatus)?.person?.date_birth },
+        {label: 'النشاط', renderCell: (item) => item?.activity ?? item?.technicalApparatus?.classification },
         {label: 'مركز لاعب', renderCell: (item) => item?.player_center },
         {label: 'العمل', renderCell: (item) => item?.job },
         {label: 'الملاحظة / سبب الرفض', renderCell: (item) => item?.note },

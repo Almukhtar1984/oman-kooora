@@ -10,6 +10,7 @@ interface VariableProps {
         id_team_from?: string;
         id_team_to?: string;
         id_player?: string;
+        id_technical_apparatus?: string;
     };
 }
 
