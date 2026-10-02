@@ -19,6 +19,28 @@ export default (db, types) => {
         payment_date: {
             type: types.DATEONLY,
             allowNull: true
+        },
+        // How the payment was collected. Kept as a plain string (not an ENUM)
+        // so new channels can be added without a schema migration.
+        method: {
+            type: types.STRING(20),
+            allowNull: true
+        },
+        // Settlement state: "paid" | "pending" | "unpaid". Plain string for the
+        // same reason — the GraphQL PaymentStatus enum documents the values.
+        status: {
+            type: types.STRING(20),
+            allowNull: true
+        },
+        // Stored receipt (filename under /uploads or an absolute URL).
+        receipt_url: {
+            type: types.STRING(255),
+            allowNull: true
+        },
+        // Provider / bank-transfer reference (e.g. a Thawani transaction id).
+        transaction_number: {
+            type: types.STRING(100),
+            allowNull: true
         }
     }, {
         timestamps: true,

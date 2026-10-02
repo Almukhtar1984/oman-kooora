@@ -230,7 +230,7 @@ input contentBlog {
 
 # ===================== Club =====================
 extend type Query {
-  club(id: ID): Club @auth(requires: user)
+  club(id: ID): Club
   allClub: [Club!]
 }
 
@@ -459,7 +459,7 @@ extend type Query {
   allLeaguesTeam(idTeam: ID): [League!] @auth(requires: user)
   leagueFull(id: ID): League @auth(requires: user)
   allLeaguesExternal: [League!]
-  getMatch(id: ID): Match @auth(requires: user)
+  getMatch(id: ID): Match
   matchLineup(id: ID!): MatchLineup
   teamRoster(id: ID!): TeamRoster
   allParticipatingPlayers(idParticipatingTeams: ID): [ParticipatingPlayers!]
@@ -469,7 +469,7 @@ extend type Query {
   allScorerMatch(idMatch: ID): [ScorerMatch]
   calculatePoints(leagueId: ID!): [TeamPoints]
   calculateGoalPlayer(leagueId: ID!): [TopGoalPlayer]
-  ExternalMatch(id: ID!): MatchExternal @auth(requires: user)
+  ExternalMatch(id: ID!): MatchExternal
   GetParticipatingPlayer(id: ID!): ParticipatingPlayers
   getCardsByLeague(leagueId: ID!): LeagueCards
   countExternalPlayers(idTeam: ID!, idLeague: ID!): Int
@@ -1137,7 +1137,7 @@ extend type Query {
   allPlayersByClass(idTeam: ID, className: String): [Player!]
   allPlayersByClassAccpted(idTeam: ID, className: String): [Player!] @auth(requires: user)
   allPlayersClubByClass(idClub: ID, className: String): [Player!]
-  allPlayersAcceptedExternal(limit: Int, offset: Int): PlayerPage! @auth(requires: user)
+  allPlayersAcceptedExternal(limit: Int, offset: Int): PlayerPage!
   allPlayersClubTransferred(idClub: ID): [Player!] @auth(requires: user)
   allPlayersClubLoaned(idClub: ID): [Player!] @auth(requires: user)
   statPlayer(id: ID!): StatPlayer @auth(requires: user)
@@ -1227,6 +1227,7 @@ extend type Query {
   allRequests(idPlayer: ID, type: String): [Request!] @auth(requires: user)
   allRequestsTeam(idTeam: ID): [Request!] @auth(requires: user)
   authexternal(CardNumber: String, phoneNumber: String): Player
+  portalRequests: [Request!]
 }
 
 extend type Mutation {
@@ -1242,10 +1243,27 @@ type Request {
   type: String
   status: String
   note: String
+  reference_number: String
+  admin_reply: String
+  replied_at: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  attachments: [Attachment]
   player: Player
   createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+enum PortalRequestType {
+  request
+  complaint
+}
+
+enum PortalRequestStatus {
+  new
+  review
+  replied
+  closed
+  rejected
 }
 
 input contentRequest {
@@ -1253,6 +1271,8 @@ input contentRequest {
   type: String
   status: String
   note: String
+  admin_reply: String
+  attachments: [Upload]
   id_player: ID
 }
 
@@ -1357,7 +1377,7 @@ input contentReservations {
 
 # ===================== Team =====================
 extend type Query {
-  team(id: ID): Team @auth(requires: user)
+  team(id: ID): Team
   allTeam(idClub: ID): [Team!]
   allTeams: [Team!]
   statisticsTeam(idTeam: ID): StatisticsTeam @auth(requires: user)
@@ -1512,6 +1532,8 @@ type Transfer {
   club_to: Club
   id_player: ID
   player: Player
+  id_technical_apparatus: ID
+  technicalApparatus: TechnicalApparatus
   transition_type: String
   date_end: Date @date(format: "yyyy-MM-dd")
   date_start: Date @date(format: "yyyy-MM-dd")
@@ -1529,6 +1551,7 @@ input contentTransfer {
   id_team_from: ID
   id_team_to: ID
   id_player: ID
+  id_technical_apparatus: ID
   id_club_to: ID
 }
 
@@ -1559,6 +1582,7 @@ extend type Mutation {
   updatePassword(oldPassword: String!, newPassword: String!): statusUpdate! @auth(requires: user)
   activeUser(id: ID!, activation: Boolean): statusUpdate! @auth(requires: user)
   logOut: statusDelete
+  saveFcmToken(token: String!, platform: String!): statusUpdate @auth(requires: user)
   resetTeamPassword(idTeam: ID!): ResetTeamPasswordPayload!
 }
 
@@ -1686,7 +1710,24 @@ type MemberPayment {
   amount: Float
   note: String
   payment_date: String
+  method: String
+  status: String
+  receipt_url: String
+  transaction_number: String
   createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+enum PaymentMethod {
+  cash
+  card
+  bank
+  thawani
+}
+
+enum PaymentStatus {
+  paid
+  pending
+  unpaid
 }
 
 type MemberAccount {
@@ -1705,6 +1746,10 @@ input contentMemberPayment {
   amount: Float!
   note: String
   payment_date: String
+  method: String
+  status: String
+  receipt_url: String
+  transaction_number: String
   id_member: ID
   id_player: ID
   id_team: ID!
@@ -1786,6 +1831,7 @@ type PortalAuth {
 
 type PortalMe {
   person: Person!
+  user: User
   memberships: [PortalMembership!]!
   assemblies: [Assembly!]!
 }
@@ -1798,6 +1844,8 @@ type PortalMembership {
   occupation: String
   classification: String
   membership_date: String
+  membership_date_end: String
+  paid: Boolean
   team: Team
   club: Club
 }
@@ -1812,6 +1860,10 @@ type PortalPayment {
   amount: Float
   note: String
   payment_date: String
+  method: String
+  status: String
+  receipt_url: String
+  transaction_number: String
   createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
   team: Team
   paid_as: String

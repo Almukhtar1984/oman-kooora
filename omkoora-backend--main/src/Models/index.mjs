@@ -178,6 +178,10 @@ Transfer.belongsTo(TechnicalApparatus, { foreignKey: { name: 'id_technical_appar
 Players.hasOne(Request, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Request.belongsTo(Players, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
+// Request 1 * Attachment (same attachments table, keyed by id_request)
+Request.hasMany(Attachment, { foreignKey: { name: 'id_request' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+Attachment.belongsTo(Request, { foreignKey: { name: 'id_request' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
+
 // Club 1 * Assembly
 Club.hasOne(Assembly, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Assembly.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });

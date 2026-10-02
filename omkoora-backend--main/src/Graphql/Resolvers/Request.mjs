@@ -1,16 +1,53 @@
-import { ApolloError } from 'apollo-server-express';
+import { ApolloError, AuthenticationError } from 'apollo-server-express';
 import sequelize from 'sequelize';
 import dotenv from 'dotenv'
+import path from "path";
+import { v4 as UUID } from 'uuid';
+import { createWriteStream } from "fs";
 
 import logger from "../../Config/logger.mjs";
 
-import {Request, Players, Team,Person} from '../../Models/index.mjs';
+import {Request, Players, Team, Person, Attachment} from '../../Models/index.mjs';
+import {__dirname} from "../../app.mjs";
 
 
 dotenv.config();
 
 
 const {Op, col} = sequelize;
+
+// Files a member may attach to a request/complaint.
+const ATTACHMENT_TYPES = ["JPEG", "JPG", "PNG", "MP4", "PDF", "DOC", "DOCX", "XLS", "XLSX", "PPT", "PPTX", "CSV", "ZIP"];
+
+// Short, human-friendly reference the member quotes when following up.
+const makeReferenceNumber = () => `REQ-${UUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+
+// Persist one uploaded file under /uploads and record it against the request.
+const saveRequestAttachment = async (upload, idRequest) => {
+    const { createReadStream, filename } = await upload;
+    const ext = filename.split(".").pop().toUpperCase();
+
+    if (ATTACHMENT_TYPES.indexOf(ext) === -1) {
+        throw new ApolloError(`Unsupported attachment type: ${ext}`, "REQUEST_ATTACHMENT_TYPE");
+    }
+
+    const uniqName = `${UUID()}.${ext}`;
+    const pathName = path.join(__dirname, `./../uploads/${uniqName}`);
+
+    await new Promise((resolve, reject) => {
+        createReadStream()
+            .pipe(createWriteStream(pathName))
+            .on("finish", resolve)
+            .on("error", reject);
+    });
+
+    await Attachment.create({ content: uniqName, id_request: idRequest });
+};
+
+// The person behind the request: a portal token (portalPerson) or a dashboard
+// account linked to a person (user.id_person). Returns null for neither.
+const requestPersonId = (context) =>
+    context?.portalPerson?.id || context?.user?.id_person || null;
 
 export const resolvers = {
     Query: {
@@ -56,6 +93,28 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
+        // The signed-in member's own requests. Reads the person from the portal
+        // token (or a linked dashboard account) and returns every request filed
+        // against any player row that person owns.
+        portalRequests: async (obj, args, context, info) => {
+            const idPerson = requestPersonId(context);
+            if (!idPerson) {
+                throw new AuthenticationError("You must be signed in to the member portal");
+            }
+            try {
+                const players = await Players.findAll({ where: { id_person: idPerson } });
+                const playerIds = players.map((p) => p.id);
+                if (playerIds.length === 0) return [];
+
+                return await Request.findAll({
+                    where: { id_player: { [Op.in]: playerIds } },
+                    order: [['createdAt', 'DESC']],
+                });
+            } catch (error) {
+                logger.error(`portalRequests error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
         authexternal: async (obj, {CardNumber,phoneNumber}, context, info) =>  {
 
             try {
@@ -98,6 +157,15 @@ export const resolvers = {
                 logger.error("")
                 throw new ApolloError(error)
             }
+        },
+        attachments: async ({id}, args, context, info) => {
+            if (!id) return [];
+            try {
+                return await Attachment.findAll({ where: { id_request: id } });
+            } catch (error) {
+                logger.error(`Request.attachments error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
         }
     },
     
@@ -105,7 +173,21 @@ export const resolvers = {
     Mutation: {
         createRequest: async (obj, {content}, context, info) =>  {
             try {
-                return await Request.create(content)
+                // `attachments` are files, not a column — keep them out of create().
+                const { attachments, ...fields } = content;
+
+                const request = await Request.create({
+                    ...fields,
+                    reference_number: makeReferenceNumber(),
+                });
+
+                if (attachments && attachments.length > 0) {
+                    for (const upload of attachments) {
+                        await saveRequestAttachment(upload, request.id);
+                    }
+                }
+
+                return request;
             } catch (error) {
                 // logger.error("")
                 throw new ApolloError(error)
@@ -114,7 +196,21 @@ export const resolvers = {
 
         updateRequest: async (obj, {id, content}, context, info) =>  {
             try {
-                let result = await Request.update(content, { where: { id } })
+                // `attachments` are files, not a column — pull them out.
+                const { attachments, ...fields } = content;
+
+                // Writing a reply stamps the time it was sent.
+                if (fields.admin_reply !== undefined && fields.admin_reply !== null) {
+                    fields.replied_at = new Date();
+                }
+
+                let result = await Request.update(fields, { where: { id } })
+
+                if (attachments && attachments.length > 0) {
+                    for (const upload of attachments) {
+                        await saveRequestAttachment(upload, id);
+                    }
+                }
 
                 return {
                     status: result[0] === 1
@@ -155,6 +251,7 @@ export const resolvers = {
               const requestData = {
                 ...content,      // Copy other content fields
                 id_player: player.id,  // Assign player.id to id_player
+                reference_number: makeReferenceNumber(),
               };
       
               // Step 3: Create the request

@@ -9,7 +9,7 @@ import {
     normalizePhone,
 } from "../../Helpers/PortalIdentity.mjs";
 import {
-    Assembly, Club, MemberPayment, Members, Person, Players, Team, TechnicalApparatus,
+    Assembly, Club, MemberPayment, Members, Person, Players, Team, TechnicalApparatus, User,
 } from '../../Models/index.mjs';
 
 const { Op } = sequelize;
@@ -109,6 +109,9 @@ const loadMemberships = async (idPerson) => {
             occupation: row.job,
             classification: row.activity,
             membership_date: null,
+            // Players have no term/dues columns — leave these empty.
+            membership_date_end: null,
+            paid: null,
             id_team: row.id_team,
         })),
         ...members.map((row) => ({
@@ -119,6 +122,8 @@ const loadMemberships = async (idPerson) => {
             occupation: row.occupation,
             classification: row.classification,
             membership_date: row.membership_date,
+            membership_date_end: row.membership_date_end,
+            paid: row.paid,
             id_team: row.id_team,
         })),
         ...technicals.map((row) => ({
@@ -129,6 +134,8 @@ const loadMemberships = async (idPerson) => {
             occupation: row.occupation,
             classification: row.classification,
             membership_date: row.membership_date,
+            membership_date_end: row.membership_date_end,
+            paid: row.paid,
             id_team: row.id_team,
         })),
     ];
@@ -186,6 +193,20 @@ export const resolvers = {
             } catch (error) {
                 if (error instanceof AuthenticationError) throw error;
                 logger.error(`portalPayments error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+    },
+
+    PortalMe: {
+        // The dashboard account for this person, matched by id_person. Loaded
+        // lazily so portalMe stays cheap for the (common) accountless member.
+        user: async ({ person }, args, context, info) => {
+            if (!person?.id) return null;
+            try {
+                return await User.findOne({ where: { id_person: person.id } });
+            } catch (error) {
+                logger.error(`PortalMe.user error: ${error.message || error}`);
                 throw new ApolloError(error);
             }
         },

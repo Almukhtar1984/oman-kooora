@@ -19,6 +19,22 @@ export default (db, types) => {
             type: types.STRING(255),
             allowNull: true
         },
+        // Human-friendly reference the member quotes when following up, e.g.
+        // "REQ-1A2B3C4D". Generated on create; unique but nullable for old rows.
+        reference_number: {
+            type: types.STRING(32),
+            allowNull: true,
+            unique: true
+        },
+        // The admin's written reply and when it was sent.
+        admin_reply: {
+            type: types.TEXT,
+            allowNull: true
+        },
+        replied_at: {
+            type: types.DATE,
+            allowNull: true
+        },
         status: {
             type: types.ENUM,
             values: ["accepted", "rejected", "waiting", "done"],

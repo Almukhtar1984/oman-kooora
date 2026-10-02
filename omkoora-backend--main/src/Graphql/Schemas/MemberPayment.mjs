@@ -24,8 +24,19 @@ export const typeDefs = gql`
         # DATEONLY serialises to "yyyy-MM-dd" (or null) on its own — keeping it a
         # plain String avoids the @date directive turning a null into 1970-01-01.
         payment_date: String
+        # "cash" | "card" | "bank" | "thawani" — see PaymentMethod.
+        method:             String
+        # "paid" | "pending" | "unpaid" — see PaymentStatus.
+        status:             String
+        receipt_url:        String
+        transaction_number: String
         createdAt:    Date @date(format: "yyyy-MM-dd HH:mm:ss")
     }
+
+    # Documented value sets for the string fields above. Kept as enums for the
+    # client; the columns themselves stay plain strings server-side.
+    enum PaymentMethod { cash, card, bank, thawani }
+    enum PaymentStatus { paid, pending, unpaid }
 
     type MemberAccount {
         member:    Member
@@ -43,6 +54,10 @@ export const typeDefs = gql`
         amount:       Float!
         note:         String
         payment_date: String
+        method:             String
+        status:             String
+        receipt_url:        String
+        transaction_number: String
         id_member:    ID
         id_player:    ID
         id_team:      ID!

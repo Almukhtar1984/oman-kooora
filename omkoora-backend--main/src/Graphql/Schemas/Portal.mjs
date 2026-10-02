@@ -27,6 +27,9 @@ export const typeDefs = gql`
 
     type PortalMe {
         person:      Person!
+        # The dashboard account linked to this person, if any — carries role,
+        # permission and activation. Null when the person has no User row.
+        user:        User
         # One entry per capacity the person is registered in. Most people have
         # exactly one; someone can be both a player and technical staff.
         memberships: [PortalMembership!]!
@@ -42,7 +45,11 @@ export const typeDefs = gql`
         class:          String
         occupation:     String
         classification: String
-        membership_date: String
+        membership_date:     String
+        # End of the membership term and whether the dues are settled. Only
+        # members and technical staff carry these; null for players.
+        membership_date_end: String
+        paid:                Boolean
         team:           Team
         club:           Club
     }
@@ -57,6 +64,13 @@ export const typeDefs = gql`
         amount:       Float
         note:         String
         payment_date: String
+        # How the payment was made ("cash" | "card" | "bank" | "thawani"),
+        # its settlement state ("paid" | "pending" | "unpaid"), a link to the
+        # uploaded receipt and the provider/transfer reference.
+        method:             String
+        status:             String
+        receipt_url:        String
+        transaction_number: String
         createdAt:    Date @date(format: "yyyy-MM-dd HH:mm:ss")
         team:         Team
         # Which membership the payment was recorded against: "player" or "member".
