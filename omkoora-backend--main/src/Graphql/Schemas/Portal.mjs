@@ -18,6 +18,10 @@ export const typeDefs = gql`
 
     extend type Mutation {
         authenticatePortalPerson(phone: String!, card_number: String!): PortalAuth!
+
+        # The logged-in member uploads a photo of their card. Stored on their
+        # person and returned by portalMe.person.card_image. Portal token only.
+        portalUploadCardImage(image: Upload!): statusUpdate
     }
 
     type PortalAuth {

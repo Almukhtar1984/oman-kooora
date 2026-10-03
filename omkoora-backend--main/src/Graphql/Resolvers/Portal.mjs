@@ -3,6 +3,7 @@ import sequelize from 'sequelize';
 
 import logger from "../../Config/logger.mjs";
 import { AuthToken } from "../../Helpers/index.mjs";
+import { saveUpload } from "../../Helpers/Upload.mjs";
 import {
     cardNumberLookupValues,
     normalizeCardNumber,
@@ -295,6 +296,23 @@ export const resolvers = {
                 return { token, person };
             } catch (error) {
                 logger.error(`authenticatePortalPerson error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        // The logged-in member uploads a photo of their card (image only). Stored
+        // on their own person row; read back via portalMe.person.card_image.
+        portalUploadCardImage: async (obj, { image }, context, info) => {
+            try {
+                const person = requirePortalPerson(context);
+                const storedName = await saveUpload(image, { allowed: ["JPEG", "JPG", "PNG"] });
+                const [affected] = await Person.update(
+                    { card_image: storedName },
+                    { where: { id: person.id } }
+                );
+                return { status: affected === 1 };
+            } catch (error) {
+                logger.error(`portalUploadCardImage error: ${error.message || error}`);
                 throw new ApolloError(error);
             }
         },

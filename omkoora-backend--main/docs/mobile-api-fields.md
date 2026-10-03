@@ -252,3 +252,24 @@ mutation { saveFcmToken(token: "<FCM_DEVICE_TOKEN>", platform: "android") { stat
   - `FIREBASE_SERVICE_ACCOUNT_PATH` = مسار الملف خارج المستودع.
 - الإرسال من الكود عبر `sendPushToUser(userId, { title, body, data })` من `src/Config/firebase.mjs`.
 - بدون المفتاح: كل شيء يعمل عاديًا والإرسال مُعطَّل بأمان (يُسجَّل في اللوج فقط).
+
+---
+
+## 11) رفع صورة البطاقة من التطبيق (بوّابة اللاعب) — أُضيفت 🆕 (تحتاج migration)
+المستخدم (الداخل بالهاتف+الرقم المدني) يرفع صورة بطاقته، وتُعرض في التطبيق.
+
+**الرفع** (multipart عبر مواصفة graphql-upload، مع ترويسة `Authorization: Bearer <portal token>`):
+```graphql
+mutation ($image: Upload!) {
+  portalUploadCardImage(image: $image) { status }
+}
+```
+- صور فقط: JPEG / JPG / PNG. يحتاج توكن البوّابة (دخول الهاتف+الرقم المدني).
+
+**العرض** — تُقرأ من `portalMe`:
+```graphql
+query { portalMe { person { first_name card_image } } }
+```
+- `card_image` يرجع **اسم الملف**؛ التطبيق يبني الرابط: `https://api.omkooora.com/images/<card_image>`
+  (نفس طريقة `personal_picture`).
+- migration مطلوب: `deploy/sql/2026-10-03_person_card_image.sql` (يضيف `people.card_image`).

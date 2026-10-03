@@ -10,6 +10,11 @@ export default (db, types) => {
             type: types.STRING(100),
             allowNull: true
         },
+        // Portal (mobile app): a photo of the member's card they upload themselves.
+        card_image: {
+            type: types.STRING(100),
+            allowNull: true
+        },
         first_name: {
             type: types.STRING(20),
             allowNull: false

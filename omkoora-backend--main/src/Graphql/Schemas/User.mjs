@@ -71,6 +71,7 @@ export const typeDefs = gql`
     type Person {
         id:                 ID
         personal_picture:   String #@imgUrl
+        card_image:         String   # portal: member-uploaded card photo (filename; app builds the URL)
         first_name:         String
         second_name:        String
         third_name:         String
