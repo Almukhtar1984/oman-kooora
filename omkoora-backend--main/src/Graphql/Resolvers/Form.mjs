@@ -20,7 +20,7 @@ export const resolvers = {
             try {
                 return await Form.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Form.form: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -33,7 +33,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Form.allForms: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -44,7 +44,7 @@ export const resolvers = {
             try {
                 return await Club.findByPk(id_club)
             } catch (error) {
-                logger.error("")
+                logger.error(`Form.club: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -81,7 +81,7 @@ export const resolvers = {
                 return form
             } catch (error) {
                 console.log(error)
-                // logger.error("")
+                // logger.error(`Form.createForm: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -117,7 +117,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Form.updateForm: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -130,7 +130,7 @@ export const resolvers = {
                     status: meeting === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Form.deleteForm: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }

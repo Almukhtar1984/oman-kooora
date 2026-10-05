@@ -142,7 +142,7 @@ export const resolvers = {
             try {
                 return await Club.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Club.club: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -151,7 +151,7 @@ export const resolvers = {
             try {
                 return await Club.findAll()
             } catch (error) {
-                logger.error("")
+                logger.error(`Club.allClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -178,7 +178,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Club.admin: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -190,7 +190,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Club.teams: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -530,7 +530,7 @@ uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
                     logo: imgUniqName
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Club.createClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -579,7 +579,7 @@ uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
                 }
             } catch (error) {
                 console.log(error)
-                logger.error("")
+                logger.error(`Club.updateClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -592,7 +592,7 @@ uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
                     status: club === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Club.deleteClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

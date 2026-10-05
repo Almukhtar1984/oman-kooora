@@ -22,7 +22,7 @@ export const resolvers = {
             try {
                 return await Expense.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Expense.expense: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -35,7 +35,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Expense.allExpensesClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -49,7 +49,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Expense.allExpensesTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -81,7 +81,7 @@ export const resolvers = {
                     net,
                 };
             } catch (error) {
-                logger.error("");
+                logger.error(`Expense.expenseSummary: ${error?.message || error}`);
                 throw new ApolloError(error);
             }
         },
@@ -93,7 +93,7 @@ export const resolvers = {
             try {
                 return await Team.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`Expense.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -101,7 +101,7 @@ export const resolvers = {
             try {
                 return await Club.findByPk(id_club)
             } catch (error) {
-                logger.error("")
+                logger.error(`Expense.club: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -136,7 +136,7 @@ export const resolvers = {
                 return await Expense.create(content)
             } catch (error) {
                 console.log(error)
-                // logger.error("")
+                // logger.error(`Expense.createExpense: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -195,7 +195,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Expense.updateExpense: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -208,7 +208,7 @@ export const resolvers = {
                     status: expense === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Expense.deleteExpense: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -221,7 +221,7 @@ export const resolvers = {
                 return comment
             } catch (error) {
                 console.log(error)
-                // logger.error("")
+                // logger.error(`Expense.createComment: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -234,7 +234,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Expense.updateComment: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -247,7 +247,7 @@ export const resolvers = {
                     status: comment === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Expense.deleteComment: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

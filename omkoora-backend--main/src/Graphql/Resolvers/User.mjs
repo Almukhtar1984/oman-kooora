@@ -45,7 +45,7 @@ export const resolvers = {
             try {
                 return await User.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`User.user: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -54,7 +54,7 @@ export const resolvers = {
             try {
                 return await User.findAll()
             } catch (error) {
-                logger.error("")
+                logger.error(`User.allUser: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -67,7 +67,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`User.person: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -205,7 +205,7 @@ export const resolvers = {
             try {
                 return await Person.findByPk(id_person)
             } catch (error) {
-                logger.error("")
+                logger.error(`User.person: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -217,7 +217,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`User.permission: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -228,7 +228,7 @@ export const resolvers = {
             try {
                 return await Team.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`User.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -241,7 +241,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`User.member: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -254,7 +254,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`User.player: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -267,7 +267,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`User.technicalApparatus: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -280,7 +280,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`User.clubManagement: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -293,7 +293,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`User.user: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -386,7 +386,7 @@ export const resolvers = {
 
                 return user
             } catch (error) {
-                logger.error("")
+                logger.error(`User.createUser: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -449,7 +449,7 @@ export const resolvers = {
                     status: (person && person[0] === 1) || (result && result[0] === 1)
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`User.updateUser: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -491,7 +491,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`User.updateAnyUser: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -504,7 +504,7 @@ export const resolvers = {
                     status: user === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`User.deleteUser: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -536,7 +536,7 @@ export const resolvers = {
                 }
 
             } catch (error) {
-                logger.error("")
+                logger.error(`User.emailVerification: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -562,7 +562,7 @@ export const resolvers = {
                 }
 
             }  catch (error) {
-                logger.error("")
+                logger.error(`User.resendVerificationEmail: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -593,7 +593,7 @@ export const resolvers = {
                 }
 
             }  catch (error) {
-                logger.error("")
+                logger.error(`User.forgetPassword: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -634,7 +634,7 @@ export const resolvers = {
                 }
 
             }  catch (error) {
-                logger.error("")
+                logger.error(`User.changePassword: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -690,7 +690,7 @@ export const resolvers = {
                     status: user[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`User.activeUser: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

@@ -20,7 +20,7 @@ export const resolvers = {
             try {
                 return await Permission.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Permission.permission: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -33,7 +33,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Permission.allPermissionsClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -47,7 +47,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Permission.allPermissionsTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -58,7 +58,7 @@ export const resolvers = {
             try {
                 return await User.findByPk(id_user)
             } catch (error) {
-                logger.error("")
+                logger.error(`Permission.user: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -112,7 +112,7 @@ export const resolvers = {
                 })
             } catch (error) {
                 console.log(error)
-                // logger.error("")
+                // logger.error(`Permission.createPermission: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -158,7 +158,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Permission.updatePermission: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -176,7 +176,7 @@ export const resolvers = {
                     status: true
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Permission.deletePermission: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

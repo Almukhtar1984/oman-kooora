@@ -22,7 +22,7 @@ export const resolvers = {
             try {
                 return await Assembly.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Assembly.assembly: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -35,7 +35,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Assembly.allAssemblyClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -90,7 +90,7 @@ export const resolvers = {
                     return true
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Assembly.allAssemblyTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -102,7 +102,7 @@ export const resolvers = {
             try {
                 return await Club.findByPk(id_club)
             } catch (error) {
-                logger.error("")
+                logger.error(`Assembly.club: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -111,7 +111,7 @@ export const resolvers = {
             try {
                 return await Team.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`Assembly.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -207,7 +207,7 @@ export const resolvers = {
 
                 return await Assembly.create({...data})
             } catch (error) {
-                logger.error("")
+                logger.error(`Assembly.createAssembly: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -286,7 +286,7 @@ export const resolvers = {
                     }
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Assembly.updateAssembly: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -299,7 +299,7 @@ export const resolvers = {
                     status: team === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Assembly.deleteAssembly: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

@@ -20,7 +20,7 @@ export const resolvers = {
             try {
                 return await Meeting.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Meeting.meeting: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -33,7 +33,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Meeting.allMeetingsClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -47,7 +47,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Meeting.allMeetingsTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -58,7 +58,7 @@ export const resolvers = {
             try {
                 return await Team.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`Meeting.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -66,7 +66,7 @@ export const resolvers = {
             try {
                 return await Club.findByPk(id_club)
             } catch (error) {
-                logger.error("")
+                logger.error(`Meeting.club: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -78,7 +78,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Meeting.attachment: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -117,7 +117,7 @@ export const resolvers = {
                 return meeting
             } catch (error) {
                 console.log(error)
-                // logger.error("")
+                // logger.error(`Meeting.createMeeting: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -156,7 +156,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Meeting.updateMeeting: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -169,7 +169,7 @@ export const resolvers = {
                     status: meeting === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Meeting.deleteMeeting: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }

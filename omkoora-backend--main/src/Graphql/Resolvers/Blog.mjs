@@ -20,7 +20,7 @@ export const resolvers = {
             try {
                 return await Blog.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Blog.blog: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -35,7 +35,7 @@ export const resolvers = {
                     order: [['createdAt', 'DESC']]
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Blog.allBlogs: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -65,7 +65,7 @@ export const resolvers = {
 
                 return [...blogsClub, ...blogsTeam]
             } catch (error) {
-                logger.error("")
+                logger.error(`Blog.allBlogsClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -79,7 +79,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Blog.allBlogsTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -126,7 +126,7 @@ export const resolvers = {
             try {
                 return await Club.findByPk(id_club)
             } catch (error) {
-                logger.error("")
+                logger.error(`Blog.club: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -134,7 +134,7 @@ export const resolvers = {
             try {
                 return await Team.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`Blog.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -146,7 +146,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Blog.attachment: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -185,7 +185,7 @@ export const resolvers = {
                 return blog
             } catch (error) {
                 console.log(error)
-                // logger.error("")
+                // logger.error(`Blog.createBlog: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -224,7 +224,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Blog.updateBlog: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -237,7 +237,7 @@ export const resolvers = {
                     status: blog === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Blog.deleteBlog: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

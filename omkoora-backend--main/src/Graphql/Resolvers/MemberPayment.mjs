@@ -27,7 +27,7 @@ export const resolvers = {
 
                 return accounts;
             } catch (error) {
-                logger.error("");
+                logger.error(`MemberPayment.memberAccountsTeam: ${error?.message || error}`);
                 throw new ApolloError(error);
             }
         },
@@ -49,7 +49,7 @@ export const resolvers = {
                     return { player, totalPaid: sumAmount(payments), payments };
                 }));
             } catch (error) {
-                logger.error("");
+                logger.error(`MemberPayment.playerAccountsTeam: ${error?.message || error}`);
                 throw new ApolloError(error);
             }
         },
@@ -64,7 +64,7 @@ export const resolvers = {
                 });
                 return { player, totalPaid: sumAmount(payments), payments };
             } catch (error) {
-                logger.error("");
+                logger.error(`MemberPayment.playerPayments: ${error?.message || error}`);
                 throw new ApolloError(error);
             }
         }
@@ -75,7 +75,7 @@ export const resolvers = {
             try {
                 return await MemberPayment.create(content);
             } catch (error) {
-                logger.error("");
+                logger.error(`MemberPayment.createMemberPayment: ${error?.message || error}`);
                 throw new ApolloError(error);
             }
         },
@@ -85,7 +85,7 @@ export const resolvers = {
                 const deleted = await MemberPayment.destroy({ where: { id } });
                 return { status: deleted === 1 };
             } catch (error) {
-                logger.error("");
+                logger.error(`MemberPayment.deleteMemberPayment: ${error?.message || error}`);
                 throw new ApolloError(error);
             }
         }

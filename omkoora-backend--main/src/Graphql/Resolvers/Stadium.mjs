@@ -21,7 +21,7 @@ export const resolvers = {
             try {
                 return await Stadium.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Stadium.stadium: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -35,7 +35,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Stadium.allStadiumsTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -44,7 +44,7 @@ export const resolvers = {
             try {
                 return await Stadium.findAll()
             } catch (error) {
-                logger.error("")
+                logger.error(`Stadium.allStadiums: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -57,7 +57,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Stadium.allReservations: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -117,7 +117,7 @@ export const resolvers = {
             try {
                 return await Team.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`Stadium.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -128,7 +128,7 @@ export const resolvers = {
             try {
                 return await Stadium.findByPk(id_stadium)
             } catch (error) {
-                logger.error("")
+                logger.error(`Stadium.stadium: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -184,7 +184,7 @@ export const resolvers = {
                 return stadium
             } catch (error) {
                 console.log(error)
-                // logger.error("")
+                // logger.error(`Stadium.createStadium: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -225,7 +225,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Stadium.updateStadium: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -238,7 +238,7 @@ export const resolvers = {
                     status: meeting === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Stadium.deleteStadium: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -344,7 +344,7 @@ export const resolvers = {
                     status: result === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Stadium.deleteReservation: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
             

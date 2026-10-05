@@ -21,7 +21,7 @@ export const resolvers = {
             try {
                 return await TechnicalApparatus.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`TechnicalApparatus.technicalApparatus: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -54,7 +54,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`TechnicalApparatus.allTechnicalApparatusClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -69,7 +69,7 @@ export const resolvers = {
                 }
                 return await Person.findByPk(id_person)
             } catch (error) {
-                logger.error("")
+                logger.error(`TechnicalApparatus.person: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -81,7 +81,7 @@ export const resolvers = {
                 }
                 return await Team.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`TechnicalApparatus.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -141,7 +141,7 @@ export const resolvers = {
                 return result
             } catch (error) {
                 console.log({ error })
-                // logger.error("")
+                // logger.error(`TechnicalApparatus.createTechnicalApparatus: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -177,7 +177,7 @@ export const resolvers = {
                     status: result[0] === 1 || person[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`TechnicalApparatus.updateTechnicalApparatus: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -191,7 +191,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`TechnicalApparatus.changeStatusTechnicalApparatus: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -246,7 +246,7 @@ export const resolvers = {
                     status: result === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`TechnicalApparatus.deleteTechnicalApparatus: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

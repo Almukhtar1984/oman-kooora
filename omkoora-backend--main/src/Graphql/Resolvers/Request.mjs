@@ -55,7 +55,7 @@ export const resolvers = {
             try {
                 return await Request.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Request.request: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -69,7 +69,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Request.allRequests: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -89,7 +89,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Request.allRequestsTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -154,7 +154,7 @@ export const resolvers = {
             try {
                 return await Players.findByPk(id_player)
             } catch (error) {
-                logger.error("")
+                logger.error(`Request.player: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -189,7 +189,7 @@ export const resolvers = {
 
                 return request;
             } catch (error) {
-                // logger.error("")
+                // logger.error(`Request.createRequest: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -216,7 +216,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                // logger.error("")
+                // logger.error(`Request.updateRequest: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -229,7 +229,7 @@ export const resolvers = {
                     status: team === 1
                 }
             } catch (error) {
-                // logger.error("")
+                // logger.error(`Request.deleteRequest: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

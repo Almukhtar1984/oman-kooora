@@ -26,7 +26,7 @@ export const resolvers = {
             try {
                 return await Players.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.player: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -41,7 +41,7 @@ export const resolvers = {
                     }
                   });
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.playerAccepted: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -117,7 +117,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.allPlayersClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -163,7 +163,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.allPlayersClubByClass: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -213,7 +213,7 @@ export const resolvers = {
                     ]
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.allPlayersClubTransferred: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -252,7 +252,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.allPlayersClubLoaned: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -357,7 +357,7 @@ export const resolvers = {
                 }
                 return await Person.findByPk(parent.id_person)
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.person: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -365,17 +365,17 @@ export const resolvers = {
         transfers_count: async ({ id }) => {
             if (!id) return 0;
             try { return await Transfer.count({ where: { id_player: id, transition_type: "transition" } }); }
-            catch (error) { logger.error(""); return 0; }
+            catch (error) { logger.error(`Players.transfers_count: ${error?.message || error}`); return 0; }
         },
         loans_count: async ({ id }) => {
             if (!id) return 0;
             try { return await Transfer.count({ where: { id_player: id, transition_type: "loan" } }); }
-            catch (error) { logger.error(""); return 0; }
+            catch (error) { logger.error(`Players.loans_count: ${error?.message || error}`); return 0; }
         },
         competitions_count: async ({ id }) => {
             if (!id) return 0;
             try { return await ParticipatingPlayers.count({ where: { id_player: id } }); }
-            catch (error) { logger.error(""); return 0; }
+            catch (error) { logger.error(`Players.competitions_count: ${error?.message || error}`); return 0; }
         },
         transfer: async ({id}, {}, context, info) =>  {
             if (!id) return [];
@@ -388,7 +388,7 @@ export const resolvers = {
                     order: [['createdAt', 'DESC']]
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.transfer: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -401,7 +401,7 @@ export const resolvers = {
                     order: [['createdAt', 'DESC']]
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.lastTransfer: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -417,7 +417,7 @@ export const resolvers = {
                     order: [['createdAt', 'DESC']]
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.lastLoan: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -451,7 +451,7 @@ export const resolvers = {
                     paranoid: false
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.latestLoan: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -464,7 +464,7 @@ export const resolvers = {
                 }
                 return await Team.findByPk(parent.id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -482,7 +482,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.club: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -497,7 +497,7 @@ export const resolvers = {
                     where: { id_player: parent.id }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.attachmentsPlayer: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -814,7 +814,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.changeStatusPlayer: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -852,7 +852,7 @@ export const resolvers = {
                     status: result === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Players.deletePlayer: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

@@ -20,7 +20,7 @@ export const resolvers = {
             try {
                 return await Members.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`Members.member: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -60,7 +60,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Members.allMembersHasAccount: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -79,7 +79,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`Members.allMembersClub: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -94,7 +94,7 @@ export const resolvers = {
                 }
                 return await Person.findByPk(id_person)
             } catch (error) {
-                logger.error("")
+                logger.error(`Members.person: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -106,7 +106,7 @@ export const resolvers = {
                 }
                 return await Team.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`Members.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -136,7 +136,7 @@ export const resolvers = {
 
                 return result
             } catch (error) {
-                logger.error("")
+                logger.error(`Members.createMember: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -305,7 +305,7 @@ export const resolvers = {
                     status: result[0] === 1 || person[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Members.updateMember: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -326,7 +326,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Members.changeStatusMember: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -372,7 +372,7 @@ export const resolvers = {
                     status: result === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`Members.deleteMember: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

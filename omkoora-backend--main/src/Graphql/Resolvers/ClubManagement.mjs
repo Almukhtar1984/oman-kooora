@@ -17,7 +17,7 @@ export const resolvers = {
             try {
                 return await ClubManagement.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`ClubManagement.clubManagement: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -30,7 +30,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`ClubManagement.allClubManagement: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         }
@@ -41,7 +41,7 @@ export const resolvers = {
             try {
                 return await Club.findByPk(id_club)
             } catch (error) {
-                logger.error("")
+                logger.error(`ClubManagement.club: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -49,7 +49,7 @@ export const resolvers = {
             try {
                 return await Person.findByPk(id_person )
             } catch (error) {
-                logger.error("")
+                logger.error(`ClubManagement.person: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -90,7 +90,7 @@ export const resolvers = {
 
                 return result
             } catch (error) {
-                logger.error("")
+                logger.error(`ClubManagement.createClubManagement: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -166,7 +166,7 @@ export const resolvers = {
                     status: team === 1
                 }
             } catch (error) {
-                logger.error("")
+                logger.error(`ClubManagement.deleteClubManagement: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

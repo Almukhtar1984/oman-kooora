@@ -284,7 +284,7 @@ export const resolvers = {
             try {
                 return await League.findByPk(id)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.league: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -312,7 +312,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`League.allLeagues: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -411,7 +411,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`League.allParticipatingPlayers: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -465,7 +465,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`League.allParticipatingTechnicalStaff: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -478,7 +478,7 @@ export const resolvers = {
                     }
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`League.allScorerMatch: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1182,7 +1182,7 @@ export const resolvers = {
                 const seen = new Set(); const out = [];
                 for (const pt of pts) { const c = pt.team?.club; if (c && !seen.has(c.id)) { seen.add(c.id); out.push(c); } }
                 return out;
-            } catch (error) { logger.error(""); return []; }
+            } catch (error) { logger.error(`League.clubs: ${error?.message || error}`); return []; }
         },
         clubs_count: async ({ id }) => {
             try {
@@ -1191,7 +1191,7 @@ export const resolvers = {
                     include: [{ model: Team, as: "team", required: true, attributes: ["id_club"] }],
                 });
                 return new Set(pts.map((p) => p.team?.id_club).filter(Boolean)).size;
-            } catch (error) { logger.error(""); return 0; }
+            } catch (error) { logger.error(`League.clubs_count: ${error?.message || error}`); return 0; }
         },
         // Top scorer of the competition (mobile app). Counts scorer records
         // across the league's matches; returns the player with the most goals.
@@ -1236,7 +1236,7 @@ export const resolvers = {
                     if (p) return [p.first_name, p.second_name, p.third_name].filter(Boolean).join(" ") || null;
                 }
                 return null;
-            } catch (error) { logger.error(""); return null; }
+            } catch (error) { logger.error(`League.organizer_name: ${error?.message || error}`); return null; }
         },
         participatingTeams: async ({id}, {}, context, info) =>  {
             
@@ -1245,7 +1245,7 @@ export const resolvers = {
                     where: {id_league: id}
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`League.participatingTeams: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1261,7 +1261,7 @@ export const resolvers = {
                 order: [['createdAt', 'DESC']],
                 })
             } catch (error) {
-                logger.error("")
+                logger.error(`League.matchs: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1269,7 +1269,7 @@ export const resolvers = {
             try {
                 return await Club.findByPk(id_club)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.club: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1278,7 +1278,7 @@ export const resolvers = {
             try {
                 return await User.findByPk(id_user)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.user: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1290,7 +1290,7 @@ export const resolvers = {
             try {
                 return await League.findByPk(id_league)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.league: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1299,7 +1299,7 @@ export const resolvers = {
             try {
                 return await Team.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1344,7 +1344,7 @@ export const resolvers = {
             try {
                 return await ParticipatingTeams.findByPk(first_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.firstTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1353,7 +1353,7 @@ export const resolvers = {
             try {
                 return await ParticipatingTeams.findByPk(second_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.secondTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1482,7 +1482,7 @@ export const resolvers = {
             try {
                 return await ParticipatingTeams.findByPk(id_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1491,7 +1491,7 @@ export const resolvers = {
             try {
                 return await Match.findByPk(id_match)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.match: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1502,7 +1502,7 @@ export const resolvers = {
             try {
                 return await ParticipatingTeams.findByPk(id_participating_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.participating_team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1510,7 +1510,7 @@ export const resolvers = {
             try {
                 return await Players.findByPk(id_player)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.player: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1552,7 +1552,7 @@ export const resolvers = {
             try {
                 return await ParticipatingTeams.findByPk(id_participating_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.participating_team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1560,7 +1560,7 @@ export const resolvers = {
             try {
                 return await TechnicalApparatus.findByPk(id_technical_apparatus)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.technicalApparatus: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1571,7 +1571,7 @@ export const resolvers = {
             try {
                 return await Match.findByPk(id_match)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.match: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1579,7 +1579,7 @@ export const resolvers = {
             try {
                 return await ParticipatingTeams.findByPk(id_participating_team)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.participating_team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1587,7 +1587,7 @@ export const resolvers = {
             try {
                 return await ParticipatingPlayers.findByPk(id_participating_player)
             } catch (error) {
-                logger.error("")
+                logger.error(`League.participating_player: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1712,7 +1712,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.updateLeague: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1759,7 +1759,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.deleteLeague: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1879,7 +1879,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.deleteParticipatingTeams: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1901,7 +1901,7 @@ export const resolvers = {
             } catch (error) {
                 if (error instanceof ApolloError) throw error
                 console.log(error)
-                // logger.error("")
+                // logger.error(`League.createMatch: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -1969,7 +1969,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.deleteMatch: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -2036,7 +2036,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.updateMatchCard: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -2053,7 +2053,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.deleteMatchCard: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -2086,7 +2086,7 @@ export const resolvers = {
             } catch (error) {
                 if (error instanceof ApolloError) throw error
                 console.log(error)
-                // logger.error("")
+                // logger.error(`League.createParticipatingPlayers: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -2117,7 +2117,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.updateParticipatingPlayers: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -2133,7 +2133,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.deleteParticipatingPlayers: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -2245,7 +2245,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.deleteParticipatingPlayersMatch: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
@@ -2312,7 +2312,7 @@ export const resolvers = {
                 }
             } catch (error) {
                 if (error instanceof ApolloError) throw error
-                logger.error("")
+                logger.error(`League.deleteParticipatingTechnicalStaff: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },
