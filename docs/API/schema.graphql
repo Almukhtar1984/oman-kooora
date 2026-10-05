@@ -1228,6 +1228,7 @@ extend type Query {
   allRequestsTeam(idTeam: ID): [Request!] @auth(requires: user)
   authexternal(CardNumber: String, phoneNumber: String): Player
   portalRequests: [Request!]
+  portalMyRequests(type: String): [Request!]
 }
 
 extend type Mutation {
@@ -1235,6 +1236,7 @@ extend type Mutation {
   updateRequest(id: ID!, content: contentRequest!): statusUpdate @auth(requires: user)
   deleteRequest(id: ID!): statusDelete @auth(requires: user)
   createRequestExternal(content: contentRequestExternal!): Request! @auth(requires: user)
+  portalCreateRequest(content: contentRequest!): Request!
 }
 
 type Request {
@@ -1608,6 +1610,7 @@ type Image {
 type Person {
   id: ID
   personal_picture: String
+  card_image: String
   first_name: String
   second_name: String
   third_name: String
@@ -1818,10 +1821,14 @@ type Notification {
 extend type Query {
   portalMe: PortalMe
   portalPayments: PortalAccount
+  portalMyNotifications: [Notification]
 }
 
 extend type Mutation {
   authenticatePortalPerson(phone: String!, card_number: String!): PortalAuth!
+  portalUploadCardImage(image: Upload!): statusUpdate
+  portalUploadProfileImage(image: Upload!): statusUpdate
+  portalMarkNotificationsAsRead: Boolean
 }
 
 type PortalAuth {

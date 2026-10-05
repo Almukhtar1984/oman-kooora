@@ -14,6 +14,11 @@ export const typeDefs = gql`
         # itself (same pattern as portalMe / portalPayments). A dashboard account
         # linked to a player sees that player's requests too.
         portalRequests: [Request!]
+
+        # Same as portalRequests with an optional type filter
+        # ("request" | "complaint"); omit type to get both. Portal token (or a
+        # linked dashboard account) — NOT @auth(requires: user), see above.
+        portalMyRequests(type: String): [Request!]
     }
 
     extend type Mutation {
@@ -22,8 +27,13 @@ export const typeDefs = gql`
         updateRequest (id: ID!, content: contentRequest!): statusUpdate @auth(requires: user)
 
         deleteRequest ( id: ID! ): statusDelete @auth(requires: user)
-        
+
         createRequestExternal(content: contentRequestExternal!): Request! @auth(requires: user)
+
+        # A portal member files their own request/complaint. The person is read
+        # from the token (never the client); only content/type/note/attachments
+        # are honoured. NOT @auth(requires: user) — portal token, see queries.
+        portalCreateRequest(content: contentRequest!): Request!
     }
 
     type Request {

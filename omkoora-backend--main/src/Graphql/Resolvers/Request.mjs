@@ -49,6 +49,21 @@ const saveRequestAttachment = async (upload, idRequest) => {
 const requestPersonId = (context) =>
     context?.portalPerson?.id || context?.user?.id_person || null;
 
+// The signed-in member, or an auth error. Requests are keyed to a player row,
+// so callers also need that person's player ids.
+const requirePortalRequestPerson = (context) => {
+    const idPerson = requestPersonId(context);
+    if (!idPerson) {
+        throw new AuthenticationError("You must be signed in to the member portal");
+    }
+    return idPerson;
+};
+
+const playerIdsForPerson = async (idPerson) => {
+    const players = await Players.findAll({ where: { id_person: idPerson } });
+    return players.map((p) => p.id);
+};
+
 export const resolvers = {
     Query: {
         request: async (obj, {id}, context, info) =>  {
@@ -97,13 +112,9 @@ export const resolvers = {
         // token (or a linked dashboard account) and returns every request filed
         // against any player row that person owns.
         portalRequests: async (obj, args, context, info) => {
-            const idPerson = requestPersonId(context);
-            if (!idPerson) {
-                throw new AuthenticationError("You must be signed in to the member portal");
-            }
+            const idPerson = requirePortalRequestPerson(context);
             try {
-                const players = await Players.findAll({ where: { id_person: idPerson } });
-                const playerIds = players.map((p) => p.id);
+                const playerIds = await playerIdsForPerson(idPerson);
                 if (playerIds.length === 0) return [];
 
                 return await Request.findAll({
@@ -112,6 +123,27 @@ export const resolvers = {
                 });
             } catch (error) {
                 logger.error(`portalRequests error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        // Same as portalRequests but with an optional type filter
+        // ("request" | "complaint"); omit `type` to get both.
+        portalMyRequests: async (obj, { type }, context, info) => {
+            const idPerson = requirePortalRequestPerson(context);
+            try {
+                const playerIds = await playerIdsForPerson(idPerson);
+                if (playerIds.length === 0) return [];
+
+                const where = { id_player: { [Op.in]: playerIds } };
+                if (type) where.type = type;
+
+                return await Request.findAll({
+                    where,
+                    order: [['createdAt', 'DESC']],
+                });
+            } catch (error) {
+                logger.error(`portalMyRequests error: ${error.message || error}`);
                 throw new ApolloError(error);
             }
         },
@@ -171,6 +203,44 @@ export const resolvers = {
     
 
     Mutation: {
+        // A portal member files their own request/complaint. The person comes
+        // from the token (never the client), is resolved to their player row,
+        // and only member-settable fields are honoured — status/admin_reply stay
+        // server-controlled.
+        portalCreateRequest: async (obj, { content }, context, info) => {
+            const idPerson = requirePortalRequestPerson(context);
+            try {
+                const playerIds = await playerIdsForPerson(idPerson);
+                if (playerIds.length === 0) {
+                    throw new ApolloError(
+                        "لا يمكن إضافة طلب: حسابك غير مرتبط بسجل لاعب",
+                        "PORTAL_NOT_A_PLAYER"
+                    );
+                }
+
+                const { content: body, type, note, attachments } = content;
+
+                const request = await Request.create({
+                    content: body,
+                    type,
+                    note,
+                    id_player: playerIds[0],
+                    reference_number: makeReferenceNumber(),
+                });
+
+                if (attachments && attachments.length > 0) {
+                    for (const upload of attachments) {
+                        await saveRequestAttachment(upload, request.id);
+                    }
+                }
+
+                return request;
+            } catch (error) {
+                logger.error(`portalCreateRequest error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
         createRequest: async (obj, {content}, context, info) =>  {
             try {
                 // `attachments` are files, not a column — keep them out of create().

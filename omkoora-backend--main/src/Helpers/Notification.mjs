@@ -1,6 +1,6 @@
 import {Notification} from "../Models/index.mjs"
 import {getSocketServerInstance } from "../Socket/index.mjs"
-import { Team,Players ,Person, TechnicalApparatus} from "../Models/index.mjs"
+import { Team,Players ,Person, TechnicalApparatus, Members} from "../Models/index.mjs"
 
 
 const operationTypes = {
@@ -16,6 +16,30 @@ const FieldTypes = {
     'player':"لاعب",
     "sanction":"عقوبة"
 }
+// Best-effort: map a notification's subject (a player / technical-staff /
+// member row) to the person it belongs to, so the member portal can show each
+// person only their own notifications. Returns null for team-wide events or any
+// lookup miss — it must never throw and break notification creation.
+const resolvePersonId = async (category, id, subjectType = "player") => {
+    if (!id) return null;
+    try {
+        if (category === "loan" && subjectType === "technical") {
+            const tech = await TechnicalApparatus.findByPk(id);
+            return tech?.id_person || null;
+        }
+        if (category === "memeber") {
+            const member = await Members.findByPk(id);
+            return member?.id_person || null;
+        }
+        // "player" | "sanction" | "loan"(player): id is a players.id
+        const player = await Players.findByPk(id);
+        return player?.id_person || null;
+    } catch (error) {
+        console.error("resolvePersonId error:", error);
+        return null;
+    }
+};
+
 const getPName = async (Category, id) => {
     switch (Category) {
         case "player":
@@ -81,6 +105,7 @@ export const CreateNotificationClub = async (Category , FunctionType ,id_club,te
         const notification = await Notification.create({
             id_club : id_club,
             body : BodyText,
+            id_person: await resolvePersonId(Category, id_Player),
         });
         const socketServer = getSocketServerInstance();
         if (socketServer) {
@@ -144,6 +169,7 @@ export const CreateNotificationTeam = async (Category , FunctionType ,id_team,id
             //id_club : team.id_club,
             body : BodyText,
             id_team:  id_team,
+            id_person: await resolvePersonId(Category, id_Player, subjectType),
 
         });
         const socketServer = getSocketServerInstance();

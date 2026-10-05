@@ -10,7 +10,7 @@ import {
     normalizePhone,
 } from "../../Helpers/PortalIdentity.mjs";
 import {
-    Assembly, Club, MemberPayment, Members, Person, Players, Team, TechnicalApparatus, User,
+    Assembly, Club, MemberPayment, Members, Notification, Person, Players, Team, TechnicalApparatus, User,
 } from '../../Models/index.mjs';
 
 const { Op } = sequelize;
@@ -197,6 +197,23 @@ export const resolvers = {
                 throw new ApolloError(error);
             }
         },
+
+        // The logged-in member's own notifications, newest first. Scoped by
+        // id_person — the member never sees team-wide or other members' rows.
+        portalMyNotifications: async (obj, args, context, info) => {
+            try {
+                const person = requirePortalPerson(context);
+                return await Notification.findAll({
+                    where: { id_person: person.id },
+                    order: [['createdAt', 'DESC']],
+                    limit: 50,
+                });
+            } catch (error) {
+                if (error instanceof AuthenticationError) throw error;
+                logger.error(`portalMyNotifications error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
     },
 
     PortalMe: {
@@ -313,6 +330,39 @@ export const resolvers = {
                 return { status: affected === 1 };
             } catch (error) {
                 logger.error(`portalUploadCardImage error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        // The logged-in member uploads their profile picture (image only). Stored
+        // on their own person row; read back via portalMe.person.personal_picture.
+        portalUploadProfileImage: async (obj, { image }, context, info) => {
+            try {
+                const person = requirePortalPerson(context);
+                const storedName = await saveUpload(image, { allowed: ["JPEG", "JPG", "PNG"] });
+                const [affected] = await Person.update(
+                    { personal_picture: storedName },
+                    { where: { id: person.id } }
+                );
+                return { status: affected === 1 };
+            } catch (error) {
+                logger.error(`portalUploadProfileImage error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        // Mark all the logged-in member's own notifications as read.
+        portalMarkNotificationsAsRead: async (obj, args, context, info) => {
+            try {
+                const person = requirePortalPerson(context);
+                await Notification.update(
+                    { isRead: true },
+                    { where: { id_person: person.id, isRead: false } }
+                );
+                return true;
+            } catch (error) {
+                if (error instanceof AuthenticationError) throw error;
+                logger.error(`portalMarkNotificationsAsRead error: ${error.message || error}`);
                 throw new ApolloError(error);
             }
         },

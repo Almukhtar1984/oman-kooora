@@ -14,6 +14,10 @@ export const typeDefs = gql`
     extend type Query {
         portalMe: PortalMe
         portalPayments: PortalAccount
+
+        # The logged-in member's own notifications (newest first). Portal token;
+        # reads context.portalPerson itself — NOT @auth(requires: user).
+        portalMyNotifications: [Notification]
     }
 
     extend type Mutation {
@@ -22,6 +26,14 @@ export const typeDefs = gql`
         # The logged-in member uploads a photo of their card. Stored on their
         # person and returned by portalMe.person.card_image. Portal token only.
         portalUploadCardImage(image: Upload!): statusUpdate
+
+        # The logged-in member uploads their profile picture (image only). Stored
+        # on their person and returned by portalMe.person.personal_picture.
+        # Portal token only.
+        portalUploadProfileImage(image: Upload!): statusUpdate
+
+        # Mark all the logged-in member's notifications as read. Portal token.
+        portalMarkNotificationsAsRead: Boolean
     }
 
     type PortalAuth {
