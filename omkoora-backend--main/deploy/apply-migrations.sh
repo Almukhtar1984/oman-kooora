@@ -35,14 +35,31 @@ fail() { printf '[migrate] ERROR: %s\n' "$*" >&2; exit 1; }
 
 ENV_FILE="${ENV_FILE:-$BACKEND_DIR/.env}"
 
-# Read KEY from .env (last wins), stripping surrounding quotes.
+# Read KEY from .env (last wins). Handles a quoted value (takes what's inside
+# the quotes, ignoring a trailing ` # comment`) and an unquoted value (strips a
+# trailing ` # comment` and surrounding whitespace). Without the comment strip a
+# line like  NODE_ENV="production" # note  would yield 'production" # note' and
+# never match "production", sending the runner to the wrong DB branch.
 getenv() {
     [ -f "$ENV_FILE" ] || return 0
-    sed -n -E "s/^$1=(.*)$/\1/p" "$ENV_FILE" | tail -n1 | sed -E 's/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/'
+    local raw
+    raw="$(sed -n -E "s/^$1=(.*)$/\1/p" "$ENV_FILE" | tail -n1)"
+    # trim leading whitespace
+    raw="${raw#"${raw%%[![:space:]]*}"}"
+    case "$raw" in
+        '"'*)  raw="${raw#\"}"; raw="${raw%%\"*}" ;;   # "double quoted"
+        "'"*)  raw="${raw#\'}"; raw="${raw%%\'*}" ;;   # 'single quoted'
+        *)     raw="$(printf '%s' "$raw" | sed -E 's/[[:space:]]+#.*$//')"
+               raw="${raw%"${raw##*[![:space:]]}"}" ;; # trim trailing whitespace
+    esac
+    printf '%s' "$raw"
 }
 
 CLEANUP_FILE=""
-cleanup() { [ -n "$CLEANUP_FILE" ] && rm -f "$CLEANUP_FILE"; }
+# Must return 0: as the EXIT trap's last command, a non-zero here (e.g. the
+# `[ -n "" ]` test when no temp file was made) would become the script's exit
+# status and wrongly fail an otherwise-successful run.
+cleanup() { [ -n "$CLEANUP_FILE" ] && rm -f "$CLEANUP_FILE"; return 0; }
 trap cleanup EXIT
 
 if [ -n "${MYSQL_DEFAULTS_FILE:-}" ]; then
