@@ -13,7 +13,7 @@
 
 import fs from "fs";
 import logger from "./logger.mjs";
-import { User } from "../Models/index.mjs";
+import { User, DeviceToken } from "../Models/index.mjs";
 
 let messaging = null;   // admin.messaging() once initialised
 let initTried = false;
@@ -92,6 +92,30 @@ export const sendPushToUser = async (userId, payload = {}) => {
         return await sendPushToToken(user.fcm_token, payload);
     } catch (error) {
         logger.error(`sendPushToUser failed: ${error?.message}`);
+        return false;
+    }
+};
+
+// Push to every device a portal member (person) registered from the mobile app.
+// A dead token (UNREGISTERED / invalid-argument) is pruned so it is not retried.
+// Safe no-op when push is not configured or the person has no device.
+export const sendPushToPerson = async (idPerson, payload = {}) => {
+    try {
+        if (!idPerson || !isPushConfigured()) return false;
+        const devices = await DeviceToken.findAll({
+            where: { id_person: idPerson },
+            attributes: ["id", "token"],
+        });
+        if (!devices.length) return false;
+
+        let anySent = false;
+        for (const device of devices) {
+            const ok = await sendPushToToken(device.token, payload);
+            if (ok) anySent = true;
+        }
+        return anySent;
+    } catch (error) {
+        logger.error(`sendPushToPerson failed: ${error?.message}`);
         return false;
     }
 };

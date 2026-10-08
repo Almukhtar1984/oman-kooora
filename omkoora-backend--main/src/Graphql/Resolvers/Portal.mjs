@@ -10,7 +10,7 @@ import {
     normalizePhone,
 } from "../../Helpers/PortalIdentity.mjs";
 import {
-    Assembly, Club, MemberPayment, Members, Notification, Person, Players, Team, TechnicalApparatus, User,
+    Assembly, Club, DeviceToken, MemberPayment, Members, Notification, Person, Players, Team, TechnicalApparatus, User,
 } from '../../Models/index.mjs';
 
 const { Op } = sequelize;
@@ -363,6 +363,36 @@ export const resolvers = {
             } catch (error) {
                 if (error instanceof AuthenticationError) throw error;
                 logger.error(`portalMarkNotificationsAsRead error: ${error.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        // The mobile app registers this device's FCM token for the signed-in
+        // member. `token` is unique: re-registering the same device (or a device
+        // that moved to another member) updates the owning person in place.
+        portalSaveFcmToken: async (obj, { token, platform }, context, info) => {
+            try {
+                const person = requirePortalPerson(context);
+                const trimmed = (token || "").trim();
+                if (!trimmed) {
+                    return new ApolloError("token مطلوب", "FCM_TOKEN_REQUIRED");
+                }
+
+                const fields = {
+                    id_person: person.id,
+                    platform: (platform || "").trim() || null,
+                };
+
+                const existing = await DeviceToken.findOne({ where: { token: trimmed } });
+                if (existing) {
+                    await existing.update(fields);
+                } else {
+                    await DeviceToken.create({ token: trimmed, ...fields });
+                }
+                return { status: true };
+            } catch (error) {
+                if (error instanceof AuthenticationError) throw error;
+                logger.error(`portalSaveFcmToken error: ${error.message || error}`);
                 throw new ApolloError(error);
             }
         },

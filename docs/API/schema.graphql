@@ -1829,6 +1829,7 @@ extend type Mutation {
   portalUploadCardImage(image: Upload!): statusUpdate
   portalUploadProfileImage(image: Upload!): statusUpdate
   portalMarkNotificationsAsRead: Boolean
+  portalSaveFcmToken(token: String!, platform: String): statusUpdate
 }
 
 type PortalAuth {

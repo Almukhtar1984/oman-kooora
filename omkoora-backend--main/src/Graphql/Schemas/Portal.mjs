@@ -34,6 +34,11 @@ export const typeDefs = gql`
 
         # Mark all the logged-in member's notifications as read. Portal token.
         portalMarkNotificationsAsRead: Boolean
+
+        # The mobile app registers this device's FCM token against the signed-in
+        # member, so events about them (replies, loans, sanctions, …) can push.
+        # Portal token — NOT @auth(requires: user).
+        portalSaveFcmToken(token: String!, platform: String): statusUpdate
     }
 
     type PortalAuth {

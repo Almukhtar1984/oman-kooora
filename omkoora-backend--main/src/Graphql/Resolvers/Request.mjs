@@ -7,8 +7,9 @@ import { createWriteStream } from "fs";
 
 import logger from "../../Config/logger.mjs";
 
-import {Request, Players, Team, Person, Attachment} from '../../Models/index.mjs';
+import {Request, Players, Team, Person, Attachment, Notification} from '../../Models/index.mjs';
 import {__dirname} from "../../app.mjs";
+import { sendPushToPerson } from "../../Config/firebase.mjs";
 
 
 dotenv.config();
@@ -270,7 +271,8 @@ export const resolvers = {
                 const { attachments, ...fields } = content;
 
                 // Writing a reply stamps the time it was sent.
-                if (fields.admin_reply !== undefined && fields.admin_reply !== null) {
+                const isReply = fields.admin_reply !== undefined && fields.admin_reply !== null && String(fields.admin_reply).trim() !== "";
+                if (isReply) {
                     fields.replied_at = new Date();
                 }
 
@@ -279,6 +281,29 @@ export const resolvers = {
                 if (attachments && attachments.length > 0) {
                     for (const upload of attachments) {
                         await saveRequestAttachment(upload, id);
+                    }
+                }
+
+                // Notify the member (in-app feed + mobile push) that their
+                // request/complaint was answered. Best-effort — never break the
+                // reply itself if the player/person can't be resolved.
+                if (isReply && result[0] === 1) {
+                    try {
+                        const request = await Request.findByPk(id);
+                        const player = request?.id_player ? await Players.findByPk(request.id_player) : null;
+                        if (player?.id_person) {
+                            const body = "تم الرد على طلبك / شكواك";
+                            await Notification.create({
+                                body,
+                                id_team: player.id_team || null,
+                                id_person: player.id_person,
+                            });
+                            Promise.resolve(
+                                sendPushToPerson(player.id_person, { title: "رد على طلبك", body, data: { category: "request_reply", id_request: id } })
+                            ).catch(() => {});
+                        }
+                    } catch (notifyError) {
+                        logger.error(`updateRequest notify error: ${notifyError?.message || notifyError}`);
                     }
                 }
 

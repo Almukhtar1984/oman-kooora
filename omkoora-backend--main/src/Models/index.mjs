@@ -45,6 +45,7 @@ import eventModel from './Event.mjs';
 import committeeModel from './Committee.mjs';
 import committeeMemberModel from './CommitteeMember.mjs';
 import memberPaymentModel from './MemberPayment.mjs';
+import deviceTokenModel from './DeviceToken.mjs';
 
 
 
@@ -97,6 +98,7 @@ const Event = eventModel(DB, Sequelize);
 const Committee = committeeModel(DB, Sequelize);
 const CommitteeMember = committeeMemberModel(DB, Sequelize);
 const MemberPayment = memberPaymentModel(DB, Sequelize);
+const DeviceToken = deviceTokenModel(DB, Sequelize);
 
 
 
@@ -452,5 +454,5 @@ export {
     Assembly, Message, Attachment, Comment, Expense, Meeting, Blog, AttachmentBlog, Form, Permission,
     Stadium, Reservations, League, ParticipatingTeams, Match, MatchCard, ParticipatingPlayers,ParticipatingPlayersMatch,
     ParticipatingTechnicalStaff, AttachmentPerson, ScorerMatch,Arbitres,AuthTrace,Sanction,ActionLog,Notification,PlayerExternal, Event,
-    Committee, CommitteeMember, MemberPayment
+    Committee, CommitteeMember, MemberPayment, DeviceToken
 }

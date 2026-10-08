@@ -1,6 +1,17 @@
 import {Notification} from "../Models/index.mjs"
 import {getSocketServerInstance } from "../Socket/index.mjs"
 import { Team,Players ,Person, TechnicalApparatus, Members} from "../Models/index.mjs"
+import { sendPushToPerson } from "../Config/firebase.mjs"
+
+// Fire-and-forget mobile push for a notification that concerns one person.
+// Best-effort: never awaited into the caller, never throws, no-op when push is
+// unconfigured or the person has no registered device.
+const pushPersonNotification = (idPerson, body, category) => {
+    if (!idPerson) return;
+    Promise.resolve(
+        sendPushToPerson(idPerson, { title: "إشعار جديد", body, data: { category: String(category || "") } })
+    ).catch(() => {});
+};
 
 
 const operationTypes = {
@@ -102,11 +113,13 @@ export const CreateNotificationClub = async (Category , FunctionType ,id_club,te
                 BodyText = " تم "+ functionType +" عقوبة على اللاعب " + await getPName("player", id_Player)
                 break
         }
+        const personId = await resolvePersonId(Category, id_Player);
         const notification = await Notification.create({
             id_club : id_club,
             body : BodyText,
-            id_person: await resolvePersonId(Category, id_Player),
+            id_person: personId,
         });
+        pushPersonNotification(personId, BodyText, Category);
         const socketServer = getSocketServerInstance();
         if (socketServer) {
             await socketServer.sendNewNotification('club', id_club, notification);
@@ -165,13 +178,15 @@ export const CreateNotificationTeam = async (Category , FunctionType ,id_team,id
                 return
 
         }
+        const personId = await resolvePersonId(Category, id_Player, subjectType);
         const notification = await Notification.create({
             //id_club : team.id_club,
             body : BodyText,
             id_team:  id_team,
-            id_person: await resolvePersonId(Category, id_Player, subjectType),
+            id_person: personId,
 
         });
+        pushPersonNotification(personId, BodyText, Category);
         const socketServer = getSocketServerInstance();
                await socketServer.sendNewNotification('team',id_team, notification);
                //await socketServer.sendNewNotification('club',team.id_club, notification);
