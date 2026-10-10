@@ -119,7 +119,7 @@ export default function Requests() {
                     </Group>
                 </Box>
 
-                <RequestsTable
+                <RequestsTable loading={loading}
                     list={allRequestsSorting}
                     search={searchValue}
                     setOpenDeleteModal={setOpenDeleteModal}

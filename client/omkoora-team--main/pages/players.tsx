@@ -60,7 +60,7 @@ export default function Players() {
     const [role, setRole] = useState("");
     const [permissions, setPermissions] = useState([]);
 
-    const [getAllPlayers, { loading, error, data: dataAllPlayers }] = useAllPlayers();
+    const [getAllPlayers, { loading, called, error, data: dataAllPlayers }] = useAllPlayers();
 
     // Live team-add-player gate. CURRENT_USER is only refetched on route change,
     // so the cached enableAddPlayer can be stale if the club toggles it while the
@@ -208,6 +208,7 @@ export default function Players() {
                 </Box>
                 {isMobile ? (
                     <PlayersTableMobile
+                    loading={loading || !called}
                     list={allPlayersSorting}
                     search={searchValue}
                     setOpenDeleteModal={setOpenDeleteModal}
@@ -225,6 +226,7 @@ export default function Players() {
                 />
                 ):(
                 <PlayersTable
+                    loading={loading || !called}
                     list={allPlayersSorting}
                     search={searchValue}
                     setOpenDeleteModal={setOpenDeleteModal}

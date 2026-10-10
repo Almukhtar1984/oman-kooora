@@ -133,7 +133,7 @@ export default function Powers() {
                     </Group>
                 </Box>
 
-                <ClubManagementTable
+                <ClubManagementTable loading={loading}
                     list={allClubManagementSorting}
                     search={searchValue}
                     setOpenEditModal={setOpenEditModal}

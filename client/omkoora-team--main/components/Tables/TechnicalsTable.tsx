@@ -11,6 +11,7 @@ import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
 import { useMediaQuery } from "@mantine/hooks";
 import { Modal } from "@mantine/core";
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 const customStyles: TableStyles = {
     table: {
         style: {
@@ -43,6 +44,7 @@ const customStyles: TableStyles = {
 };
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -59,7 +61,7 @@ interface Props {
     setOpenTechnicalTransferModal?: (open: boolean) => void;
 }
 
-export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, setNewStatus, setOpenChangeStatusModal, hasPermission, setopenConvertTechnicalToPlayerModal, setOpenAddAttachmentModal, setOpenShowAttachmentsModal, setSelectedData, setOpenTechnicalLoanModal, setOpenTechnicalTransferModal }: Props) => {
+export const TechnicalsTable = ({ loading, list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, setNewStatus, setOpenChangeStatusModal, hasPermission, setopenConvertTechnicalToPlayerModal, setOpenAddAttachmentModal, setOpenShowAttachmentsModal, setSelectedData, setOpenTechnicalLoanModal, setOpenTechnicalTransferModal }: Props) => {
 
     // إعارة/انتقال عضو الجهاز الفني — نمرّر المعرّف ثم نفتح النافذة المناسبة.
     const openTechnicalLoan = (id: string) => {
@@ -283,12 +285,7 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
                   rowsPerPageText: "الاسطر في كل صفحة",
                   rangeSeparatorText: "من"
               }}
-              noDataComponent={
-                  <Stack mih={300} align='center' justify='center'>
-                      <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                      <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                  </Stack>
-              }
+              noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty />}
               
           />
           {selectedItem && (
@@ -325,12 +322,7 @@ export const TechnicalsTable = ({ list, search, setOpenEditModal, setOpenDeleteM
                 rowsPerPageText: "الاسطر في كل صفحة",
                 rangeSeparatorText: "من"
             }}
-            noDataComponent={
-                <Stack mih={300} align='center' justify='center'>
-                    <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                    <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                </Stack>
-            }
+            noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty />}
         />
         <Modal
                     opened={openRejectionModal}

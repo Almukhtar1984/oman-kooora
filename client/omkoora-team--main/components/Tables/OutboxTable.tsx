@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import { IconDatabaseOff } from '@tabler/icons-react';
 
 import DataTable, {TableStyles} from 'react-data-table-component';
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 const customStyles: TableStyles = {
     table: {
         style: {
@@ -41,6 +42,7 @@ const customStyles: TableStyles = {
 };
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -54,7 +56,7 @@ interface Props {
     hasPermission: (permission: string) => boolean;
 }
 
-export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatusModal, setNewStatus, setSelectedRow, openDrawer, setSelectedDrawer, setOpenDeleteModal, setOpenShowModal, hasPermission }: Props) => {
+export const OutboxTable = ({ loading, list, search, setOpenEditModal, setOpenChangeStatusModal, setNewStatus, setSelectedRow, openDrawer, setSelectedDrawer, setOpenDeleteModal, setOpenShowModal, hasPermission }: Props) => {
     const [allMembers, setAllMembers] = useState<any>([]);
     const isMobile = useMediaQuery("(max-width: 768px)");
     useEffect(() => {
@@ -215,12 +217,7 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
                 rowsPerPageText: "الاسطر في كل صفحة",
                 rangeSeparatorText: "من"
             }}
-            noDataComponent={
-                <Stack mih={300} align='center' justify='center'>
-                    <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                    <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                </Stack>
-            }
+            noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty label="لا يوجد بيانات" />}
             
         />
        
@@ -237,12 +234,7 @@ export const OutboxTable = ({ list, search, setOpenEditModal, setOpenChangeStatu
                 rowsPerPageText: "الاسطر في كل صفحة",
                 rangeSeparatorText: "من"
             }}
-            noDataComponent={
-                <Stack mih={300} align='center' justify='center'>
-                    <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                    <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                </Stack>
-            }
+            noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty label="لا يوجد بيانات" />}
         />
     );}
 };

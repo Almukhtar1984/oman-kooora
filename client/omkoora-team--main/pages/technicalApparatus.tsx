@@ -45,7 +45,7 @@ export default function TechnicalApparatus() {
 
     const [newStatus, setNewStatus] = useState("");
 
-    const [getAllTechnicals, { loading, error, data: dataAllTechnicals }] = useAllTechnicals();
+    const [getAllTechnicals, { loading, called, error, data: dataAllTechnicals }] = useAllTechnicals();
     const [openRejectionModal, setOpenRejectionModal] = useState(false);
     const [SelectedPerson, setSelectedPerson] = useState();
 
@@ -150,6 +150,7 @@ export default function TechnicalApparatus() {
                 </Box>
 
                 <TechnicalsTable
+                    loading={loading || !called}
                     list={allTechnicalsSorting}
                     search={searchValue}
                     setOpenDeleteModal={setOpenDeleteModal}

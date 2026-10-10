@@ -10,6 +10,7 @@ import {useAllPlayers, useAllPlayersClubLoan} from "../graphql";
 import useStore from "../store/useStore";
 import {MemberCard} from "../components/Card/MemberCard";
 import {IconDatabaseOff} from "@tabler/icons-react";
+import {DataEmpty, DataLoading} from "../components/Loading/DataState";
 import {Pagination, Text} from "@mantine/core";
 import {ChangeStatusPlayersModal, UpdatePlayersTransferModal, UpdatePlayerModal} from "../components/Modal";
 import {UpdateLoanModal} from "../components/Modal/UpdateLoanModal";
@@ -43,7 +44,7 @@ export default function PlayersLoan() {
     const [role, setRole] = useState(null);
     const [permissions, setPermissions] = useState([]);
 
-    const [getAllPlayersLoan, {refetch,loading, error, data: dataAllPlayersLoan }] = useAllPlayersClubLoan();
+    const [getAllPlayersLoan, { refetch,loading, called, error, data: dataAllPlayersLoan }] = useAllPlayersClubLoan();
     const [deleteTransfer] = useBackToOldTeamTransfer();
     const handleRefresh = async () => {
         try {
@@ -236,10 +237,7 @@ export default function PlayersLoan() {
                             </Group>
                         </>
                     ) : (
-                        <Stack mih={300} align='center' justify='center'>
-                            <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                            <Text size={"md"} c={"gray.8"}>لا توجد بيانات ليتم عرضها</Text>
-                        </Stack>
+                        loading || !called ? <DataLoading variant="cards" /> : <DataEmpty label="لا توجد بيانات ليتم عرضها" />
                     )}
                 </Box>
             </Container>

@@ -18,9 +18,11 @@ import { IconDatabaseOff } from '@tabler/icons-react';
 import {UpdateLoanModal} from "../Modal/UpdateLoanModal"
 import { DeleteConfirmationModal } from "../Modal/DeleteConfirmationModal";
 import {useBackToOldTeamTransfer} from  "../../graphql";
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -67,7 +69,7 @@ const customStyles: TableStyles = {
     },
 };
 
-export const PlayersTableLoan = ({ idClub, list, search, setOpenEditModal, setSelectedRow, hasPermission ,handleRefresh}: Props) => {
+export const PlayersTableLoan = ({ loading, idClub, list, search, setOpenEditModal, setSelectedRow, hasPermission ,handleRefresh}: Props) => {
     const [allMembers, setAllMembers] = useState<{nodes: any}>({
         nodes: []
     });
@@ -397,12 +399,7 @@ export const PlayersTableLoan = ({ idClub, list, search, setOpenEditModal, setSe
                   rowsPerPageText: "الاسطر في كل صفحة",
                   rangeSeparatorText: "من"
               }}
-              noDataComponent={
-                  <Stack mih={300} align='center' justify='center' >
-                      <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                      <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                  </Stack>
-              }
+              noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty label="لا يوجد بيانات" />}
               
           />
           {selectedItem && (

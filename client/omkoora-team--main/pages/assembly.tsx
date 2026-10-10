@@ -36,7 +36,7 @@ export default function Assembly() {
     const [role, setRole] = useState("");
     const [permissions, setPermissions] = useState([]);
 
-    const [getAllAssembly, { loading, error, data: dataAllAssembly }] = useAllAssembly();
+    const [getAllAssembly, { loading, called, error, data: dataAllAssembly }] = useAllAssembly();
 
     useEffect(() => {
         if (userData?.person?.member?.team?.id) {
@@ -147,6 +147,7 @@ export default function Assembly() {
                 </Box>
 
                 <AssemblyTable
+                    loading={loading || !called}
                     list={allAssemblySorting}
                     search={searchValue}
                     setOpenDeleteModal={setOpenDeleteModal}

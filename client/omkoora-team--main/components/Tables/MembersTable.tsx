@@ -10,6 +10,7 @@ import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
 import {TechnicalItemModel} from "../Modal/index"
 import { Modal } from "@mantine/core";
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 const customStyles: TableStyles = {
     table: {
         style: {
@@ -42,6 +43,7 @@ const customStyles: TableStyles = {
 };
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -53,7 +55,7 @@ interface Props {
     hasPermission: (permission: string) => boolean;
 }
 
-export const MembersTable = ({ list, search, setOpenEditModal, setNewStatus, setOpenDeleteModal, setSelectedRow, setOpenChangeStatusModal, hasPermission }: Props) => {
+export const MembersTable = ({ loading, list, search, setOpenEditModal, setNewStatus, setOpenDeleteModal, setSelectedRow, setOpenChangeStatusModal, hasPermission }: Props) => {
     const [allMembers, setAllMembers] = useState<any>([]);
     const isMobile = useMediaQuery("(max-width: 768px)");
     const [modalOpened, setModalOpened] = useState(false);
@@ -217,12 +219,7 @@ export const MembersTable = ({ list, search, setOpenEditModal, setNewStatus, set
                   rowsPerPageText: "الاسطر في كل صفحة",
                   rangeSeparatorText: "من"
               }}
-              noDataComponent={
-                  <Stack mih={300} align='center' justify='center'>
-                      <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                      <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                  </Stack>
-              }
+              noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty />}
               
           />
           {selectedItem && (
@@ -258,12 +255,7 @@ export const MembersTable = ({ list, search, setOpenEditModal, setNewStatus, set
                 rowsPerPageText: "الاسطر في كل صفحة",
                 rangeSeparatorText: "من"
             }}
-            noDataComponent={
-                <Stack mih={300} align='center' justify='center'>
-                    <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                    <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                </Stack>
-            }
+            noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty />}
         />
         <Modal
             opened={openRejectionModal}

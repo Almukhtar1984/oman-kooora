@@ -12,10 +12,12 @@ import dayjs from "dayjs";
 import {useEffect, useState} from "react";
 import { Modal } from "@mantine/core";
 import { openPrint } from "../../lib/helpers/openPrint";
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 
 const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -34,7 +36,7 @@ interface Props {
 }
 
 
-export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIdentityModal, setOpenDeleteModal, setSelectedRow, setOpenAddImageModal, setOpenTransferModal, setOpenLoanModal, hasPermission, setOpenAddAttachmentPlayerModal, setOpenShowAttachmentPlayerModal, setStatPlayerModal,setopenConvertToTichnicaleModal,setopenFreeModal }: Props) => {
+export const PlayersTable = ({ loading, list, search, setOpenEditModal, setOpenVerifyIdentityModal, setOpenDeleteModal, setSelectedRow, setOpenAddImageModal, setOpenTransferModal, setOpenLoanModal, hasPermission, setOpenAddAttachmentPlayerModal, setOpenShowAttachmentPlayerModal, setStatPlayerModal,setopenConvertToTichnicaleModal,setopenFreeModal }: Props) => {
     const [allMembers, setAllMembers] = useState<{nodes: any}>({
         nodes: []
     });
@@ -194,6 +196,10 @@ export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIden
         typeof setSelectedRow === "function" && setSelectedRow(data)
         typeof setOpenVerifyIdentityModal === "function" && setOpenVerifyIdentityModal(true)
     }
+
+    // The table itself renders nothing for an empty list, so a slow page looked
+    // like an empty one.
+    if (!allMembers.nodes.length) return loading ? <DataLoading variant="rows" /> : <DataEmpty />;
 
     return (
         <>

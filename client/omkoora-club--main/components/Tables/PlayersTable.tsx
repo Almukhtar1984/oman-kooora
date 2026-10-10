@@ -8,8 +8,10 @@ import dayjs from "dayjs";
 import { IconDatabaseOff } from '@tabler/icons-react';
 import { PlayerCard1 } from '../Card/PlayerCard';
 import { PlayerModel } from '../Modal/PlayerModel';
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -31,7 +33,7 @@ interface Props {
     setOpenChangeClassificationModal?: (open: boolean) => void;
 }
 
-export const PlayersTable = ({ list, search, setOpenEditModal, setOpenVerifyIdentityModal, setOpenDeleteModal, setOpenChangeStatusModal, setNewStatus, setSelectedRow, openDrawer, setSelectedDrawer, setOpenTransferModal, setOpenLoanModal, hasPermission, setOpenAddAttachmentPlayerModal, setOpenShowAttachmentPlayerModal, setopenAddSanctionModal, setopenUpdateSanctionModal, setStatPlayerModal, setOpenChangeClassificationModal }: Props) => {
+export const PlayersTable = ({ loading, list, search, setOpenEditModal, setOpenVerifyIdentityModal, setOpenDeleteModal, setOpenChangeStatusModal, setNewStatus, setSelectedRow, openDrawer, setSelectedDrawer, setOpenTransferModal, setOpenLoanModal, hasPermission, setOpenAddAttachmentPlayerModal, setOpenShowAttachmentPlayerModal, setopenAddSanctionModal, setopenUpdateSanctionModal, setStatPlayerModal, setOpenChangeClassificationModal }: Props) => {
     const [allMembers, setAllMembers] = useState<{ nodes: any }>({ nodes: [] });
     // Keep filter states to maintain parent behavior compatibility if filters were exposed, 
     // but PlayersTable locally handled some filters previously.

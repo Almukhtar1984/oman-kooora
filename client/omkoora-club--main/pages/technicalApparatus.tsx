@@ -39,7 +39,7 @@ export default function TechnicalApparatus() {
     const [role, setRole] = useState(null);
     const [permissions, setPermissions] = useState([]);
 
-    const [getAllTechnicals, { loading, error, data: dataAllTechnicals }] = useAllTechnicals();
+    const [getAllTechnicals, { loading, called, error, data: dataAllTechnicals }] = useAllTechnicals();
     const [getAllTeam, { data: dataAllTeams }] = useAllTeams();
     const [changeStatusBulk, { loading: bulkLoading }] = useChangeStatusTechnicalApparatusBulk();
     const [changeClassificationBulk, { loading: bulkClassificationLoading }] = useChangeClassificationTechnicalApparatusBulk();
@@ -302,6 +302,7 @@ export default function TechnicalApparatus() {
                 />
 
                 <TechnicalsTable
+                    loading={loading || !called}
                     list={allTechnicalsSorting}
                     search={searchValue}
                     setOpenChangeStatusModal={setOpenChangeStatusModal}

@@ -175,7 +175,7 @@ export default function Messages() {
                         </Box>
 
                         <Tabs.Panel value="inbox">
-                            <InboxTable
+                            <InboxTable loading={loadingInbox}
                                 list={inboxSorting}
                                 search={searchValue}
                                 setOpenChangeStatusModal={setOpenChangeStatusModal}
@@ -191,7 +191,7 @@ export default function Messages() {
                         </Tabs.Panel>
 
                         <Tabs.Panel value="outbox">
-                            <OutboxTable
+                            <OutboxTable loading={loadingOutbox}
                                 list={outboxSorting}
                                 search={searchValue}
                                 setOpenChangeStatusModal={setOpenChangeStatusModal}

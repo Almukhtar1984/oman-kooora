@@ -5,8 +5,10 @@ import { searchSortedData } from "../../lib/helpers/sort";
 import dayjs from "dayjs";
 import { IconDatabaseOff } from '@tabler/icons-react';
 import { MemberCard } from '../Card/MemberCard';
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -18,7 +20,7 @@ interface Props {
     hasPermission: (permission: string) => boolean;
 }
 
-export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setOpenRenewModal, setSelectedRow, hasPermission }: Props) => {
+export const AssemblyTable = ({ loading, list, search, setOpenEditModal, setOpenDeleteModal, setOpenRenewModal, setSelectedRow, hasPermission }: Props) => {
     const [allMembers, setAllMembers] = useState<any[]>([]);
     const [page, setPage] = useState(1);
     const itemsPerPage = 12;
@@ -58,10 +60,7 @@ export const AssemblyTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
                     </Group>
                 </>
             ) : (
-                <Stack mih={300} align='center' justify='center'>
-                    <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                    <Text size={"md"} c={"gray.8"}>لا يوجد بيانات</Text>
-                </Stack>
+                loading ? <DataLoading variant="cards" /> : <DataEmpty />
             )}
         </Box>
     );

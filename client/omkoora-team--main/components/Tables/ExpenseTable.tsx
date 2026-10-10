@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
 import { useMediaQuery } from "react-responsive";
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 const customStyles: TableStyles = {
     table: {
         style: {
@@ -40,6 +41,7 @@ const customStyles: TableStyles = {
 };
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -49,7 +51,7 @@ interface Props {
     hasPermission: (permission: string) => boolean;
 }
 
-export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, hasPermission }: Props) => {
+export const ExpenseTable = ({ loading, list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, hasPermission }: Props) => {
     const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
     const [allMembers, setAllMembers] = useState<any>([]);
     const [sortOrder, setSortOrder] = useState<string>("desc");
@@ -196,12 +198,7 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
                     rowsPerPageText: "الاسطر في كل صفحة",
                     rangeSeparatorText: "من"
                 }}
-                noDataComponent={
-                    <Stack mih={300} align='center' justify='center'>
-                        <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                        <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                    </Stack>
-                }
+                noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty label="لا يوجد بيانات" />}
             />
         );
     }
@@ -219,12 +216,7 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
                 rowsPerPageText: "الاسطر في كل صفحة",
                 rangeSeparatorText: "من"
             }}
-            noDataComponent={
-                <Stack mih={300} align='center' justify='center'>
-                    <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                    <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                </Stack>
-            }
+            noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty label="لا يوجد بيانات" />}
         />
     );}
 };

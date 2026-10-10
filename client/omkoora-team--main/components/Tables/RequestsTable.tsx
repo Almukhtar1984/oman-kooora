@@ -7,6 +7,7 @@ import {searchSortedData} from "../../lib/helpers/sort";
 
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 const customStyles: TableStyles = {
     table: {
         style: {
@@ -39,6 +40,7 @@ const customStyles: TableStyles = {
 };
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -47,7 +49,7 @@ interface Props {
     hasPermission: (permission: string) => boolean;
 }
 
-export const RequestsTable = ({ list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, hasPermission }: Props) => {
+export const RequestsTable = ({ loading, list, search, setOpenEditModal, setOpenDeleteModal, setSelectedRow, hasPermission }: Props) => {
     const [allMembers, setAllMembers] = useState<any>([]);
 
     useEffect(() => {
@@ -136,12 +138,7 @@ export const RequestsTable = ({ list, search, setOpenEditModal, setOpenDeleteMod
                 rowsPerPageText: "الاسطر في كل صفحة",
                 rangeSeparatorText: "من"
             }}
-            noDataComponent={
-                <Stack mih={300} align='center' justify='center'>
-                    <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                    <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                </Stack>
-            }
+            noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty label="لا يوجد بيانات" />}
         />
     );
 };

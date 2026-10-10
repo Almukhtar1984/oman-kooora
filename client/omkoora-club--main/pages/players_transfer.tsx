@@ -10,6 +10,7 @@ import {useAllPlayers, useAllPlayersClubTransferred, useBackToOldTeamTransfer} f
 import useStore from "../store/useStore";
 import {MemberCard} from "../components/Card/MemberCard";
 import {IconDatabaseOff} from "@tabler/icons-react";
+import {DataEmpty, DataLoading} from "../components/Loading/DataState";
 import {ChangeStatusPlayersModal, UpdatePlayersTransferModal, UpdatePlayerModal, DeleteConfirmationModal} from "../components/Modal";
 import { Notyf } from "notyf";
 
@@ -37,7 +38,7 @@ export default function PlayersTransfer() {
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
     const [selectedTransferToDelete, setSelectedTransferToDelete] = useState<any>(null);
 
-    const [getAllPlayersTransferred, { refetch, loading, error, data: dataAllPlayersTransferred }] = useAllPlayersClubTransferred();
+    const [getAllPlayersTransferred, { refetch, loading, called, error, data: dataAllPlayersTransferred }] = useAllPlayersClubTransferred();
     const [deleteTransfer] = useBackToOldTeamTransfer();
 
     const handleRefresh = async () => {
@@ -205,10 +206,7 @@ export default function PlayersTransfer() {
                             </Group>
                         </>
                     ) : (
-                        <Stack mih={300} align='center' justify='center'>
-                            <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                            <Text size={"md"} c={"gray.8"}>لا توجد بيانات ليتم عرضها</Text>
-                        </Stack>
+                        loading || !called ? <DataLoading variant="cards" /> : <DataEmpty label="لا توجد بيانات ليتم عرضها" />
                     )}
                 </Box>
             </Container>

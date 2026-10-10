@@ -133,7 +133,7 @@ export default function Meetings() {
                     </Group>
                 </Box>
 
-                <MeetingTable
+                <MeetingTable loading={loading}
                     list={allMeetingsSorting}
                     search={searchValue}
                     setSelectedRow={setSelectedData}

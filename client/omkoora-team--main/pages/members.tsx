@@ -33,7 +33,7 @@ export default function Members() {
 
     const [newStatus, setNewStatus] = useState("");
 
-    const [getAllMembers, { loading, error, data: dataAllMembers }] = useAllMembers();
+    const [getAllMembers, { loading, called, error, data: dataAllMembers }] = useAllMembers();
 
     useEffect(() => {
         if (userData?.person?.member?.team?.id) {
@@ -134,6 +134,7 @@ export default function Members() {
                 </Box>
 
                 <MembersTable
+                    loading={loading || !called}
                     list={allMembersSorting}
                     search={searchValue}
                     setOpenDeleteModal={setOpenDeleteModal}

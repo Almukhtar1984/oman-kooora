@@ -6,8 +6,10 @@ import dayjs from "dayjs";
 import { IconDatabaseOff } from '@tabler/icons-react';
 import { MemberCard } from '../Card/MemberCard';
 import { SelectableCardWrapper } from '../BulkSelection';
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -23,7 +25,7 @@ interface Props {
     selectionEnabled?: boolean;
 }
 
-export const MembersTable = ({ list, search, setOpenEditModal, setNewStatus, setOpenDeleteModal, setSelectedRow, setOpenChangeStatusModal, hasPermission, setOpenChangeClassificationModal, selectedIds, onToggleSelect, onPageItemsChange, selectionEnabled }: Props) => {
+export const MembersTable = ({ loading, list, search, setOpenEditModal, setNewStatus, setOpenDeleteModal, setSelectedRow, setOpenChangeStatusModal, hasPermission, setOpenChangeClassificationModal, selectedIds, onToggleSelect, onPageItemsChange, selectionEnabled }: Props) => {
     const [allMembers, setAllMembers] = useState<{ nodes: any }>({ nodes: [] });
     const [allTeams, setAllTeams] = useState<string[]>([]);
     const [valueCheck, setValueCheck] = useState<string[]>([]);
@@ -105,10 +107,7 @@ export const MembersTable = ({ list, search, setOpenEditModal, setNewStatus, set
                     </Group>
                 </>
             ) : (
-                <Stack mih={300} align='center' justify='center'>
-                    <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                    <Text size={"md"} c={"gray.8"}>لا يوجد بيانات</Text>
-                </Stack>
+                loading ? <DataLoading variant="cards" /> : <DataEmpty />
             )}
         </Box>
     );

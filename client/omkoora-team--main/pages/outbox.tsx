@@ -132,7 +132,7 @@ export default function Outbox() {
                     </Group>
                 </Box>
 
-                <OutboxTable
+                <OutboxTable loading={loading}
                     list={allMessagesSorting}
                     search={searchValue}
                     setOpenChangeStatusModal={setOpenChangeStatusModal}

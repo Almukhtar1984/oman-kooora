@@ -113,7 +113,7 @@ export default function Powers() {
                 
                 </Box>
 
-                <ActionLogsTable
+                <ActionLogsTable loading={loading}
                     list={allActionLogsSorting}
                     search={searchValue}
                     setOpenEditModal={setOpenEditModal}

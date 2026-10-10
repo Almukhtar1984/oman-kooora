@@ -20,6 +20,7 @@ const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
+import { DataLoading, DataEmpty } from "../Loading/DataState";
 
 const customStyles: TableStyles = {
     table: {
@@ -53,6 +54,7 @@ const customStyles: TableStyles = {
 };
 
 interface Props {
+    loading?: boolean;
     list: any;
     search: string;
     setOpenEditModal?: (open: boolean) => void;
@@ -81,7 +83,7 @@ const allClasses = [
     {label: "تحت 16 سنة", value: "rookies"}
 ]
 
-export const PlayersTableMobile = ({ list, search, setOpenEditModal, setOpenVerifyIdentityModal, setOpenDeleteModal, setOpenChangeStatusModal, setNewStatus, setSelectedRow, openDrawer, setSelectedDrawer, setOpenTransferModal, setOpenLoanModal, hasPermission, setOpenAddAttachmentPlayerModal, setOpenShowAttachmentPlayerModal,setopenAddSanctionModal,setopenUpdateSanctionModal,setStatPlayerModal, setOpenChangeClassificationModal }: Props) => {
+export const PlayersTableMobile = ({ loading, list, search, setOpenEditModal, setOpenVerifyIdentityModal, setOpenDeleteModal, setOpenChangeStatusModal, setNewStatus, setSelectedRow, openDrawer, setSelectedDrawer, setOpenTransferModal, setOpenLoanModal, hasPermission, setOpenAddAttachmentPlayerModal, setOpenShowAttachmentPlayerModal,setopenAddSanctionModal,setopenUpdateSanctionModal,setStatPlayerModal, setOpenChangeClassificationModal }: Props) => {
     const [allMembers, setAllMembers] = useState<{nodes: any}>({
         nodes: []
     });
@@ -609,12 +611,7 @@ export const PlayersTableMobile = ({ list, search, setOpenEditModal, setOpenVeri
                 rowsPerPageText: "الاسطر في كل صفحة",
                 rangeSeparatorText: "من"
             }}
-            noDataComponent={
-                <Stack mih={300} align='center' justify='center'>
-                    <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                    <Text size={"md"} c={"gray.8"} >لا يوجد بيانات</Text>
-                </Stack>
-            }
+            noDataComponent={loading ? <DataLoading variant="rows" /> : <DataEmpty label="لا يوجد بيانات" />}
             
         />
         {selectedItem && (

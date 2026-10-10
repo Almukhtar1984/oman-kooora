@@ -226,7 +226,7 @@ export default function Expenses() {
     </Group>
 </Box>
 
-                <ExpenseTable
+                <ExpenseTable loading={loading}
                     list={allExpensesSorting}
                     search={searchValue}
                     setOpenEditModal={setOpenEditModal}

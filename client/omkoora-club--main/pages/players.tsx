@@ -7,6 +7,7 @@ import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
 import {ageInYears} from "../lib/helpers/date";
 import {IconDatabaseOff} from "@tabler/icons-react";
+import {DataEmpty, DataLoading} from "../components/Loading/DataState";
 import {AllPlayers, useAllPlayers, useAllTeams, useChangeStatusPlayersBulk} from "../graphql";
 import useStore from "../store/useStore";
 import {PlayerCard1} from "../components/Card/PlayerCard";
@@ -74,7 +75,7 @@ export default function Players() {
     const [teamFilter, setTeamFilter] = useState<string | null>(null);
     const [classFilter, setClassFilter] = useState<string | null>(null);
 
-    const [getAllPlayers, { loading, error, data: dataAllPlayers }] = useAllPlayers();
+    const [getAllPlayers, { loading, called, error, data: dataAllPlayers }] = useAllPlayers();
     const [getAllTeam, { data: dataAllTeams }] = useAllTeams();
     const [changeStatusBulk, { loading: bulkLoading }] = useChangeStatusPlayersBulk();
 
@@ -412,11 +413,10 @@ export default function Players() {
                                 <Pagination total={totalPages} value={page} onChange={setPage} />
                             </Group>
                         </>
+                    ) : loading || !called ? (
+                        <DataLoading variant="cards" />
                     ) : (
-                        <Stack mih={300} align='center' justify='center'>
-                            <IconDatabaseOff size={"5rem"} strokeWidth={1} color={"#ADB5BD"} />
-                            <Text size={"md"} c={"gray.8"}>لا توجد بيانات ليتم عرضها</Text>
-                        </Stack>
+                        <DataEmpty label="لا توجد بيانات ليتم عرضها" />
                     )}
                 </Box>
             </Box>

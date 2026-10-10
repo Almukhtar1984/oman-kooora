@@ -47,7 +47,7 @@ export default function Assembly() {
     const [role, setRole] = useState(null);
     const [permissions, setPermissions] = useState([]);
 
-    const [getAllAssembly, { loading, error, data: dataAllAssembly }] = useAllAssembly();
+    const [getAllAssembly, { loading, called, error, data: dataAllAssembly }] = useAllAssembly();
     const [addClubPeople, { loading: addingClubPeople }] = useAddClubPeopleToAssembly();
 
     // One-click: pull the club's players + technical staff + board members into
@@ -314,6 +314,7 @@ export default function Assembly() {
                 </Box>
 
                 <AssemblyTable
+                    loading={loading || !called}
                     list={allAssemblySorting}
                     search={searchValue}
                     setOpenDeleteModal={setOpenDeleteModal}

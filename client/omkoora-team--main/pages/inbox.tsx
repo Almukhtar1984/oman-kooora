@@ -136,7 +136,7 @@ export default function Inbox() {
                     </Group>
                 </Box>
 
-                <InboxTable
+                <InboxTable loading={loading}
                     list={allMessagesSorting}
                     search={searchValue}
                     setOpenChangeStatusModal={setOpenChangeStatusModal}

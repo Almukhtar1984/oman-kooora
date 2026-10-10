@@ -41,7 +41,7 @@ function MembersContent() {
     const [role, setRole] = useState(null);
     const [permissions, setPermissions] = useState([]);
 
-    const [getAllMembers, { loading, error, data: dataAllMembers }] = useAllMembers();
+    const [getAllMembers, { loading, called, error, data: dataAllMembers }] = useAllMembers();
     const [getAllTeam, { data: dataAllTeams }] = useAllTeams();
     const [changeStatusBulk, { loading: bulkLoading }] = useChangeStatusMembersBulk();
     const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
@@ -282,6 +282,7 @@ function MembersContent() {
                 />
 
                 <MembersTable
+                    loading={loading || !called}
                     list={allMembersSorting}
                     search={searchValue}
                     setOpenChangeStatusModal={setOpenChangeStatusModal}
