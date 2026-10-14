@@ -50,3 +50,34 @@ export async function gql(query, variables = {}) {
   }
   return body.data;
 }
+
+// GraphQL with file uploads (graphql-upload multipart spec). `files` is an array
+// of { path, file } where path is the variable dot-path (e.g.
+// "variables.content.images.0") and file is a browser File.
+export async function gqlUpload(query, variables, files = []) {
+  const form = new FormData();
+  form.append("operations", JSON.stringify({ query, variables }));
+  const map = {};
+  files.forEach((f, i) => { map[String(i)] = [f.path]; });
+  form.append("map", JSON.stringify(map));
+  files.forEach((f, i) => form.append(String(i), f.file, f.file.name));
+
+  const headers = { "Apollo-Require-Preflight": "true" }; // let the browser set the multipart boundary
+  const token = getToken();
+  if (token) headers["Authorization"] = token;
+
+  const res = await fetch(API_URL, { method: "POST", headers, body: form });
+  const body = await res.json();
+  if (body.errors && body.errors.length) {
+    const err = new Error(body.errors.map((e) => e.message).join(" · "));
+    err.graphQLErrors = body.errors;
+    throw err;
+  }
+  return body.data;
+}
+
+export const OMAN_GOVERNORATES = [
+  "مسقط", "ظفار", "مسندم", "البريمي", "الداخلية",
+  "شمال الباطنة", "جنوب الباطنة", "شمال الشرقية", "جنوب الشرقية",
+  "الظاهرة", "الوسطى",
+];

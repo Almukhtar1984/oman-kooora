@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
-import { gql, getToken, clearToken } from "../lib/api";
+import { gql, gqlUpload, getToken, clearToken, IMAGES_BASE, OMAN_GOVERNORATES } from "../lib/api";
 
 const ME = `{ currentUser { id email role } }`;
-const MY_STADIUMS = `{ myStadiums { id name about rent start_time end_time } }`;
+const MY_STADIUMS = `{ myStadiums { id name about rent start_time end_time mohafada images } }`;
 const MY_RESERVATIONS = `{
   myStadiumReservations {
     id full_name phone booking_date booking_start booking_end status
@@ -63,7 +63,7 @@ export default function Dashboard() {
 
   const logout = () => { clearToken(); router.replace("/login"); };
 
-  const saveStadium = async (form) => {
+  const saveStadium = async (form, files) => {
     setBusy(true);
     try {
       const content = {
@@ -74,12 +74,23 @@ export default function Dashboard() {
         start_time: form.start_time || "08:00",
         end_time: form.end_time || "20:00",
       };
+      if (form.mohafada) content.mohafada = form.mohafada;
+
+      const hasFiles = files && files.length > 0;
+      if (hasFiles) content.images = files.map(() => null); // placeholders for the upload map
+
+      const uploads = hasFiles
+        ? files.map((file, i) => ({ path: `variables.content.images.${i}`, file }))
+        : [];
+
       if (editing.id) {
-        await gql(UPDATE_STADIUM, { id: editing.id, content });
+        if (hasFiles) await gqlUpload(UPDATE_STADIUM, { id: editing.id, content }, uploads);
+        else await gql(UPDATE_STADIUM, { id: editing.id, content });
         flash("تم تحديث الملعب");
       } else {
         content.id_user = me.id; // assign ownership to the signed-in owner
-        await gql(CREATE_STADIUM, { content });
+        if (hasFiles) await gqlUpload(CREATE_STADIUM, { content }, uploads);
+        else await gql(CREATE_STADIUM, { content });
         flash("تمت إضافة الملعب");
       }
       setEditing(null);
@@ -143,9 +154,16 @@ export default function Dashboard() {
               <div className="empty">لا توجد ملاعب بعد. أضف ملعبك الأول.</div>
             ) : (
               <div className="grid">
-                {stadiums.map((s) => (
+                {stadiums.map((s) => {
+                  const firstImg = (s.images || "").split(",").map((x) => x.trim()).filter(Boolean)[0];
+                  return (
                   <div className="card" key={s.id}>
+                    {firstImg ? (
+                      <img src={`${IMAGES_BASE}/${firstImg}`} alt={s.name}
+                        style={{ width: "100%", height: 130, objectFit: "cover", borderRadius: 10, marginBottom: 10 }} />
+                    ) : null}
                     <h3>{s.name}</h3>
+                    {s.mohafada ? <div className="meta">المحافظة: {s.mohafada}</div> : null}
                     <div className="meta">{s.about && s.about !== "-" ? s.about : "—"}</div>
                     <div className="meta">السعر/الساعة: <b>{s.rent} ر.ع</b></div>
                     <div className="meta">ساعات العمل: {s.start_time || "—"} – {s.end_time || "—"}</div>
@@ -154,7 +172,8 @@ export default function Dashboard() {
                       <button className="btn sm red" onClick={() => removeStadium(s.id)}>حذف</button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
@@ -228,9 +247,11 @@ function StadiumForm({ initial, onCancel, onSave, busy }) {
     name: initial.name || "",
     about: initial.about && initial.about !== "-" ? initial.about : "",
     rent: initial.rent ?? "",
+    mohafada: initial.mohafada || "",
     start_time: initial.start_time || "08:00",
     end_time: initial.end_time || "20:00",
   });
+  const [files, setFiles] = useState([]);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   return (
@@ -262,10 +283,26 @@ function StadiumForm({ initial, onCancel, onSave, busy }) {
             <label>نهاية العمل</label>
             <input type="time" value={form.end_time} onChange={set("end_time")} />
           </div>
+          <div className="field">
+            <label>المحافظة</label>
+            <select value={form.mohafada} onChange={set("mohafada")}>
+              <option value="">— اختر المحافظة —</option>
+              {OMAN_GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>&nbsp;</label>
+            <div style={{ fontSize: 12, color: "#5b7079" }}>&nbsp;</div>
+          </div>
+        </div>
+        <div className="field">
+          <label>صور الملعب (JPG / PNG)</label>
+          <input type="file" accept="image/*" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+          {files.length > 0 ? <div className="meta" style={{ marginTop: 4 }}>{files.length} صورة محدّدة</div> : null}
         </div>
         <div className="row" style={{ marginTop: 14, justifyContent: "flex-end", gap: 8 }}>
           <button className="btn" onClick={onCancel} disabled={busy}>إلغاء</button>
-          <button className="btn primary" onClick={() => onSave(form)} disabled={busy || !form.name}>
+          <button className="btn primary" onClick={() => onSave(form, files)} disabled={busy || !form.name}>
             {busy ? "جارٍ الحفظ…" : "حفظ"}
           </button>
         </div>
