@@ -460,21 +460,7 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                     </Tooltip>
                     : null
                 }
-                {/*{hasPermission("permissions", "1")*/}
-                {/*    ? */}
-                <Tooltip label={"الملاعب"} position={"left"}>
-                    <a
-                        className={cx(classes.link, { [classes.linkActive]: "/stadiums" === router.pathname })}
-                        href={"/stadiums"}
-                        onClick={(event) => {
-                            event.preventDefault()
-                            router.push("/stadiums")
-                            toggleSideBar()
-                        }}
-                    >
-                        <GiAbstract042 color={theme.colors.blue[6]} size={24} />
-                    </a>
-                </Tooltip>
+                {/* الملاعب انتقلت إلى لوحة مستقلّة (stadium.omkooora.com) — أُزيلت من قائمة الفريق */}
                 <Tooltip label={"المسابقات"} position={"left"}>
                     <a
                         className={cx(classes.link, { [classes.linkActive]: "/leagues" === router.pathname })}
