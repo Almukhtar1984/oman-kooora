@@ -46,6 +46,10 @@ import committeeModel from './Committee.mjs';
 import committeeMemberModel from './CommitteeMember.mjs';
 import memberPaymentModel from './MemberPayment.mjs';
 import deviceTokenModel from './DeviceToken.mjs';
+import storeModel from './Store.mjs';
+import productModel from './Product.mjs';
+import orderModel from './Order.mjs';
+import orderItemModel from './OrderItem.mjs';
 
 
 
@@ -99,6 +103,10 @@ const Committee = committeeModel(DB, Sequelize);
 const CommitteeMember = committeeMemberModel(DB, Sequelize);
 const MemberPayment = memberPaymentModel(DB, Sequelize);
 const DeviceToken = deviceTokenModel(DB, Sequelize);
+const Store = storeModel(DB, Sequelize);
+const Product = productModel(DB, Sequelize);
+const Order = orderModel(DB, Sequelize);
+const OrderItem = orderItemModel(DB, Sequelize);
 
 
 
@@ -142,6 +150,29 @@ Stadium.belongsTo(User, { foreignKey: { name: 'id_user' }, onDelete: 'SET NULL',
 // Stadium 1 * Reservations
 Stadium.hasOne(Reservations, { foreignKey: { name: 'id_stadium' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Reservations.belongsTo(Stadium, { foreignKey: { name: 'id_stadium' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
+
+// ── Stores module ─────────────────────────────────────────────────────────
+// A store is owned by a dedicated store-owner account (role 8). Nullable so an
+// unassigned store can exist; one owner may hold many stores.
+User.hasMany(Store, { foreignKey: { name: 'id_user' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+Store.belongsTo(User, { foreignKey: { name: 'id_user' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+
+// Store 1 * Product
+Store.hasMany(Product, { foreignKey: { name: 'id_store' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+Product.belongsTo(Store, { foreignKey: { name: 'id_store' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+// Store 1 * Order
+Store.hasMany(Order, { foreignKey: { name: 'id_store' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+Order.belongsTo(Store, { foreignKey: { name: 'id_store' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+// Order 1 * OrderItem
+Order.hasMany(OrderItem, { foreignKey: { name: 'id_order' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+OrderItem.belongsTo(Order, { foreignKey: { name: 'id_order' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+// Product 1 * OrderItem (nullable snapshot link: keep the line if product is removed)
+Product.hasMany(OrderItem, { foreignKey: { name: 'id_product' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+OrderItem.belongsTo(Product, { foreignKey: { name: 'id_product' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+// ──────────────────────────────────────────────────────────────────────────
 
 // Team 1 * Members
 Team.hasOne(Members, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
@@ -463,5 +494,6 @@ export {
     Assembly, Message, Attachment, Comment, Expense, Meeting, Blog, AttachmentBlog, Form, Permission,
     Stadium, Reservations, League, ParticipatingTeams, Match, MatchCard, ParticipatingPlayers,ParticipatingPlayersMatch,
     ParticipatingTechnicalStaff, AttachmentPerson, ScorerMatch,Arbitres,AuthTrace,Sanction,ActionLog,Notification,PlayerExternal, Event,
-    Committee, CommitteeMember, MemberPayment, DeviceToken
+    Committee, CommitteeMember, MemberPayment, DeviceToken,
+    Store, Product, Order, OrderItem
 }

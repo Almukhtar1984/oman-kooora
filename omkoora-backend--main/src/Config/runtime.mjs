@@ -18,6 +18,7 @@ const defaultAllowedOrigins = [
     'https://omkooora.com',
     'https://print.omkooora.com',
     'https://league.omkooora.com',
+    'https://store.omkooora.com',
     'https://news.omkooora.com',
     'https://omkoora-backend.souftech.com',
     'https://omkoora-club.souftech.com',
@@ -102,6 +103,10 @@ const appOrigins = {
     ],
     league: [
         'https://league.omkooora.com',
+    ],
+    store: [
+        'https://store.omkooora.com',
+        'http://localhost:3062',
     ],
     print: [
         'https://print.omkooora.com',
