@@ -19,6 +19,7 @@ const defaultAllowedOrigins = [
     'https://print.omkooora.com',
     'https://league.omkooora.com',
     'https://news.omkooora.com',
+    'https://stadium.omkooora.com',
     'https://omkoora-backend.souftech.com',
     'https://omkoora-club.souftech.com',
     'https://omkoora-team.souftech.com',
@@ -31,6 +32,7 @@ const defaultAllowedOrigins = [
     'http://localhost:3002',
     'http://localhost:3003',
     'http://localhost:3006',
+    'http://localhost:3070',
     'http://localhost:7001',
     'https://clubv2.smsoma.com',
     'https://omkoora-club-production.up.railway.app',
@@ -102,6 +104,10 @@ const appOrigins = {
     ],
     league: [
         'https://league.omkooora.com',
+    ],
+    stadium: [
+        'https://stadium.omkooora.com',
+        'http://localhost:3070',
     ],
     print: [
         'https://print.omkooora.com',
