@@ -129,7 +129,7 @@ const HorizontalNavbar = () => {
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={20} />, show: hasPermission("meeting", "1") },
         { path: '/blog', label: 'الأخبار', icon: <Article size={20} />, show: hasPermission("blogs", "1") },
         { path: '/forms', label: 'الاستثمارات', icon: <FileText size={20} />, show: hasPermission("forms", "1") },
-        { path: '/stadiums', label: 'الملاعب', icon: <GiAbstract042 size={20} />, show: true },
+        // الملاعب انتقلت إلى لوحة مستقلّة (stadium.omkooora.com) — أُزيلت من قائمة الفريق
         { path: '/leagues', label: 'المسابقات', icon: <GiTrophyCup size={20} />, show: true },
         { path: '/powers', label: 'الصلاحيات', icon: <ShieldLock size={20} />, show: hasPermission("permissions", "1") },
         { path: 'https://cheeryourteam.com/', label: 'شجع فريقك', icon: <BallFootball size={20} />, external: true, show: true },

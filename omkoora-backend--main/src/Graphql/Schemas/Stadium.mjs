@@ -16,11 +16,11 @@ export const typeDefs = gql`
     }
 
     extend type Mutation {
-        createStadium(content: contentStadium!): Stadium! #@auth(requires: user)
+        createStadium(content: contentStadium!): Stadium! @auth(requires: user)
 
-        updateStadium (id: ID!, content: contentStadium!): statusUpdate #@auth(requires: user)
+        updateStadium (id: ID!, content: contentStadium!): statusUpdate @auth(requires: user)
 
-        deleteStadium ( id: ID! ): statusDelete #@auth(requires: user)
+        deleteStadium ( id: ID! ): statusDelete @auth(requires: user)
 
         # Super-admin creates (or resets the password of) a stadium-owner account (role 6).
         provisionStadiumOwner(email: String!, password: String!): User! @auth(requires: user)

@@ -19,7 +19,9 @@ const defaultAllowedOrigins = [
     'https://print.omkooora.com',
     'https://league.omkooora.com',
     'https://store.omkooora.com',
+    'https://academy.omkooora.com',
     'https://news.omkooora.com',
+    'https://stadium.omkooora.com',
     'https://omkoora-backend.souftech.com',
     'https://omkoora-club.souftech.com',
     'https://omkoora-team.souftech.com',
@@ -32,6 +34,7 @@ const defaultAllowedOrigins = [
     'http://localhost:3002',
     'http://localhost:3003',
     'http://localhost:3006',
+    'http://localhost:3070',
     'http://localhost:7001',
     'https://clubv2.smsoma.com',
     'https://omkoora-club-production.up.railway.app',
@@ -104,6 +107,18 @@ const appOrigins = {
     league: [
         'https://league.omkooora.com',
     ],
+    stadium: [
+        'https://stadium.omkooora.com',
+        'http://localhost:3070',
+    ],
+    // Academy-owner dashboard (role 7). Subdomain reserved now; the Next.js app
+    // comes in a later phase. Local dev port 3055.
+    academy: [
+        'https://academy.omkooora.com',
+        'http://localhost:3055',
+    ],
+    // Store-owner dashboard (role 8). Subdomain reserved now; the Next.js app
+    // comes in a later phase. Local dev port 3062.
     store: [
         'https://store.omkooora.com',
         'http://localhost:3062',

@@ -12,6 +12,26 @@ import {v4 as UUID} from "uuid";
 const STADIUM_OWNER_ROLE = "6";
 const SUPER_ADMIN_ROLE = "1";
 const FULL_GRANT = "1,2,3,4,5,6,7,8,9,10";
+
+// A stadium owner (role 6) may only modify/delete a stadium they own.
+// Other authenticated roles (team/club/super-admin) are left as-is.
+const assertOwnsStadium = async (context, stadiumId) => {
+    const u = context?.user;
+    if (u && u.role === STADIUM_OWNER_ROLE) {
+        const st = await Stadium.findByPk(stadiumId, { attributes: ["id", "id_user"] });
+        if (!st || st.id_user !== u.id) {
+            throw new ApolloError("غير مصرّح: هذا الملعب ليس ملكك", "FORBIDDEN");
+        }
+    }
+};
+
+// Parse "HH:MM" or "HH:MM:SS" (DB TIME values come back with seconds) to
+// minutes since midnight (null if invalid).
+const toMinutes = (t) => {
+    const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(String(t || "").trim());
+    if (!m) return null;
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+};
 import path from "path";
 import {__dirname} from "../../app.mjs";
 import {createWriteStream} from "fs";
@@ -233,6 +253,11 @@ export const resolvers = {
 
         createStadium: async (obj, {content}, context, info) =>  {
             try {
+                // A stadium owner (role 6) can only create stadiums owned by
+                // themselves — never assign to another owner/team.
+                if (context?.user?.role === STADIUM_OWNER_ROLE) {
+                    content = { ...content, id_user: context.user.id, id_team: null }
+                }
                 const images = await content.images;
                 delete content.images
 
@@ -273,8 +298,13 @@ export const resolvers = {
 
         updateStadium: async (obj, {id, content}, context, info) =>  {
             try {
+                await assertOwnsStadium(context, id)
                 const images = await content.images;
                 delete content.images
+                // Owners cannot reassign a stadium away from themselves.
+                if (context?.user?.role === STADIUM_OWNER_ROLE) {
+                    delete content.id_user; delete content.id_team
+                }
 
                 let result = await Stadium.update({...content}, { where: { id } })
 
@@ -314,6 +344,7 @@ export const resolvers = {
 
         deleteStadium: async (obj, {id}, context, info) =>  {
             try {
+                await assertOwnsStadium(context, id)
                 const meeting = await Stadium.destroy({ where: { id } })
 
                 return {
@@ -382,7 +413,24 @@ export const resolvers = {
               
               
           
-              // If no overlapping reservations, create a new reservation
+              // Prevent double-booking: reject if the requested slot overlaps an
+              // existing ACTIVE (non-cancelled) reservation on the same stadium/date.
+              const ns = toMinutes(content.booking_start);
+              const ne = toMinutes(content.booking_end);
+              if (ns !== null && ne !== null && ne > ns) {
+                  const clash = reservations.some((r) => {
+                      if (r.status === "cancel") return false;
+                      const es = toMinutes(r.booking_start);
+                      const ee = toMinutes(r.booking_end);
+                      if (es === null || ee === null) return false;
+                      return ns < ee && es < ne; // half-open overlap
+                  });
+                  if (clash) {
+                      return new ApolloError("هذا الوقت محجوز بالفعل", "TIME_IS_RESERVED");
+                  }
+              }
+
+              // Create the reservation
               const newReservation = await Reservations.create({ ...content });
 
               // Notify the stadium's owner (if the stadium has one) about the new booking.
