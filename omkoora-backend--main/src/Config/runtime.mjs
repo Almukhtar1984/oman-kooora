@@ -18,6 +18,7 @@ const defaultAllowedOrigins = [
     'https://omkooora.com',
     'https://print.omkooora.com',
     'https://league.omkooora.com',
+    'https://academy.omkooora.com',
     'https://news.omkooora.com',
     'https://stadium.omkooora.com',
     'https://omkoora-backend.souftech.com',
@@ -108,6 +109,12 @@ const appOrigins = {
     stadium: [
         'https://stadium.omkooora.com',
         'http://localhost:3070',
+    ],
+    // Academy-owner dashboard (role 7). Subdomain reserved now; the Next.js app
+    // comes in a later phase. Local dev port 3055.
+    academy: [
+        'https://academy.omkooora.com',
+        'http://localhost:3055',
     ],
     print: [
         'https://print.omkooora.com',

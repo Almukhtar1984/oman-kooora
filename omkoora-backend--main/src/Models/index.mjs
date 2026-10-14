@@ -46,6 +46,10 @@ import committeeModel from './Committee.mjs';
 import committeeMemberModel from './CommitteeMember.mjs';
 import memberPaymentModel from './MemberPayment.mjs';
 import deviceTokenModel from './DeviceToken.mjs';
+import academyModel from './Academy.mjs';
+import academyProgramModel from './AcademyProgram.mjs';
+import academyNewsModel from './AcademyNews.mjs';
+import academyRegistrationModel from './AcademyRegistration.mjs';
 
 
 
@@ -99,6 +103,10 @@ const Committee = committeeModel(DB, Sequelize);
 const CommitteeMember = committeeMemberModel(DB, Sequelize);
 const MemberPayment = memberPaymentModel(DB, Sequelize);
 const DeviceToken = deviceTokenModel(DB, Sequelize);
+const Academy = academyModel(DB, Sequelize);
+const AcademyProgram = academyProgramModel(DB, Sequelize);
+const AcademyNews = academyNewsModel(DB, Sequelize);
+const AcademyRegistration = academyRegistrationModel(DB, Sequelize);
 
 
 
@@ -447,6 +455,28 @@ Committee.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE'
 Committee.hasMany(CommitteeMember, { foreignKey: { name: 'id_committee' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 CommitteeMember.belongsTo(Committee, { foreignKey: { name: 'id_committee' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 
+// Academies — standalone units owned by an academy-owner account (role 7),
+// mirroring the stadium-owner model. id_user nullable; one owner may hold many.
+User.hasMany(Academy, { foreignKey: { name: 'id_user' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+Academy.belongsTo(User, { foreignKey: { name: 'id_user' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+
+// Academy 1 * AcademyProgram
+Academy.hasMany(AcademyProgram, { foreignKey: { name: 'id_academy' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+AcademyProgram.belongsTo(Academy, { foreignKey: { name: 'id_academy' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+// Academy 1 * AcademyNews
+Academy.hasMany(AcademyNews, { foreignKey: { name: 'id_academy' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+AcademyNews.belongsTo(Academy, { foreignKey: { name: 'id_academy' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+// Academy 1 * AcademyRegistration
+Academy.hasMany(AcademyRegistration, { foreignKey: { name: 'id_academy' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+AcademyRegistration.belongsTo(Academy, { foreignKey: { name: 'id_academy' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+// AcademyProgram 1 * AcademyRegistration (nullable — a registration may target
+// the academy generally rather than one specific program).
+AcademyProgram.hasMany(AcademyRegistration, { foreignKey: { name: 'id_program' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+AcademyRegistration.belongsTo(AcademyProgram, { foreignKey: { name: 'id_program' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+
 if (shouldSyncDb) {
     DB.sync(dbSyncOptions)
         .then(() => {
@@ -463,5 +493,6 @@ export {
     Assembly, Message, Attachment, Comment, Expense, Meeting, Blog, AttachmentBlog, Form, Permission,
     Stadium, Reservations, League, ParticipatingTeams, Match, MatchCard, ParticipatingPlayers,ParticipatingPlayersMatch,
     ParticipatingTechnicalStaff, AttachmentPerson, ScorerMatch,Arbitres,AuthTrace,Sanction,ActionLog,Notification,PlayerExternal, Event,
-    Committee, CommitteeMember, MemberPayment, DeviceToken
+    Committee, CommitteeMember, MemberPayment, DeviceToken,
+    Academy, AcademyProgram, AcademyNews, AcademyRegistration
 }
