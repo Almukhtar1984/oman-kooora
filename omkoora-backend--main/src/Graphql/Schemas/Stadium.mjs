@@ -8,6 +8,9 @@ export const typeDefs = gql`
         allStadiums: [Stadium!] #@auth(requires: user)
         allReservations(idStadium: ID): [Reservations]
         reservationsByTeam(idTeam: ID!): [Reservations!]
+        # Stadium-owner dashboard (role 6): the signed-in owner's own stadiums + their bookings.
+        myStadiums: [Stadium!] @auth(requires: user)
+        myStadiumReservations: [Reservations!] @auth(requires: user)
         # كل فترات اليوم مع حالتها وسعرها (كانت ترجع نصوص الأوقات المتاحة فقط).
         availableTimeSlots(idStadium: ID!, booking_date: String!): [TimeSlot!]
     }
@@ -18,6 +21,9 @@ export const typeDefs = gql`
         updateStadium (id: ID!, content: contentStadium!): statusUpdate #@auth(requires: user)
 
         deleteStadium ( id: ID! ): statusDelete #@auth(requires: user)
+
+        # Super-admin creates (or resets the password of) a stadium-owner account (role 6).
+        provisionStadiumOwner(email: String!, password: String!): User! @auth(requires: user)
 
         createReservations(content: contentReservations!): Reservations! #@auth(requires: user)
         # New mutation to update reservation status
@@ -46,6 +52,8 @@ export const typeDefs = gql`
         mohafada:       String
         wiliya:         String
         team:           Team
+        id_user:        ID       # owning stadium-owner account (role 6), if any
+        owner:          User     # the stadium-owner account
         sport:          String
         end_time:       String
         start_time:     String
@@ -78,6 +86,7 @@ export const typeDefs = gql`
         min_booking_minutes: Int
 
         id_team:        ID
+        id_user:        ID       # assign the stadium to an owner account
     }
 
     type Reservations {

@@ -32,10 +32,33 @@ export const resolvers = {
             }
         },
 
-        
+        // Notifications addressed to the signed-in account (e.g. stadium owner).
+        allNotificationUser: async (obj, {}, context, info) => {
+            try {
+                const user = context?.user;
+                if (!context?.isAuth || !user) return [];
+                return await Notification.findAll({
+                    where: { id_user: user.id },
+                    order: [['createdAt', 'DESC']],
+                    limit: 20
+                });
+            } catch (error) {
+                throw new ApolloError(error.message);
+            }
+        },
     },
 
     Mutation: {
+        markMyNotificationsAsRead: async (obj, {}, context, info) => {
+            try {
+                const user = context?.user;
+                if (!context?.isAuth || !user) return false;
+                await Notification.update({ isRead: true }, { where: { id_user: user.id, isRead: false } });
+                return true;
+            } catch (error) {
+                throw new ApolloError(error.message);
+            }
+        },
         markNotificationsAsRead: async (obj, { idClub, idTeam }, context, info) => {
             try {
                 const where = {};

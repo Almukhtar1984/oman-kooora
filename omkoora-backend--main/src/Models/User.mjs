@@ -17,13 +17,16 @@ export default (db, types) => {
         },
         role: {
             type: types.ENUM,
-            values: ['1', '2', '3', '4', '5'],
-            defaultValue: 3,
+            values: ['1', '2', '3', '4', '5', '6', '7', '8'],
+            defaultValue: '3',
             // 1 -> super admin
             // 2 -> admin club
             // 3 -> admin team
             // 4 -> league admin
             // 5 -> match official (sees only their assigned match)
+            // 6 -> stadium owner  (scoped to own Stadium via Stadium.id_user)
+            // 7 -> academy owner  (reserved for the academies module)
+            // 8 -> store owner    (reserved for the stores module)
         },
         activation: {
             type: types.BOOLEAN,

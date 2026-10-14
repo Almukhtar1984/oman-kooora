@@ -4,8 +4,14 @@ import dotenv from 'dotenv'
 
 import logger from "../../Config/logger.mjs";
 import dayjs from 'dayjs';
-import {Club, Team, Stadium, Reservations} from '../../Models/index.mjs';
+import {Club, Team, Stadium, Reservations, User, Notification, Permission} from '../../Models/index.mjs';
+import {hashPassword, alreadyExistUser} from "../../Helpers/index.mjs";
+import {sendPushToUser} from "../../Config/firebase.mjs";
 import {v4 as UUID} from "uuid";
+
+const STADIUM_OWNER_ROLE = "6";
+const SUPER_ADMIN_ROLE = "1";
+const FULL_GRANT = "1,2,3,4,5,6,7,8,9,10";
 import path from "path";
 import {__dirname} from "../../app.mjs";
 import {createWriteStream} from "fs";
@@ -45,6 +51,33 @@ export const resolvers = {
                 return await Stadium.findAll()
             } catch (error) {
                 logger.error(`Stadium.allStadiums: ${error?.message || error}`)
+                throw new ApolloError(error)
+            }
+        },
+
+        // Stadium-owner dashboard: the signed-in owner's own stadiums.
+        myStadiums: async (obj, {}, context, info) =>  {
+            try {
+                const user = context?.user
+                if (!context?.isAuth || !user) return []
+                return await Stadium.findAll({ where: { id_user: user.id } })
+            } catch (error) {
+                logger.error(`myStadiums: ${error?.message}`)
+                throw new ApolloError(error)
+            }
+        },
+
+        // Bookings across all of the signed-in owner's stadiums.
+        myStadiumReservations: async (obj, {}, context, info) =>  {
+            try {
+                const user = context?.user
+                if (!context?.isAuth || !user) return []
+                const stadiums = await Stadium.findAll({ where: { id_user: user.id }, attributes: ["id"], raw: true })
+                const ids = stadiums.map((s) => s.id)
+                if (ids.length === 0) return []
+                return await Reservations.findAll({ where: { id_stadium: { [Op.in]: ids } }, order: [["createdAt", "DESC"]] })
+            } catch (error) {
+                logger.error(`myStadiumReservations: ${error?.message}`)
                 throw new ApolloError(error)
             }
         },
@@ -120,6 +153,14 @@ export const resolvers = {
                 logger.error(`Stadium.team: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
+        },
+        owner: async ({id_user}, {}, context, info) =>  {
+            try {
+                return id_user ? await User.findByPk(id_user) : null
+            } catch (error) {
+                logger.error("")
+                throw new ApolloError(error)
+            }
         }
     },
 
@@ -149,6 +190,47 @@ export const resolvers = {
     },
 
     Mutation: {
+        // Super-admin provisions a stadium-owner login (role 6). If the email
+        // already belongs to a role-6 account, its password is reset instead.
+        provisionStadiumOwner: async (obj, {email, password}, context, info) =>  {
+            try {
+                const caller = context?.user
+                if (!context?.isAuth || !caller) return new ApolloError("Authentication required", "AUTH_REQUIRED")
+                if (caller.role !== SUPER_ADMIN_ROLE) {
+                    return new ApolloError("غير مصرّح: السوبر أدمن فقط", "FORBIDDEN")
+                }
+                const normalizedEmail = String(email || "").trim().toLowerCase()
+                if (!normalizedEmail) return new ApolloError("البريد مطلوب", "EMAIL_REQUIRED")
+                if (!password || password.length < 6) return new ApolloError("كلمة المرور قصيرة جدًا", "PASSWORD_TOO_SHORT")
+
+                const existing = await User.findOne({ where: { email: normalizedEmail } })
+                if (existing) {
+                    if (existing.role !== STADIUM_OWNER_ROLE) {
+                        return new ApolloError("البريد مستخدم لحساب آخر", "EMAIL_TAKEN")
+                    }
+                    existing.password = await hashPassword(password)
+                    existing.activation = true
+                    existing.email_verify = true
+                    await existing.save()
+                    return existing
+                }
+
+                const user = await User.create({
+                    email: normalizedEmail,
+                    password: await hashPassword(password),
+                    role: STADIUM_OWNER_ROLE,
+                    activation: true,
+                    email_verify: true,
+                })
+                // Seed a full permission row so the owner dashboard renders.
+                await Permission.create({ id_user: user.id, teams: FULL_GRANT })
+                return user
+            } catch (error) {
+                logger.error(`provisionStadiumOwner: ${error?.message}`)
+                throw new ApolloError(error)
+            }
+        },
+
         createStadium: async (obj, {content}, context, info) =>  {
             try {
                 const images = await content.images;
@@ -302,10 +384,23 @@ export const resolvers = {
           
               // If no overlapping reservations, create a new reservation
               const newReservation = await Reservations.create({ ...content });
+
+              // Notify the stadium's owner (if the stadium has one) about the new booking.
+              try {
+                  const stadium = await Stadium.findByPk(content.id_stadium, { attributes: ["id", "name", "id_user"] });
+                  if (stadium?.id_user) {
+                      const who = content.full_name || content.phone || "عميل";
+                      const body = `حجز جديد على ملعب ${stadium.name || ""} من ${who} بتاريخ ${content.booking_date || ""} (${content.booking_start || ""}–${content.booking_end || ""})`;
+                      await Notification.create({ body, id_user: stadium.id_user });
+                      // Best-effort push (no-op until FIREBASE creds are set).
+                      sendPushToUser(stadium.id_user, { title: "حجز جديد", body }).catch(() => {});
+                  }
+              } catch (notifyErr) {
+                  logger.error(`createReservations notify: ${notifyErr?.message}`);
+              }
+
               return newReservation;
-          
-           
-          },          
+          },
         updateReservationStatus: async (_, { id, status }, { db }) => {
            console.log(id)
 

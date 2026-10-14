@@ -134,6 +134,11 @@ Team.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onU
 Team.hasOne(Stadium, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Stadium.belongsTo(Team, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
+// A stadium can also be owned by a dedicated stadium-owner account (role 6).
+// Nullable: legacy team-linked stadiums have no owner. One owner may hold many.
+User.hasMany(Stadium, { foreignKey: { name: 'id_user' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+Stadium.belongsTo(User, { foreignKey: { name: 'id_user' }, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+
 // Stadium 1 * Reservations
 Stadium.hasOne(Reservations, { foreignKey: { name: 'id_stadium' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Reservations.belongsTo(Stadium, { foreignKey: { name: 'id_stadium' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
@@ -401,6 +406,10 @@ Notification.belongsTo(Club, {foreignKey: { name: 'id_club' },onDelete: 'CASCADE
 // Notification 1 * Players
 Players.hasOne(Notification, {foreignKey: { name: 'id_Player' },onDelete: 'CASCADE',onUpdate: 'CASCADE'});
 Notification.belongsTo(Players, {foreignKey: { name: 'id_Player' },onDelete: 'CASCADE',onUpdate: 'CASCADE'});
+
+// User-targeted notifications (e.g. a stadium owner getting a new-booking alert).
+User.hasMany(Notification, {foreignKey: { name: 'id_user' },onDelete: 'CASCADE',onUpdate: 'CASCADE'});
+Notification.belongsTo(User, {foreignKey: { name: 'id_user' },onDelete: 'CASCADE',onUpdate: 'CASCADE'});
 
 
 // Players 1 * PlayerExternal

@@ -4,10 +4,13 @@ export const typeDefs = gql`
     extend type Query {
         allNotificationClub(idClub: ID!): [Notification] @auth(requires: user)
         allNotificationTeam(idTeam: ID!): [Notification] @auth(requires: user)
+        # Notifications addressed to the signed-in account itself (e.g. stadium owner).
+        allNotificationUser: [Notification] @auth(requires: user)
     }
 
     extend type Mutation {
         markNotificationsAsRead(idClub: ID, idTeam: ID): Boolean @auth(requires: user)
+        markMyNotificationsAsRead: Boolean @auth(requires: user)
     }
 
 
