@@ -1,0 +1,17 @@
+{
+  "name": "omkoora-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Store-owner dashboard (store.omkooora.com) — منصة طموح",
+  "scripts": {
+    "dev": "next dev -p 3062",
+    "build": "next build",
+    "start": "next start -p 3062",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.2.33",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
