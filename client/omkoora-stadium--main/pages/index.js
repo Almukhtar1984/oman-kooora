@@ -16,6 +16,7 @@ const UPDATE_STADIUM = `mutation ($id: ID!, $content: contentStadium!) { updateS
 const DELETE_STADIUM = `mutation ($id: ID!) { deleteStadium(id: $id) { status } }`;
 const SET_RES_STATUS = `mutation ($id: ID!, $status: String!) { updateReservationStatus(id: $id, status: $status) { status } }`;
 const MARK_READ = `mutation { markMyNotificationsAsRead }`;
+const CHANGE_PW = `mutation ($o: String!, $n: String!) { updatePassword(oldPassword: $o, newPassword: $n) { status } }`;
 
 const resBadge = (s) =>
   s === "accepted" ? ["b-green", "مقبول"] : s === "cancel" ? ["b-red", "ملغي"] : ["b-amber", "قيد الانتظار"];
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [toast, setToast] = useState("");
   const [editing, setEditing] = useState(null); // stadium object or {} for new
   const [busy, setBusy] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const flash = (m) => { setToast(m); setTimeout(() => setToast(""), 2500); };
 
@@ -115,6 +117,17 @@ export default function Dashboard() {
 
   const markRead = async () => { try { await gql(MARK_READ); await loadAll(); } catch (e) { flash(e.message); } };
 
+  const changePassword = async (oldPassword, newPassword) => {
+    setBusy(true);
+    try {
+      const d = await gql(CHANGE_PW, { o: oldPassword, n: newPassword });
+      if (d?.updatePassword?.status) { flash("تم تغيير كلمة المرور"); setShowPw(false); }
+      else flash("كلمة المرور الحالية غير صحيحة");
+    } catch (e) {
+      flash("خطأ: " + e.message);
+    } finally { setBusy(false); }
+  };
+
   if (loading) return <div className="empty" style={{ marginTop: 80 }}>جارٍ التحميل…</div>;
 
   const waiting = reservations.filter((r) => r.status === "waiting").length;
@@ -127,6 +140,7 @@ export default function Dashboard() {
         <div className="brand"><span className="dot" /> لوحة صاحب الملعب · طموح</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 13, opacity: .9 }}>{me?.email}</span>
+          <button className="btn sm" onClick={() => setShowPw(true)}>تغيير كلمة المرور</button>
           <button className="btn sm" onClick={logout}>خروج</button>
         </div>
       </div>
@@ -237,7 +251,53 @@ export default function Dashboard() {
         />
       )}
 
+      {showPw && (
+        <ChangePasswordModal busy={busy} onCancel={() => setShowPw(false)} onSave={changePassword} />
+      )}
+
       {toast && <div className="toast">{toast}</div>}
+    </div>
+  );
+}
+
+function ChangePasswordModal({ onCancel, onSave, busy }) {
+  const [oldp, setOldp] = useState("");
+  const [n1, setN1] = useState("");
+  const [n2, setN2] = useState("");
+  const [err, setErr] = useState("");
+
+  const submit = () => {
+    setErr("");
+    if (!oldp) return setErr("أدخل كلمة المرور الحالية");
+    if (n1.length < 6) return setErr("كلمة المرور الجديدة قصيرة (6 أحرف على الأقل)");
+    if (n1 !== n2) return setErr("تأكيد كلمة المرور غير مطابق");
+    onSave(oldp, n1);
+  };
+
+  return (
+    <div className="modal-back" onClick={onCancel}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+        <h2>تغيير كلمة المرور</h2>
+        {err ? <div className="err">{err}</div> : null}
+        <div className="field">
+          <label>كلمة المرور الحالية</label>
+          <input type="password" value={oldp} onChange={(e) => setOldp(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>كلمة المرور الجديدة</label>
+          <input type="password" value={n1} onChange={(e) => setN1(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>تأكيد كلمة المرور الجديدة</label>
+          <input type="password" value={n2} onChange={(e) => setN2(e.target.value)} />
+        </div>
+        <div className="row" style={{ marginTop: 14, justifyContent: "flex-end", gap: 8 }}>
+          <button className="btn" onClick={onCancel} disabled={busy}>إلغاء</button>
+          <button className="btn primary" onClick={submit} disabled={busy}>
+            {busy ? "جارٍ الحفظ…" : "حفظ"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
