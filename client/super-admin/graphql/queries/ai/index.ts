@@ -6,3 +6,4 @@ export * from "./AiMatchCandidates";
 export * from "./GenerateMatchNews";
 export * from "./DraftNews";
 export * from "./CreateBlog";
+export * from "./DraftMessage";

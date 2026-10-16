@@ -1,6 +1,6 @@
 import {createStyles, Navbar, ScrollArea, Image, Tooltip, Box} from '@mantine/core';
 import { useRouter } from 'next/router';
-import { IconHome, IconChartBar, IconRobot, IconArticle, IconFilePencil } from "@tabler/icons";
+import { IconHome, IconChartBar, IconRobot, IconArticle, IconFilePencil, IconMail } from "@tabler/icons";
 interface _params {
     language: string;
 }
@@ -240,6 +240,21 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                         }}
                     >
                         <IconFilePencil color={theme.colors.cyan[5]} />
+                    </a>
+                </Tooltip>
+
+                <Tooltip withArrow label={"صياغة الرسائل"} position={"left"} zIndex={100}>
+                    <a
+                        className={cx(classes.link, { [classes.linkActive]: "/message-draft" === router.pathname })}
+                        href={"/message-draft"}
+                        key={"صياغة الرسائل"}
+                        onClick={(event) => {
+                            event.preventDefault()
+                            router.push("/message-draft")
+                            toggleSideBar()
+                        }}
+                    >
+                        <IconMail color={theme.colors.cyan[5]} />
                     </a>
                 </Tooltip>
             </Navbar.Section>
