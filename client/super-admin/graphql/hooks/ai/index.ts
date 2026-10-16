@@ -4,3 +4,5 @@ export * from "./useSaveAiSettings";
 export * from "./useTestAiConnection";
 export * from "./useAiMatchCandidates";
 export * from "./useGenerateMatchNews";
+export * from "./useDraftNews";
+export * from "./useCreateBlog";
