@@ -29,6 +29,11 @@ export const typeDefs = gql`
         # Returns an editable draft only (does NOT save) — the caller reviews and
         # then saves via createBlog. (super-admin or league admin)
         draftNews(content: aiNewsDraftInput!): AiNewsDraft @auth(requires: user)
+
+        # Draft an official message to a club / team from a brief. Returns an
+        # editable {subject, content} only (does NOT send). (super-admin or
+        # league admin)
+        draftMessage(content: aiMessageDraftInput!): AiMessageDraft @auth(requires: user)
     }
 
     type AiSettings {
@@ -67,6 +72,18 @@ export const typeDefs = gql`
         text:     String!    # the idea/points, or the text to reformulate/improve
         mode:     String     # draft | reformulate | improve (default: draft)
         category: String     # news | competitions | players | clubs (for tone)
+    }
+
+    type AiMessageDraft {
+        subject: String
+        content: String
+    }
+
+    input aiMessageDraftInput {
+        brief:         String!   # the subject / points of the message
+        tone:          String    # formal | friendly | firm (default: formal)
+        recipientType: String    # club | team
+        recipientName: String    # optional — address the recipient by name
     }
 
     type AiTestResult {

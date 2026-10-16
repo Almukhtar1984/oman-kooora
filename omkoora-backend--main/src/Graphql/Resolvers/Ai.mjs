@@ -8,6 +8,7 @@ import { encryptSecret, decryptSecret } from "../../Helpers/Secrets.mjs";
 import { AI_PROVIDERS, fetchModels, testConnection, generateText } from "../../Config/ai.mjs";
 import { stageLabelAr, buildMatchNewsPrompt, parseNewsJSON } from "../../Helpers/matchNews.mjs";
 import { buildNewsDraftPrompt } from "../../Helpers/newsDraft.mjs";
+import { buildMessageDraftPrompt, parseMessageJSON } from "../../Helpers/messageDraft.mjs";
 
 const SUPER_ADMIN_ROLE = "1";
 const LEAGUE_ADMIN_ROLE = "4";
@@ -293,6 +294,35 @@ export const resolvers = {
             } catch (e) {
                 logger.error(`draftNews.parse: ${e?.message}`);
                 throw new ApolloError(e.message || "تعذّرت قراءة الخبر المُولَّد", "AI_PARSE_FAILED");
+            }
+        },
+
+        // AI message drafter — returns an editable {subject, content} only (no
+        // send). The caller reviews/edits and then sends via createMessage.
+        draftMessage: async (obj, { content }, context) => {
+            requireNewsAuthor(context);
+            if (!content?.brief || !content.brief.trim()) throw new ApolloError("موضوع الرسالة مطلوب", "BRIEF_REQUIRED");
+
+            let prompt, system;
+            try {
+                ({ prompt, system } = buildMessageDraftPrompt(content));
+            } catch (e) {
+                throw new ApolloError(e.message || "مدخلات غير صحيحة", "BAD_INPUT");
+            }
+
+            let text;
+            try {
+                text = await generateText({ prompt, system });
+            } catch (e) {
+                logger.error(`draftMessage.generate: ${e?.message}`);
+                throw new ApolloError(e.message || "تعذّر توليد الرسالة", "AI_GENERATE_FAILED");
+            }
+
+            try {
+                return parseMessageJSON(text);
+            } catch (e) {
+                logger.error(`draftMessage.parse: ${e?.message}`);
+                throw new ApolloError(e.message || "تعذّرت قراءة الرسالة المُولَّدة", "AI_PARSE_FAILED");
             }
         },
     },

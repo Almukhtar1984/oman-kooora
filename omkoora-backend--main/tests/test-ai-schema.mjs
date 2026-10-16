@@ -72,6 +72,13 @@ assert(String(m.draftNews.type) === "AiNewsDraft", "Mutation.draftNews : AiNewsD
     assert(["subject", "short_description", "description"].every((f) => draftFields.includes(f)),
         "AiNewsDraft returns subject/short_description/description");
 }
+assert(String(m.draftMessage.type) === "AiMessageDraft", "Mutation.draftMessage : AiMessageDraft");
+{
+    const mArgs = Object.fromEntries(m.draftMessage.args.map((a) => [a.name, String(a.type)]));
+    assert(mArgs.content === "aiMessageDraftInput!", "draftMessage.content is aiMessageDraftInput! (required)");
+    const msgFields = Object.keys(schema.getType("AiMessageDraft").getFields());
+    assert(["subject", "content"].every((f) => msgFields.includes(f)), "AiMessageDraft returns subject/content");
+}
 
 // aiAvailableModels takes (provider!, apiKey) — provider required, apiKey optional.
 const avArgs = Object.fromEntries(q.aiAvailableModels.args.map((a) => [a.name, String(a.type)]));

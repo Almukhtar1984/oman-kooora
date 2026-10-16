@@ -248,6 +248,7 @@ extend type Mutation {
   testAiConnection(provider: String!, apiKey: String): AiTestResult @auth(requires: user)
   generateMatchNews(id_match: ID!, publish: Boolean): Blog @auth(requires: user)
   draftNews(content: aiNewsDraftInput!): AiNewsDraft @auth(requires: user)
+  draftMessage(content: aiMessageDraftInput!): AiMessageDraft @auth(requires: user)
 }
 
 type AiSettings {
@@ -286,6 +287,18 @@ input aiNewsDraftInput {
   text: String!
   mode: String
   category: String
+}
+
+type AiMessageDraft {
+  subject: String
+  content: String
+}
+
+input aiMessageDraftInput {
+  brief: String!
+  tone: String
+  recipientType: String
+  recipientName: String
 }
 
 type AiTestResult {

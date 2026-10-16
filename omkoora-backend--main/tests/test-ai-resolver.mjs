@@ -134,5 +134,13 @@ await rejects(() => M.draftNews({}, { content: { text: "x" } }, ctx("2")), "FORB
 await rejects(() => M.draftNews({}, { content: { text: "   " } }, ctx("1")), "TEXT_REQUIRED",
     "draftNews requires non-empty text (after the guard passes)");
 
+// ───────────────── draftMessage: role gate + input guard ────────────────────
+await rejects(() => M.draftMessage({}, { content: { brief: "x" } }, ctx(null)), "AUTH_REQUIRED",
+    "draftMessage rejects an unauthenticated caller");
+await rejects(() => M.draftMessage({}, { content: { brief: "x" } }, ctx("3")), "FORBIDDEN",
+    "draftMessage rejects a team admin (role 3)");
+await rejects(() => M.draftMessage({}, { content: { brief: "  " } }, ctx("1")), "BRIEF_REQUIRED",
+    "draftMessage requires a non-empty brief (after the guard passes)");
+
 console.log(failures === 0 ? `\n${c.green}All passed${c.reset}` : `\n${c.red}${failures} failed${c.reset}`);
 process.exit(failures === 0 ? 0 : 1);
