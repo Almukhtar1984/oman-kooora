@@ -55,6 +55,7 @@ const m = schema.getMutationType().getFields();
 
 assert(String(q.aiSettings.type) === "AiSettings", "Query.aiSettings : AiSettings");
 assert(String(q.aiAvailableModels.type) === "[AiModel!]", "Query.aiAvailableModels : [AiModel!]");
+assert(String(q.aiMatchCandidates.type) === "[AiMatchCandidate!]", "Query.aiMatchCandidates : [AiMatchCandidate!]");
 assert(String(m.saveAiSettings.type) === "statusUpdate", "Mutation.saveAiSettings : statusUpdate");
 assert(String(m.testAiConnection.type) === "AiTestResult", "Mutation.testAiConnection : AiTestResult");
 assert(String(m.generateMatchNews.type) === "Blog", "Mutation.generateMatchNews : Blog");

@@ -240,6 +240,7 @@ input contentAcademyRegistration {
 extend type Query {
   aiSettings: AiSettings @auth(requires: user)
   aiAvailableModels(provider: String!, apiKey: String): [AiModel!] @auth(requires: user)
+  aiMatchCandidates(limit: Int): [AiMatchCandidate!] @auth(requires: user)
 }
 
 extend type Mutation {
@@ -260,6 +261,18 @@ type AiSettings {
 type AiModel {
   id: String!
   recommended: Boolean
+}
+
+type AiMatchCandidate {
+  id: ID!
+  date: String
+  stage: String
+  league: String
+  teamA: String
+  teamB: String
+  goalsA: Int
+  goalsB: Int
+  matchState: String
 }
 
 type AiTestResult {

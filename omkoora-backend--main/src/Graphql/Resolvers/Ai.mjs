@@ -146,6 +146,42 @@ export const resolvers = {
                 throw new ApolloError(e.message || "تعذّر جلب الموديلات", "AI_MODELS_FAILED");
             }
         },
+
+        aiMatchCandidates: async (obj, { limit }, context) => {
+            const u = requireNewsAuthor(context);
+            const take = Math.min(Math.max(Number(limit) || 20, 1), 50);
+            const where = {};
+            // League admins only see matches in the leagues they own.
+            if (u.role === LEAGUE_ADMIN_ROLE) {
+                const leagues = await League.findAll({ where: { id_user: u.id }, attributes: ["id"] });
+                const ids = leagues.map((l) => l.id);
+                if (!ids.length) return [];
+                where.id_league = ids;
+            }
+            const matches = await Match.findAll({
+                where,
+                order: [["createdAt", "DESC"]],
+                limit: take,
+                include: [
+                    { model: ParticipatingTeams, as: "firstTeam", include: [{ model: Team, as: "team" }] },
+                    { model: ParticipatingTeams, as: "secondTeam", include: [{ model: Team, as: "team" }] },
+                    { model: League, as: "league" },
+                ],
+            });
+            return matches
+                .map((m) => ({
+                    id: m.id,
+                    date: m.date || "",
+                    stage: stageLabelAr(m.type),
+                    league: m.league?.name || "",
+                    teamA: m.firstTeam?.team?.name || "",
+                    teamB: m.secondTeam?.team?.name || "",
+                    goalsA: m.firstTeamGoal ?? 0,
+                    goalsB: m.secondTeamGoal ?? 0,
+                    matchState: m.matchState,
+                }))
+                .filter((c) => c.teamA && c.teamB); // only matches with resolvable teams
+        },
     },
 
     Mutation: {

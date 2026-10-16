@@ -10,6 +10,10 @@ export const typeDefs = gql`
         # (uses the given apiKey, or the stored one if omitted). This powers the
         # "تحديث الموديلات" button.
         aiAvailableModels(provider: String!, apiKey: String): [AiModel!] @auth(requires: user)
+
+        # Recent matches the owner / league admin can turn into news (newest
+        # first). Role 4 sees only their own league's matches; role 1 sees all.
+        aiMatchCandidates(limit: Int): [AiMatchCandidate!] @auth(requires: user)
     }
 
     extend type Mutation {
@@ -34,6 +38,18 @@ export const typeDefs = gql`
     type AiModel {
         id:          String!
         recommended: Boolean
+    }
+
+    type AiMatchCandidate {
+        id:         ID!
+        date:       String
+        stage:      String    # الدور بالعربية (النهائي، نصف النهائي…)
+        league:     String
+        teamA:      String
+        teamB:      String
+        goalsA:     Int
+        goalsB:     Int
+        matchState: String    # before-start | playing | end
     }
 
     type AiTestResult {
