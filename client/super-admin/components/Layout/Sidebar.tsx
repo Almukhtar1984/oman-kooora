@@ -1,6 +1,6 @@
 import {createStyles, Navbar, ScrollArea, Image, Tooltip, Box} from '@mantine/core';
 import { useRouter } from 'next/router';
-import { IconHome, IconChartBar } from "@tabler/icons";
+import { IconHome, IconChartBar, IconRobot } from "@tabler/icons";
 interface _params {
     language: string;
 }
@@ -195,6 +195,21 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                         }}
                     >
                         <IconChartBar color={theme.colors.cyan[5]} />
+                    </a>
+                </Tooltip>
+
+                <Tooltip withArrow label={"الذكاء الاصطناعي"} position={"left"} zIndex={100}>
+                    <a
+                        className={cx(classes.link, { [classes.linkActive]: "/ai" === router.pathname })}
+                        href={"/ai"}
+                        key={"الذكاء الاصطناعي"}
+                        onClick={(event) => {
+                            event.preventDefault()
+                            router.push("/ai")
+                            toggleSideBar()
+                        }}
+                    >
+                        <IconRobot color={theme.colors.cyan[5]} />
                     </a>
                 </Tooltip>
             </Navbar.Section>

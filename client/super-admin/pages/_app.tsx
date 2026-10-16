@@ -1,4 +1,5 @@
 import "../styles/globals.css";
+import "notyf/notyf.min.css";
 import type { AppProps } from "next/app";
 import { client } from "../lib/graphql";
 import { Box, MantineProvider } from "@mantine/core";
