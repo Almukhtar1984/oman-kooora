@@ -46,6 +46,7 @@ import committeeModel from './Committee.mjs';
 import committeeMemberModel from './CommitteeMember.mjs';
 import memberPaymentModel from './MemberPayment.mjs';
 import deviceTokenModel from './DeviceToken.mjs';
+import aiSettingModel from './AiSetting.mjs';
 import academyModel from './Academy.mjs';
 import academyProgramModel from './AcademyProgram.mjs';
 import academyNewsModel from './AcademyNews.mjs';
@@ -107,6 +108,7 @@ const Committee = committeeModel(DB, Sequelize);
 const CommitteeMember = committeeMemberModel(DB, Sequelize);
 const MemberPayment = memberPaymentModel(DB, Sequelize);
 const DeviceToken = deviceTokenModel(DB, Sequelize);
+const AiSetting = aiSettingModel(DB, Sequelize);
 const Academy = academyModel(DB, Sequelize);
 const AcademyProgram = academyProgramModel(DB, Sequelize);
 const AcademyNews = academyNewsModel(DB, Sequelize);
@@ -524,7 +526,7 @@ export {
     Assembly, Message, Attachment, Comment, Expense, Meeting, Blog, AttachmentBlog, Form, Permission,
     Stadium, Reservations, League, ParticipatingTeams, Match, MatchCard, ParticipatingPlayers,ParticipatingPlayersMatch,
     ParticipatingTechnicalStaff, AttachmentPerson, ScorerMatch,Arbitres,AuthTrace,Sanction,ActionLog,Notification,PlayerExternal, Event,
-    Committee, CommitteeMember, MemberPayment, DeviceToken,
+    Committee, CommitteeMember, MemberPayment, DeviceToken, AiSetting,
     Academy, AcademyProgram, AcademyNews, AcademyRegistration,
     Store, Product, Order, OrderItem
 }

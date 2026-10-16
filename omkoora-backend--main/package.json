@@ -6,6 +6,10 @@
   "scripts": {
     "start": "node ./src/app.mjs",
     "schema:export": "node scripts/export-schema.mjs",
+    "test:ai-config": "node tests/test-ai-config.mjs",
+    "test:ai-resolver": "node tests/test-ai-resolver.mjs",
+    "test:ai-schema": "node tests/test-ai-schema.mjs",
+    "test:ai": "node tests/test-ai-config.mjs && node tests/test-ai-resolver.mjs && node tests/test-ai-schema.mjs",
     "test:schema-bulk": "node tests/test-schema-bulk.mjs",
     "test:bulk-status": "node tests/test-bulk-change-status.mjs",
     "test:team-flow": "node tests/test-team-flow.mjs",

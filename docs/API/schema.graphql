@@ -99,6 +99,182 @@ type CommitteeMember {
   updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
 }
 
+# ===================== Academy =====================
+extend type Query {
+  academies: [Academy!]
+  academy(id: ID!): Academy
+  academyPrograms(idAcademy: ID!): [AcademyProgram!]
+  academyNews(idAcademy: ID!): [AcademyNews!]
+  allAcademyNews: [AcademyNews!]
+  myAcademies: [Academy!] @auth(requires: user)
+  myAcademyPrograms: [AcademyProgram!] @auth(requires: user)
+  myAcademyNews: [AcademyNews!] @auth(requires: user)
+  myAcademyRegistrations(status: String): [AcademyRegistration!] @auth(requires: user)
+  myAcademyReport: [AcademyProgramReport!] @auth(requires: user)
+}
+
+extend type Mutation {
+  provisionAcademyOwner(email: String!, password: String!): User! @auth(requires: user)
+  createAcademy(content: contentAcademy!): Academy! @auth(requires: user)
+  updateAcademy(id: ID!, content: contentAcademy!): statusUpdate @auth(requires: user)
+  deleteAcademy(id: ID!): statusDelete @auth(requires: user)
+  createAcademyProgram(content: contentAcademyProgram!): AcademyProgram! @auth(requires: user)
+  updateAcademyProgram(id: ID!, content: contentAcademyProgram!): statusUpdate @auth(requires: user)
+  deleteAcademyProgram(id: ID!): statusDelete @auth(requires: user)
+  createAcademyNews(content: contentAcademyNews!): AcademyNews! @auth(requires: user)
+  updateAcademyNews(id: ID!, content: contentAcademyNews!): statusUpdate @auth(requires: user)
+  deleteAcademyNews(id: ID!): statusDelete @auth(requires: user)
+  updateAcademyRegistrationStatus(id: ID!, status: String!): statusUpdate @auth(requires: user)
+  updateAcademyRegistrationPayment(id: ID!, payment_status: String!, note: String): statusUpdate @auth(requires: user)
+  createAcademyRegistration(content: contentAcademyRegistration!): AcademyRegistration!
+}
+
+type Academy {
+  id: ID
+  name: String
+  about: String
+  logo: String
+  images: String
+  phone: String
+  email: String
+  mohafada: String
+  wiliya: String
+  id_user: ID
+  owner: User
+  programs: [AcademyProgram!]
+  news: [AcademyNews!]
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  deletedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type AcademyProgram {
+  id: ID
+  name: String
+  age_category: String
+  schedule: String
+  about: String
+  price: Float
+  id_academy: ID
+  academy: Academy
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type AcademyNews {
+  id: ID
+  title: String
+  body: String
+  image: String
+  id_academy: ID
+  academy: Academy
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type AcademyRegistration {
+  id: ID
+  full_name: String
+  phone: String
+  child_birth_date: String
+  age: Int
+  status: String
+  payment_status: String
+  note: String
+  id_academy: ID
+  id_program: ID
+  academy: Academy
+  program: AcademyProgram
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type AcademyProgramReport {
+  id_program: ID
+  program_name: String
+  total: Int
+  waiting: Int
+  accepted: Int
+  rejected: Int
+}
+
+input contentAcademy {
+  name: String
+  about: String
+  phone: String
+  email: String
+  mohafada: String
+  wiliya: String
+  logo: Upload
+  images: [Upload]
+  id_user: ID
+}
+
+input contentAcademyProgram {
+  name: String
+  age_category: String
+  schedule: String
+  about: String
+  price: Float
+  id_academy: ID
+}
+
+input contentAcademyNews {
+  title: String
+  body: String
+  image: Upload
+  id_academy: ID
+}
+
+input contentAcademyRegistration {
+  full_name: String
+  phone: String
+  child_birth_date: String
+  age: Int
+  note: String
+  id_academy: ID
+  id_program: ID
+}
+
+# ===================== Ai =====================
+extend type Query {
+  aiSettings: AiSettings @auth(requires: user)
+  aiAvailableModels(provider: String!, apiKey: String): [AiModel!] @auth(requires: user)
+}
+
+extend type Mutation {
+  saveAiSettings(content: aiSettingsInput!): statusUpdate @auth(requires: user)
+  testAiConnection(provider: String!, apiKey: String): AiTestResult @auth(requires: user)
+}
+
+type AiSettings {
+  active_provider: String
+  enabled: Boolean
+  openai_model: String
+  gemini_model: String
+  openai_has_key: Boolean
+  gemini_has_key: Boolean
+}
+
+type AiModel {
+  id: String!
+  recommended: Boolean
+}
+
+type AiTestResult {
+  ok: Boolean!
+  message: String
+  models: [AiModel!]
+}
+
+input aiSettingsInput {
+  active_provider: String
+  enabled: Boolean
+  provider: String
+  apiKey: String
+  model: String
+}
+
 # ===================== Assembly =====================
 extend type Query {
   assembly(id: ID): Assembly
@@ -1293,13 +1469,16 @@ extend type Query {
   allStadiums: [Stadium!]
   allReservations(idStadium: ID): [Reservations]
   reservationsByTeam(idTeam: ID!): [Reservations!]
+  myStadiums: [Stadium!] @auth(requires: user)
+  myStadiumReservations: [Reservations!] @auth(requires: user)
   availableTimeSlots(idStadium: ID!, booking_date: String!): [TimeSlot!]
 }
 
 extend type Mutation {
-  createStadium(content: contentStadium!): Stadium!
-  updateStadium(id: ID!, content: contentStadium!): statusUpdate
-  deleteStadium(id: ID!): statusDelete
+  createStadium(content: contentStadium!): Stadium! @auth(requires: user)
+  updateStadium(id: ID!, content: contentStadium!): statusUpdate @auth(requires: user)
+  deleteStadium(id: ID!): statusDelete @auth(requires: user)
+  provisionStadiumOwner(email: String!, password: String!): User! @auth(requires: user)
   createReservations(content: contentReservations!): Reservations!
   updateReservationStatus(id: ID!, status: String!): statusUpdate @auth(requires: user)
   deleteReservation(id: ID!): statusDelete @auth(requires: user)
@@ -1324,6 +1503,8 @@ type Stadium {
   mohafada: String
   wiliya: String
   team: Team
+  id_user: ID
+  owner: User
   sport: String
   end_time: String
   start_time: String
@@ -1350,6 +1531,7 @@ input contentStadium {
   features_label: String
   min_booking_minutes: Int
   id_team: ID
+  id_user: ID
 }
 
 type Reservations {
@@ -1375,6 +1557,131 @@ input contentReservations {
   booking_start: String
   booking_end: String
   id_stadium: ID
+}
+
+# ===================== Store =====================
+extend type Query {
+  stores: [Store!]
+  store(id: ID!): Store
+  storeProducts(idStore: ID!): [Product!]
+  product(id: ID!): Product
+  myStore: Store
+  myStores: [Store!] @auth(requires: user)
+  myStoreProducts: [Product!] @auth(requires: user)
+  myStoreOrders: [Order!] @auth(requires: user)
+  myStoreReport: [StoreReport!] @auth(requires: user)
+}
+
+extend type Mutation {
+  provisionStoreOwner(email: String!, password: String!): User! @auth(requires: user)
+  createStore(content: contentStore!): Store! @auth(requires: user)
+  updateStore(id: ID!, content: contentStore!): statusUpdate @auth(requires: user)
+  createProduct(content: contentProduct!): Product! @auth(requires: user)
+  updateProduct(id: ID!, content: contentProduct!): statusUpdate @auth(requires: user)
+  deleteProduct(id: ID!): statusDelete @auth(requires: user)
+  updateOrderStatus(idOrder: ID!, status: String!): statusUpdate @auth(requires: user)
+  createOrder(content: contentOrder!): Order!
+}
+
+type Store {
+  id: ID
+  name: String
+  about: String
+  logo: String
+  images: String
+  phone: String
+  whatsapp: String
+  mohafada: String
+  wiliya: String
+  is_active: Boolean
+  id_user: ID
+  owner: User
+  products: [Product]
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type Product {
+  id: ID
+  name: String
+  about: String
+  price: Float
+  quantity: Int
+  images: String
+  is_available: Boolean
+  id_store: ID
+  store: Store
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type Order {
+  id: ID
+  full_name: String
+  phone: String
+  address: String
+  note: String
+  total: Float
+  status: String
+  payment_method: String
+  payment_status: String
+  id_store: ID
+  store: Store
+  items: [OrderItem]
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+  updatedAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
+type OrderItem {
+  id: ID
+  product_name: String
+  price: Float
+  quantity: Int
+  id_product: ID
+  product: Product
+}
+
+type StoreReport {
+  id_store: ID
+  store_name: String
+  orders_count: Int
+  total_sales: Float
+}
+
+input contentStore {
+  name: String
+  about: String
+  phone: String
+  whatsapp: String
+  mohafada: String
+  wiliya: String
+  is_active: Boolean
+  logo: Upload
+  images: [Upload]
+}
+
+input contentProduct {
+  name: String
+  about: String
+  price: Float
+  quantity: Int
+  is_available: Boolean
+  id_store: ID
+  images: [Upload]
+}
+
+input orderItemInput {
+  id_product: ID!
+  quantity: Int
+}
+
+input contentOrder {
+  full_name: String!
+  phone: String!
+  address: String
+  note: String
+  id_store: ID!
+  items: [orderItemInput!]!
 }
 
 # ===================== Team =====================
@@ -1802,10 +2109,12 @@ type GlobalSearchResult {
 extend type Query {
   allNotificationClub(idClub: ID!): [Notification] @auth(requires: user)
   allNotificationTeam(idTeam: ID!): [Notification] @auth(requires: user)
+  allNotificationUser: [Notification] @auth(requires: user)
 }
 
 extend type Mutation {
   markNotificationsAsRead(idClub: ID, idTeam: ID): Boolean @auth(requires: user)
+  markMyNotificationsAsRead: Boolean @auth(requires: user)
 }
 
 type Notification {
