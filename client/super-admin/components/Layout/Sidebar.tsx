@@ -1,6 +1,6 @@
 import {createStyles, Navbar, ScrollArea, Image, Tooltip, Box} from '@mantine/core';
 import { useRouter } from 'next/router';
-import { IconHome, IconChartBar, IconRobot } from "@tabler/icons";
+import { IconHome, IconChartBar, IconRobot, IconArticle } from "@tabler/icons";
 interface _params {
     language: string;
 }
@@ -210,6 +210,21 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                         }}
                     >
                         <IconRobot color={theme.colors.cyan[5]} />
+                    </a>
+                </Tooltip>
+
+                <Tooltip withArrow label={"مولّد أخبار المباريات"} position={"left"} zIndex={100}>
+                    <a
+                        className={cx(classes.link, { [classes.linkActive]: "/match-news" === router.pathname })}
+                        href={"/match-news"}
+                        key={"مولّد أخبار المباريات"}
+                        onClick={(event) => {
+                            event.preventDefault()
+                            router.push("/match-news")
+                            toggleSideBar()
+                        }}
+                    >
+                        <IconArticle color={theme.colors.cyan[5]} />
                     </a>
                 </Tooltip>
             </Navbar.Section>
