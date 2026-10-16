@@ -27,13 +27,16 @@ const assert = (cond, msg) => {
     else { console.log(`${c.red}✗${c.reset} ${msg}`); failures++; }
 };
 
-// The base SDL the root schema provides (directives, Role enum, statusUpdate…).
+// The base SDL the root schema provides (directives, Role enum, statusUpdate…),
+// plus a minimal Blog stub — in the full schema Blog comes from Schemas/Blog.mjs;
+// here we only need the name to exist so generateMatchNews: Blog resolves.
 const baseTypeDefs = gql`
     directive @auth( requires: Role = user ) on OBJECT | FIELD_DEFINITION
     enum Role { admin employee supervisor customer user }
     type Query { _empty: String }
     type Mutation { _empty: String }
     type statusUpdate { status: Boolean }
+    type Blog { id: ID  subject: String  status: String }
 `;
 
 let schema;
@@ -54,6 +57,12 @@ assert(String(q.aiSettings.type) === "AiSettings", "Query.aiSettings : AiSetting
 assert(String(q.aiAvailableModels.type) === "[AiModel!]", "Query.aiAvailableModels : [AiModel!]");
 assert(String(m.saveAiSettings.type) === "statusUpdate", "Mutation.saveAiSettings : statusUpdate");
 assert(String(m.testAiConnection.type) === "AiTestResult", "Mutation.testAiConnection : AiTestResult");
+assert(String(m.generateMatchNews.type) === "Blog", "Mutation.generateMatchNews : Blog");
+{
+    const gArgs = Object.fromEntries(m.generateMatchNews.args.map((a) => [a.name, String(a.type)]));
+    assert(gArgs.id_match === "ID!", "generateMatchNews.id_match is ID! (required)");
+    assert(gArgs.publish === "Boolean", "generateMatchNews.publish is Boolean (optional)");
+}
 
 // aiAvailableModels takes (provider!, apiKey) — provider required, apiKey optional.
 const avArgs = Object.fromEntries(q.aiAvailableModels.args.map((a) => [a.name, String(a.type)]));

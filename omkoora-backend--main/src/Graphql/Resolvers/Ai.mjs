@@ -1,16 +1,113 @@
 import { ApolloError } from 'apollo-server-express';
 import logger from "../../Config/logger.mjs";
-import { AiSetting } from '../../Models/index.mjs';
+import {
+    AiSetting, Match, ParticipatingTeams, Team, League, ScorerMatch,
+    ParticipatingPlayers, Players, Person, Blog,
+} from '../../Models/index.mjs';
 import { encryptSecret, decryptSecret } from "../../Helpers/Secrets.mjs";
-import { AI_PROVIDERS, fetchModels, testConnection } from "../../Config/ai.mjs";
+import { AI_PROVIDERS, fetchModels, testConnection, generateText } from "../../Config/ai.mjs";
+import { stageLabelAr, buildMatchNewsPrompt, parseNewsJSON } from "../../Helpers/matchNews.mjs";
 
 const SUPER_ADMIN_ROLE = "1";
+const LEAGUE_ADMIN_ROLE = "4";
 
 const requireSuperAdmin = (context) => {
     const u = context?.user;
     if (!context?.isAuth || !u) throw new ApolloError("يلزم تسجيل الدخول", "AUTH_REQUIRED");
     if (u.role !== SUPER_ADMIN_ROLE) throw new ApolloError("غير مصرّح: المالك (السوبر-أدمن) فقط", "FORBIDDEN");
     return u;
+};
+
+// News generation is a content action — the owner (super-admin) and the league
+// admins who run the matches may trigger it.
+const requireNewsAuthor = (context) => {
+    const u = context?.user;
+    if (!context?.isAuth || !u) throw new ApolloError("يلزم تسجيل الدخول", "AUTH_REQUIRED");
+    if (u.role !== SUPER_ADMIN_ROLE && u.role !== LEAGUE_ADMIN_ROLE) {
+        throw new ApolloError("غير مصرّح: المالك أو مدير البطولة فقط", "FORBIDDEN");
+    }
+    return u;
+};
+
+const personName = (person) =>
+    [person?.first_name, person?.second_name, person?.third_name].filter(Boolean).join(" ").trim();
+
+const looksLikeName = (s) => typeof s === "string" && /[؀-ۿ]/.test(s) && /\s/.test(s);
+
+// Best-effort resolution of Match.manOfMatch (a STRING column that may hold a
+// player id or a free-text name). Never throws.
+const resolveManOfMatch = async (raw) => {
+    if (!raw) return null;
+    try {
+        const player = await Players.findByPk(raw, { include: [{ model: Person, as: "person" }] });
+        const name = personName(player?.person);
+        if (name) return name;
+    } catch { /* not a player id */ }
+    return looksLikeName(raw) ? raw.trim() : null;
+};
+
+// Best-effort scorer list for a match. Returns [] on any gap rather than
+// failing the whole generation.
+const gatherScorers = async (idMatch) => {
+    try {
+        const rows = await ScorerMatch.findAll({
+            where: { id_match: idMatch },
+            include: [
+                {
+                    model: ParticipatingPlayers,
+                    include: [{ model: Players, as: "player", include: [{ model: Person, as: "person" }] }],
+                },
+                { model: ParticipatingTeams, include: [{ model: Team, as: "team" }] },
+            ],
+            order: [["time", "ASC"]],
+        });
+        return rows
+            .map((r) => ({
+                player: personName(r?.participating_player?.player?.person),
+                team: r?.participating_team?.team?.name || "",
+                time: r?.time || "",
+            }))
+            .filter((s) => s.player);
+    } catch (e) {
+        logger.warn?.(`gatherScorers(${idMatch}): ${e?.message}`);
+        return [];
+    }
+};
+
+// Assemble the facts the news writer needs from one match.
+// Exported for integration testing (seed a match → assert the gathered facts).
+export const gatherMatchFacts = async (idMatch) => {
+    const match = await Match.findByPk(idMatch, {
+        include: [
+            { model: ParticipatingTeams, as: "firstTeam", include: [{ model: Team, as: "team" }] },
+            { model: ParticipatingTeams, as: "secondTeam", include: [{ model: Team, as: "team" }] },
+            { model: League, as: "league" },
+        ],
+    });
+    if (!match) throw new ApolloError("المباراة غير موجودة", "MATCH_NOT_FOUND");
+
+    const teamA = match.firstTeam?.team?.name;
+    const teamB = match.secondTeam?.team?.name;
+    if (!teamA || !teamB) throw new ApolloError("بيانات فرق المباراة غير مكتملة", "MATCH_TEAMS_MISSING");
+
+    const [manOfMatch, scorers] = await Promise.all([
+        resolveManOfMatch(match.manOfMatch),
+        gatherScorers(idMatch),
+    ]);
+
+    return {
+        league: match.league?.name || "",
+        stage: stageLabelAr(match.type),
+        teamA, teamB,
+        goalsA: match.firstTeamGoal ?? 0,
+        goalsB: match.secondTeamGoal ?? 0,
+        venue: match.venue || "",
+        date: match.date || "",
+        minute: match.minute || "",
+        note: match.note || "",
+        manOfMatch,
+        scorers,
+    };
 };
 
 // Load-or-create the singleton settings row.
@@ -91,6 +188,46 @@ export const resolvers = {
             const key = apiKey && apiKey.trim() ? apiKey.trim() : keyFor(s, provider);
             if (!key) return { ok: false, message: "لا يوجد مفتاح للاختبار", models: [] };
             return await testConnection(provider, key);
+        },
+
+        // Generate a news article from a finished match and save it as a Blog.
+        // publish=true posts it live (status "accepted"); otherwise it is saved
+        // as a draft (status "waiting") for review before it appears in the feed.
+        generateMatchNews: async (obj, { id_match, publish }, context) => {
+            requireNewsAuthor(context);
+
+            const facts = await gatherMatchFacts(id_match);
+            const { system, prompt } = buildMatchNewsPrompt(facts);
+
+            let text;
+            try {
+                text = await generateText({ prompt, system });
+            } catch (e) {
+                logger.error(`generateMatchNews.generate(${id_match}): ${e?.message}`);
+                throw new ApolloError(e.message || "تعذّر توليد الخبر", "AI_GENERATE_FAILED");
+            }
+
+            let news;
+            try {
+                news = parseNewsJSON(text);
+            } catch (e) {
+                logger.error(`generateMatchNews.parse(${id_match}): ${e?.message}`);
+                throw new ApolloError(e.message || "تعذّرت قراءة الخبر المُولَّد", "AI_PARSE_FAILED");
+            }
+
+            try {
+                return await Blog.create({
+                    subject: news.subject,
+                    short_description: news.short_description,
+                    description: news.description,
+                    status: publish ? "accepted" : "waiting",
+                    category: "competitions",
+                    author_name: "محرّر طموح الذكي",
+                });
+            } catch (e) {
+                logger.error(`generateMatchNews.save(${id_match}): ${e?.message}`);
+                throw new ApolloError(e.message || "فشل حفظ الخبر", "AI_SAVE_FAILED");
+            }
         },
     },
 };

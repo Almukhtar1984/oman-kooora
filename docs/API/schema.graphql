@@ -245,6 +245,7 @@ extend type Query {
 extend type Mutation {
   saveAiSettings(content: aiSettingsInput!): statusUpdate @auth(requires: user)
   testAiConnection(provider: String!, apiKey: String): AiTestResult @auth(requires: user)
+  generateMatchNews(id_match: ID!, publish: Boolean): Blog @auth(requires: user)
 }
 
 type AiSettings {

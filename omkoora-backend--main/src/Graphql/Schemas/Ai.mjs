@@ -15,6 +15,11 @@ export const typeDefs = gql`
     extend type Mutation {
         saveAiSettings(content: aiSettingsInput!): statusUpdate @auth(requires: user)
         testAiConnection(provider: String!, apiKey: String): AiTestResult @auth(requires: user)
+
+        # Generate a news article from a finished match and save it as a Blog.
+        # publish=true posts it live; otherwise it is saved as a draft (waiting).
+        # Returns the created news article. (super-admin or league admin)
+        generateMatchNews(id_match: ID!, publish: Boolean): Blog @auth(requires: user)
     }
 
     type AiSettings {

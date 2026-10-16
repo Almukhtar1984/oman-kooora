@@ -18,7 +18,7 @@
 process.env.AI_ENC_KEY = "unit-test-key-please-ignore";
 
 const { resolvers } = await import("../src/Graphql/Resolvers/Ai.mjs");
-const { AiSetting } = await import("../src/Models/index.mjs");
+const { AiSetting, Match } = await import("../src/Models/index.mjs");
 const { decryptSecret } = await import("../src/Helpers/Secrets.mjs");
 
 const c = { reset: "\x1b[0m", green: "\x1b[32m", red: "\x1b[31m", dim: "\x1b[2m" };
@@ -105,6 +105,26 @@ assert(Array.isArray(res.models) && res.models.length === 0, "...with an empty m
 // aiAvailableModels with no key at all is a clean error, not a crash.
 await rejects(() => Q.aiAvailableModels({}, { provider: "gemini" }, ctx("1")), "NO_API_KEY",
     "aiAvailableModels asks for a key when none is stored or supplied");
+
+// ───────────────── generateMatchNews: role gate + wiring ────────────────────
+// Content action — only super-admin (1) and league admin (4) may trigger it.
+await rejects(() => M.generateMatchNews({}, { id_match: "m1" }, ctx(null)), "AUTH_REQUIRED",
+    "generateMatchNews rejects an unauthenticated caller");
+await rejects(() => M.generateMatchNews({}, { id_match: "m1" }, ctx("2")), "FORBIDDEN",
+    "generateMatchNews rejects a club admin (role 2)");
+await rejects(() => M.generateMatchNews({}, { id_match: "m1" }, ctx("3")), "FORBIDDEN",
+    "generateMatchNews rejects a team admin (role 3)");
+await rejects(() => M.generateMatchNews({}, { id_match: "m1" }, ctx("6")), "FORBIDDEN",
+    "generateMatchNews rejects a stadium owner (role 6)");
+
+// An authorized role passes the guard and proceeds to gather the match — stub
+// Match.findByPk to return nothing so we hit MATCH_NOT_FOUND (proves the guard
+// let role 4/1 through, without needing a real AI key).
+Match.findByPk = async () => null;
+await rejects(() => M.generateMatchNews({}, { id_match: "nope" }, ctx("4")), "MATCH_NOT_FOUND",
+    "a league admin (role 4) passes the guard and reaches match lookup");
+await rejects(() => M.generateMatchNews({}, { id_match: "nope" }, ctx("1")), "MATCH_NOT_FOUND",
+    "the super-admin (role 1) also passes the guard");
 
 console.log(failures === 0 ? `\n${c.green}All passed${c.reset}` : `\n${c.red}${failures} failed${c.reset}`);
 process.exit(failures === 0 ? 0 : 1);
