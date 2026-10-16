@@ -64,6 +64,14 @@ assert(String(m.generateMatchNews.type) === "Blog", "Mutation.generateMatchNews 
     assert(gArgs.id_match === "ID!", "generateMatchNews.id_match is ID! (required)");
     assert(gArgs.publish === "Boolean", "generateMatchNews.publish is Boolean (optional)");
 }
+assert(String(m.draftNews.type) === "AiNewsDraft", "Mutation.draftNews : AiNewsDraft");
+{
+    const dArgs = Object.fromEntries(m.draftNews.args.map((a) => [a.name, String(a.type)]));
+    assert(dArgs.content === "aiNewsDraftInput!", "draftNews.content is aiNewsDraftInput! (required)");
+    const draftFields = Object.keys(schema.getType("AiNewsDraft").getFields());
+    assert(["subject", "short_description", "description"].every((f) => draftFields.includes(f)),
+        "AiNewsDraft returns subject/short_description/description");
+}
 
 // aiAvailableModels takes (provider!, apiKey) — provider required, apiKey optional.
 const avArgs = Object.fromEntries(q.aiAvailableModels.args.map((a) => [a.name, String(a.type)]));

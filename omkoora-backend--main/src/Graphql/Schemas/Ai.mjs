@@ -24,6 +24,11 @@ export const typeDefs = gql`
         # publish=true posts it live; otherwise it is saved as a draft (waiting).
         # Returns the created news article. (super-admin or league admin)
         generateMatchNews(id_match: ID!, publish: Boolean): Blog @auth(requires: user)
+
+        # AI news editor: draft from an idea / reformulate / improve a text.
+        # Returns an editable draft only (does NOT save) — the caller reviews and
+        # then saves via createBlog. (super-admin or league admin)
+        draftNews(content: aiNewsDraftInput!): AiNewsDraft @auth(requires: user)
     }
 
     type AiSettings {
@@ -50,6 +55,18 @@ export const typeDefs = gql`
         goalsA:     Int
         goalsB:     Int
         matchState: String    # before-start | playing | end
+    }
+
+    type AiNewsDraft {
+        subject:           String
+        short_description: String
+        description:       String
+    }
+
+    input aiNewsDraftInput {
+        text:     String!    # the idea/points, or the text to reformulate/improve
+        mode:     String     # draft | reformulate | improve (default: draft)
+        category: String     # news | competitions | players | clubs (for tone)
     }
 
     type AiTestResult {

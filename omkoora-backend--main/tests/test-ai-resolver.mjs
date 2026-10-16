@@ -126,5 +126,13 @@ await rejects(() => M.generateMatchNews({}, { id_match: "nope" }, ctx("4")), "MA
 await rejects(() => M.generateMatchNews({}, { id_match: "nope" }, ctx("1")), "MATCH_NOT_FOUND",
     "the super-admin (role 1) also passes the guard");
 
+// ───────────────── draftNews: role gate + input guard ───────────────────────
+await rejects(() => M.draftNews({}, { content: { text: "x" } }, ctx(null)), "AUTH_REQUIRED",
+    "draftNews rejects an unauthenticated caller");
+await rejects(() => M.draftNews({}, { content: { text: "x" } }, ctx("2")), "FORBIDDEN",
+    "draftNews rejects a club admin (role 2)");
+await rejects(() => M.draftNews({}, { content: { text: "   " } }, ctx("1")), "TEXT_REQUIRED",
+    "draftNews requires non-empty text (after the guard passes)");
+
 console.log(failures === 0 ? `\n${c.green}All passed${c.reset}` : `\n${c.red}${failures} failed${c.reset}`);
 process.exit(failures === 0 ? 0 : 1);

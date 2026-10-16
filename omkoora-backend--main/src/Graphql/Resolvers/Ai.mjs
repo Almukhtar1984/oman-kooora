@@ -7,6 +7,7 @@ import {
 import { encryptSecret, decryptSecret } from "../../Helpers/Secrets.mjs";
 import { AI_PROVIDERS, fetchModels, testConnection, generateText } from "../../Config/ai.mjs";
 import { stageLabelAr, buildMatchNewsPrompt, parseNewsJSON } from "../../Helpers/matchNews.mjs";
+import { buildNewsDraftPrompt } from "../../Helpers/newsDraft.mjs";
 
 const SUPER_ADMIN_ROLE = "1";
 const LEAGUE_ADMIN_ROLE = "4";
@@ -263,6 +264,35 @@ export const resolvers = {
             } catch (e) {
                 logger.error(`generateMatchNews.save(${id_match}): ${e?.message}`);
                 throw new ApolloError(e.message || "فشل حفظ الخبر", "AI_SAVE_FAILED");
+            }
+        },
+
+        // AI news editor — returns an editable draft only (no save). The caller
+        // reviews/edits and then persists via createBlog.
+        draftNews: async (obj, { content }, context) => {
+            requireNewsAuthor(context);
+            if (!content?.text || !content.text.trim()) throw new ApolloError("النص مطلوب", "TEXT_REQUIRED");
+
+            let prompt, system;
+            try {
+                ({ prompt, system } = buildNewsDraftPrompt(content));
+            } catch (e) {
+                throw new ApolloError(e.message || "مدخلات غير صحيحة", "BAD_INPUT");
+            }
+
+            let text;
+            try {
+                text = await generateText({ prompt, system });
+            } catch (e) {
+                logger.error(`draftNews.generate: ${e?.message}`);
+                throw new ApolloError(e.message || "تعذّر توليد الخبر", "AI_GENERATE_FAILED");
+            }
+
+            try {
+                return parseNewsJSON(text);
+            } catch (e) {
+                logger.error(`draftNews.parse: ${e?.message}`);
+                throw new ApolloError(e.message || "تعذّرت قراءة الخبر المُولَّد", "AI_PARSE_FAILED");
             }
         },
     },
