@@ -8,15 +8,18 @@ import {
     Loader,
     Overlay,
     TextInput,
+    Textarea,
+    Paper,
+    Divider,
     Stack,
     Text,
     Select, Alert,
 } from "@mantine/core";
-import {Check, Paperclip, Trash, X} from "tabler-icons-react";
+import {Check, Paperclip, Trash, X, Robot} from "tabler-icons-react";
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import { useForm } from "@mantine/form";
 import Modal, { Props as ModalProps } from "./Modal";
-import {AllMessagesSender, useAddMessage, useAllTeams} from "../../graphql";
+import {AllMessagesSender, useAddMessage, useAllTeams, useDraftMessage} from "../../graphql";
 import useStore from "../../store/useStore";
 import {
     Dropzone,
@@ -75,7 +78,7 @@ export const AddMessage = ({data, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
     const idClub = userData?.person?.member?.team?.club?.id;
     const idTeam = userData?.person?.member?.team?.id;
-    const {getInputProps, reset, onSubmit} = useForm({
+    const {getInputProps, reset, onSubmit, setFieldValue} = useForm({
         initialValues,
         validate: {
             subject: (value) => (value?.trim() ? null : "الموضوع مطلوب"),
@@ -85,6 +88,12 @@ export const AddMessage = ({data, ...props}: Props) => {
     const [attachments, setAttachments] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
     const [content, setContent] = useState("");
+
+    // AI assist
+    const [aiBrief, setAiBrief] = useState("");
+    const [aiTone, setAiTone] = useState<string>("formal");
+    const [aiLoading, setAiLoading] = useState(false);
+    const [draftMessage] = useDraftMessage();
 
     const openRef = useRef<() => void>(null);
     const [createMessage] = useAddMessage();
@@ -149,6 +158,29 @@ export const AddMessage = ({data, ...props}: Props) => {
         })
     };
 
+    const onGenerateAi = () => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!aiBrief.trim()) { notyf.error("اكتب موضوع الرسالة أولاً"); return; }
+        setAiLoading(true);
+        draftMessage({
+            variables: { content: { brief: aiBrief.trim(), tone: aiTone, recipientType: "club" } },
+            onCompleted: (dataRes: any) => {
+                setAiLoading(false);
+                const d = dataRes?.draftMessage;
+                if (!d) { notyf.error("تعذّر التوليد"); return; }
+                setFieldValue("subject", d.subject || "");
+                const html = d.content ? `<p>${String(d.content).replace(/\n/g, "</p><p>")}</p>` : "";
+                setContent(html);
+                editor?.commands.setContent(html);
+                notyf.success("تم التوليد — راجع وعدّل ثم أرسل");
+            },
+            onError: ({ graphQLErrors }: any) => {
+                setAiLoading(false);
+                notyf.error(graphQLErrors?.[0]?.message || "تعذّر التوليد (تأكد من تفعيل الذكاء الاصطناعي)");
+            },
+        });
+    };
+
     const onDrop = (files: File[]) => setAttachments((current) => [...current, ...files]);
 
     const onReject = (rejections: FileRejection[]) => {
@@ -164,6 +196,7 @@ export const AddMessage = ({data, ...props}: Props) => {
         setLoading(false)
         setAttachments([])
         setContent("")
+        setAiBrief("")
         editor?.commands.clearContent()
         reset();
         props.onClose();
@@ -204,6 +237,46 @@ export const AddMessage = ({data, ...props}: Props) => {
             <Box sx={() => ({padding: 20})}>
                 <form onSubmit={onSubmit(onFormSubmit)} id="submit_form">
                     <Grid gutter={20}>
+                        <Col span={12}>
+                            <Paper p="md" radius="md" withBorder bg="grape.0">
+                                <Group spacing={8} mb={8}>
+                                    <Robot size={18} />
+                                    <Text weight={600} size="sm">صياغة بالذكاء الاصطناعي</Text>
+                                </Group>
+                                <Textarea
+                                    placeholder="اكتب موضوع الرسالة ونقاطها، ودع الذكاء الاصطناعي يصوغها رسمياً…"
+                                    minRows={2}
+                                    autosize
+                                    value={aiBrief}
+                                    onChange={(e) => setAiBrief(e.currentTarget.value)}
+                                />
+                                <Group mt={10} position="apart">
+                                    <Select
+                                        size="xs"
+                                        w={140}
+                                        withinPortal
+                                        value={aiTone}
+                                        onChange={(v) => setAiTone(v || "formal")}
+                                        data={[
+                                            { value: "formal", label: "رسمية" },
+                                            { value: "friendly", label: "ودّية" },
+                                            { value: "firm", label: "حازمة" },
+                                        ]}
+                                    />
+                                    <Button
+                                        size="xs"
+                                        color="grape"
+                                        loading={aiLoading}
+                                        leftIcon={<Robot size={15} />}
+                                        onClick={onGenerateAi}
+                                    >
+                                        صياغة بالذكاء الاصطناعي
+                                    </Button>
+                                </Group>
+                                <Text size="xs" color="dimmed" mt={6}>سيملأ العنوان والمحتوى — راجعهما قبل الإرسال.</Text>
+                            </Paper>
+                            <Divider my="md" label="أو أدخلها يدوياً" labelPosition="center" />
+                        </Col>
                         <Col span={12} >
                             <TextInput
                                 placeholder="الموضوع"
