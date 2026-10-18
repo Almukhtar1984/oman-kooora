@@ -17,7 +17,7 @@
  */
 process.env.AI_ENC_KEY = "unit-test-key-please-ignore";
 
-const { resolvers } = await import("../src/Graphql/Resolvers/Ai.mjs");
+const { resolvers, resolveNewsStatus } = await import("../src/Graphql/Resolvers/Ai.mjs");
 const { AiSetting, Match } = await import("../src/Models/index.mjs");
 const { decryptSecret } = await import("../src/Helpers/Secrets.mjs");
 
@@ -107,40 +107,46 @@ await rejects(() => Q.aiAvailableModels({}, { provider: "gemini" }, ctx("1")), "
     "aiAvailableModels asks for a key when none is stored or supplied");
 
 // ───────────────── generateMatchNews: role gate + wiring ────────────────────
-// Content action — only super-admin (1) and league admin (4) may trigger it.
+// Content tools are open to owner(1)/club(2)/team(3)/league(4). Others are not.
 await rejects(() => M.generateMatchNews({}, { id_match: "m1" }, ctx(null)), "AUTH_REQUIRED",
     "generateMatchNews rejects an unauthenticated caller");
-await rejects(() => M.generateMatchNews({}, { id_match: "m1" }, ctx("2")), "FORBIDDEN",
-    "generateMatchNews rejects a club admin (role 2)");
-await rejects(() => M.generateMatchNews({}, { id_match: "m1" }, ctx("3")), "FORBIDDEN",
-    "generateMatchNews rejects a team admin (role 3)");
+await rejects(() => M.generateMatchNews({}, { id_match: "m1" }, ctx("5")), "FORBIDDEN",
+    "generateMatchNews rejects a match official (role 5)");
 await rejects(() => M.generateMatchNews({}, { id_match: "m1" }, ctx("6")), "FORBIDDEN",
     "generateMatchNews rejects a stadium owner (role 6)");
 
-// An authorized role passes the guard and proceeds to gather the match — stub
-// Match.findByPk to return nothing so we hit MATCH_NOT_FOUND (proves the guard
-// let role 4/1 through, without needing a real AI key).
+// Content authors pass the guard and proceed to gather the match — stub
+// Match.findByPk to return nothing so we hit MATCH_NOT_FOUND.
 Match.findByPk = async () => null;
-await rejects(() => M.generateMatchNews({}, { id_match: "nope" }, ctx("4")), "MATCH_NOT_FOUND",
-    "a league admin (role 4) passes the guard and reaches match lookup");
-await rejects(() => M.generateMatchNews({}, { id_match: "nope" }, ctx("1")), "MATCH_NOT_FOUND",
-    "the super-admin (role 1) also passes the guard");
+for (const role of ["1", "2", "3", "4"]) {
+    await rejects(() => M.generateMatchNews({}, { id_match: "nope" }, ctx(role)), "MATCH_NOT_FOUND",
+        `role ${role} passes the generateMatchNews guard and reaches match lookup`);
+}
+
+// Status rule: a team (3) never self-publishes; owner/club/league honour publish.
+eq(resolveNewsStatus("3", true), "waiting", "a team's news is always a draft (waiting), even with publish=true");
+eq(resolveNewsStatus("3", false), "waiting", "a team's news without publish is a draft");
+eq(resolveNewsStatus("2", true), "accepted", "a club may publish live (accepted)");
+eq(resolveNewsStatus("1", true), "accepted", "the owner may publish live");
+eq(resolveNewsStatus("4", true), "accepted", "a league admin may publish live");
+eq(resolveNewsStatus("2", false), "waiting", "club without publish → draft");
+eq(resolveNewsStatus("5", true), "waiting", "a non-publisher role never reaches accepted");
 
 // ───────────────── draftNews: role gate + input guard ───────────────────────
 await rejects(() => M.draftNews({}, { content: { text: "x" } }, ctx(null)), "AUTH_REQUIRED",
     "draftNews rejects an unauthenticated caller");
-await rejects(() => M.draftNews({}, { content: { text: "x" } }, ctx("2")), "FORBIDDEN",
-    "draftNews rejects a club admin (role 2)");
-await rejects(() => M.draftNews({}, { content: { text: "   " } }, ctx("1")), "TEXT_REQUIRED",
-    "draftNews requires non-empty text (after the guard passes)");
+await rejects(() => M.draftNews({}, { content: { text: "x" } }, ctx("6")), "FORBIDDEN",
+    "draftNews rejects a stadium owner (role 6)");
+await rejects(() => M.draftNews({}, { content: { text: "   " } }, ctx("3")), "TEXT_REQUIRED",
+    "a team (role 3) passes the guard; empty text → TEXT_REQUIRED");
 
 // ───────────────── draftMessage: role gate + input guard ────────────────────
 await rejects(() => M.draftMessage({}, { content: { brief: "x" } }, ctx(null)), "AUTH_REQUIRED",
     "draftMessage rejects an unauthenticated caller");
-await rejects(() => M.draftMessage({}, { content: { brief: "x" } }, ctx("3")), "FORBIDDEN",
-    "draftMessage rejects a team admin (role 3)");
-await rejects(() => M.draftMessage({}, { content: { brief: "  " } }, ctx("1")), "BRIEF_REQUIRED",
-    "draftMessage requires a non-empty brief (after the guard passes)");
+await rejects(() => M.draftMessage({}, { content: { brief: "x" } }, ctx("5")), "FORBIDDEN",
+    "draftMessage rejects a match official (role 5)");
+await rejects(() => M.draftMessage({}, { content: { brief: "  " } }, ctx("2")), "BRIEF_REQUIRED",
+    "a club (role 2) passes the guard; empty brief → BRIEF_REQUIRED");
 
 console.log(failures === 0 ? `\n${c.green}All passed${c.reset}` : `\n${c.red}${failures} failed${c.reset}`);
 process.exit(failures === 0 ? 0 : 1);

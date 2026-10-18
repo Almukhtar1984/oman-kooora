@@ -11,9 +11,10 @@ export const typeDefs = gql`
         # "تحديث الموديلات" button.
         aiAvailableModels(provider: String!, apiKey: String): [AiModel!] @auth(requires: user)
 
-        # Recent matches the owner / league admin can turn into news (newest
-        # first). Role 4 sees only their own league's matches; role 1 sees all.
-        aiMatchCandidates(limit: Int): [AiMatchCandidate!] @auth(requires: user)
+        # Recent matches the caller can turn into news (newest first). Pass
+        # id_team (team app) or id_club (club app) to scope; league admin sees
+        # their leagues, super admin sees all.
+        aiMatchCandidates(limit: Int, id_team: ID, id_club: ID): [AiMatchCandidate!] @auth(requires: user)
     }
 
     extend type Mutation {
@@ -21,9 +22,9 @@ export const typeDefs = gql`
         testAiConnection(provider: String!, apiKey: String): AiTestResult @auth(requires: user)
 
         # Generate a news article from a finished match and save it as a Blog.
-        # publish=true posts it live; otherwise it is saved as a draft (waiting).
-        # Returns the created news article. (super-admin or league admin)
-        generateMatchNews(id_match: ID!, publish: Boolean): Blog @auth(requires: user)
+        # A team saves a draft for its club to review; owner/league/club may
+        # publish (publish=true). id_team/id_club tag the news. Returns the Blog.
+        generateMatchNews(id_match: ID!, publish: Boolean, id_team: ID, id_club: ID): Blog @auth(requires: user)
 
         # AI news editor: draft from an idea / reformulate / improve a text.
         # Returns an editable draft only (does NOT save) — the caller reviews and

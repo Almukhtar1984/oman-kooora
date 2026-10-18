@@ -1,9 +1,12 @@
 import { ApolloError } from 'apollo-server-express';
+import sequelize from 'sequelize';
 import logger from "../../Config/logger.mjs";
 import {
     AiSetting, Match, ParticipatingTeams, Team, League, ScorerMatch,
     ParticipatingPlayers, Players, Person, Blog,
 } from '../../Models/index.mjs';
+
+const { Op } = sequelize;
 import { encryptSecret, decryptSecret } from "../../Helpers/Secrets.mjs";
 import { AI_PROVIDERS, fetchModels, testConnection, generateText } from "../../Config/ai.mjs";
 import { stageLabelAr, buildMatchNewsPrompt, parseNewsJSON } from "../../Helpers/matchNews.mjs";
@@ -11,7 +14,21 @@ import { buildNewsDraftPrompt } from "../../Helpers/newsDraft.mjs";
 import { buildMessageDraftPrompt, parseMessageJSON } from "../../Helpers/messageDraft.mjs";
 
 const SUPER_ADMIN_ROLE = "1";
+const CLUB_ADMIN_ROLE = "2";
+const TEAM_ADMIN_ROLE = "3";
 const LEAGUE_ADMIN_ROLE = "4";
+
+// Roles allowed to USE the AI content tools (generate/draft). The connection
+// itself (keys/models) stays super-admin only.
+const CONTENT_AUTHOR_ROLES = [SUPER_ADMIN_ROLE, CLUB_ADMIN_ROLE, TEAM_ADMIN_ROLE, LEAGUE_ADMIN_ROLE];
+// Roles that may publish straight to the public feed. A team always submits a
+// draft that its club reviews first.
+const PUBLISHER_ROLES = [SUPER_ADMIN_ROLE, CLUB_ADMIN_ROLE, LEAGUE_ADMIN_ROLE];
+
+// Decide a generated article's Blog status. Teams can never self-publish — their
+// news is held as a draft ("waiting") for the club to review. Exported for tests.
+export const resolveNewsStatus = (role, publish) =>
+    (publish && PUBLISHER_ROLES.includes(role)) ? "accepted" : "waiting";
 
 const requireSuperAdmin = (context) => {
     const u = context?.user;
@@ -20,13 +37,14 @@ const requireSuperAdmin = (context) => {
     return u;
 };
 
-// News generation is a content action — the owner (super-admin) and the league
-// admins who run the matches may trigger it.
-const requireNewsAuthor = (context) => {
+// AI content tools — owner, league admin, club admin and team admin may use
+// them (they consume the owner's platform key). Teams' output is held as a
+// draft for club review (enforced per-mutation via PUBLISHER_ROLES).
+const requireContentAuthor = (context) => {
     const u = context?.user;
     if (!context?.isAuth || !u) throw new ApolloError("يلزم تسجيل الدخول", "AUTH_REQUIRED");
-    if (u.role !== SUPER_ADMIN_ROLE && u.role !== LEAGUE_ADMIN_ROLE) {
-        throw new ApolloError("غير مصرّح: المالك أو مدير البطولة فقط", "FORBIDDEN");
+    if (!CONTENT_AUTHOR_ROLES.includes(u.role)) {
+        throw new ApolloError("غير مصرّح باستخدام أدوات الذكاء الاصطناعي", "FORBIDDEN");
     }
     return u;
 };
@@ -149,17 +167,46 @@ export const resolvers = {
             }
         },
 
-        aiMatchCandidates: async (obj, { limit }, context) => {
-            const u = requireNewsAuthor(context);
+        // Recent matches the caller can turn into news, scoped to what they run:
+        //  - id_team  → matches that team played in (team app)
+        //  - id_club  → matches of that club's teams (club app)
+        //  - league admin → matches in the leagues they own
+        //  - super admin → all
+        // Follows the app convention of passing the caller's own id_team/id_club.
+        aiMatchCandidates: async (obj, { limit, id_team, id_club }, context) => {
+            const u = requireContentAuthor(context);
             const take = Math.min(Math.max(Number(limit) || 20, 1), 50);
             const where = {};
-            // League admins only see matches in the leagues they own.
-            if (u.role === LEAGUE_ADMIN_ROLE) {
+
+            // Resolve the participating-team rows (match.first_team/second_team
+            // point at participating_teams, which carry id_team).
+            const scopeByParticipating = async (teamIds) => {
+                if (!teamIds.length) return null;
+                const pts = await ParticipatingTeams.findAll({ where: { id_team: teamIds }, attributes: ["id"] });
+                const ptIds = pts.map((p) => p.id);
+                if (!ptIds.length) return null;
+                return { [Op.or]: [{ first_team: ptIds }, { second_team: ptIds }] };
+            };
+
+            if (id_team) {
+                const scope = await scopeByParticipating([id_team]);
+                if (!scope) return [];
+                Object.assign(where, scope);
+            } else if (id_club) {
+                const teams = await Team.findAll({ where: { id_club }, attributes: ["id"] });
+                const scope = await scopeByParticipating(teams.map((t) => t.id));
+                if (!scope) return [];
+                Object.assign(where, scope);
+            } else if (u.role === LEAGUE_ADMIN_ROLE) {
                 const leagues = await League.findAll({ where: { id_user: u.id }, attributes: ["id"] });
                 const ids = leagues.map((l) => l.id);
                 if (!ids.length) return [];
                 where.id_league = ids;
+            } else if (u.role !== SUPER_ADMIN_ROLE) {
+                // A club/team admin that sent no scope sees nothing (avoids leaking all matches).
+                return [];
             }
+
             const matches = await Match.findAll({
                 where,
                 order: [["createdAt", "DESC"]],
@@ -229,10 +276,12 @@ export const resolvers = {
         },
 
         // Generate a news article from a finished match and save it as a Blog.
-        // publish=true posts it live (status "accepted"); otherwise it is saved
-        // as a draft (status "waiting") for review before it appears in the feed.
-        generateMatchNews: async (obj, { id_match, publish }, context) => {
-            requireNewsAuthor(context);
+        // Status rules:
+        //  - a team (role 3) always saves a DRAFT ("waiting") for its club to review;
+        //  - the owner / league / club may publish live when publish=true.
+        // id_team / id_club tag the news so it shows under that team/club.
+        generateMatchNews: async (obj, { id_match, publish, id_team, id_club }, context) => {
+            const u = requireContentAuthor(context);
 
             const facts = await gatherMatchFacts(id_match);
             const { system, prompt } = buildMatchNewsPrompt(facts);
@@ -253,14 +302,19 @@ export const resolvers = {
                 throw new ApolloError(e.message || "تعذّرت قراءة الخبر المُولَّد", "AI_PARSE_FAILED");
             }
 
+            // Teams cannot self-publish; everyone else honours the publish flag.
+            const status = resolveNewsStatus(u.role, publish);
+
             try {
                 return await Blog.create({
                     subject: news.subject,
                     short_description: news.short_description,
                     description: news.description,
-                    status: publish ? "accepted" : "waiting",
+                    status,
                     category: "competitions",
                     author_name: "محرّر طموح الذكي",
+                    ...(id_team ? { id_team } : {}),
+                    ...(id_club ? { id_club } : {}),
                 });
             } catch (e) {
                 logger.error(`generateMatchNews.save(${id_match}): ${e?.message}`);
@@ -271,7 +325,7 @@ export const resolvers = {
         // AI news editor — returns an editable draft only (no save). The caller
         // reviews/edits and then persists via createBlog.
         draftNews: async (obj, { content }, context) => {
-            requireNewsAuthor(context);
+            requireContentAuthor(context);
             if (!content?.text || !content.text.trim()) throw new ApolloError("النص مطلوب", "TEXT_REQUIRED");
 
             let prompt, system;
@@ -300,7 +354,7 @@ export const resolvers = {
         // AI message drafter — returns an editable {subject, content} only (no
         // send). The caller reviews/edits and then sends via createMessage.
         draftMessage: async (obj, { content }, context) => {
-            requireNewsAuthor(context);
+            requireContentAuthor(context);
             if (!content?.brief || !content.brief.trim()) throw new ApolloError("موضوع الرسالة مطلوب", "BRIEF_REQUIRED");
 
             let prompt, system;

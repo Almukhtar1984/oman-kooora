@@ -240,13 +240,13 @@ input contentAcademyRegistration {
 extend type Query {
   aiSettings: AiSettings @auth(requires: user)
   aiAvailableModels(provider: String!, apiKey: String): [AiModel!] @auth(requires: user)
-  aiMatchCandidates(limit: Int): [AiMatchCandidate!] @auth(requires: user)
+  aiMatchCandidates(limit: Int, id_team: ID, id_club: ID): [AiMatchCandidate!] @auth(requires: user)
 }
 
 extend type Mutation {
   saveAiSettings(content: aiSettingsInput!): statusUpdate @auth(requires: user)
   testAiConnection(provider: String!, apiKey: String): AiTestResult @auth(requires: user)
-  generateMatchNews(id_match: ID!, publish: Boolean): Blog @auth(requires: user)
+  generateMatchNews(id_match: ID!, publish: Boolean, id_team: ID, id_club: ID): Blog @auth(requires: user)
   draftNews(content: aiNewsDraftInput!): AiNewsDraft @auth(requires: user)
   draftMessage(content: aiMessageDraftInput!): AiMessageDraft @auth(requires: user)
 }
