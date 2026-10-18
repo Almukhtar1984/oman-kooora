@@ -22,6 +22,7 @@ export const CURRENT_USER = gql`
         permissions
         complaints
         expenses
+        blogs
       }
       
       person {
