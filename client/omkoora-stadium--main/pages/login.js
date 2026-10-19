@@ -24,7 +24,7 @@ export default function Login() {
       const token = data?.authenticateUser?.token;
       if (!token) throw new Error("بيانات الدخول غير صحيحة");
       setToken(token);
-      router.replace("/");
+      router.replace("/dashboard");
     } catch (e2) {
       setErr(e2.message || "تعذّر تسجيل الدخول");
     } finally {
