@@ -83,8 +83,15 @@ export default function PlayersTransfer() {
             setAllPlayersSorting([...filterAllPlayers])
         }
 
+        // Count the moves awaiting THIS club's decision (its own stage).
+        const myClub = userData?.person?.clubManagement?.club?.id
         const filter = allPlayers.filter((item: any) => {
-            return (item?.lastTransfer?.status == "waiting" && item?.lastTransfer?.team_to?.club?.id !== userData?.person?.clubManagement?.club?.id)
+            const tr = item?.lastTransfer
+            const clubFrom = tr?.team_from?.club?.id
+            const clubTo = tr?.team_to?.club?.id || tr?.club_to?.id
+            return (tr?.status === "waiting_club_from" && myClub === clubFrom)
+                || (tr?.status === "waiting_club_to" && myClub === clubTo)
+                || (tr?.status === "waiting" && myClub === clubTo)
         })
 
         setPlayersWaiting(filter.length)

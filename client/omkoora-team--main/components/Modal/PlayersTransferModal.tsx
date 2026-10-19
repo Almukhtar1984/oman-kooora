@@ -130,7 +130,9 @@ export const PlayersTransferModal = ({id, data, opened, ...props}: Props) => {
         createTransfer({
             variables: {
                 content: {
-                    status: "waiting_team",
+                    // The backend derives the initial stage (team → own club → …)
+                    // and ignores this; kept only to satisfy the input type.
+                    status: "waiting",
                     type: type ? "external" : "internal",
                     id_player: (data?.id || id) as string,
                     id_team_from: idTeam,

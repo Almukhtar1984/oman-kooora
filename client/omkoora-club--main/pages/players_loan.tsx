@@ -85,8 +85,10 @@ export default function PlayersLoan() {
                     // A request still waiting for an answer is never "finished",
                     // whatever its dates say — the club still has to accept or
                     // reject it, and those actions are hidden on a finished loan.
+                    // Only an ACCEPTED loan can be "finished" — a request still in
+                    // the approval chain (waiting_club_from/to) is never ended.
                     const loanEnded = Boolean(
-                        loan && loan.status !== "waiting" && (
+                        loan && loan.status === "accepted" && (
                             loan.deletedAt ||
                             (loan.date_end && dayjs(loan.date_end).isBefore(dayjs(), "day"))
                         )
@@ -110,8 +112,15 @@ export default function PlayersLoan() {
             setAllPlayersSorting([...filterAllPlayers])
         }
 
+        // Count the loans awaiting THIS club's decision (its own stage).
+        const myClub = userData?.person?.clubManagement?.club?.id
         const filter = allPlayers.filter((item: any) => {
-            return (item?.lastLoan?.status == "waiting" && item?.lastLoan?.team_to?.club?.id !== userData?.person?.clubManagement?.club?.id)
+            const ln = item?.lastLoan
+            const clubFrom = ln?.team_from?.club?.id
+            const clubTo = ln?.team_to?.club?.id || ln?.club_to?.id
+            return (ln?.status === "waiting_club_from" && myClub === clubFrom)
+                || (ln?.status === "waiting_club_to" && myClub === clubTo)
+                || (ln?.status === "waiting" && myClub === clubTo)
         })
 
         setPlayersWaiting(filter.length)

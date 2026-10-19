@@ -120,6 +120,22 @@ export const MemberCard = ({
     
     const status = (type === 'transfer' || type === 'loan') ? data?.status || data?.lastTransfer?.status || data?.lastLoan?.status : data?.status;
     const isSuspended = status === 'suspended';
+
+    // Transfer/loan approval chain: a move goes teamA → clubA → clubB → teamB.
+    // Only the club whose turn it is may approve/reject.
+    //   waiting_club_from → the player's OWN club (team_from's club)
+    //   waiting_club_to   → the destination club (team_to's / club_to)
+    const reviewTr = type === 'transfer' ? data?.lastTransfer : (type === 'loan' ? data?.lastLoan : null);
+    const reviewStatus = reviewTr?.status || data?.status;
+    const myClubId = userClub?.id;
+    const clubFromId = reviewTr?.team_from?.club?.id;
+    const clubToId = reviewTr?.team_to?.club?.id || reviewTr?.club_to?.id;
+    const canReviewTransfer = (type === 'transfer' || type === 'loan') && hasPermission("2") && Boolean(myClubId) && (
+        (reviewStatus === 'waiting_club_from' && myClubId === clubFromId) ||
+        (reviewStatus === 'waiting_club_to' && myClubId === clubToId) ||
+        (reviewStatus === 'waiting' && myClubId === clubToId)
+    );
+    const reviewId = reviewTr?.id || data?.id;
     // A loan the club has finished with: the page tags it once the period is
     // over (or the record was closed). It stays visible as part of the club's
     // loan record, but it can no longer be extended or cancelled.
@@ -144,6 +160,8 @@ export const MemberCard = ({
         switch (status) {
             case "accepted": return <Badge color="teal" variant="filled" size="xs">مقبول</Badge>;
             case "rejected": return <Badge color="red" variant="filled" size="xs">مرفوض</Badge>;
+            case "waiting_club_from": return <Badge color="yellow" variant="filled" size="xs">بانتظار نادي اللاعب</Badge>;
+            case "waiting_club_to": return <Badge color="yellow" variant="filled" size="xs">بانتظار النادي المستقبِل</Badge>;
             case "waiting_club": return <Badge color="yellow" variant="filled" size="xs">بانتظار النادي</Badge>;
             case "waiting": return <Badge color="yellow" variant="filled" size="xs">بانتظار الفريق</Badge>;
             case "suspended": return <Badge color="red" variant="filled" size="xs">معاقب</Badge>;
@@ -491,10 +509,10 @@ export const MemberCard = ({
                                                 </>
                                             )}
                                             
-                                            {(type === 'transfer' || type === 'loan') && (data?.status === 'waiting' || data?.lastTransfer?.status === 'waiting' || data?.lastLoan?.status === 'waiting') && hasPermission("2") && (
+                                            {canReviewTransfer && (
                                                 <>
-                                                    <Menu.Item icon={<Check size={14} />} color="teal" onClick={() => onChangeStatus && onChangeStatus(data?.id || (type === 'transfer' ? data?.lastTransfer?.id : data?.lastLoan?.id), "accepted")}>قبول</Menu.Item>
-                                                    <Menu.Item icon={<X size={14} />} color="red" onClick={() => onChangeStatus && onChangeStatus(data?.id || (type === 'transfer' ? data?.lastTransfer?.id : data?.lastLoan?.id), "rejected")}>رفض</Menu.Item>
+                                                    <Menu.Item icon={<Check size={14} />} color="teal" onClick={() => onChangeStatus && onChangeStatus(reviewId, "accepted")}>قبول</Menu.Item>
+                                                    <Menu.Item icon={<X size={14} />} color="red" onClick={() => onChangeStatus && onChangeStatus(reviewId, "rejected")}>رفض</Menu.Item>
                                                 </>
                                             )}
 
