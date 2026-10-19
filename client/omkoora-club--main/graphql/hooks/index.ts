@@ -16,3 +16,5 @@ export * from "./sanction"
 export * from "./loan"
 export * from "./events"
 export * from "./committees";
+
+export * from "./ai";

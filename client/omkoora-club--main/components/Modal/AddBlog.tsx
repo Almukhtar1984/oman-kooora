@@ -8,15 +8,18 @@ import {
     Loader,
     Overlay,
     TextInput,
+    Textarea,
+    Paper,
+    Divider,
     Stack,
     Text,
     Select,
 } from "@mantine/core";
-import {Calendar, Check, ChevronDown, X} from "tabler-icons-react";
+import {Calendar, Check, ChevronDown, X, Robot} from "tabler-icons-react";
 import React, {useEffect, useRef, useState} from "react";
 import { useForm } from "@mantine/form";
 import Modal, { Props as ModalProps } from "./Modal";
-import {AllBlog, AllMessagesSender, useAddBlog, useAddMessage, useAllTeams} from "../../graphql";
+import {AllBlog, AllMessagesSender, useAddBlog, useAddMessage, useAllTeams, useDraftNews} from "../../graphql";
 import useStore from "../../store/useStore";
 import {DateInput} from "@mantine/dates";
 import {Dropzone, IMAGE_MIME_TYPE} from "@mantine/dropzone";
@@ -46,6 +49,12 @@ export const AddBlog = (props: Props) => {
     const [attachments, setAttachments] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
     const [content, setContent] = useState("");
+
+    // AI assist
+    const [aiBrief, setAiBrief] = useState("");
+    const [aiMode, setAiMode] = useState<string>("draft");
+    const [aiLoading, setAiLoading] = useState(false);
+    const [draftNews] = useDraftNews();
 
     const openRef = useRef<() => void>(null);
     const [createBlog] = useAddBlog();
@@ -92,10 +101,34 @@ export const AddBlog = (props: Props) => {
         })
     };
 
+    const onGenerateAi = () => {
+        const notyf = typeof window !== 'undefined' ? new Notyf({ position: { x: "right", y: "bottom" } }) : null;
+        if (!aiBrief.trim()) { notyf?.error("اكتب فكرة الخبر أولاً"); return; }
+        setAiLoading(true);
+        draftNews({
+            variables: { content: { text: aiBrief.trim(), mode: aiMode, category: "news" } },
+            onCompleted: (dataRes: any) => {
+                setAiLoading(false);
+                const d = dataRes?.draftNews;
+                if (!d) { notyf?.error("تعذّر التوليد"); return; }
+                setValues({ subject: d.subject || "", short_description: d.short_description || "" });
+                const html = d.description ? `<p>${String(d.description).replace(/\n/g, "</p><p>")}</p>` : "";
+                setContent(html);
+                editor?.commands.setContent(html);
+                notyf?.success("تم التوليد — راجع وعدّل ثم أرسل");
+            },
+            onError: ({ graphQLErrors }: any) => {
+                setAiLoading(false);
+                notyf?.error(graphQLErrors?.[0]?.message || "تعذّر التوليد (تأكد من تفعيل الذكاء الاصطناعي)");
+            },
+        });
+    };
+
     const closeModal = () => {
         setLoading(false)
         setAttachments([])
         setContent("")
+        setAiBrief("")
         props.onClose();
         reset();
     };
@@ -125,6 +158,45 @@ export const AddBlog = (props: Props) => {
             <Box sx={({ colors }) => ({padding: 20})}>
                 <form onSubmit={onSubmit(onFormSubmit)} id="submit_form">
                     <Grid gutter={20}>
+                        <Col span={12}>
+                            <Paper p="md" radius="md" withBorder bg="grape.0">
+                                <Group spacing={8} mb={8}>
+                                    <Robot size={18} />
+                                    <Text weight={600} size="sm">مساعد الذكاء الاصطناعي</Text>
+                                </Group>
+                                <Textarea
+                                    placeholder="اكتب فكرة الخبر أو النقاط، أو ألصق نصاً لإعادة صياغته…"
+                                    minRows={2}
+                                    autosize
+                                    value={aiBrief}
+                                    onChange={(e) => setAiBrief(e.currentTarget.value)}
+                                />
+                                <Group mt={10} position="apart">
+                                    <Select
+                                        size="xs"
+                                        w={160}
+                                        value={aiMode}
+                                        onChange={(v) => setAiMode(v || "draft")}
+                                        data={[
+                                            { value: "draft", label: "صياغة من فكرة" },
+                                            { value: "reformulate", label: "إعادة صياغة" },
+                                            { value: "improve", label: "تحسين" },
+                                        ]}
+                                    />
+                                    <Button
+                                        size="xs"
+                                        color="grape"
+                                        loading={aiLoading}
+                                        leftIcon={<Robot size={15} />}
+                                        onClick={onGenerateAi}
+                                    >
+                                        توليد بالذكاء الاصطناعي
+                                    </Button>
+                                </Group>
+                                <Text size="xs" color="dimmed" mt={6}>سيملأ الحقول تلقائياً — راجعها وعدّلها قبل الإرسال.</Text>
+                            </Paper>
+                            <Divider my="md" label="أو أدخلها يدوياً" labelPosition="center" />
+                        </Col>
                         <Col span={12} >
                             <TextInput
                                 placeholder="الموضوع"
