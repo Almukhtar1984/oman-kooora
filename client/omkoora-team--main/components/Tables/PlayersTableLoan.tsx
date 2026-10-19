@@ -118,7 +118,9 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
         {label: 'حالة الطلب', renderCell: (item) => (
             item?.status == "accepted" ? <Badge fw={500} color="teal">مقبول</Badge>
                 : item?.status == "rejected" ? <Badge fw={500} color="red">مرفوض</Badge>
-                    : <Badge fw={500} color="yellow">قيد الانتظار</Badge>
+                    : item?.status == "waiting_club_from" ? <Badge fw={500} color="yellow">بانتظار نادي اللاعب</Badge>
+                        : item?.status == "waiting_club_to" ? <Badge fw={500} color="orange">بانتظار النادي المستقبِل</Badge>
+                            : <Badge fw={500} color="yellow">قيد الانتظار</Badge>
         )},
         {label: 'إسم الفريق القديم', renderCell: (item) => `${item?.team_from?.name}`  },
         {label: 'إسم الفريق الجديد', renderCell: (item) => `${item?.team_to?.name}`  },

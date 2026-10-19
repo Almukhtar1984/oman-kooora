@@ -4,23 +4,31 @@ import { CompactTable } from '@table-library/react-table-library/compact';
 import { useTheme } from '@table-library/react-table-library/theme';
 import {DEFAULT_OPTIONS, getTheme,} from '@table-library/react-table-library/mantine';
 import { usePagination } from '@table-library/react-table-library/pagination';
-import {ActionIcon, Badge, Group, Menu, Pagination} from '@mantine/core';
-import {DotsVertical, Check, X} from "tabler-icons-react";
+import {Badge, Group, Pagination} from '@mantine/core';
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
+
+// Stage badge from the team's point of view — the team tracks where its request
+// is in the chain (team → own club → destination club → team). Read-only.
+export const transferStageBadge = (status: string) => {
+    switch (status) {
+        case "accepted": return <Badge fw={500} color="teal">مكتمل</Badge>;
+        case "rejected": return <Badge fw={500} color="red">مرفوض</Badge>;
+        case "waiting_club_from": return <Badge fw={500} color="yellow">بانتظار نادي اللاعب</Badge>;
+        case "waiting_club_to": return <Badge fw={500} color="orange">بانتظار النادي المستقبِل</Badge>;
+        default: return <Badge fw={500} color="yellow">قيد الانتظار</Badge>;
+    }
+};
 
 const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
 interface Props {
     list: any;
     search: string;
-    setOpenEditModal?: (open: boolean) => void;
-    setOpenDeleteModal?: (open: boolean) => void;
-    setSelectedRow?: (data: any) => void;
     idTeam: string
 }
 
-export const PlayersTableTransfer = ({ list, search, setOpenEditModal, setSelectedRow, idTeam }: Props) => {
+export const PlayersTableTransfer = ({ list, search, idTeam }: Props) => {
     const [allMembers, setAllMembers] = useState<{nodes: any}>({
         nodes: []
     });
@@ -38,7 +46,7 @@ export const PlayersTableTransfer = ({ list, search, setOpenEditModal, setSelect
             text-align: right;
         `,
         Table: `
-            --data-table-library_grid-template-columns:  80px 150px 15% 15% 10% 20% 12% 10% 10% 10% 12% 10% 25% ;
+            --data-table-library_grid-template-columns:  170px 15% 15% 90px 20% 90px 12% 12% 12% 10% 10% 10% 20% ;
             min-height: 150px;
         `,
     });
@@ -64,47 +72,10 @@ export const PlayersTableTransfer = ({ list, search, setOpenEditModal, setSelect
         console.log(action, state);
     }
 
-    const openModelUpdate = (data: any, status: string) => {
-        typeof setSelectedRow === "function" && setSelectedRow({
-            ...data,
-            status
-        })
-        typeof setOpenEditModal === "function" && setOpenEditModal(true)
-    }
-
     const COLUMNS = [
-        {label: 'الخيارات', renderCell: (item) => (
-                <Group>
-                    <Menu shadow="md" width={200} position={"bottom"}>
-                        <Menu.Target>
-                            <ActionIcon disabled={item?.status !== "waiting_club_1" && item?.status !== "waiting_team"} color="gray" variant="light" >
-                                <DotsVertical size={18} />
-                            </ActionIcon>
-                        </Menu.Target>
-
-                        <Menu.Dropdown>
-                            {item?.status == "waiting_club_1" && item?.team_to?.id === idTeam
-                                ? <Menu.Item icon={<X size={14} />} onClick={() => openModelUpdate(item, "rejected")} >رفض</Menu.Item>
-                                : item?.status == "waiting_team" && item?.team_to?.id === idTeam
-                                    ? <>
-                                        <Menu.Item icon={<X size={14} />} onClick={() => openModelUpdate(item, "rejected")} >رفض</Menu.Item>
-                                        <Menu.Item icon={<Check size={14} />} onClick={() => openModelUpdate(item, "waiting_club_1")} >قبول</Menu.Item>
-                                    </>
-                                    : null
-                            }
-                        </Menu.Dropdown>
-                    </Menu>
-                </Group>
-            )
-        },
-        {label: 'حالة الانتقال', renderCell: (item) => (
-            item?.status == "accepted" ? <Badge fw={500} color="teal">مقبول من النادي</Badge>
-                : item?.status == "rejected" ? <Badge fw={500} color="red">مرفوض</Badge>
-                    : item?.status == "waiting_club_1" ? <Badge fw={500} color="teal">مقبول من الفريق</Badge>
-                        : <Badge fw={500} color="yellow">قيد الانتظار</Badge>
-        )},
-        {label: 'إسم الفريق القديم', renderCell: (item) => `${item?.team_from?.name}`  },
-        {label: 'إسم الفريق الجديد', renderCell: (item) => `${item?.team_to?.name}`  },
+        {label: 'حالة الانتقال', renderCell: (item) => transferStageBadge(item?.status) },
+        {label: 'إسم الفريق القديم', renderCell: (item) => `${item?.team_from?.name ?? ''}`  },
+        {label: 'إسم الفريق الجديد', renderCell: (item) => `${item?.team_to?.name ?? ''}`  },
 
         {label: '', renderCell: (item) => (
             item?.team_to?.id === idTeam ? <Badge fw={500} color="teal">قادم</Badge>

@@ -14,11 +14,15 @@ export const AllTransferTeam = gql`
             team_from {
                 id
                 name
+                club { id name }
             }
             team_to {
                 id
                 name
+                club { id name }
             }
+            club_from { id name }
+            club_to { id name }
 
             player {
                 id
