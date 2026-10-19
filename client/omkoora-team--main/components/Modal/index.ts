@@ -108,3 +108,5 @@ export * from "./AddParticipatingPlayersMatchs"
 export * from "./ShowPlayerListModal"
 export * from "./AddAttachmentTechnicalModal"
 export * from "./ShowAttachmentsTechnical"
+
+export * from "./GenerateMatchNewsModal"

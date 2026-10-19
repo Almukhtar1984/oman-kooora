@@ -1,11 +1,11 @@
 import { useTheme } from "@emotion/react";
 import {Box, Button, Col, Container, Grid, Group, MantineTheme, Stack, TextInput, Title} from "@mantine/core";
-import {Lock, Plus, Search,} from "tabler-icons-react";
+import {Lock, Plus, Search, Robot} from "tabler-icons-react";
 import Head from "next/head";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
-import {AddBlog, ShowBlog, DeleteBlog, UpdateBlog} from "../components/Modal";
+import {AddBlog, ShowBlog, DeleteBlog, UpdateBlog, GenerateMatchNewsModal} from "../components/Modal";
 import {useAllBlog, } from "../graphql";
 import useStore from "../store/useStore";
 import CardBlog from "../components/Card/CardBlog";
@@ -15,6 +15,7 @@ export default function Blog() {
     // states
     const theme = useTheme() as MantineTheme;
     const [openAddModal, setOpenAddModal] = useState<boolean>(false);
+    const [openMatchNewsModal, setOpenMatchNewsModal] = useState<boolean>(false);
     const [openShowModal, setOpenShowModal] = useState<boolean>(false);
     const [openEditModal, setOpenEditModal] = useState<boolean>(false);
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
@@ -113,14 +114,25 @@ export default function Blog() {
 
 
                         {hasPermission("2")
-                            ? <Button
-                                rightIcon={<Plus size={16} strokeWidth="3" />}
-                                sx={{ fontWeight: 500 }}
-                                onClick={() => setOpenAddModal(true)}
-                                color={"primary"}
-                            >
-                                إضافة اخبار
-                            </Button>
+                            ? <Group spacing="xs">
+                                <Button
+                                    variant="light"
+                                    color="grape"
+                                    leftIcon={<Robot size={16} />}
+                                    sx={{ fontWeight: 500 }}
+                                    onClick={() => setOpenMatchNewsModal(true)}
+                                >
+                                    توليد خبر مباراة
+                                </Button>
+                                <Button
+                                    rightIcon={<Plus size={16} strokeWidth="3" />}
+                                    sx={{ fontWeight: 500 }}
+                                    onClick={() => setOpenAddModal(true)}
+                                    color={"primary"}
+                                >
+                                    إضافة اخبار
+                                </Button>
+                            </Group>
                             : null
                         }
                     </Group>
@@ -153,6 +165,7 @@ export default function Blog() {
 
             {/* Portal Components */}
             <AddBlog title="اضافة اخبار" opened={openAddModal} onClose={() => setOpenAddModal(false)}/>
+            <GenerateMatchNewsModal title="توليد خبر مباراة" opened={openMatchNewsModal} onClose={() => setOpenMatchNewsModal(false)}/>
             <ShowBlog title="" opened={openShowModal} data={selectedData} onClose={() => setOpenShowModal(false)}/>
             <DeleteBlog title="" opened={openDeleteModal} data={selectedData} onClose={() => setOpenDeleteModal(false)}/>
 

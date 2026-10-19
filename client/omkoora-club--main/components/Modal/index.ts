@@ -96,3 +96,5 @@ export * from "./ChangeMyPasswordModal";
 
 export * from "./AddAttachmentTechnicalModal"
 export * from "./ShowAttachmentsTechnical"
+
+export * from "./GenerateMatchNewsModal"
