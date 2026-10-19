@@ -24,10 +24,11 @@ export const typeDefs = gql`
 
     type Transfer {
         id:           ID
-        status:       String
+        status:       String   # waiting_club_from | waiting_club_to | accepted | rejected | waiting(legacy)
         type:         String
         team_from:    Team
         team_to:      Team
+        club_from:    Club      # the player's own club — first approver in the chain
         club_to:      Club
         id_player:    ID
         player:       Player
@@ -58,5 +59,6 @@ export const typeDefs = gql`
         id_player:    ID
         id_technical_apparatus: ID
         id_club_to:   ID
+        id_club_from: ID
     }
 `;

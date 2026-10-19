@@ -8,8 +8,19 @@ import logger from "../../Config/logger.mjs";
 
 import {Transfer, Players, Team, Club, TechnicalApparatus} from '../../Models/index.mjs';
 import DB from '../../Config/DBContact.mjs';
-import {CreateNotificationTeam} from "../../Helpers/index.mjs";
+import {CreateNotificationTeam, CreateNotificationClub} from "../../Helpers/index.mjs";
 import {removeReceivingTeamParticipations, removeReceivingTeamParticipationsTechnical} from "../../Helpers/LoanReturn.mjs";
+import {initialTransferStatus, transferTransition} from "../../Helpers/transferFlow.mjs";
+
+const CLUB_ADMIN_ROLE = "2";
+
+// The club id a team belongs to (null if unknown). Used to route a move through
+// the from-club then the to-club.
+const clubIdOfTeam = async (idTeam) => {
+    if (!idTeam) return null;
+    const t = await Team.findByPk(idTeam, { attributes: ["id", "id_club"] });
+    return t?.id_club || null;
+};
 
 
 dotenv.config();
@@ -115,6 +126,14 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
+        club_from: async ({id_club_from}, {}, context, info) =>  {
+            try {
+                return id_club_from ? await Club.findByPk(id_club_from) : null
+            } catch (error) {
+                logger.error(`Transfer.club_from: ${error?.message || error}`)
+                throw new ApolloError(error)
+            }
+        },
         player: async ({id_player}, {id}, context, info) =>  {
             try {
                 return await Players.findByPk(id_player)
@@ -136,24 +155,46 @@ export const resolvers = {
     Mutation: {
         createTransfer: async (obj, {content}, context, info) =>  {
             try {
-                let transfer = await Transfer.create(content)
-
                 const isLoan = content.transition_type === "loan"
-                // A transfer moves either a player or a technical-staff member.
                 const isTech = !content.id_player && !!content.id_technical_apparatus
                 const Subject = isTech ? TechnicalApparatus : Players
                 const subjectId = isTech ? content.id_technical_apparatus : content.id_player
                 const subjectType = isTech ? "technical" : "player"
 
-                if (content.status === "accepted") {
-                    await Subject.update({id_team: content.id_team_to}, { where: { id: subjectId } })
-                } else if (transfer && subjectId && !isLoan) {
-                    await Subject.update({status: "waiting"}, { where: { id: subjectId } })
+                // Route the move through the clubs: derive the from-club (player's
+                // own club) and the to-club (destination team's club) so the chain
+                // is enforced regardless of what the client sends.
+                const idClubFrom = await clubIdOfTeam(content.id_team_from);
+                const idClubTo = (await clubIdOfTeam(content.id_team_to)) || content.id_club_to || null;
+                const sameClub = !!idClubFrom && idClubFrom === idClubTo;
+                const callerIsClub = context?.user?.role === CLUB_ADMIN_ROLE;
+
+                // The backend owns the initial stage — the client's status is ignored.
+                const status = initialTransferStatus({ callerIsClub, sameClub });
+
+                const transfer = await Transfer.create({
+                    ...content,
+                    id_club_from: idClubFrom,
+                    id_club_to: idClubTo,
+                    status,
+                });
+
+                if (status === "accepted") {
+                    // A club created an internal move → it is already final.
+                    await Subject.update({ status: "accepted", id_team: content.id_team_to }, { where: { id: subjectId } })
+                } else if (subjectId) {
+                    // In flight → mark the subject pending its club(s)' review.
+                    await Subject.update({ status: "waiting_club" }, { where: { id: subjectId } })
                 }
 
-                // A pending loan request notifies the receiving team so it can
-                // accept or reject it from its loans page.
-                if (isLoan && content.status !== "accepted" && content.id_team_to) {
+                // Notify whoever's turn it is now.
+                if (status === "waiting_club_from" && idClubFrom) {
+                    await CreateNotificationClub("player", "create", idClubFrom, "", subjectId)
+                } else if (status === "waiting_club_to" && idClubTo) {
+                    await CreateNotificationClub("player", "create", idClubTo, "", subjectId)
+                }
+                // Keep the legacy loan-request team notification when a team is targeted.
+                if (isLoan && status !== "accepted" && content.id_team_to) {
                     await CreateNotificationTeam("loan", "request", content.id_team_to, subjectId, subjectType)
                 }
 
@@ -171,30 +212,35 @@ export const resolvers = {
                     return { status: false }
                 }
 
-                let result = await Transfer.update({status: content.status}, { where: { id } })
+                const isLoan = transfer.transition_type === "loan"
+                const isTech = !transfer.id_player && !!transfer.id_technical_apparatus
+                const Subject = isTech ? TechnicalApparatus : Players
+                const subjectType = isTech ? "technical" : "player"
+                const subjectId = isTech
+                    ? (content.id_technical_apparatus || transfer.id_technical_apparatus)
+                    : (content.id_player || transfer.id_player)
+                const idTeamTo = content.id_team_to || transfer.id_team_to
+
+                // Advance the approval chain from the current stage.
+                const sameClub = !!transfer.id_club_from && transfer.id_club_from === transfer.id_club_to
+                const decision = content.status // "accepted" (approve this stage) | "rejected"
+                const next = transferTransition(transfer.status, decision, sameClub)
+
+                const result = await Transfer.update({ status: next.status, id_team_to: idTeamTo }, { where: { id } })
 
                 if (result[0] === 1) {
-                    const isLoan = transfer.transition_type === "loan"
-                    // Works for a player or a technical-staff member, from stored ids.
-                    const isTech = !transfer.id_player && !!transfer.id_technical_apparatus
-                    const Subject = isTech ? TechnicalApparatus : Players
-                    const subjectType = isTech ? "technical" : "player"
-                    const subjectId = isTech
-                        ? (content.id_technical_apparatus || transfer.id_technical_apparatus)
-                        : (content.id_player || transfer.id_player)
-                    const idTeamTo = content.id_team_to || transfer.id_team_to
-
-                    if (content.status === "accepted") {
-                        await Transfer.update({id_team_to: idTeamTo, id_club_to: null}, { where: { id } })
-
-                        await Subject.update({status: "accepted", id_team: idTeamTo}, { where: { id: subjectId } })
-
+                    if (next.finalize) {
+                        // Final approval → the player actually moves to the destination team.
+                        await Subject.update({ status: "accepted", id_team: idTeamTo }, { where: { id: subjectId } })
                         if (isLoan) {
                             await CreateNotificationTeam("loan", "accepted", transfer.id_team_from, subjectId, subjectType)
                         }
-                    } else if (content.status === "rejected") {
-                        await Subject.update({status: "accepted"}, { where: { id: subjectId } })
-
+                    } else if (next.status === "waiting_club_to") {
+                        // The own club approved → it's now the destination club's turn.
+                        if (transfer.id_club_to) await CreateNotificationClub("player", "update", transfer.id_club_to, "", subjectId)
+                    } else if (next.status === "rejected") {
+                        // Rejected anywhere → the player stays active in the current team.
+                        await Subject.update({ status: "accepted" }, { where: { id: subjectId } })
                         if (isLoan) {
                             await CreateNotificationTeam("loan", "rejected", transfer.id_team_from, subjectId, subjectType)
                         }

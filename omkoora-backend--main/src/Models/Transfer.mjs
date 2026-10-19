@@ -8,8 +8,11 @@ export default (db, types) => {
         },
         status: {
             type: types.ENUM,
-            values: ["accepted", "rejected", "waiting"],
-            defaultValue: "waiting"
+            // Multi-stage approval chain: team → own club → destination club.
+            //   waiting_club_from → waiting_club_to → accepted / rejected.
+            // "waiting" is kept for backward compatibility with older rows.
+            values: ["accepted", "rejected", "waiting", "waiting_club_from", "waiting_club_to"],
+            defaultValue: "waiting_club_from"
         },
         type: {
             type: types.ENUM,

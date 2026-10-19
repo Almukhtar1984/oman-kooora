@@ -212,6 +212,10 @@ Transfer.belongsTo(Team, { foreignKey: { name: 'id_team_to' }, onDelete: 'CASCAD
 Club.hasOne(Transfer, { foreignKey: { name: 'id_club_to' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Transfer.belongsTo(Club, { foreignKey: { name: 'id_club_to' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
+// Club 1 * Transfer (from) — the player's own club, first approver in the chain.
+Club.hasOne(Transfer, { as: 'clubFromTransfers', foreignKey: { name: 'id_club_from' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+Transfer.belongsTo(Club, { as: 'clubFrom', foreignKey: { name: 'id_club_from' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
+
 // Players 1 * Transfer
 Players.hasOne(Transfer, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Transfer.belongsTo(Players, { foreignKey: { name: 'id_player' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });

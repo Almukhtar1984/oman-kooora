@@ -1878,6 +1878,7 @@ type Transfer {
   type: String
   team_from: Team
   team_to: Team
+  club_from: Club
   club_to: Club
   id_player: ID
   player: Player
@@ -1902,6 +1903,7 @@ input contentTransfer {
   id_player: ID
   id_technical_apparatus: ID
   id_club_to: ID
+  id_club_from: ID
 }
 
 # ===================== User =====================
