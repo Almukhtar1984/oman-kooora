@@ -63,6 +63,9 @@ export const AddPowerModal = ({ id, existingMember, setExistingMember, ...props 
 
     const [meeting, setMeeting] = useState<string[]>([]);
     const [forms, setForms] = useState<string[]>([]);
+    // "الأخبار" had no section here at all and was saved as [] on every edit,
+    // so the news menu silently vanished for anyone whose permissions were touched.
+    const [blogs, setBlogs] = useState<string[]>([]);
     const [permissions, setPermissions] = useState<string[]>([]);
     const [leagues, setLeagues] = useState<string[]>([]);
 
@@ -117,7 +120,7 @@ export const AddPowerModal = ({ id, existingMember, setExistingMember, ...props 
                             inbox:      inbox,
                             outbox:      outbox,
                             meeting:      meeting,
-                            blogs:      [],
+                            blogs:      blogs,
                             forms:      forms,
                             permissions:      permissions,
 
@@ -468,6 +471,21 @@ export const AddPowerModal = ({ id, existingMember, setExistingMember, ...props 
                                             </Group>
                                         </Checkbox.Group>
                                     </Col>
+                                    <Col span={12}>
+                                        <Checkbox.Group
+                                            defaultValue={['1']}
+                                            label="صلاحيات الاخبار"
+                                            value={blogs} onChange={setBlogs}
+                                        >
+                                            <Group mt="xs">
+                                                <Checkbox value="1" label="عرض" />
+                                                <Checkbox value="2" label="اضافة" />
+                                                <Checkbox value="3" label="تعديل" />
+                                                <Checkbox value="4" label="حذف" />
+                                            </Group>
+                                        </Checkbox.Group>
+                                    </Col>
+
                                     <Col span={12}>
                                         <Checkbox.Group
                                             defaultValue={['1']}

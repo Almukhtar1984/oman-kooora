@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const h = vi.hoisted(() => ({
     createMessage: vi.fn(),
+    draftMessage: vi.fn(),
     getAllTeam: vi.fn(),
     teamsResult: { data: undefined as any, loading: false },
     notyfSuccess: vi.fn(),
@@ -20,6 +21,8 @@ const TEAM_MANAGER = { person: { member: { team: { id: "team-own", club: { id: "
 vi.mock("../../graphql", () => ({
     AllMessagesSender: { kind: "Document", definitions: [] },
     useAddMessage: () => [h.createMessage],
+    // added by the AI compose assist (282a77e)
+    useDraftMessage: () => [h.draftMessage, { loading: false }],
     // Mirrors Apollo 3.7 on a cache hit: `data` is there, but the per-call
     // `onCompleted` passed to the lazy executor never fires.
     useAllTeams: () => [h.getAllTeam, h.teamsResult],

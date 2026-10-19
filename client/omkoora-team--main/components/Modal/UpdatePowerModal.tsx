@@ -40,6 +40,12 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
     const [outbox, setOutbox] = useState<string[]>([]);
     const [meeting, setMeeting] = useState<string[]>([]);
     const [forms, setForms] = useState<string[]>([]);
+    // "الأخبار" had no section here at all and was saved as [] on every edit,
+    // so the news menu silently vanished for anyone whose permissions were touched.
+    const [blogs, setBlogs] = useState<string[]>([]);
+    // Not editable here, but must not be wiped by an unrelated edit.
+    const [transferPlayers, setTransferPlayers] = useState<string[]>([]);
+    const [loanPlayers, setLoanPlayers] = useState<string[]>([]);
     const [permissions, setPermissions] = useState<string[]>([]);
     const [leagues, setLeagues] = useState<string[]>([]);
 
@@ -80,6 +86,9 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
             setOutbox(permission?.outbox?.split(","))
             setMeeting(permission?.meeting?.split(","))
             setForms(permission?.forms?.split(","))
+            setBlogs(permission?.blogs?.split(",") || [])
+            setTransferPlayers(permission?.transfer_players?.split(",") || [])
+            setLoanPlayers(permission?.loan_players?.split(",") || [])
             setPermissions(permission?.permissions?.split(","))
             setLeagues(permission?.leagues?.split(",") || [])
         }
@@ -107,13 +116,13 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                             members:      members,
                             technicals:      technicals,
                             players:      players,
-                            transfer_players:      [],
-                            loan_players:      [],
+                            transfer_players:      transferPlayers,
+                            loan_players:      loanPlayers,
                             assembly:      assembly,
                             inbox:      inbox,
                             outbox:      outbox,
                             meeting:      meeting,
-                            blogs:      [],
+                            blogs:      blogs,
                             forms:      forms,
                             permissions:      permissions,
 
@@ -316,6 +325,21 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                                             </Group>
                                         </Checkbox.Group>
                                     </Col>
+                                    <Col span={12}>
+                                        <Checkbox.Group
+                                            defaultValue={['1']}
+                                            label="صلاحيات الاخبار"
+                                            value={blogs} onChange={setBlogs}
+                                        >
+                                            <Group mt="xs">
+                                                <Checkbox value="1" label="عرض" />
+                                                <Checkbox value="2" label="اضافة" />
+                                                <Checkbox value="3" label="تعديل" />
+                                                <Checkbox value="4" label="حذف" />
+                                            </Group>
+                                        </Checkbox.Group>
+                                    </Col>
+
                                     <Col span={12}>
                                         <Checkbox.Group
                                             defaultValue={['1']}
