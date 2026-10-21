@@ -1,502 +1,243 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
-import { gql, gqlUpload, getToken, clearToken, imageUrl, firstImage, OMAN_GOVERNORATES } from "../lib/api";
+import Head from "next/head";
+import Link from "next/link";
+import { gql, imageUrl, firstImage, OMAN_GOVERNORATES, loadCart, saveCart } from "../lib/api";
 
-const ME = `{ currentUser { id email role } }`;
-const MY_STORES = `{
-  myStores { id name about logo images phone whatsapp mohafada wiliya is_active }
+const ALL_PRODUCTS = `{
+  allProducts { id name price images about
+    store { id name mohafada wiliya logo } }
 }`;
-const MY_PRODUCTS = `{
-  myStoreProducts { id name about price quantity images is_available id_store store { id name } }
-}`;
-const MY_ORDERS = `{
-  myStoreOrders {
-    id full_name phone address note total status payment_method payment_status
-    id_store store { id name } items { id product_name price quantity } createdAt
-  }
-}`;
-const MY_REPORT = `{ myStoreReport { id_store store_name orders_count total_sales } }`;
-const MY_NOTIFS = `{ allNotificationUser { id body isRead createdAt } }`;
+const STORES = `{ stores { id name mohafada wiliya logo } }`;
+const CREATE_ORDER = `mutation($c: contentOrder!){ createOrder(content: $c){ id status } }`;
 
-const CREATE_STORE = `mutation ($content: contentStore!) { createStore(content: $content) { id } }`;
-const UPDATE_STORE = `mutation ($id: ID!, $content: contentStore!) { updateStore(id: $id, content: $content) { status } }`;
-const CREATE_PRODUCT = `mutation ($content: contentProduct!) { createProduct(content: $content) { id } }`;
-const UPDATE_PRODUCT = `mutation ($id: ID!, $content: contentProduct!) { updateProduct(id: $id, content: $content) { status } }`;
-const DELETE_PRODUCT = `mutation ($id: ID!) { deleteProduct(id: $id) { status } }`;
-const SET_ORDER_STATUS = `mutation ($idOrder: ID!, $status: String!) { updateOrderStatus(idOrder: $idOrder, status: $status) { status } }`;
-const MARK_READ = `mutation { markMyNotificationsAsRead }`;
+const priceFmt = (n) => (n == null ? "—" : `${Number(n)} ر.ع`);
 
-const orderBadge = (s) =>
-  s === "accepted" ? ["b-blue", "مقبول"]
-  : s === "delivered" ? ["b-green", "تم التسليم"]
-  : s === "rejected" ? ["b-red", "مرفوض"]
-  : ["b-amber", "قيد الانتظار"];
-const payBadge = (p) => (p === "paid" ? ["b-green", "مدفوع"] : ["b-gray", "غير مدفوع"]);
-
-export default function Dashboard() {
+export default function Marketplace() {
   const router = useRouter();
-  const [me, setMe] = useState(null);
-  const [tab, setTab] = useState("store");
-  const [stores, setStores] = useState([]);
   const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [report, setReport] = useState([]);
-  const [notifs, setNotifs] = useState([]);
+  const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [gov, setGov] = useState("");
+  const [sort, setSort] = useState("new");
+  const [storeId, setStoreId] = useState("");
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
   const [toast, setToast] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [editStore, setEditStore] = useState(null);
-  const [editProduct, setEditProduct] = useState(null);
-
-  const flash = (m) => { setToast(m); setTimeout(() => setToast(""), 2800); };
-
-  const loadAll = useCallback(async () => {
-    try {
-      const [s, p, o, rep, n] = await Promise.all([
-        gql(MY_STORES), gql(MY_PRODUCTS), gql(MY_ORDERS), gql(MY_REPORT), gql(MY_NOTIFS),
-      ]);
-      setStores(s.myStores || []);
-      setProducts(p.myStoreProducts || []);
-      setOrders(o.myStoreOrders || []);
-      setReport(rep.myStoreReport || []);
-      setNotifs(n.allNotificationUser || []);
-    } catch (e) {
-      flash("تعذّر تحميل البيانات: " + e.message);
-    }
-  }, []);
 
   useEffect(() => {
-    if (!getToken()) { router.replace("/login"); return; }
-    (async () => {
-      try {
-        const d = await gql(ME);
-        setMe(d.currentUser);
-        await loadAll();
-      } catch (e) {
-        clearToken();
-        router.replace("/login");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [router, loadAll]);
+    Promise.all([gql(ALL_PRODUCTS), gql(STORES)])
+      .then(([p, s]) => { setProducts(p.allProducts || []); setStores(s.stores || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+    setCart(loadCart());
+  }, []);
 
-  const logout = () => { clearToken(); router.replace("/login"); };
+  // Open the cart when arriving from a store profile with ?cart=1.
+  useEffect(() => { if (router.query.cart) setCartOpen(true); }, [router.query.cart]);
 
-  // ---- Store ----
-  const saveStore = async (form, logoFile, imageFiles) => {
-    setBusy(true);
-    try {
-      const content = {
-        name: form.name,
-        about: form.about || "",
-        phone: form.phone || "",
-        whatsapp: form.whatsapp || "",
-        mohafada: form.mohafada || "",
-        wiliya: form.wiliya || "",
-        is_active: form.is_active,
-      };
-      const files = [];
-      if (logoFile) { content.logo = null; files.push({ path: "content.logo", file: logoFile }); }
-      if (imageFiles && imageFiles.length) {
-        content.images = imageFiles.map(() => null);
-        imageFiles.forEach((f, i) => files.push({ path: `content.images.${i}`, file: f }));
-      }
-      const run = (q, vars) => (files.length ? gqlUpload(q, vars, files) : gql(q, vars));
-      if (editStore.id) {
-        await run(UPDATE_STORE, { id: editStore.id, content });
-        flash("تم تحديث المتجر");
-      } else {
-        await run(CREATE_STORE, { content });
-        flash("تمت إضافة المتجر");
-      }
-      setEditStore(null);
-      await loadAll();
-    } catch (e) { flash("خطأ: " + e.message); } finally { setBusy(false); }
+  // Persist the cart so the store-profile page shares it.
+  useEffect(() => { saveCart(cart); }, [cart]);
+
+  const list = useMemo(() => {
+    let r = products.filter(
+      (p) =>
+        (!gov || p.store?.mohafada === gov) &&
+        (!storeId || p.store?.id === storeId) &&
+        (!q || `${p.name} ${p.store?.name || ""}`.includes(q.trim()))
+    );
+    if (sort === "price_a") r = [...r].sort((a, b) => a.price - b.price);
+    else if (sort === "price_d") r = [...r].sort((a, b) => b.price - a.price);
+    return r;
+  }, [products, gov, storeId, q, sort]);
+
+  const count = cart.reduce((n, i) => n + i.qty, 0);
+  const showToast = (m) => { setToast(m); setTimeout(() => setToast(""), 3600); };
+
+  const addToCart = (p) => {
+    setCart((c) => {
+      const ex = c.find((i) => i.id === p.id);
+      if (ex) return c.map((i) => (i.id === p.id ? { ...i, qty: i.qty + 1 } : i));
+      return [...c, { id: p.id, name: p.name, price: p.price, qty: 1, id_store: p.store?.id, store_name: p.store?.name }];
+    });
+    showToast("أُضيف إلى السلة");
   };
-
-  // ---- Product ----
-  const saveProduct = async (form, imageFiles) => {
-    setBusy(true);
-    try {
-      const content = {
-        name: form.name,
-        about: form.about || "",
-        price: parseFloat(form.price) || 0,
-        quantity: form.quantity === "" ? null : parseInt(form.quantity, 10),
-        is_available: form.is_available,
-      };
-      const files = [];
-      if (imageFiles && imageFiles.length) {
-        content.images = imageFiles.map(() => null);
-        imageFiles.forEach((f, i) => files.push({ path: `content.images.${i}`, file: f }));
-      }
-      const run = (q, vars) => (files.length ? gqlUpload(q, vars, files) : gql(q, vars));
-      if (editProduct.id) {
-        await run(UPDATE_PRODUCT, { id: editProduct.id, content });
-        flash("تم تحديث المنتج");
-      } else {
-        content.id_store = form.id_store;
-        await run(CREATE_PRODUCT, { content });
-        flash("تمت إضافة المنتج");
-      }
-      setEditProduct(null);
-      await loadAll();
-    } catch (e) { flash("خطأ: " + e.message); } finally { setBusy(false); }
-  };
-
-  const removeProduct = async (id) => {
-    if (!confirm("حذف هذا المنتج؟")) return;
-    try { await gql(DELETE_PRODUCT, { id }); flash("تم الحذف"); await loadAll(); }
-    catch (e) { flash("خطأ: " + e.message); }
-  };
-
-  // ---- Orders ----
-  const setOrderStatus = async (idOrder, status) => {
-    const label = status === "accepted" ? "تم قبول الطلب"
-      : status === "rejected" ? "تم رفض الطلب"
-      : status === "delivered" ? "تم تعليم الطلب كمُسلّم" : "تم التحديث";
-    try { await gql(SET_ORDER_STATUS, { idOrder, status }); flash(label); await loadAll(); }
-    catch (e) { flash("خطأ: " + e.message); }
-  };
-
-  const markRead = async () => { try { await gql(MARK_READ); await loadAll(); } catch (e) { flash(e.message); } };
-
-  if (loading) return <div className="empty" style={{ marginTop: 80 }}>جارٍ التحميل…</div>;
-
-  const waiting = orders.filter((o) => o.status === "waiting" || !o.status).length;
-  const delivered = orders.filter((o) => o.status === "delivered").length;
-  const unread = notifs.filter((n) => !n.isRead).length;
-  const hasStore = stores.length > 0;
-  const salesTotal = report.reduce((a, r) => a + (r.total_sales || 0), 0);
+  const inCart = (id) => cart.some((i) => i.id === id);
 
   return (
-    <div>
-      <div className="topbar">
-        <div className="brand"><span className="dot" /> لوحة صاحب المتجر · طموح</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 13, opacity: .9 }}>{me?.email}</span>
-          <button className="btn sm" onClick={logout}>خروج</button>
-        </div>
-      </div>
+    <div className="mpage">
+      <Head><title>متجر طموح · المستلزمات الرياضية</title></Head>
 
-      <div className="container">
-        <div className="kpis">
-          <div className="kpi"><div className="n">{products.length}</div><div className="l">المنتجات</div></div>
-          <div className="kpi"><div className="n">{waiting}</div><div className="l">طلبات قيد الانتظار</div></div>
-          <div className="kpi"><div className="n">{delivered}</div><div className="l">طلبات مُسلّمة</div></div>
-          <div className="kpi"><div className="n">{salesTotal}</div><div className="l">إجمالي المبيعات (ر.ع)</div></div>
+      <header className="mhead">
+        <div className="mbrand"><span className="mk">🛍️</span> طموح · المتجر</div>
+        <div className="msearch-top">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن منتج أو متجر…" />
+        </div>
+        <button className="cart" onClick={() => setCartOpen(true)}>
+          🛒 السلة {count > 0 ? <span className="cnt">{count}</span> : null}
+        </button>
+        <button className="login" onClick={() => router.push("/login")}>دخول</button>
+      </header>
+
+      <section className="mhero">
+        <div className="mhero-in">
+          <h1>كل مستلزماتك الرياضية في مكان واحد</h1>
+          <p>تصفّح متاجر رياضية موثوقة في عُمان، أضف للسلة، واطلب بالدفع عند الاستلام.</p>
+        </div>
+      </section>
+
+      <main className="mwrap">
+        <div className="mfilters">
+          <select value={gov} onChange={(e) => setGov(e.target.value)}>
+            <option value="">كل المحافظات</option>
+            {OMAN_GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            <option value="new">الأحدث</option>
+            <option value="price_a">الأقل سعراً</option>
+            <option value="price_d">الأعلى سعراً</option>
+          </select>
+          <span className={`mchip ${!storeId ? "on" : ""}`} onClick={() => setStoreId("")}>كل المتاجر</span>
+          {stores.map((s) => (
+            <span key={s.id} className={`mchip ${storeId === s.id ? "on" : ""}`} onClick={() => setStoreId(s.id)}>{s.name}</span>
+          ))}
         </div>
 
-        <div className="tabs">
-          <button className={`tab ${tab === "store" ? "active" : ""}`} onClick={() => setTab("store")}>المتجر <span className="count">{stores.length}</span></button>
-          <button className={`tab ${tab === "products" ? "active" : ""}`} onClick={() => setTab("products")}>المنتجات <span className="count">{products.length}</span></button>
-          <button className={`tab ${tab === "orders" ? "active" : ""}`} onClick={() => setTab("orders")}>الطلبات <span className="count">{orders.length}</span></button>
-          <button className={`tab ${tab === "report" ? "active" : ""}`} onClick={() => setTab("report")}>التقرير</button>
-          <button className={`tab ${tab === "notifs" ? "active" : ""}`} onClick={() => setTab("notifs")}>الإشعارات <span className="count">{unread}</span></button>
-        </div>
-
-        {/* ---- Store ---- */}
-        {tab === "store" && (
+        {stores.length > 0 && !storeId ? (
           <>
-            <div className="row" style={{ marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>ملف المتجر</h3>
-              <button className="btn primary" onClick={() => setEditStore({})}>+ إضافة متجر</button>
+            <div className="msec"><h2>المتاجر</h2><span className="n">{stores.length} متجر</span></div>
+            <div className="mstores">
+              {stores.map((s) => (
+                <Link href={`/store/${s.id}`} key={s.id} className="mstore">
+                  <span className="av">{s.logo ? <img src={imageUrl(s.logo)} alt={s.name} /> : "🏬"}</span>
+                  <span>
+                    <span className="nm" style={{ display: "block" }}>{s.name}</span>
+                    <span className="lc">📍 {s.mohafada}{s.wiliya ? ` — ${s.wiliya}` : ""}</span>
+                  </span>
+                </Link>
+              ))}
             </div>
-            {!hasStore ? (
-              <div className="empty">لا يوجد متجر بعد. أنشئ متجرك الأول.</div>
-            ) : (
-              <div className="grid">
-                {stores.map((s) => {
-                  const imgs = (s.images || "").split(",").map((x) => x.trim()).filter(Boolean);
-                  return (
-                    <div className="card" key={s.id}>
-                      <div className="row" style={{ alignItems: "flex-start" }}>
-                        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                          {s.logo ? <img className="logo-thumb" src={imageUrl(s.logo)} alt="" /> : null}
-                          <div>
-                            <h3 style={{ margin: 0 }}>{s.name}</h3>
-                            <div className="meta">{[s.mohafada, s.wiliya].filter(Boolean).join(" · ") || "—"}</div>
-                          </div>
-                        </div>
-                        <span className={`badge ${s.is_active ? "b-green" : "b-gray"}`}>{s.is_active ? "ظاهر" : "مخفي"}</span>
-                      </div>
-                      <div className="meta" style={{ marginTop: 8 }}>{s.about && s.about !== "-" ? s.about : "—"}</div>
-                      <div className="meta">الهاتف: {s.phone || "—"} · واتساب: {s.whatsapp || "—"}</div>
-                      {imgs.length ? (
-                        <div className="thumbs">{imgs.map((im, i) => <img key={i} src={imageUrl(im)} alt="" />)}</div>
-                      ) : null}
-                      <div className="row" style={{ marginTop: 10 }}>
-                        <button className="btn sm" onClick={() => setEditStore(s)}>تعديل</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </>
-        )}
+        ) : null}
 
-        {/* ---- Products ---- */}
-        {tab === "products" && (
-          <>
-            <div className="row" style={{ marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>المنتجات</h3>
-              <button className="btn primary" disabled={!hasStore} onClick={() => setEditProduct({ id_store: stores[0]?.id })}>+ إضافة منتج</button>
-            </div>
-            {!hasStore ? (
-              <div className="empty">أنشئ متجرًا أولًا لإضافة المنتجات.</div>
-            ) : products.length === 0 ? (
-              <div className="empty">لا توجد منتجات بعد.</div>
-            ) : (
-              <div className="grid">
-                {products.map((p) => {
-                  const img = firstImage(p.images);
-                  return (
-                    <div className="card" key={p.id}>
-                      {img ? <img className="prod-img" src={img} alt="" /> : null}
-                      <div className="row"><h3 style={{ margin: 0 }}>{p.name}</h3><span className={`badge ${p.is_available ? "b-green" : "b-gray"}`}>{p.is_available ? "متاح" : "مخفي"}</span></div>
-                      {stores.length > 1 ? <div className="meta">المتجر: {p.store?.name || "—"}</div> : null}
-                      <div className="meta">السعر: <b>{p.price ?? 0} ر.ع</b>{p.quantity != null ? ` · الكمية: ${p.quantity}` : ""}</div>
-                      {p.about ? <div className="meta">{p.about}</div> : null}
-                      <div className="row" style={{ marginTop: 10 }}>
-                        <button className="btn sm" onClick={() => setEditProduct(p)}>تعديل</button>
-                        <button className="btn sm red" onClick={() => removeProduct(p.id)}>حذف</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
+        <div className="msec">
+          <h2>{storeId ? "منتجات المتجر" : "كل المنتجات"}</h2>
+          <span className="n">{loading ? "يتم التحميل…" : `${list.length} منتج`}</span>
+        </div>
 
-        {/* ---- Orders ---- */}
-        {tab === "orders" && (
-          orders.length === 0 ? (
-            <div className="empty">لا توجد طلبات بعد.</div>
-          ) : (
-            <div className="grid">
-              {orders.map((o) => {
-                const [bc, bl] = orderBadge(o.status);
-                const [pc, pl] = payBadge(o.payment_status);
-                return (
-                  <div className="card" key={o.id}>
-                    <div className="row"><h3 style={{ margin: 0 }}>{o.full_name || "عميل"}</h3><span className={`badge ${bc}`}>{bl}</span></div>
-                    {stores.length > 1 ? <div className="meta">المتجر: {o.store?.name || "—"}</div> : null}
-                    <div className="meta">الهاتف: {o.phone || "—"}</div>
-                    <div className="meta">العنوان: {o.address || "—"}</div>
-                    {o.note ? <div className="meta">ملاحظة: {o.note}</div> : null}
-                    <div className="items">
-                      {(o.items || []).map((it) => (
-                        <div className="line" key={it.id}>
-                          <span>{it.product_name} <span className="q">×{it.quantity}</span></span>
-                          <span>{(it.price * it.quantity).toFixed(2)} ر.ع</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="row">
-                      <span className="meta">الدفع عند الاستلام · <span className={`badge ${pc}`}>{pl}</span></span>
-                      <b>{o.total} ر.ع</b>
-                    </div>
-                    <div className="meta" style={{ marginTop: 2 }}>{o.createdAt}</div>
-                    {(o.status === "waiting" || !o.status) && (
-                      <div className="row" style={{ marginTop: 10 }}>
-                        <button className="btn sm green" onClick={() => setOrderStatus(o.id, "accepted")}>قبول</button>
-                        <button className="btn sm red" onClick={() => setOrderStatus(o.id, "rejected")}>رفض</button>
-                      </div>
-                    )}
-                    {o.status === "accepted" && (
-                      <div className="row" style={{ marginTop: 10 }}>
-                        <button className="btn sm green" onClick={() => setOrderStatus(o.id, "delivered")}>تم التسليم (قبض نقدي)</button>
-                        <button className="btn sm red" onClick={() => setOrderStatus(o.id, "rejected")}>إلغاء</button>
-                      </div>
-                    )}
+        {loading ? null : list.length === 0 ? (
+          <div className="mempty">لا توجد منتجات مطابقة. جرّب فلترًا آخر.</div>
+        ) : (
+          <div className="mgrid">
+            {list.map((p) => {
+              const img = firstImage(p.images);
+              return (
+                <article className="mprod" key={p.id}>
+                  <div className="img">{img ? <img src={img} alt={p.name} /> : <span className="ic">📦</span>}</div>
+                  <div className="body">
+                    <h3>{p.name}</h3>
+                    {p.store ? <Link href={`/store/${p.store.id}`} className="st">{p.store.name}</Link> : null}
+                    <div className="pr">{priceFmt(p.price)}</div>
+                    <button className={`add ${inCart(p.id) ? "in" : ""}`} onClick={() => addToCart(p)}>
+                      {inCart(p.id) ? "✓ في السلة — أضف المزيد" : "أضف للسلة"}
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-          )
+                </article>
+              );
+            })}
+          </div>
         )}
+      </main>
 
-        {/* ---- Report ---- */}
-        {tab === "report" && (
-          report.length === 0 ? (
-            <div className="empty">لا توجد بيانات بعد.</div>
-          ) : (
-            <table className="table">
-              <thead>
-                <tr><th>المتجر</th><th>عدد الطلبات المحقّقة</th><th>إجمالي المبيعات (ر.ع)</th></tr>
-              </thead>
-              <tbody>
-                {report.map((row, i) => (
-                  <tr key={row.id_store || `none-${i}`}>
-                    <td>{row.store_name || "—"}</td>
-                    <td>{row.orders_count}</td>
-                    <td><b>{row.total_sales}</b></td>
-                  </tr>
-                ))}
-                <tr>
-                  <td><b>المجموع</b></td>
-                  <td><b>{report.reduce((a, r) => a + (r.orders_count || 0), 0)}</b></td>
-                  <td><b>{salesTotal}</b></td>
-                </tr>
-              </tbody>
-            </table>
-          )
-        )}
+      {cartOpen ? (
+        <Cart cart={cart} setCart={setCart} onClose={() => setCartOpen(false)} onDone={(m) => { setCart([]); setCartOpen(false); showToast(m); }} />
+      ) : null}
+      {toast ? <div className="mtoast">{toast}</div> : null}
+    </div>
+  );
+}
 
-        {/* ---- Notifications ---- */}
-        {tab === "notifs" && (
+function Cart({ cart, setCart, onClose, onDone }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const groups = useMemo(() => {
+    const m = {};
+    cart.forEach((i) => { (m[i.id_store] = m[i.id_store] || { store_name: i.store_name, items: [] }).items.push(i); });
+    return m;
+  }, [cart]);
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+  const setQty = (id, d) => setCart((c) =>
+    c.map((i) => (i.id === id ? { ...i, qty: Math.max(1, i.qty + d) } : i)));
+  const remove = (id) => setCart((c) => c.filter((i) => i.id !== id));
+
+  const checkout = async () => {
+    if (!name.trim() || !phone.trim()) { setErr("الاسم ورقم الهاتف مطلوبان"); return; }
+    setSaving(true); setErr("");
+    try {
+      // One order per store (the backend's order is store-scoped).
+      for (const [id_store, g] of Object.entries(groups)) {
+        await gql(CREATE_ORDER, {
+          c: {
+            full_name: name.trim(), phone: phone.trim(), address: address.trim(), note: note.trim(),
+            id_store,
+            items: g.items.map((i) => ({ id_product: i.id, quantity: i.qty })),
+          },
+        });
+      }
+      onDone("تم إرسال طلبك — سيتواصل معك المتجر لتأكيده");
+    } catch (e) {
+      setErr(e.message || "تعذّر إتمام الطلب"); setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mcart-back" onClick={onClose}>
+      <aside className="mcart" onClick={(e) => e.stopPropagation()}>
+        <button className="cx" onClick={onClose} aria-label="إغلاق">×</button>
+        <h2>سلة المشتريات</h2>
+        {cart.length === 0 ? (
+          <div className="mempty">سلتك فارغة. أضف منتجات لتبدأ الطلب.</div>
+        ) : (
           <>
-            {unread > 0 && (
-              <div className="row" style={{ marginBottom: 10 }}>
-                <span className="meta">لديك {unread} إشعار غير مقروء</span>
-                <button className="btn sm" onClick={markRead}>تعليم الكل كمقروء</button>
+            {Object.entries(groups).map(([sid, g]) => (
+              <div className="mcartstore" key={sid}>
+                <div className="sh">🏬 {g.store_name}</div>
+                {g.items.map((i) => (
+                  <div className="mci" key={i.id}>
+                    <span className="nm">{i.name}<br /><span className="pr">{priceFmt(i.price)}</span></span>
+                    <span className="mqty">
+                      <button onClick={() => setQty(i.id, -1)}>−</button>
+                      <b>{i.qty}</b>
+                      <button onClick={() => setQty(i.id, +1)}>+</button>
+                      <button onClick={() => remove(i.id)} style={{ color: "#b91c1c" }}>🗑</button>
+                    </span>
+                  </div>
+                ))}
               </div>
-            )}
-            {notifs.length === 0 ? (
-              <div className="empty">لا توجد إشعارات.</div>
-            ) : (
-              notifs.map((n) => (
-                <div className="card" key={n.id} style={{ marginBottom: 8, borderInlineStart: `4px solid ${n.isRead ? "#cbd5e1" : "var(--primary)"}` }}>
-                  <div>{n.body}</div>
-                  <div className="meta" style={{ marginTop: 4 }}>{n.createdAt}</div>
-                </div>
-              ))
-            )}
+            ))}
+
+            <div className="mcart-form">
+              <input placeholder="الاسم الكامل" value={name} onChange={(e) => setName(e.target.value)} />
+              <input type="tel" placeholder="رقم الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <input placeholder="العنوان (اختياري)" value={address} onChange={(e) => setAddress(e.target.value)} />
+              <textarea placeholder="ملاحظة للمتجر (اختياري)" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+            </div>
+            {err ? <div className="err">{err}</div> : null}
+            <div className="mtotal"><span>الإجمالي</span><span>{priceFmt(total)}</span></div>
+            <button className="mco" disabled={saving} onClick={checkout}>
+              {saving ? "جارٍ إرسال الطلب…" : "أكّد الطلب"}
+            </button>
+            <div className="mcod">الدفع عند الاستلام — لن يُخصم أي مبلغ الآن.</div>
           </>
         )}
-      </div>
-
-      {editStore && (
-        <StoreForm initial={editStore} busy={busy} onCancel={() => setEditStore(null)} onSave={saveStore} />
-      )}
-      {editProduct && (
-        <ProductForm initial={editProduct} stores={stores} busy={busy} onCancel={() => setEditProduct(null)} onSave={saveProduct} />
-      )}
-
-      {toast && <div className="toast">{toast}</div>}
-    </div>
-  );
-}
-
-function StoreForm({ initial, onCancel, onSave, busy }) {
-  const [form, setForm] = useState({
-    name: initial.name || "",
-    about: initial.about && initial.about !== "-" ? initial.about : "",
-    phone: initial.phone || "",
-    whatsapp: initial.whatsapp || "",
-    mohafada: initial.mohafada || "",
-    wiliya: initial.wiliya || "",
-    is_active: initial.is_active !== false,
-  });
-  const [logoFile, setLogoFile] = useState(null);
-  const [imageFiles, setImageFiles] = useState([]);
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-
-  return (
-    <div className="modal-back" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{initial.id ? "تعديل المتجر" : "إضافة متجر"}</h2>
-        <div className="field">
-          <label>اسم المتجر *</label>
-          <input value={form.name} onChange={set("name")} placeholder="متجر الطموح الرياضي" />
-        </div>
-        <div className="field">
-          <label>نبذة</label>
-          <textarea rows={2} value={form.about} onChange={set("about")} placeholder="وصف المتجر وما يبيعه" />
-        </div>
-        <div className="form-grid">
-          <div className="field"><label>الهاتف</label><input value={form.phone} onChange={set("phone")} placeholder="9xxxxxxx" /></div>
-          <div className="field"><label>واتساب</label><input value={form.whatsapp} onChange={set("whatsapp")} placeholder="9xxxxxxx" /></div>
-          <div className="field">
-            <label>المحافظة</label>
-            <select value={form.mohafada} onChange={set("mohafada")}>
-              <option value="">— اختر —</option>
-              {OMAN_GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-          <div className="field"><label>الولاية</label><input value={form.wiliya} onChange={set("wiliya")} placeholder="السيب" /></div>
-        </div>
-        <div className="field">
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="checkbox" style={{ width: "auto" }} checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
-            المتجر ظاهر في التطبيق
-          </label>
-        </div>
-        <div className="field">
-          <label>الشعار (صورة){initial.logo ? " — اتركه فارغًا للإبقاء على الحالي" : ""}</label>
-          <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
-        </div>
-        <div className="field">
-          <label>صور المتجر (اختياري، عدة صور)</label>
-          <input type="file" accept="image/*" multiple onChange={(e) => setImageFiles(Array.from(e.target.files || []))} />
-        </div>
-        <div className="row" style={{ marginTop: 14, justifyContent: "flex-end", gap: 8 }}>
-          <button className="btn" onClick={onCancel} disabled={busy}>إلغاء</button>
-          <button className="btn primary" onClick={() => onSave(form, logoFile, imageFiles)} disabled={busy || !form.name}>
-            {busy ? "جارٍ الحفظ…" : "حفظ"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProductForm({ initial, stores, onCancel, onSave, busy }) {
-  const [form, setForm] = useState({
-    name: initial.name || "",
-    about: initial.about || "",
-    price: initial.price ?? "",
-    quantity: initial.quantity ?? "",
-    is_available: initial.is_available !== false,
-    id_store: initial.id_store || stores[0]?.id || "",
-  });
-  const [imageFiles, setImageFiles] = useState([]);
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-
-  return (
-    <div className="modal-back" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{initial.id ? "تعديل المنتج" : "إضافة منتج"}</h2>
-        {!initial.id && stores.length > 1 && (
-          <div className="field">
-            <label>المتجر *</label>
-            <select value={form.id_store} onChange={set("id_store")}>
-              {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-        )}
-        <div className="field">
-          <label>اسم المنتج *</label>
-          <input value={form.name} onChange={set("name")} placeholder="قميص الفريق" />
-        </div>
-        <div className="form-grid">
-          <div className="field"><label>السعر (ر.ع) *</label><input type="number" step="0.5" value={form.price} onChange={set("price")} placeholder="12.5" /></div>
-          <div className="field"><label>الكمية (اختياري)</label><input type="number" value={form.quantity} onChange={set("quantity")} placeholder="20" /></div>
-        </div>
-        <div className="field">
-          <label>الوصف</label>
-          <textarea rows={2} value={form.about} onChange={set("about")} placeholder="تفاصيل المنتج" />
-        </div>
-        <div className="field">
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="checkbox" style={{ width: "auto" }} checked={form.is_available} onChange={(e) => setForm({ ...form, is_available: e.target.checked })} />
-            المنتج متاح للبيع
-          </label>
-        </div>
-        <div className="field">
-          <label>صور المنتج (اختياري، عدة صور)</label>
-          <input type="file" accept="image/*" multiple onChange={(e) => setImageFiles(Array.from(e.target.files || []))} />
-        </div>
-        <div className="row" style={{ marginTop: 14, justifyContent: "flex-end", gap: 8 }}>
-          <button className="btn" onClick={onCancel} disabled={busy}>إلغاء</button>
-          <button className="btn primary" onClick={() => onSave(form, imageFiles)} disabled={busy || !form.name || !form.id_store}>
-            {busy ? "جارٍ الحفظ…" : "حفظ"}
-          </button>
-        </div>
-      </div>
+      </aside>
     </div>
   );
 }

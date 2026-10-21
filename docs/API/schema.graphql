@@ -1605,11 +1605,14 @@ extend type Query {
   store(id: ID!): Store
   storeProducts(idStore: ID!): [Product!]
   product(id: ID!): Product
+  allProducts: [Product!]
   myStore: Store
   myStores: [Store!] @auth(requires: user)
   myStoreProducts: [Product!] @auth(requires: user)
   myStoreOrders: [Order!] @auth(requires: user)
   myStoreReport: [StoreReport!] @auth(requires: user)
+  adminStoreOwners: [User!] @auth(requires: user)
+  adminOrders: [Order!] @auth(requires: user)
 }
 
 extend type Mutation {
@@ -1698,6 +1701,7 @@ input contentStore {
   is_active: Boolean
   logo: Upload
   images: [Upload]
+  id_user: ID
 }
 
 input contentProduct {

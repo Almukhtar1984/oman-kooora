@@ -7,11 +7,13 @@ import {gql} from "apollo-server-express";
 export const typeDefs = gql`
 
     extend type Query {
-        # ── Public (mobile app / landing) — no token, safe read-only ──────────
+        # ── Public (marketplace / mobile app) — no token, safe read-only ─────
         stores: [Store!]
         store(id: ID!): Store
         storeProducts(idStore: ID!): [Product!]
         product(id: ID!): Product
+        # All available products across all active stores (the marketplace feed).
+        allProducts: [Product!]
 
         # ── Store-owner dashboard (role 8, @auth) ─────────────────────────────
         myStore: Store                 # the owner's first store (convenience)
@@ -20,6 +22,10 @@ export const typeDefs = gql`
         myStoreOrders: [Order!] @auth(requires: user)
         # Simple sales report: one row per owned store (order count + total).
         myStoreReport: [StoreReport!] @auth(requires: user)
+
+        # ── Admin (super-admin, role 1) ──────────────────────────────────────
+        adminStoreOwners: [User!] @auth(requires: user)   # the merchant accounts
+        adminOrders: [Order!] @auth(requires: user)        # every store's orders
     }
 
     extend type Mutation {
@@ -114,6 +120,7 @@ export const typeDefs = gql`
         is_active: Boolean
         logo:      Upload
         images:    [Upload]
+        id_user:   ID        # super-admin only: assign the store to a merchant account
     }
 
     input contentProduct {

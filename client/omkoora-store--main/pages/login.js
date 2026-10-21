@@ -7,6 +7,7 @@ const LOGIN = `
     authenticateUser(content: $content) { token }
   }
 `;
+const ME = `{ currentUser { id role } }`;
 
 export default function Login() {
   const router = useRouter();
@@ -24,7 +25,11 @@ export default function Login() {
       const token = data?.authenticateUser?.token;
       if (!token) throw new Error("بيانات الدخول غير صحيحة");
       setToken(token);
-      router.replace("/");
+      // Route by role: the platform admin (super-admin) manages the whole
+      // marketplace; a merchant (store owner) manages only their own store.
+      let role = null;
+      try { role = (await gql(ME))?.currentUser?.role; } catch {}
+      router.replace(role === "1" ? "/admin" : "/merchant");
     } catch (e2) {
       setErr(e2.message || "تعذّر تسجيل الدخول");
     } finally {
@@ -35,8 +40,8 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
-        <h1>لوحة صاحب المتجر</h1>
-        <p>منصّة طموح · سجّل الدخول بحسابك</p>
+        <h1>تسجيل الدخول</h1>
+        <p>منصّة طموح · لوحة الإدارة والتجّار</p>
         {err ? <div className="err">{err}</div> : null}
         <div className="field">
           <label>البريد الإلكتروني</label>

@@ -100,6 +100,47 @@ export const resolvers = {
             }
         },
 
+        // All available products from active stores — the marketplace feed.
+        allProducts: async () => {
+            try {
+                const activeStores = await Store.findAll({ where: { is_active: true }, attributes: ["id"], raw: true });
+                const ids = activeStores.map((s) => s.id);
+                if (!ids.length) return [];
+                return await Product.findAll({
+                    where: { id_store: { [Op.in]: ids }, is_available: true },
+                    order: [["createdAt", "DESC"]],
+                });
+            } catch (error) {
+                logger.error(`allProducts: ${error?.message}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        // ── Admin (super-admin, role 1) ────────────────────────────────────────
+        adminStoreOwners: async (obj, args, context) => {
+            try {
+                const u = context?.user;
+                if (!context?.isAuth || !u) throw new ApolloError("Authentication required", "AUTH_REQUIRED");
+                if (u.role !== SUPER_ADMIN_ROLE) throw new ApolloError("غير مصرّح: الأدمن فقط", "FORBIDDEN");
+                return await User.findAll({ where: { role: STORE_OWNER_ROLE }, order: [["createdAt", "DESC"]] });
+            } catch (error) {
+                logger.error(`adminStoreOwners: ${error?.message}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        adminOrders: async (obj, args, context) => {
+            try {
+                const u = context?.user;
+                if (!context?.isAuth || !u) throw new ApolloError("Authentication required", "AUTH_REQUIRED");
+                if (u.role !== SUPER_ADMIN_ROLE) throw new ApolloError("غير مصرّح: الأدمن فقط", "FORBIDDEN");
+                return await Order.findAll({ order: [["createdAt", "DESC"]] });
+            } catch (error) {
+                logger.error(`adminOrders: ${error?.message}`);
+                throw new ApolloError(error);
+            }
+        },
+
         // ── Owner dashboard (role 8) ───────────────────────────────────────────
         myStore: async (obj, args, context) => {
             try {
@@ -252,8 +293,11 @@ export const resolvers = {
                 delete content.logo;
                 delete content.images;
 
-                // The creating owner owns the store.
-                const store = await Store.create({ ...content, id_user: caller.id });
+                // The creating owner owns the store — unless the super-admin
+                // assigns it to a specific merchant account (content.id_user).
+                const assignTo = (caller.role === SUPER_ADMIN_ROLE && content.id_user) ? content.id_user : caller.id;
+                delete content.id_user;
+                const store = await Store.create({ ...content, id_user: assignTo });
 
                 const patch = {};
                 if (logoUpload) {

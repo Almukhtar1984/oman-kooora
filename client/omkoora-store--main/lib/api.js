@@ -102,3 +102,14 @@ export const OMAN_GOVERNORATES = [
   "شمال الباطنة", "جنوب الباطنة", "شمال الشرقية", "جنوب الشرقية",
   "الظاهرة", "الوسطى",
 ];
+
+// ── Shared cart (localStorage) so the marketplace and store-profile pages
+//    build one cart together. Each item: {id,name,price,qty,id_store,store_name}.
+const CART_KEY = "store_cart";
+export function loadCart() {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(window.localStorage.getItem(CART_KEY) || "[]"); } catch { return []; }
+}
+export function saveCart(cart) {
+  try { window.localStorage.setItem(CART_KEY, JSON.stringify(cart || [])); } catch {}
+}
