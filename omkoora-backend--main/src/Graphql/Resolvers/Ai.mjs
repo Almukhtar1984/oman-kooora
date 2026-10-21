@@ -12,6 +12,7 @@ import { AI_PROVIDERS, fetchModels, testConnection, generateText } from "../../C
 import { stageLabelAr, buildMatchNewsPrompt, parseNewsJSON } from "../../Helpers/matchNews.mjs";
 import { buildNewsDraftPrompt } from "../../Helpers/newsDraft.mjs";
 import { buildMessageDraftPrompt, parseMessageJSON } from "../../Helpers/messageDraft.mjs";
+import { disconnectPatch } from "../../Helpers/aiConnection.mjs";
 
 const SUPER_ADMIN_ROLE = "1";
 const CLUB_ADMIN_ROLE = "2";
@@ -263,6 +264,20 @@ export const resolvers = {
             } catch (e) {
                 logger.error(`saveAiSettings: ${e?.message}`);
                 throw new ApolloError(e.message || "فشل الحفظ", "AI_SAVE_FAILED");
+            }
+        },
+
+        disconnectAiProvider: async (obj, { provider }, context) => {
+            requireSuperAdmin(context);
+            if (!AI_PROVIDERS.includes(provider)) throw new ApolloError("مزوّد غير مدعوم", "BAD_PROVIDER");
+
+            const s = await getSettings();
+            try {
+                await s.update(disconnectPatch(s, provider));
+                return { status: true };
+            } catch (e) {
+                logger.error(`disconnectAiProvider: ${e?.message}`);
+                throw new ApolloError(e.message || "فشل إلغاء الربط", "AI_DISCONNECT_FAILED");
             }
         },
 

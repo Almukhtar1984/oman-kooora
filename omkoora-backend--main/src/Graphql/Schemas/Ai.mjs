@@ -20,6 +20,10 @@ export const typeDefs = gql`
     extend type Mutation {
         saveAiSettings(content: aiSettingsInput!): statusUpdate @auth(requires: user)
         testAiConnection(provider: String!, apiKey: String): AiTestResult @auth(requires: user)
+        # Remove the stored key for a provider ("إلغاء الربط"). If nothing stays
+        # linked the feature is switched off, so no AI button points at a
+        # provider that can no longer answer.
+        disconnectAiProvider(provider: String!): statusUpdate @auth(requires: user)
 
         # Generate a news article from a finished match and save it as a Blog.
         # A team saves a draft for its club to review; owner/league/club may

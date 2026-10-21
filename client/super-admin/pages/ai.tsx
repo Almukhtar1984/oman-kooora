@@ -3,13 +3,16 @@ import Head from "next/head";
 import {
     Box, Container, Group, Text, Title, Button, ThemeIcon, Paper, Stack, Switch,
     SegmentedControl, PasswordInput, Select, Badge, Loader, Divider, Anchor, Alert,
+    Modal,
 } from "@mantine/core";
 import {
     IconRobot, IconKey, IconRefresh, IconPlugConnected, IconDeviceFloppy,
-    IconCircleCheck, IconAlertTriangle, IconInfoCircle, IconShieldLock,
+    IconCircleCheck, IconAlertTriangle, IconInfoCircle, IconShieldLock, IconUnlink,
 } from "@tabler/icons";
 import { Notyf } from "notyf";
-import { useAiSettings, useAiAvailableModels, useSaveAiSettings, useTestAiConnection } from "../graphql";
+import {
+    useAiSettings, useAiAvailableModels, useSaveAiSettings, useTestAiConnection, useDisconnectAiProvider,
+} from "../graphql";
 
 type ProviderKey = "openai" | "gemini";
 
@@ -42,10 +45,12 @@ const Ai = () => {
     const [model, setModel] = useState<string>("");
     const [models, setModels] = useState<{ id: string; recommended?: boolean }[]>([]);
     const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+    const [confirmUnlink, setConfirmUnlink] = useState(false);
 
     const [fetchModels, { loading: fetchingModels }] = useAiAvailableModels();
     const [saveSettings, { loading: saving }] = useSaveAiSettings();
     const [testConnection, { loading: testing }] = useTestAiConnection();
+    const [disconnectProvider, { loading: unlinking }] = useDisconnectAiProvider();
 
     const meta = PROVIDERS[provider];
     const storedModel = provider === "openai" ? settings?.openai_model : settings?.gemini_model;
@@ -57,6 +62,13 @@ const Ai = () => {
         setProvider((settings.active_provider as ProviderKey) || "gemini");
         setEnabled(Boolean(settings.enabled));
     }, [settings]);
+
+    // The settings arrive after the first render, so the saved model has to be
+    // picked up when it lands — otherwise the page claimed no model was chosen
+    // while one was stored. Never overrides a model the owner just picked.
+    useEffect(() => {
+        if (storedModel) setModel((m) => m || storedModel);
+    }, [storedModel]);
 
     // When the chosen provider changes, reset the per-provider fields.
     useEffect(() => {
@@ -136,6 +148,23 @@ const Ai = () => {
             await refetch();
         } catch (e: any) {
             newNotyf().open({ type: "error", message: e?.message || "فشل الحفظ" });
+        }
+    };
+
+    // Unlink: drops the stored key for this provider. The backend also clears the
+    // model and switches the feature off when no provider stays linked.
+    const onUnlink = async () => {
+        try {
+            await disconnectProvider({ variables: { provider } });
+            setConfirmUnlink(false);
+            setApiKey("");
+            setModel("");
+            setModels([]);
+            setTestResult(null);
+            newNotyf().open({ type: "success", message: `تم إلغاء ربط ${meta.brand}` });
+            await refetch();
+        } catch (e: any) {
+            newNotyf().open({ type: "error", message: e?.message || "تعذّر إلغاء الربط" });
         }
     };
 
@@ -239,6 +268,16 @@ const Ai = () => {
                                 >
                                     تحديث الموديلات
                                 </Button>
+                                {hasStoredKey && (
+                                    <Button
+                                        variant="subtle" color="red" radius="md" ml="auto"
+                                        leftIcon={<IconUnlink size={16} />}
+                                        loading={unlinking}
+                                        onClick={() => setConfirmUnlink(true)}
+                                    >
+                                        إلغاء الربط
+                                    </Button>
+                                )}
                             </Group>
 
                             {testResult && (
@@ -288,6 +327,35 @@ const Ai = () => {
                         )}
                     </Stack>
                 )}
+
+                {/* Unlink confirmation — it deletes a stored secret, so never one-click. */}
+                <Modal
+                    opened={confirmUnlink}
+                    onClose={() => setConfirmUnlink(false)}
+                    centered radius="md"
+                    title={<Text weight={600} color="gray.8">إلغاء ربط {meta.brand}</Text>}
+                >
+                    <Text size="sm" color="gray.7">
+                        سيُحذف مفتاح الـAPI المحفوظ لـ<b> {meta.brand} </b>والموديل المختار، ولن تعمل ميزات التوليد
+                        عبر هذا المزوّد حتى تربطه من جديد بمفتاح جديد.
+                    </Text>
+                    <Text size="xs" color="gray.6" mt={8}>
+                        المفتاح لا يمكن استرجاعه بعد الحذف — احتفظ بنسخة منه إن كنت تنوي الربط مرة أخرى.
+                    </Text>
+                    <Group position="left" mt="lg" spacing="sm">
+                        <Button
+                            color="red" radius="md"
+                            leftIcon={<IconUnlink size={16} />}
+                            loading={unlinking}
+                            onClick={onUnlink}
+                        >
+                            نعم، إلغاء الربط
+                        </Button>
+                        <Button variant="default" radius="md" onClick={() => setConfirmUnlink(false)} disabled={unlinking}>
+                            تراجع
+                        </Button>
+                    </Group>
+                </Modal>
             </Container>
         </Box>
     );
