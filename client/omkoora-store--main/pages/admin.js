@@ -11,6 +11,7 @@ const DATA = `{
 }`;
 const PROVISION = `mutation($e: String!, $p: String!){ provisionStoreOwner(email: $e, password: $p){ id email } }`;
 const CREATE_STORE = `mutation($c: contentStore!){ createStore(content: $c){ id name } }`;
+const UPDATE_STORE = `mutation($id: ID!, $c: contentStore!){ updateStore(id: $id, content: $c){ status } }`;
 
 const money = (n) => `${Number(n || 0)} ر.ع`;
 const ORDER_LABEL = { waiting: "قيد الانتظار", accepted: "مقبول", delivered: "تم التسليم", rejected: "مرفوض", cancelled: "ملغى" };
@@ -24,6 +25,7 @@ export default function Admin() {
   const [orders, setOrders] = useState([]);
   const [tab, setTab] = useState("stores");
   const [showAdd, setShowAdd] = useState(false);
+  const [editStore, setEditStore] = useState(null);
   const [toast, setToast] = useState("");
 
   const loadAll = useCallback(async () => {
@@ -101,6 +103,9 @@ export default function Admin() {
                     </div>
                     <div className="meta">📍 {s.mohafada || "—"}</div>
                     <div className="meta">التاجر: {s.owner?.email || "غير مُسند"}</div>
+                    <div className="row" style={{ marginTop: 10 }}>
+                      <button className="btn sm" onClick={() => setEditStore(s)}>تعديل المتجر</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -144,6 +149,7 @@ export default function Admin() {
       </div>
 
       {showAdd ? <AddStore onClose={() => setShowAdd(false)} onDone={async (m) => { setShowAdd(false); await loadAll(); showToast(m); }} /> : null}
+      {editStore ? <EditStore store={editStore} onClose={() => setEditStore(null)} onDone={async (m) => { setEditStore(null); await loadAll(); showToast(m); }} /> : null}
       {toast ? <div className="toast">{toast}</div> : null}
     </div>
   );
@@ -193,6 +199,52 @@ function AddStore({ onClose, onDone }) {
         <div className="row" style={{ marginTop: 14 }}>
           <button type="button" className="btn" onClick={onClose}>إلغاء</button>
           <button type="submit" className="btn primary" disabled={saving}>{saving ? "جارٍ الإنشاء…" : "إنشاء"}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function EditStore({ store, onClose, onDone }) {
+  const [name, setName] = useState(store.name || "");
+  const [mohafada, setMohafada] = useState(store.mohafada || "");
+  const [phone, setPhone] = useState(store.phone || "");
+  const [isActive, setIsActive] = useState(store.is_active !== false);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) { setErr("اسم المتجر مطلوب"); return; }
+    setSaving(true); setErr("");
+    try {
+      await gql(UPDATE_STORE, { id: store.id, c: { name: name.trim(), mohafada: mohafada || null, phone: phone.trim() || null, is_active: isActive } });
+      onDone("تم تحديث بيانات المتجر");
+    } catch (e2) { setErr(e2.message || "تعذّر التحديث"); setSaving(false); }
+  };
+
+  return (
+    <div className="modal-back" onClick={onClose}>
+      <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <h2>تعديل المتجر</h2>
+        <p className="meta" style={{ marginTop: 0 }}>التاجر: {store.owner?.email || "غير مُسند"}</p>
+        {err ? <div className="err">{err}</div> : null}
+        <div className="field"><label>اسم المتجر</label><input value={name} onChange={(e) => setName(e.target.value)} /></div>
+        <div className="form-grid">
+          <div className="field"><label>المحافظة</label>
+            <select value={mohafada} onChange={(e) => setMohafada(e.target.value)}>
+              <option value="">— اختر —</option>
+              {OMAN_GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+          <div className="field"><label>هاتف المتجر</label><input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+        </div>
+        <div className="field"><label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input type="checkbox" style={{ width: "auto" }} checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> المتجر ظاهر في السوق
+        </label></div>
+        <div className="row" style={{ marginTop: 14 }}>
+          <button type="button" className="btn" onClick={onClose}>إلغاء</button>
+          <button type="submit" className="btn primary" disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</button>
         </div>
       </form>
     </div>

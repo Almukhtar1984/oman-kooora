@@ -203,10 +203,9 @@ export default function Dashboard() {
           <>
             <div className="row" style={{ marginBottom: 12 }}>
               <h3 style={{ margin: 0 }}>ملف المتجر</h3>
-              <button className="btn primary" onClick={() => setEditStore({})}>+ إضافة متجر</button>
             </div>
             {!hasStore ? (
-              <div className="empty">لا يوجد متجر بعد. أنشئ متجرك الأول.</div>
+              <div className="empty">لم يُسنَد لك متجر بعد. تواصل مع إدارة المنصّة لإضافة متجرك، ثم ابدأ بنشر منتجاتك.</div>
             ) : (
               <div className="grid">
                 {stores.map((s) => {
@@ -228,9 +227,7 @@ export default function Dashboard() {
                       {imgs.length ? (
                         <div className="thumbs">{imgs.map((im, i) => <img key={i} src={imageUrl(im)} alt="" />)}</div>
                       ) : null}
-                      <div className="row" style={{ marginTop: 10 }}>
-                        <button className="btn sm" onClick={() => setEditStore(s)}>تعديل</button>
-                      </div>
+                      <div className="meta" style={{ marginTop: 10, fontSize: 12 }}>بيانات المتجر تُدار من قِبل الإدارة. أنت تدير المنتجات والطلبات.</div>
                     </div>
                   );
                 })}

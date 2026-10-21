@@ -287,15 +287,16 @@ export const resolvers = {
             try {
                 const caller = context?.user;
                 if (!context?.isAuth || !caller) return new ApolloError("Authentication required", "AUTH_REQUIRED");
+                // Only the platform admin creates stores (and assigns them to a merchant).
+                if (caller.role !== SUPER_ADMIN_ROLE) return new ApolloError("غير مصرّح: الأدمن فقط يُنشئ المتاجر", "FORBIDDEN");
 
                 const logoUpload = await content.logo;
                 const imageUploads = await content.images;
                 delete content.logo;
                 delete content.images;
 
-                // The creating owner owns the store — unless the super-admin
-                // assigns it to a specific merchant account (content.id_user).
-                const assignTo = (caller.role === SUPER_ADMIN_ROLE && content.id_user) ? content.id_user : caller.id;
+                // The store is owned by the merchant account the admin assigns it to.
+                const assignTo = content.id_user || caller.id;
                 delete content.id_user;
                 const store = await Store.create({ ...content, id_user: assignTo });
 
@@ -321,8 +322,14 @@ export const resolvers = {
 
         updateStore: async (obj, { id, content }, context) => {
             try {
-                const ids = await ownedStoreIds(context);
-                if (!ids.includes(id)) return new ApolloError("غير مصرّح", "FORBIDDEN");
+                // The admin manages store data; a merchant only manages products.
+                const caller = context?.user;
+                if (!context?.isAuth || !caller) return new ApolloError("Authentication required", "AUTH_REQUIRED");
+                if (caller.role !== SUPER_ADMIN_ROLE) {
+                    const ids = await ownedStoreIds(context);
+                    if (!ids.includes(id)) return new ApolloError("غير مصرّح", "FORBIDDEN");
+                }
+                delete content.id_user;
 
                 const logoUpload = await content.logo;
                 const imageUploads = await content.images;
