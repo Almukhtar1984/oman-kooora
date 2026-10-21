@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import Head from "next/head";
 import { gql, setToken } from "../lib/api";
 
 const LOGIN = `
@@ -38,23 +39,47 @@ export default function Login() {
   };
 
   return (
-    <div className="login-wrap">
-      <form className="login-card" onSubmit={submit}>
-        <h1>تسجيل الدخول</h1>
-        <p>منصّة طموح · لوحة الإدارة والتجّار</p>
-        {err ? <div className="err">{err}</div> : null}
-        <div className="field">
-          <label>البريد الإلكتروني</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="owner@omkooora.com" />
+    <div className="auth">
+      <Head><title>تسجيل الدخول · سوق طموح</title></Head>
+
+      <aside className="auth-brand">
+        <span className="net" />
+        <span className="ring a" />
+        <span className="ring b" />
+        <span className="pitch" />
+        <div className="mark"><span className="mk">⚽</span> طموح</div>
+        <div className="hero">
+          <span className="eyebrow">منصّة طموح الرياضية</span>
+          <h2>سوق طموح الرياضي</h2>
+          <p>متجرك الرياضي في مكان واحد — أدِر منتجاتك وطلباتك، وتابع مبيعاتك بسهولة واحترافية.</p>
         </div>
-        <div className="field">
-          <label>كلمة المرور</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        <button className="btn primary" style={{ width: "100%", marginTop: 8 }} disabled={loading}>
-          {loading ? "جارٍ الدخول…" : "دخول"}
-        </button>
-      </form>
+        <div className="foot"><span>© طموح</span><span>omkooora.com</span></div>
+      </aside>
+
+      <div className="auth-form">
+        <form className="auth-card" onSubmit={submit}>
+          <h1>تسجيل الدخول</h1>
+          <p className="sub">لوحة الإدارة والتجّار</p>
+          {err ? <div className="auth-err">{err}</div> : null}
+          <div className="auth-f">
+            <label>البريد الإلكتروني</label>
+            <div className="box">
+              <span className="ic">✉️</span>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="owner@omkooora.com" />
+            </div>
+          </div>
+          <div className="auth-f">
+            <label>كلمة المرور</label>
+            <div className="box">
+              <span className="ic">🔒</span>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+            </div>
+          </div>
+          <button className="auth-submit" disabled={loading}>
+            {loading ? "جارٍ الدخول…" : "دخول"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

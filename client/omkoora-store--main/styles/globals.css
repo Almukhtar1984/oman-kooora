@@ -161,3 +161,83 @@ input,textarea,select{font-family:inherit}
   .mprofile-in{flex-direction:column;text-align:center}
 }
 .mprod .add:focus-visible,.mhead .login:focus-visible,.mhead .cart:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+
+/* ============================================================
+   تسجيل الدخول الموحّد — منصّة طموح (هوية واحدة لكل النطاقات)
+   Unified login identity — shared across all طموح domains.
+   Split layout: brand panel (right, RTL) + clean form (left).
+   ============================================================ */
+.auth{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;direction:rtl;background:#fff}
+.auth *{box-sizing:border-box}
+
+/* ---- brand panel (first child → right column in RTL) ---- */
+.auth-brand{position:relative;overflow:hidden;color:#eafaf4;padding:46px 50px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  background:
+    radial-gradient(720px 340px at 85% -15%, rgba(134,239,172,.20), transparent 62%),
+    linear-gradient(155deg,#0d6a62 0%,#0f766e 46%,#0a3f3a 100%)}
+.auth-brand .net{position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:
+    linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);
+  background-size:40px 40px;
+  -webkit-mask-image:radial-gradient(circle at 74% 30%, #000 8%, transparent 72%);
+          mask-image:radial-gradient(circle at 74% 30%, #000 8%, transparent 72%)}
+.auth-brand .ring{position:absolute;border:2px solid rgba(255,255,255,.13);border-radius:50%;pointer-events:none}
+.auth-brand .ring.a{width:330px;height:330px;top:-120px;left:-108px}
+.auth-brand .ring.b{width:140px;height:140px;top:-30px;left:10px;border-color:rgba(255,255,255,.08)}
+.auth-brand .pitch{position:absolute;bottom:-1px;right:0;left:0;height:118px;pointer-events:none;opacity:.55;
+  background:
+    linear-gradient(90deg,transparent calc(50% - 1px),rgba(255,255,255,.2) 50%,transparent calc(50% + 1px)),
+    radial-gradient(130px 130px at 50% 100%, transparent 60px, rgba(255,255,255,.2) 61px, rgba(255,255,255,.2) 63px, transparent 64px)}
+.auth-brand .mark{position:relative;display:flex;align-items:center;gap:13px;font-weight:800;font-size:23px;letter-spacing:.3px}
+.auth-brand .mark .mk{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3)}
+.auth-brand .hero{position:relative;max-width:32ch}
+.auth-brand .hero .eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:1.4px;
+  color:rgba(234,250,244,.74);background:rgba(255,255,255,.09);
+  border:1px solid rgba(255,255,255,.17);padding:5px 13px;border-radius:999px;margin-bottom:18px}
+.auth-brand .hero h2{font-size:clamp(27px,3.2vw,38px);font-weight:800;line-height:1.24;margin:0 0 14px}
+.auth-brand .hero p{font-size:15.5px;line-height:1.8;color:rgba(234,250,244,.82);margin:0}
+.auth-brand .foot{position:relative;font-size:12.5px;color:rgba(234,250,244,.58);display:flex;gap:18px}
+
+/* ---- form panel (second child → left column in RTL) ---- */
+.auth-form{display:flex;align-items:center;justify-content:center;padding:40px 30px;background:var(--bg,#f3f7f8)}
+.auth-card{width:100%;max-width:392px}
+.auth-card h1{font-size:27px;font-weight:800;color:var(--ink,#0f2a33);margin:0 0 6px}
+.auth-card .sub{color:var(--muted,#5b7079);font-size:15px;margin:0 0 28px;line-height:1.6}
+.auth-f{margin-bottom:17px}
+.auth-f label{display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:var(--ink,#0f2a33)}
+.auth-f .box{position:relative;display:flex;align-items:center}
+.auth-f .box .ic{position:absolute;inset-inline-start:14px;font-size:16px;opacity:.5;pointer-events:none}
+.auth-f input{width:100%;padding:14px 44px 14px 14px;border:1.5px solid var(--line,#e4ebee);
+  border-radius:13px;font-size:15px;background:#fff;color:var(--ink,#0f2a33);
+  transition:border-color .15s,box-shadow .15s;font-family:inherit}
+.auth-f input::placeholder{color:#9fb0b6}
+.auth-f input:focus{outline:none;border-color:#0f766e;box-shadow:0 0 0 4px rgba(15,118,110,.13)}
+.auth-submit{width:100%;padding:15px;border:none;border-radius:13px;cursor:pointer;
+  background:linear-gradient(135deg,#0f766e,#115e59);
+  color:#fff;font-weight:800;font-size:16px;font-family:inherit;
+  box-shadow:0 12px 26px rgba(15,118,110,.3);transition:transform .06s,filter .15s}
+.auth-submit:hover{filter:brightness(1.06)}
+.auth-submit:active{transform:translateY(1px)}
+.auth-submit:disabled{opacity:.6;box-shadow:none;cursor:default}
+.auth-err{background:#fee2e2;color:#991b1b;padding:11px 14px;border-radius:11px;
+  font-size:14px;margin-bottom:16px;border:1px solid #fecaca}
+.auth-links{margin-top:18px;text-align:center}
+.auth-links a{color:#0f766e;font-weight:700;font-size:14px;text-decoration:none}
+.auth-links a:hover{text-decoration:underline}
+
+@media(max-width:880px){
+  .auth{grid-template-columns:1fr}
+  .auth-brand{min-height:200px;padding:28px 26px}
+  .auth-brand .hero{display:none}
+  .auth-brand .foot{display:none}
+  .auth-brand .ring.a{width:210px;height:210px;top:-86px;left:-78px}
+  .auth-brand .pitch{height:76px}
+  .auth-form{padding:34px 22px}
+}
+@media(max-width:420px){
+  .auth-form{padding:26px 18px}
+  .auth-card h1{font-size:23px}
+}

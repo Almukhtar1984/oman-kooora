@@ -14,7 +14,7 @@ import {useForm} from "react-hook-form";
 const useStyles = createStyles((theme) => ({
     link: {
         textDecoration: "underline",
-        color: theme.colors.cyan[6],
+        color: "#0f766e",
         alignSelf: "flex-end",
         "&:hover": {
             color: theme.colors.orange[4]
@@ -24,9 +24,9 @@ const useStyles = createStyles((theme) => ({
         marginTop: theme.spacing.md
     },
     title: {
-        color: theme.colors.cyan[6],
-        fontSize: theme.fontSizes.lg,
-        fontWeight: 600
+        color: "#0f766e",
+        fontSize: "26px",
+        fontWeight: 800
     },
     loginText: {
         fontSize: theme.fontSizes.xl
@@ -128,11 +128,19 @@ export default function Login() {
                 <title>طموح</title>
             </Head>
 
-            <Grid justify="center" align="center" m={0} sx={{height: "100vh"}}>
-
-                <Grid.Col xs={11} sm={10} md={8} lg={6} p={0}>
-                    <Grid justify="center" align="center" p={"md"} sx={{width: "100%"}}>
-                        <Grid.Col xs={11} sm={10} md={8} lg={6} xl={4} >
+            <div className="auth">
+                <aside className="auth-brand">
+                    <span className="net" /><span className="ring a" /><span className="ring b" /><span className="pitch" />
+                    <div className="mark"><span className="mk">⚽</span> طموح</div>
+                    <div className="hero">
+                        <span className="eyebrow">منصّة طموح الرياضية</span>
+                        <h2>فريق طموح</h2>
+                        <p>أدِر فريقك ولاعبيك ومبارياتك وانتقالاتك من لوحة واحدة.</p>
+                    </div>
+                    <div className="foot"><span>© طموح</span><span>omkooora.com</span></div>
+                </aside>
+                <div className="auth-form">
+                    <div className="auth-card-m">
                             <form onSubmit={handleSubmit(onFormSubmit, () => console.log("error: ", errors))} id="submit_form">
                                 <Stack justify="center" align="center" >
                                     <Text className={classes.title} >تسجيل الدخول</Text>
@@ -168,10 +176,31 @@ export default function Login() {
                                     <Link href={"/login/forGotPassword"} className={classes.link} >نسيت كلمة المرور؟</Link>
                                 </Stack>
                             </form>
-                        </Grid.Col>
-                    </Grid>
-                </Grid.Col>
-            </Grid>
+                    </div>
+                </div>
+                <style dangerouslySetInnerHTML={{ __html: `
+.auth{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;direction:rtl;background:#fff}
+.auth *{box-sizing:border-box}
+.auth-brand{position:relative;overflow:hidden;color:#eafaf4;padding:46px 50px;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(720px 340px at 85% -15%, rgba(134,239,172,.20), transparent 62%),linear-gradient(155deg,#0d6a62 0%,#0f766e 46%,#0a3f3a 100%)}
+.auth-brand .net{position:absolute;inset:0;pointer-events:none;opacity:.5;background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);background-size:40px 40px;-webkit-mask-image:radial-gradient(circle at 74% 30%, #000 8%, transparent 72%);mask-image:radial-gradient(circle at 74% 30%, #000 8%, transparent 72%)}
+.auth-brand .ring{position:absolute;border:2px solid rgba(255,255,255,.13);border-radius:50%;pointer-events:none}
+.auth-brand .ring.a{width:330px;height:330px;top:-120px;left:-108px}
+.auth-brand .ring.b{width:140px;height:140px;top:-30px;left:10px;border-color:rgba(255,255,255,.08)}
+.auth-brand .pitch{position:absolute;bottom:-1px;right:0;left:0;height:118px;pointer-events:none;opacity:.55;background:linear-gradient(90deg,transparent calc(50% - 1px),rgba(255,255,255,.2) 50%,transparent calc(50% + 1px)),radial-gradient(130px 130px at 50% 100%, transparent 60px, rgba(255,255,255,.2) 61px, rgba(255,255,255,.2) 63px, transparent 64px)}
+.auth-brand .mark{position:relative;display:flex;align-items:center;gap:13px;font-weight:800;font-size:23px;letter-spacing:.3px}
+.auth-brand .mark .mk{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3)}
+.auth-brand .hero{position:relative;max-width:32ch}
+.auth-brand .hero .eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:1.4px;color:rgba(234,250,244,.74);background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.17);padding:5px 13px;border-radius:999px;margin-bottom:18px}
+.auth-brand .hero h2{font-size:clamp(27px,3.2vw,38px);font-weight:800;line-height:1.24;margin:0 0 14px;color:#fff}
+.auth-brand .hero p{font-size:15.5px;line-height:1.8;color:rgba(234,250,244,.82);margin:0}
+.auth-brand .foot{position:relative;font-size:12.5px;color:rgba(234,250,244,.58);display:flex;gap:18px}
+.auth-form{display:flex;align-items:center;justify-content:center;padding:40px 30px;background:#f3f7f8}
+.auth-card-m{width:100%;max-width:400px}
+.auth-card-m form{width:100%}
+.auth-card-m button[type="submit"]{background:linear-gradient(135deg,#0f766e,#115e59)!important;border:none!important;height:46px;font-weight:800;font-size:16px;box-shadow:0 12px 26px rgba(15,118,110,.3)}
+@media(max-width:880px){.auth{grid-template-columns:1fr}.auth-brand{min-height:200px;padding:28px 26px}.auth-brand .hero{display:none}.auth-brand .foot{display:none}.auth-brand .ring.a{width:210px;height:210px;top:-86px;left:-78px}.auth-brand .pitch{height:76px}.auth-form{padding:34px 22px}}
+` }} />
+            </div>
         </>
     )
 }
