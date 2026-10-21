@@ -16,3 +16,4 @@ export * from "./DeleteTransfer"
 export * from "./BackToOldTeamTransfer"
 export * from "./UploadPlayersSheet";
 export * from "./FreePlayer";
+export * from "./AssociatePlayer";

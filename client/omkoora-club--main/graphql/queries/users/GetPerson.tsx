@@ -13,6 +13,7 @@ export const GetPerson = gql`
             card_number
             date_birth
             member {
+                id
                 occupation
                 classification
                 status
@@ -30,6 +31,7 @@ export const GetPerson = gql`
                 }
             }
             player {
+                id
                 activity
                 player_center
                 job
@@ -48,6 +50,7 @@ export const GetPerson = gql`
                 }
             }
             technicalApparatus {
+                id
                 occupation
                 classification
                 membership_date

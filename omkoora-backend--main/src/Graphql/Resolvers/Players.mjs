@@ -10,6 +10,7 @@ import path from "path";
 import {__dirname} from "../../app.mjs";
 import {createWriteStream, promises as fsPromises } from "fs";
 import {saveUpload} from "../../Helpers/Upload.mjs";
+import {ATTACH, DUPLICATE, PHONE_TAKEN, classifyExistingPerson} from "../../Helpers/playerRegistration.mjs";
 import { match } from 'assert';
 import {isIdentical} from "../../Helpers/isIdentical.mjs"
 import {CreateNotificationClub} from "../../Helpers/index.mjs"
@@ -516,21 +517,32 @@ export const resolvers = {
                     }
                 }
 
-                const onePerson = await Person.findOne({
-                    where: {
-                        [Op.or]: [
-                            { card_number: content.person.card_number },
-                            { phone: content.person.phone }
-                        ]
-                    }
-                });
+                // Look the person up by civil number first — it is the identity
+                // key. An OR query returns whichever row the engine reaches
+                // first, so a stranger sharing the phone could mask the real
+                // match and the club would be told the phone was taken.
+                const onePerson =
+                    (content.person.card_number
+                        ? await Person.findOne({ where: { card_number: content.person.card_number } })
+                        : null)
+                    || (content.person.phone
+                        ? await Person.findOne({ where: { phone: content.person.phone } })
+                        : null);
 
-                if (onePerson && onePerson !== null) {
-                    if (onePerson.card_number === content.person.card_number) {
-                        return new ApolloError("card number already exists", "CARD_NUMBER_ALREADY_EXISTS");
-                    } else if (onePerson.phone === content.person.phone) {
-                        return new ApolloError("phone number already exists", "PHONE_NUMBER_ALREADY_EXISTS");
-                    }
+                // A civil number already in the database does not mean the club
+                // is registering a duplicate: the person may not be a player at
+                // all, or may be a player sitting on no team. Only a player who
+                // is already on a team is a real duplicate (that is a transfer).
+                const existingPlayer = onePerson
+                    ? await Players.findOne({ where: { id_person: onePerson.id } })
+                    : null;
+                const verdict = classifyExistingPerson(onePerson, existingPlayer, content.person);
+
+                if (verdict?.action === PHONE_TAKEN) {
+                    return new ApolloError("phone number already exists", "PHONE_NUMBER_ALREADY_EXISTS");
+                }
+                if (verdict?.action === DUPLICATE) {
+                    return new ApolloError("card number already exists", "CARD_NUMBER_ALREADY_EXISTS");
                 }
 
                 const nationalID = content.nationalID;
@@ -560,7 +572,9 @@ export const resolvers = {
                     return new ApolloError("Card number does not match", "CARD_NUMBER_DONT_MATCH");
                 }
         
-                let person = await Person.create(content.person);
+                // Reuse the person we already know instead of creating a second
+                // record for the same human being.
+                let person = verdict ? onePerson : await Person.create(content.person);
         
                 if (content.nationalID) delete content.nationalID;
                 if (content.nationalIDBack) delete content.nationalIDBack;
@@ -568,7 +582,12 @@ export const resolvers = {
                 if (!content.type) content.type = "internal";
         
                 let result = null;
-                if (person) {
+                if (verdict?.action === ATTACH) {
+                    // A player record hanging on no team: put them on the team the
+                    // club picked and refresh their details from the form.
+                    await Players.update({ ...content, id_person: person.id }, { where: { id: existingPlayer.id } });
+                    result = await Players.findByPk(existingPlayer.id);
+                } else if (person) {
                     result = await Players.create({ ...content, id_person: person.id });
                 }
         

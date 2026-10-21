@@ -1,9 +1,9 @@
-import { ActionIcon, Box, Button, Col, Grid, Group, Image, Text, Stack, TextInput } from "@mantine/core";
-import {Check, Search, X} from "tabler-icons-react";
-import React, {useEffect, useState} from "react";
+import { ActionIcon, Alert, Box, Button, Col, Divider, Grid, Group, Image, Select, Text, Stack, TextInput } from "@mantine/core";
+import {Check, InfoCircle, Search, X} from "tabler-icons-react";
+import React, {useEffect, useMemo, useState} from "react";
 import { useForm } from "@mantine/form";
 import Modal, { Props as ModalProps } from "./Modal";
-import {useGetPerson} from "../../graphql";
+import {useAllTeams, useAssociatePlayer, useGetPerson} from "../../graphql";
 import useStore from "../../store/useStore";
 import {Notyf} from "notyf";
 
@@ -21,6 +21,45 @@ export const SearchPerson = (props: Props) => {
     const [loading, setLoading] = useState(false);
     const [person, setPerson] = useState<any>(null);
     const [getPerson, {data, error}] = useGetPerson();
+
+    // A person the club finds by civil number is often already in the system but
+    // attached to nothing — "مسجّل سابقاً" with no way forward. The club can now
+    // pick one of its own teams and put them on it.
+    const idClub = userData?.person?.clubManagement?.club?.id;
+    const [getAllTeam, {data: dataAllTeams}] = useAllTeams();
+    const [associatePlayer] = useAssociatePlayer();
+    const [teamId, setTeamId] = useState<string | null>(null);
+    const [attaching, setAttaching] = useState(false);
+
+    useEffect(() => {
+        if (idClub) getAllTeam({variables: {idClub}});
+    }, [idClub]);
+
+    const clubTeams = useMemo(
+        () => (dataAllTeams?.allTeam || []).map((t: any) => ({label: t.name, value: t.id})),
+        [dataAllTeams]
+    );
+
+    // Only a player record that hangs on no team can be attached from here.
+    const attachable = Boolean(person?.player?.id && !person?.player?.team);
+
+    const handleAttach = () => {
+        const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+        if (!teamId) { notyf.error("اختر الفريق أولاً"); return; }
+        setAttaching(true);
+        associatePlayer({
+            variables: {id_player: person?.player?.id, id_team: teamId},
+            onCompleted: () => {
+                setAttaching(false);
+                notyf.success("تم ضمّ اللاعب إلى الفريق");
+                closeModal();
+            },
+            onError: () => {
+                setAttaching(false);
+                notyf.error("تعذّر ضمّ اللاعب");
+            },
+        });
+    };
 
     useEffect(() => {
         if (data && "person" in data) {
@@ -45,6 +84,8 @@ export const SearchPerson = (props: Props) => {
 
     const closeModal = () => {
         setLoading(false)
+        setTeamId(null)
+        setPerson(null)
         props.onClose();
         reset();
     };
@@ -147,6 +188,41 @@ export const SearchPerson = (props: Props) => {
                                             </Group>
                                         </Col>
                                     </Grid>
+
+                                    {attachable ? (
+                                        <Box mt={16}>
+                                            <Divider mb={12} />
+                                            <Alert variant="light" color="yellow" icon={<InfoCircle size={16} />} mb={12}>
+                                                هذا اللاعب مسجّل في المنصّة لكنه غير منضم لأي فريق — اختر الفريق لضمّه إليه.
+                                            </Alert>
+                                            <Group align="flex-end" noWrap>
+                                                <Select
+                                                    w="100%"
+                                                    withinPortal
+                                                    searchable
+                                                    label="الفريق"
+                                                    placeholder="اختر الفريق"
+                                                    data={clubTeams}
+                                                    value={teamId}
+                                                    onChange={setTeamId}
+                                                    nothingFound="لا توجد فرق لهذا النادي"
+                                                />
+                                                <Button
+                                                    color="blue"
+                                                    leftIcon={<Check size={16} />}
+                                                    loading={attaching}
+                                                    disabled={!teamId}
+                                                    onClick={handleAttach}
+                                                >
+                                                    ضمّ اللاعب
+                                                </Button>
+                                            </Group>
+                                        </Box>
+                                    ) : person?.player?.team ? (
+                                        <Alert variant="light" color="blue" icon={<InfoCircle size={16} />} mt={16}>
+                                            هذا اللاعب منضم بالفعل إلى فريق — النقل يتم من صفحة انتقالات اللاعبين.
+                                        </Alert>
+                                    ) : null}
                                 </Box>
                             </Col>
                             : null
