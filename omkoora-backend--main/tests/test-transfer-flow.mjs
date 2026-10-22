@@ -5,6 +5,7 @@
  */
 import {
     initialTransferStatus, transferTransition, pendingApprover, TRANSFER_STATUSES,
+    resolveDestinationTeam,
 } from "../src/Helpers/transferFlow.mjs";
 
 const c = { reset: "\x1b[0m", green: "\x1b[32m", red: "\x1b[31m", dim: "\x1b[2m" };
@@ -61,6 +62,57 @@ eq(pendingApprover("rejected"), null, "a rejected row has no pending approver");
 
 assert(TRANSFER_STATUSES.includes("waiting_club_from") && TRANSFER_STATUSES.includes("waiting_club_to"),
     "the new stage statuses are exported");
+
+// ───────────── who picks the destination team ─────────────
+// The receiving club does. A team id sent by anyone else is ignored, which also
+// closes the door on a sending club parking a player in a same-named team of a
+// club it does not belong to.
+const RUSTAQ = "club-rustaq", BAHLA = "club-bahla";
+
+eq(resolveDestinationTeam({
+        storedTeamId: null, requestedTeamId: "team-bahla-jazira",
+        requestedTeamClubId: BAHLA, destinationClubId: BAHLA, callerClubId: BAHLA,
+    }), "team-bahla-jazira",
+    "the destination club's own team is accepted");
+
+eq(resolveDestinationTeam({
+        storedTeamId: null, requestedTeamId: "team-rustaq-jazira",
+        requestedTeamClubId: RUSTAQ, destinationClubId: BAHLA, callerClubId: RUSTAQ,
+    }), null,
+    "a team of the sending club is refused as the destination");
+
+eq(resolveDestinationTeam({
+        storedTeamId: "team-bahla-first", requestedTeamId: "team-rustaq-jazira",
+        requestedTeamClubId: RUSTAQ, destinationClubId: BAHLA, callerClubId: RUSTAQ,
+    }), "team-bahla-first",
+    "a refused pick leaves the stored team untouched");
+
+eq(resolveDestinationTeam({ storedTeamId: "team-x", requestedTeamId: null }), "team-x",
+    "sending no team keeps the stored one");
+
+eq(resolveDestinationTeam({
+        storedTeamId: null, requestedTeamId: "team-y",
+        requestedTeamClubId: RUSTAQ, destinationClubId: null, callerClubId: RUSTAQ,
+    }), "team-y",
+    "an internal row with no destination club falls back to the caller's club");
+
+eq(resolveDestinationTeam({
+        storedTeamId: null, requestedTeamId: "team-y",
+        requestedTeamClubId: BAHLA, destinationClubId: null, callerClubId: RUSTAQ,
+    }), null,
+    "and refuses another club's team there too");
+
+eq(resolveDestinationTeam({
+        storedTeamId: null, requestedTeamId: "team-y",
+        requestedTeamClubId: BAHLA, destinationClubId: null, callerClubId: null,
+    }), "team-y",
+    "a caller with no club of their own (super-admin) is trusted");
+
+eq(resolveDestinationTeam({
+        storedTeamId: "team-keep", requestedTeamId: "team-unknown",
+        requestedTeamClubId: null, destinationClubId: BAHLA, callerClubId: BAHLA,
+    }), "team-keep",
+    "a team whose club cannot be read is not used");
 
 console.log(failures === 0 ? `\n${c.green}All passed${c.reset}` : `\n${c.red}${failures} failed${c.reset}`);
 process.exit(failures === 0 ? 0 : 1);

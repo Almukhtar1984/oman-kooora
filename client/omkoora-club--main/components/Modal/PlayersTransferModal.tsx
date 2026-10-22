@@ -28,7 +28,6 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
     const [allClubs, setAllClubs] = useState<{label: string, value: string, disabled?: boolean}[]>([]);
     const [type, setType] = useState(false);
     const [clubSelected, setClubSelected] = useState<string | null>("");
-    const [destinationTeams, setDestinationTeams] = useState<{label: string, value: string}[]>([]);
     const form = useForm({
         initialValues: {id_team_to: ""}
     });
@@ -37,10 +36,6 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
 
     const [getPlayer, { loading, error, data: dataPlayer }] = usePlayer();
     const [getAllTeams, { loading: loadingAllTeams, error: errorAllTeams, data: dataAllTeams }] = useAllTeams();
-    // The teams of the club the player is moving to. An external transfer used
-    // to name the club only, so the receiving club got a player with no team —
-    // and team names repeat across clubs, so "فريق الجزيرة" alone means nothing.
-    const [getDestinationTeams, { loading: loadingDestTeams, data: dataDestinationTeams }] = useAllTeams();
     const [getAllClubs, { loading: loadingAllClubs, error: errorAllClubs, data: dataAllClubs }] = useAllClub();
 
     useEffect(() => {
@@ -92,25 +87,13 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
         }
     }, [type])
 
+    // Which team inside the receiving club the player joins is that club's call,
+    // made when it approves — the club letting the player go does not place him
+    // in someone else's squad.
     useEffect(() => {
-        setDestinationTeams([]);
-        form.setFieldValue("id_team_to", "");
-        if (type && clubSelected) {
-            getDestinationTeams({
-                variables: {idClub: clubSelected},
-                fetchPolicy: "cache-and-network",
-            });
-        }
+        if (type) form.setFieldValue("id_team_to", "");
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clubSelected, type])
-
-    useEffect(() => {
-        if (dataDestinationTeams && "allTeam" in dataDestinationTeams) {
-            setDestinationTeams(
-                (dataDestinationTeams?.allTeam || []).map((item: any) => ({label: item?.name, value: item?.id}))
-            );
-        }
-    }, [dataDestinationTeams])
 
     useEffect(() => {
         if (dataAllClubs && "allClub" in dataAllClubs) {
@@ -133,12 +116,6 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
 
         if (type && !clubSelected) {
             notyf.error("حدد النادي المنتقل إليه");
-            return;
-        }
-        // Naming the club alone leaves the player teamless on arrival; only skip
-        // this when the destination club has no teams to choose from.
-        if (type && destinationTeams.length > 0 && !id_team_to) {
-            notyf.error("حدد الفريق داخل النادي المنتقل إليه");
             return;
         }
         if (!type && !id_team_to) {
@@ -212,7 +189,6 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
                             />
                         </Col>
                         {type ?
-                            <>
                             <Col span={12} md={6}>
                                 <Select
                                     placeholder="حدد النادي المنتقل اليه"
@@ -230,23 +206,6 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
                                     nothingFound="لا يوجد نوادي"
                                 />
                             </Col>
-                            <Col span={12} md={6}>
-                                <Select
-                                    placeholder={clubSelected ? "حدد الفريق داخل النادي" : "اختر النادي أولاً"}
-                                    withAsterisk
-                                    rightSectionWidth={30}
-                                    styles={{ rightSection: { pointerEvents: 'none' } }}
-                                    data={destinationTeams}
-                                    disabled={!clubSelected || loadingDestTeams}
-                                    {...form.getInputProps("id_team_to")}
-
-                                    searchable={true}
-                                    clearable={true}
-
-                                    nothingFound={loadingDestTeams ? "جارٍ التحميل…" : "لا توجد فرق في هذا النادي"}
-                                />
-                            </Col>
-                            </>
                             : <Col span={12} md={6}>
                                 <Select
                                     placeholder="حدد الفريق المنتقل اليه"

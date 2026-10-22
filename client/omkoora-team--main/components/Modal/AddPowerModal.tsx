@@ -392,7 +392,7 @@ export const AddPowerModal = ({ id, existingMember, setExistingMember, ...props 
                                     <Col span={12}>
                                         <Checkbox.Group
                                             defaultValue={['1']}
-                                            label="صلاحيات الجمعية العمومية"
+                                            label="صلاحيات العضوية"
                                             value={assembly} onChange={setAssembly}
                                         >
                                             <Group mt="xs">

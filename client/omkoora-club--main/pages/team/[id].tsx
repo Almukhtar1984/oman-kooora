@@ -577,7 +577,7 @@ export default function TeamDetailsPage() {
                                         <Text weight={700}>العضوية</Text>
                                         <Menu shadow="md" width={200}>
                                             <Menu.Target>
-                                                <Button size="xs" leftIcon={<Plus size={16} />}>إضافة عضو للجمعية</Button>
+                                                <Button size="xs" leftIcon={<Plus size={16} />}>إضافة عضو للعضوية</Button>
                                             </Menu.Target>
                                             <Menu.Dropdown>
                                                 <Menu.Item onClick={() => { setEditData(null); setOpenAddAssembly(true); }}>إضافة عضو جديد</Menu.Item>

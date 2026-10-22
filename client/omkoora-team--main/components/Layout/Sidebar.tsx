@@ -120,7 +120,7 @@ const linksSide: {link: string, label: string, icon: Icon}[] = [
     {link: "/technicalApparatus", label: "الجهاز الفني", icon: Users},
     {link: "/players", label: "اللاعبين", icon: BallFootball},
     {link: "/players_loan", label: "إعارة اللاعبين", icon: GiPlayerNext as unknown as Icon},
-    {link: "/assembly", label: "الجمعية العمومية", icon: Users},
+    {link: "/assembly", label: "العضوية", icon: Users},
     {link: "/requests", label: "شكاوى وطلبات واقتراحات اللاعبين", icon: AlertCircle},
     {link: "/inbox", label: "صندوق الوارد", icon: Inbox},
     {link: "/outbox", label: "صندوق الصادر", icon: Send},
@@ -317,7 +317,7 @@ const Sidebar = ({hidden, toggleSideBar, language}: Props) => {
                     : null
                 }
                 {hasPermission("assembly", "1")
-                    ? <Tooltip label={"الجمعية العمومية"} position={"left"}>
+                    ? <Tooltip label={"العضوية"} position={"left"}>
                         <a
                             className={cx(classes.link, { [classes.linkActive]: "/assembly" === router.pathname })}
                             href={"/assembly"}

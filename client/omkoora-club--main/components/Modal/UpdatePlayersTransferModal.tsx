@@ -45,6 +45,14 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
 
     const onSubmit = ({id_team_to}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+
+        // Accepting without naming a team used to leave the player attached to
+        // nothing; the receiving club is the one that decides where he plays.
+        if (data?.status === "accepted" && !id_team_to) {
+            notyf.error("اختر الفريق الذي سينضم إليه اللاعب في ناديك");
+            return;
+        }
+
         updateTransfer({
             variables: {
                 id: data?.id,
@@ -95,6 +103,7 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
                             <Grid gutter={20} mb={20}>
                                 <Col span={12}>
                                     <Select
+                                        label="الفريق الذي سينضم إليه اللاعب في ناديك"
                                         placeholder="حدد الفريق المنتقل اليه"
                                         withAsterisk
                                         rightSection={<ChevronDown size={14} />}

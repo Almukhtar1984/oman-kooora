@@ -207,7 +207,7 @@ export const AssemblyTable = ({ loading, list, search, setOpenEditModal, setOpen
 
     const MOBILE_COLUMNS = [
         {
-          name: 'الجمعية العمومية',
+          name: 'العضوية',
           cell: (item) => (
             <Group position="apart" noWrap align="center" spacing="xs">
               <ActionIcon

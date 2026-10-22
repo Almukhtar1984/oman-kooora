@@ -10,7 +10,8 @@ import {Transfer, Players, Team, Club, TechnicalApparatus} from '../../Models/in
 import DB from '../../Config/DBContact.mjs';
 import {CreateNotificationTeam, CreateNotificationClub} from "../../Helpers/index.mjs";
 import {removeReceivingTeamParticipations, removeReceivingTeamParticipationsTechnical} from "../../Helpers/LoanReturn.mjs";
-import {initialTransferStatus, transferTransition} from "../../Helpers/transferFlow.mjs";
+import { initialTransferStatus, transferTransition, resolveDestinationTeam } from "../../Helpers/transferFlow.mjs";
+import { callerClubId, clubOfTeam } from "../../Helpers/clubScope.mjs";
 
 const CLUB_ADMIN_ROLE = "2";
 
@@ -176,11 +177,6 @@ export const resolvers = {
                     ...content,
                     id_club_from: idClubFrom,
                     id_club_to: idClubTo,
-                    // A move has a date. The transfer form never sent one, so
-                    // every card printed an empty column (which the @date
-                    // directive used to render as 1970-01-01). The request date
-                    // is the honest answer when nobody typed one.
-                    date_start: content.date_start || new Date(),
                     status,
                 });
 
@@ -224,14 +220,34 @@ export const resolvers = {
                 const subjectId = isTech
                     ? (content.id_technical_apparatus || transfer.id_technical_apparatus)
                     : (content.id_player || transfer.id_player)
-                const idTeamTo = content.id_team_to || transfer.id_team_to
+                // The receiving club names the team; a pick from anyone else is
+                // ignored rather than trusted (team names repeat across clubs).
+                const idTeamTo = resolveDestinationTeam({
+                    storedTeamId: transfer.id_team_to,
+                    requestedTeamId: content.id_team_to || null,
+                    requestedTeamClubId: content.id_team_to ? await clubOfTeam(content.id_team_to) : null,
+                    destinationClubId: transfer.id_club_to || null,
+                    callerClubId: await callerClubId(context),
+                });
 
                 // Advance the approval chain from the current stage.
                 const sameClub = !!transfer.id_club_from && transfer.id_club_from === transfer.id_club_to
                 const decision = content.status // "accepted" (approve this stage) | "rejected"
                 const next = transferTransition(transfer.status, decision, sameClub)
 
-                const result = await Transfer.update({ status: next.status, id_team_to: idTeamTo }, { where: { id } })
+                // A player cannot land nowhere: the final approval must name a team.
+                if (next.finalize && !idTeamTo) {
+                    throw new ApolloError(
+                        "اختر الفريق الذي سينضم إليه اللاعب في ناديك قبل اعتماد الانتقال",
+                        "TRANSFER_TEAM_REQUIRED"
+                    );
+                }
+
+                // The transfer date is the date it became final — nobody types it.
+                const patch = { status: next.status, id_team_to: idTeamTo }
+                if (next.finalize && !transfer.date_start) patch.date_start = new Date()
+
+                const result = await Transfer.update(patch, { where: { id } })
 
                 if (result[0] === 1) {
                     if (next.finalize) {
@@ -256,7 +272,10 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
-                // logger.error(`Transfer.updateTransfer: ${error?.message || error}`)
+                // Keep our own refusals (and their codes) readable by the client
+                // instead of burying them in a second ApolloError.
+                if (error instanceof ApolloError) throw error
+                logger.error(`Transfer.updateTransfer: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
         },

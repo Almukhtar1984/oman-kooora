@@ -32,7 +32,7 @@ import {
     DeletePlayersModal, DeleteTechnicalModal, DeleteMembersModal, DeleteAssemblyModal,
     ChangeStatusPlayersModal, ChangeStatusTechnicalsModal, ChangeStatusMembersModal,
     ChangeClassificationModal,
-    AddPlayersModal, AddTechnicalModal, AddMembersModal, AddAssemblyModal,
+    AddPlayersModal, AddTechnicalModal, AddMembersModal,
     SearchAssemblyModal,
     VerifyIdentityModal, ShowAttachments, AddAttachmentPlayerModal, DeleteAttachmentPlayerModal,
     AddAttachmentTechnicalModal, ShowAttachmentsTechnical,
@@ -91,9 +91,8 @@ export default function Home() {
     const [openAddPlayer, setOpenAddPlayer] = useState(false);
     const [openAddTechnical, setOpenAddTechnical] = useState(false);
     const [openAddMember, setOpenAddMember] = useState(false);
-    const [openAddAssembly, setOpenAddAssembly] = useState(false);
     const [openSearchModal, setOpenSearchModal] = useState(false);
-    const [searchTarget, setSearchTarget] = useState<'player' | 'technical' | 'member' | 'assembly' | null>(null);
+    const [searchTarget, setSearchTarget] = useState<'player' | 'technical' | 'member' | null>(null);
 
     const [openAddImageModal, setOpenAddImageModal] = useState(false);
     const [openVerifyIdentityModal, setOpenVerifyIdentityModal] = useState(false);
@@ -448,7 +447,7 @@ export default function Home() {
                                 <Tabs.Tab value="players">اللاعبين</Tabs.Tab>
                                 <Tabs.Tab value="technicals">الجهاز الفني</Tabs.Tab>
                                 <Tabs.Tab value="board">مجلس الإدارة</Tabs.Tab>
-                                <Tabs.Tab value="assembly">العمومية</Tabs.Tab>
+                                <Tabs.Tab value="assembly">العضوية</Tabs.Tab>
                             </Tabs.List>
 
                             <Tabs.Panel value="players">
@@ -530,17 +529,6 @@ export default function Home() {
                             </Tabs.Panel>
                             <Tabs.Panel value="assembly">
                                 <Box py="lg">
-                                    <Group position="right" mb="md">
-                                        <Menu shadow="md" width={200}>
-                                            <Menu.Target>
-                                                <Button size="sm" color="blue" leftIcon={<Plus size={18} />}>إضافة عضو عمومية</Button>
-                                            </Menu.Target>
-                                            <Menu.Dropdown>
-                                                <Menu.Item onClick={() => { setEditData(null); setOpenAddAssembly(true); }}>إضافة عضو جديد</Menu.Item>
-                                                <Menu.Item onClick={() => { setSearchTarget('assembly'); setOpenSearchModal(true); }}>بحث عن عضو موجود</Menu.Item>
-                                            </Menu.Dropdown>
-                                        </Menu>
-                                    </Group>
                                     <MemberSection
                                         type="assembly"
                                         list={assemblyData?.allAssemblyTeam || []}
@@ -625,9 +613,7 @@ export default function Home() {
 
             <SearchAssemblyModal
                 title="البحث عن شخص"
-                setOpenAddModal={(open) => {
-                    if (searchTarget === 'assembly') setOpenAddAssembly(open);
-                }}
+                setOpenAddModal={() => {}}
                 setSelectedData={setEditData}
                 opened={openSearchModal}
                 onClose={() => setOpenSearchModal(false)}
@@ -636,7 +622,6 @@ export default function Home() {
             <AddPlayersModal title="إضافة لاعب" data={editData} opened={openAddPlayer} onClose={() => setOpenAddPlayer(false)} />
             <AddTechnicalModal title="إضافة عضو فني" data={editData} opened={openAddTechnical} onClose={() => setOpenAddTechnical(false)} />
             <AddMembersModal title="إضافة عضو مجلس إدارة" data={editData} opened={openAddMember} onClose={() => setOpenAddMember(false)} />
-            <AddAssemblyModal title="إضافة عضو عمومية" data={editData} opened={openAddAssembly} onClose={() => setOpenAddAssembly(false)} />
 
             <VerifyIdentityModal
                 title="تحقق من هوية لاعب"

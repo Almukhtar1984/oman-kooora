@@ -293,7 +293,7 @@ export default function Assembly() {
                                                 sx={{ fontWeight: 500 }}
                                                 color={"primary"}
                                             >
-                                                إضافة عضو للجمعية
+                                                إضافة عضو للعضوية
                                             </Button>
                                         </Menu.Target>
                                         <Menu.Dropdown>
@@ -336,7 +336,7 @@ export default function Assembly() {
                 onClose={() => setOpenSearchModal(false)}
             />
 
-            <AddAssemblyModal title="إضافة عضو للجمعية" setSelectedData={setSelectedData} data={selectedData} opened={openAddModal} onClose={() => setOpenAddModal(false)} />
+            <AddAssemblyModal title="إضافة عضو للعضوية" setSelectedData={setSelectedData} data={selectedData} opened={openAddModal} onClose={() => setOpenAddModal(false)} />
             <UpdateAssemblyModal title="تعديل معلومات العضو" data={selectedData} opened={openEditModal} onClose={() => setOpenEditModal(false)} />
             <DeleteAssemblyModal title="" data={selectedData} opened={openDeleteModal} onClose={() => setOpenDeleteModal(false)} />
             <RenewAssemblyModal title="تجديد اشتراك العضو" data={selectedData} opened={openRenewModal} onClose={() => setOpenRenewModal(false)} />

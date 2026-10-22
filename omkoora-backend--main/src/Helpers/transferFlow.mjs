@@ -60,3 +60,32 @@ export const pendingApprover = (status) => {
     if (status === "waiting") return "to"; // legacy rows were approved by the receiver
     return null;
 };
+
+// Who gets to say which team the player lands in.
+//
+// The receiving club picks it, not the one letting the player go: the sending
+// club has no business placing a player inside someone else's squad, and with
+// team names repeating across clubs it could not pick correctly even in good
+// faith. So a team id offered with an approval counts only when that team
+// belongs to the destination club — otherwise the stored one stands.
+//
+// Rows created before clubs were recorded carry no destination club; there the
+// caller's own club is the yardstick, and a caller with no club (super-admin)
+// is trusted.
+//
+// @returns {string|null} the team the move should land in
+export const resolveDestinationTeam = ({
+    storedTeamId = null,
+    requestedTeamId = null,
+    requestedTeamClubId = null,
+    destinationClubId = null,
+    callerClubId = null,
+} = {}) => {
+    if (!requestedTeamId) return storedTeamId;
+
+    const yardstick = destinationClubId || callerClubId;
+    if (!yardstick) return requestedTeamId;            // nothing to check against
+    if (!requestedTeamClubId) return storedTeamId;     // unknown team → keep what we had
+
+    return requestedTeamClubId === yardstick ? requestedTeamId : storedTeamId;
+};

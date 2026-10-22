@@ -246,7 +246,7 @@ export const UpdatePowerModal = ({id, opened, ...props}: Props) => {
                                     <Col span={12}>
                                         <Checkbox.Group
                                             defaultValue={['1']}
-                                            label="صلاحيات الجمعية العمومية"
+                                            label="صلاحيات العضوية"
                                             value={assembly} onChange={setAssembly}
                                         >
                                             <Group mt="xs">
