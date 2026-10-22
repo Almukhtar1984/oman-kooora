@@ -79,6 +79,11 @@ export default function dateDirective(directiveName) {
                     const fastFormat = makeFormatter(format)
 
                     const apply = (value) => {
+                        // No date is not a date: new Date(null) is the epoch, so
+                        // every empty column used to render as 1970-01-01 and the
+                        // clients grew hacks comparing against that string.
+                        if (value === null || value === undefined || value === "") return null
+
                         const date = new Date(value)
                         // Invalid dates go through date-fns so the thrown error
                         // stays identical to what callers saw before.

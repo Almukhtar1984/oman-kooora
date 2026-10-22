@@ -11,6 +11,7 @@ import {
 import { hashPassword, alreadyExistUser } from '../../Helpers/index.mjs';
 import { computeYellowCardAlerts } from '../../Helpers/YellowCards.mjs';
 import { buildLineup, fullName } from '../../Helpers/MatchLineup.mjs';
+import { assertTeamInCallerClub } from '../../Helpers/clubScope.mjs';
 import { randomBytes } from 'crypto';
 
 
@@ -2553,6 +2554,13 @@ export const resolvers = {
         
         freePlayer: async (obj, { id }, context, info) => {
             try {
+              // Releasing a player is the club's own decision about its own
+              // player. Without this check any signed-in account could empty
+              // another club's squad one id at a time.
+              const player = await Players.findByPk(id);
+              if (!player) throw new ApolloError("اللاعب غير موجود", "PLAYER_NOT_FOUND");
+              await assertTeamInCallerClub(context, player.id_team);
+
               const result = await Players.update(
                 { id_team: null },
                 { where: { id } }
@@ -2562,6 +2570,10 @@ export const resolvers = {
                 status: result[0] === 1
               };
             } catch (error) {
+              if (error instanceof ApolloError) throw error;
+              if (error?.code === "TEAM_NOT_IN_CLUB") {
+                  throw new ApolloError("هذا اللاعب لا يتبع ناديك", "FORBIDDEN_PLAYER");
+              }
               throw new ApolloError("Failed to free the player", "FREE_PLAYER_ERROR", { originalError: error });
             }
           },

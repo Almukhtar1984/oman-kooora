@@ -11,6 +11,7 @@ import {__dirname} from "../../app.mjs";
 import {createWriteStream, promises as fsPromises } from "fs";
 import {saveUpload} from "../../Helpers/Upload.mjs";
 import {ATTACH, DUPLICATE, PHONE_TAKEN, classifyExistingPerson} from "../../Helpers/playerRegistration.mjs";
+import { assertTeamInCallerClub } from "../../Helpers/clubScope.mjs";
 import { match } from 'assert';
 import {isIdentical} from "../../Helpers/isIdentical.mjs"
 import {CreateNotificationClub} from "../../Helpers/index.mjs"
@@ -508,6 +509,15 @@ export const resolvers = {
         createPlayer: async (obj, { content }, context, info) => {
             try {
                 if (content.id_team) {
+                    // The team must be one of the caller's own: identical team
+                    // names across clubs make a wrong pick impossible to notice.
+                    try {
+                        await assertTeamInCallerClub(context, content.id_team);
+                    } catch (e) {
+                        if (e?.code === "TEAM_NOT_IN_CLUB") return new ApolloError(e.message, e.code);
+                        throw e;
+                    }
+
                     const team = await Team.findByPk(content.id_team);
                     if (team && team.enableAddPlayer === false) {
                         return new ApolloError(
@@ -994,8 +1004,26 @@ export const resolvers = {
                 throw new ApolloError("Failed to convert technical to player", "CONVERSION_FAILED");
             }
         },
-        associatePlayer: async (_, { id_player, id_team }) => {
+        associatePlayer: async (_, { id_player, id_team }, context) => {
             try {
+              if (!context?.isAuth || !context?.user) {
+                  throw new ApolloError("يلزم تسجيل الدخول", "AUTH_REQUIRED");
+              }
+              // Only into a team of the caller's own club.
+              await assertTeamInCallerClub(context, id_team);
+
+              // Attaching is for a player who hangs on no team. Moving one who
+              // already plays somewhere is a transfer, and going through here
+              // would skip both clubs' approval.
+              const player = await Players.findByPk(id_player);
+              if (!player) throw new ApolloError("اللاعب غير موجود", "PLAYER_NOT_FOUND");
+              if (player.id_team && player.id_team !== id_team) {
+                  throw new ApolloError(
+                      "هذا اللاعب منضم بالفعل إلى فريق — النقل يتم عبر طلب انتقال",
+                      "PLAYER_ALREADY_ON_TEAM"
+                  );
+              }
+
               const result = await Players.update(
                 { id_team },
                 { where: { id: id_player } }
@@ -1005,7 +1033,9 @@ export const resolvers = {
                 status: result[0] === 1
               };
             } catch (error) {
-              console.error("Error in associatePlayer:", error);
+              if (error instanceof ApolloError) throw error;
+              if (error?.code === "TEAM_NOT_IN_CLUB") throw new ApolloError(error.message, error.code);
+              logger.error(`Players.associatePlayer: ${error?.message || error}`);
               throw new ApolloError("Failed to associate player to team");
             }
           },

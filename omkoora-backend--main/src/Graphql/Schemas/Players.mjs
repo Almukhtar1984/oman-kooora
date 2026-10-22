@@ -36,7 +36,8 @@ export const typeDefs = gql`
         convertPlayerToTechnical(idPlayer: ID!,classification: String!,membership_date: String!,membership_date_end: String!): TechnicalApparatus!
 
         convertTechnicalToPlayer(idTechnical: ID!,activity: String!, player_center: String!, class: String! ): Player! @auth(requires: user)
-        associatePlayer(id_player: ID!, id_team: ID!): statusUpdate
+        # ضمّ لاعب بلا فريق إلى أحد فرق النادي — للنادي صاحب الفريق فقط.
+        associatePlayer(id_player: ID!, id_team: ID!): statusUpdate @auth(requires: user)
     }   
 
     type Player {

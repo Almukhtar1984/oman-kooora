@@ -129,3 +129,48 @@ describe("<SearchPerson /> (club) — ضمّ لاعب غير منضم", () => {
         expect(screen.queryByText(/منضم بالفعل/)).not.toBeInTheDocument();
     });
 });
+
+// Team names repeat across clubs — فريق الجزيرة exists in three of them — so a
+// player registered into the wrong same-named team looks perfectly normal until
+// the club behind that team is read out loud.
+describe("<SearchPerson /> (club) — فريق يحمل نفس الاسم في نادٍ آخر", () => {
+    const inClub = (clubId: string, clubName: string) => ({
+        player: {
+            id: "player-1",
+            status: "waiting",
+            team: { id: "team-9", name: "فريق الجزيرة", club: { id: clubId, name: clubName } },
+        },
+    });
+
+    it("يحذّر بوضوح عندما يكون الفريق تابعاً لنادٍ آخر", async () => {
+        h.personResult = { data: { person: person(inClub("club-9", "نادي بهلاء")) }, error: undefined };
+        renderModal();
+
+        const warning = await screen.findByText(/مسجَّل في نادٍ آخر/);
+        expect(warning).toHaveTextContent("نادي بهلاء");
+        expect(screen.getByText("نادٍ آخر")).toBeInTheDocument();   // الشارة بجانب اسم النادي
+        expect(screen.queryByPlaceholderText("اختر الفريق")).not.toBeInTheDocument();
+    });
+
+    it("يذكر حالة التسجيل حتى يعرف النادي أنه ما زال قيد الاعتماد", async () => {
+        h.personResult = { data: { person: person(inClub("club-9", "نادي بهلاء")) }, error: undefined };
+        renderModal();
+
+        expect(await screen.findByText(/بانتظار اعتماد الفريق/)).toBeInTheDocument();
+    });
+
+    it("لا يحذّر عندما يكون الفريق من نادي المستخدم نفسه", async () => {
+        h.personResult = { data: { person: person(inClub("club-1", "نادي الرستاق")) }, error: undefined };
+        renderModal();
+
+        expect(await screen.findByText(/منضم بالفعل إلى/)).toBeInTheDocument();
+        expect(screen.queryByText(/مسجَّل في نادٍ آخر/)).not.toBeInTheDocument();
+    });
+
+    it("يعرض اسم الفريق مقروناً بناديه", async () => {
+        h.personResult = { data: { person: person(inClub("club-9", "نادي بهلاء")) }, error: undefined };
+        renderModal();
+
+        expect(await screen.findByText("فريق الجزيرة — نادي بهلاء")).toBeInTheDocument();
+    });
+});

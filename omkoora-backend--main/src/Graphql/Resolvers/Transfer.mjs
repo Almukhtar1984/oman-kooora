@@ -176,6 +176,11 @@ export const resolvers = {
                     ...content,
                     id_club_from: idClubFrom,
                     id_club_to: idClubTo,
+                    // A move has a date. The transfer form never sent one, so
+                    // every card printed an empty column (which the @date
+                    // directive used to render as 1970-01-01). The request date
+                    // is the honest answer when nobody typed one.
+                    date_start: content.date_start || new Date(),
                     status,
                 });
 

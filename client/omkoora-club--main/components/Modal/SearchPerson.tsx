@@ -1,5 +1,5 @@
-import { ActionIcon, Alert, Box, Button, Col, Divider, Grid, Group, Image, Select, Text, Stack, TextInput } from "@mantine/core";
-import {Check, InfoCircle, Search, X} from "tabler-icons-react";
+import { ActionIcon, Alert, Badge, Box, Button, Col, Divider, Grid, Group, Image, Select, Text, Stack, TextInput } from "@mantine/core";
+import {AlertTriangle, Check, InfoCircle, Search, X} from "tabler-icons-react";
 import React, {useEffect, useMemo, useState} from "react";
 import { useForm } from "@mantine/form";
 import Modal, { Props as ModalProps } from "./Modal";
@@ -42,6 +42,24 @@ export const SearchPerson = (props: Props) => {
 
     // Only a player record that hangs on no team can be attached from here.
     const attachable = Boolean(person?.player?.id && !person?.player?.team);
+
+    // Which record the result is really about, in the same order the fields below
+    // read it. Team names repeat across clubs (فريق الجزيرة exists in three), so
+    // the club this team belongs to decides what the searching club may do, and
+    // it has to be said out loud: a registration in the wrong same-named team
+    // looks exactly like a correct one until the club name is read.
+    const record = person?.member || person?.player || person?.technicalApparatus || null;
+    const recordTeam = record?.team || null;
+    const recordClubId = recordTeam?.club?.id || null;
+    const recordClubName = recordTeam?.club?.name || "";
+    const inAnotherClub = Boolean(recordClubId && idClub && recordClubId !== idClub);
+    const statusLabel = ({
+        accepted: "معتمد",
+        waiting: "بانتظار اعتماد الفريق",
+        waiting_club: "بانتظار اعتماد النادي",
+        rejected: "مرفوض",
+        suspended: "موقوف",
+    } as Record<string, string>)[record?.status || ""] || "";
 
     const handleAttach = () => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
@@ -162,29 +180,19 @@ export const SearchPerson = (props: Props) => {
                                         <Col span={6} >
                                             <Group w={"100%"} noWrap={true}>
                                                 <Text color="gray.7" fw={"bold"} size={"sm"}>النادي :</Text>
-                                                <Text color="gray.7" size={"sm"}>{
-                                                    person?.member
-                                                        ? person?.member?.team?.club?.name
-                                                        : person?.player
-                                                            ? person?.player?.team?.club?.name
-                                                            : person?.technicalApparatus
-                                                            ? person?.technicalApparatus?.team?.club?.name
-                                                            : ""
-                                                }</Text>
+                                                <Text color={inAnotherClub ? "red.7" : "gray.7"} fw={inAnotherClub ? 600 : 400} size={"sm"}>
+                                                    {recordClubName}
+                                                </Text>
+                                                {inAnotherClub && <Badge color="red" variant="light" size="sm">نادٍ آخر</Badge>}
                                             </Group>
                                         </Col>
                                         <Col span={6} >
                                             <Group w={"100%"} noWrap={true}>
                                                 <Text color="gray.7" fw={"bold"} size={"sm"}>الفريق :</Text>
-                                                <Text color="gray.7" size={"sm"}>{
-                                                    person?.member
-                                                        ? person?.member?.team?.name
-                                                        : person?.player
-                                                            ? person?.player?.team?.name
-                                                            : person?.technicalApparatus
-                                                            ? person?.technicalApparatus?.team?.name
-                                                            : ""
-                                                }</Text>
+                                                <Text color="gray.7" size={"sm"}>
+                                                    {recordTeam?.name || ""}
+                                                    {recordClubName ? ` — ${recordClubName}` : ""}
+                                                </Text>
                                             </Group>
                                         </Col>
                                     </Grid>
@@ -218,9 +226,22 @@ export const SearchPerson = (props: Props) => {
                                                 </Button>
                                             </Group>
                                         </Box>
+                                    ) : inAnotherClub ? (
+                                        <Alert variant="light" color="red" icon={<AlertTriangle size={16} />} mt={16}>
+                                            <Text size="sm" fw={600} mb={4}>
+                                                هذا الشخص مسجَّل في نادٍ آخر: {recordTeam?.name} — {recordClubName}
+                                                {statusLabel ? ` (${statusLabel})` : ""}
+                                            </Text>
+                                            <Text size="xs">
+                                                انتبه: أسماء الفرق تتكرر بين الأندية، فقد يكون التسجيل وقع في فريق يحمل نفس
+                                                الاسم لكنه يتبع نادياً آخر. ضمّه إلى أحد فرقك يتم بطلب انتقال من صفحة
+                                                انتقالات اللاعبين؛ وإن كان تسجيله في النادي الآخر خطأً فيلزم أن يحرّره ذلك
+                                                النادي أو يرفض طلبه أولاً.
+                                            </Text>
+                                        </Alert>
                                     ) : person?.player?.team ? (
                                         <Alert variant="light" color="blue" icon={<InfoCircle size={16} />} mt={16}>
-                                            هذا اللاعب منضم بالفعل إلى فريق — النقل يتم من صفحة انتقالات اللاعبين.
+                                            هذا اللاعب منضم بالفعل إلى {person?.player?.team?.name} — النقل يتم من صفحة انتقالات اللاعبين.
                                         </Alert>
                                     ) : null}
                                 </Box>
