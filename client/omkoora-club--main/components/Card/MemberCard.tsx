@@ -596,6 +596,14 @@ export const MemberCard = ({
                                         <ArrowsLeftRight size={10} color="gray" />
                                         <Text size="10px" color="teal.7" weight={600}>{transferInfo.toClub}</Text>
                                     </Group>
+                                    {/* Two clubs can own teams of the same name, so a move between
+                                        clubs is unreadable until the clubs are named. */}
+                                    {transferInfo.fromClubName && transferInfo.toClubName
+                                        && transferInfo.fromClubName !== transferInfo.toClubName && (
+                                        <Text size="8px" color="gray.6" weight={500}>
+                                            {transferInfo.fromClubName} ← {transferInfo.toClubName}
+                                        </Text>
+                                    )}
                                     {type === 'loan' && transferInfo.dateStart && (
                                         <Text size="8px" color="gray.6" weight={500}>
                                             من: {transferInfo.dateStart} إلى: {transferInfo.dateEnd || 'غير محدد'}

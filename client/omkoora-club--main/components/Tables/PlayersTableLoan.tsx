@@ -177,6 +177,11 @@ export const PlayersTableLoan = ({ loading, idClub, list, search, setOpenEditMod
         }
     };
 
+    const teamWithClub = (team: any) =>
+
+        team?.name ? (team?.club?.name ? `${team.name} — ${team.club.name}` : team.name) : '';
+
+
     const COLUMNS = [
         {label: 'الخيارات', renderCell: (item) => (
             <Group>
@@ -227,8 +232,8 @@ export const PlayersTableLoan = ({ loading, idClub, list, search, setOpenEditMod
                     ? <GiPlayerNext size={22} color={"green"} />
                     : null
         )},
-        {label: 'إسم الفريق القديم', renderCell: (item) => `${item?.lastLoan?.team_from?.name}`  },
-        {label: 'إسم الفريق الجديد', renderCell: (item) => `${item?.lastLoan?.team_to?.name}`  },
+        {label: 'إسم الفريق القديم', renderCell: (item) => teamWithClub(item?.lastLoan?.team_from) },
+        {label: 'إسم الفريق الجديد', renderCell: (item) => teamWithClub(item?.lastLoan?.team_to) },
         {label: 'تاريح بداية الإعارة', renderCell: (item) => item?.lastLoan?.date_start !== "1970-01-01" ? `${item?.lastLoan?.date_start}` : null  },
         {label: 'تاريح نهاية الإعارة', renderCell: (item) => item?.lastLoan?.date_end !== "1970-01-01" ? `${item?.lastLoan?.date_end}` : null  },
 

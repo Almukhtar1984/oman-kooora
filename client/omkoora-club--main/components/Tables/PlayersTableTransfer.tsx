@@ -128,6 +128,11 @@ export const PlayersTableTransfer = ({ loading, idClub, list, search, setOpenEdi
         typeof setOpenEditModal === "function" && setOpenEditModal(true)
     }
 
+    const teamWithClub = (team: any) =>
+
+        team?.name ? (team?.club?.name ? `${team.name} — ${team.club.name}` : team.name) : '';
+
+
     const COLUMNS = [
         {label: 'الخيارات', renderCell: (item) => (
             <Group>
@@ -165,8 +170,10 @@ export const PlayersTableTransfer = ({ loading, idClub, list, search, setOpenEdi
                     ? <Tooltip label={"لاعب قادم"}><GiPlayerNext size={22} color={"green"} /></Tooltip>
                     : null
         )},
-        {label: 'إسم الفريق القديم', renderCell: (item) => `${item?.lastTransfer?.team_from?.name}`  },
-        {label: 'إسم الفريق الجديد', renderCell: (item) => `${item?.lastTransfer?.team_to?.name}`  },
+        // With the same team name living in several clubs, the club is part of
+        // the team's identity — without it two different teams read alike.
+        {label: 'إسم الفريق القديم', renderCell: (item) => teamWithClub(item?.lastTransfer?.team_from) },
+        {label: 'إسم الفريق الجديد', renderCell: (item) => teamWithClub(item?.lastTransfer?.team_to) || item?.lastTransfer?.club_to?.name || '' },
         {label: 'الاسم الكامل', renderCell: (item) => `${item?.person?.first_name} ${item?.person?.second_name} ${item?.person?.third_name} ${item?.person?.tribe}`  },
         {label: 'رقم الهاتف', renderCell: (item) => item?.person?.phone },
         {label: 'الرقم المدني', renderCell: (item) => item?.person?.card_number },

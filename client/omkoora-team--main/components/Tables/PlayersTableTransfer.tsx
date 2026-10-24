@@ -72,10 +72,17 @@ export const PlayersTableTransfer = ({ list, search, idTeam }: Props) => {
         console.log(action, state);
     }
 
+    const teamWithClub = (team: any) =>
+        team?.name ? (team?.club?.name ? `${team.name} — ${team.club.name}` : team.name) : '';
+
     const COLUMNS = [
         {label: 'حالة الانتقال', renderCell: (item) => transferStageBadge(item?.status) },
-        {label: 'إسم الفريق القديم', renderCell: (item) => `${item?.team_from?.name ?? ''}`  },
-        {label: 'إسم الفريق الجديد', renderCell: (item) => `${item?.team_to?.name ?? ''}`  },
+        // The club, not just the team: several clubs have a team of the same
+        // name, so two rows reading "فريق الاتحاد" can be two different teams.
+        {label: 'إسم الفريق القديم', renderCell: (item) => teamWithClub(item?.team_from) },
+        {label: 'إسم الفريق الجديد', renderCell: (item) => teamWithClub(item?.team_to) || `${item?.club_to?.name ?? ''}` },
+        // Repeated rows for one player are its history; the date tells them apart.
+        {label: 'تاريخ الانتقال', renderCell: (item) => item?.date_start || '—' },
 
         {label: '', renderCell: (item) => (
             item?.team_to?.id === idTeam ? <Badge fw={500} color="teal">قادم</Badge>
