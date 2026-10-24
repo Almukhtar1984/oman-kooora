@@ -98,3 +98,4 @@ export * from "./AddAttachmentTechnicalModal"
 export * from "./ShowAttachmentsTechnical"
 
 export * from "./GenerateMatchNewsModal"
+export * from "./PlayerReleaseModal"

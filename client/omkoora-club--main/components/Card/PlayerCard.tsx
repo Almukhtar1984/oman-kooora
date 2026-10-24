@@ -65,6 +65,7 @@ interface PlayerCardProps {
   onAddImage?: (id: string | any) => void;
   onConvertToTechnical?: (id: string) => void;
   onFreePlayer?: (id: string) => void;
+  onRequestRelease?: (data: any) => void;
 }
 
 const getFullName = (person: PlayerData['person']) => {
@@ -83,7 +84,7 @@ export function PlayerCard1({
   data, hasPermission = () => true, onEdit, onDelete, onChangeStatus, onVerifyIdentity, 
   onShowAttachments, onAddAttachment, onStatPlayer, onTransferPlayer, onLoanPlayer, 
   onOpenTransferHistory, onAddSanction, onUpdateSanction, onShowDetails, onChangeClassification,
-  onAddImage, onConvertToTechnical, onFreePlayer
+  onAddImage, onConvertToTechnical, onFreePlayer, onRequestRelease
 }: PlayerCardProps) {
   const person = data?.person;
   const fullName = getFullName(person);
@@ -208,6 +209,8 @@ export function PlayerCard1({
                           <>
                             <Menu.Item icon={<GiPlayerPreviousIcon size={14} />} onClick={() => onTransferPlayer && onTransferPlayer(data)}>إنتقال اللاعب</Menu.Item>
                             <Menu.Item icon={<GiPlayerNextIcon size={14} />} onClick={() => onLoanPlayer && onLoanPlayer(data)}>إعارة اللاعب</Menu.Item>
+                            {/* الاستقالة: اللاعب يغادر دون أن ينتظر نادياً يستقبله في اليوم نفسه. */}
+                            <Menu.Item icon={<LockOpen size={14} />} onClick={() => onRequestRelease && onRequestRelease(data)}>طلب إخلاء طرف</Menu.Item>
                           </>
                         )}
                         {hasPermission("3") && <Menu.Item icon={<History size={14} />} onClick={() => onConvertToTechnical && onConvertToTechnical(data?.id)}>تحويل للجهاز الفني</Menu.Item>}

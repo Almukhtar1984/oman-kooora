@@ -20,6 +20,7 @@ import {
     DeletePlayersModal,
     PlayersLoanModal,
     PlayersTransferModal,
+    PlayerReleaseModal,
     PrintModal,
     ShowAttachments,
     UpdatePlayerModal,
@@ -44,6 +45,7 @@ export default function Players() {
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
     const [openChangeStatusModal, setOpenChangeStatusModal] = useState<boolean>(false);
     const [openTransferModal, setOpenTransferModal] = useState<boolean>(false);
+    const [openReleaseModal, setOpenReleaseModal] = useState<boolean>(false);
     const [openVerifyIdentityModal, setOpenVerifyIdentityModal] = useState<boolean>(false);
     const [openLoanModal, setOpenLoanModal] = useState<boolean>(false);
     const [openShowAttachmentPlayerModal, setOpenShowAttachmentPlayerModal] = useState<boolean>(false);
@@ -239,6 +241,7 @@ export default function Players() {
     const handleAddAttachment = (id: string) => { setSelectedData(id); setOpenAddAttachmentPlayerModal(true); };
     const handleStatPlayer = (data: any) => { setSelectedData(data); setStatPlayerListModal(true); };
     const handleTransferPlayer = (data: any) => { setSelectedData(data); setOpenTransferModal(true); };
+    const handleRequestRelease = (data: any) => { setSelectedData(data); setOpenReleaseModal(true); };
     const handleLoanPlayer = (data: any) => { setSelectedData(data); setOpenLoanModal(true); };
     const handleOpenTransferHistory = (data: any) => { setSelectedDrawer(data); open(); };
     const handleAddSanction = (data: any) => { setSelectedData(data); setopenAddSanctionModal(true); };
@@ -384,6 +387,7 @@ export default function Players() {
                                             onAddAttachment={handleAddAttachment}
                                             onStatPlayer={handleStatPlayer}
                                             onTransferPlayer={handleTransferPlayer}
+                                            onRequestRelease={handleRequestRelease}
                                             onLoanPlayer={handleLoanPlayer}
                                             onOpenTransferHistory={handleOpenTransferHistory}
                                             onAddSanction={handleAddSanction}
@@ -438,6 +442,7 @@ export default function Players() {
             
             <DrawerTransfer opened={opened} onClose={close} data={selectedDrawer} />
             <PlayersTransferModal title="نقل لاعب" opened={openTransferModal} data={selectedData} onClose={() => setOpenTransferModal(false)}/>
+            <PlayerReleaseModal title="طلب إخلاء طرف" opened={openReleaseModal} data={selectedData} onClose={() => setOpenReleaseModal(false)}/>
             <PlayersLoanModal title="إعارة اللاعب" opened={openLoanModal} data={selectedData} onClose={() => setOpenLoanModal(false)}/>
             <DeletePlayersModal title="حذف لاعب" opened={openDeleteModal} id={selectedData} onClose={() => setOpenDeleteModal(false)}/>
             

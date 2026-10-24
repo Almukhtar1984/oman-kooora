@@ -134,6 +134,7 @@ const HorizontalNavbar = () => {
         { path: '/members', label: 'الأعضاء', icon: <Users size={20} />, show: hasPermission("members", "1") || hasPermission("technicals", "1") || hasPermission("players", "1") || hasPermission("assembly", "1") },
         { path: '/players_transfer', label: 'إنتقالات اللاعبين', icon: <ArrowsLeftRight size={20} />, show: hasPermission("transferPlayers", "1") },
         { path: '/players_loan', label: 'إعارات اللاعبين', icon: <Repeat size={20} />, show: hasPermission("loanPlayers", "1") },
+        { path: '/releases', label: 'إخلاء الطرف', icon: <ArrowsLeftRight size={20} />, show: hasPermission("transferPlayers", "1") },
         { path: '/messages', label: ' الرسائل', icon: <Inbox size={20} />, show: hasPermission("inbox", "1") },
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={20} />, show: hasPermission("meetings", "1") },
         { path: LEAGUE_URL, label: 'المسابقات', icon: <Trophy size={20} />, external: true, show: true },

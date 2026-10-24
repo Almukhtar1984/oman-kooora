@@ -18,3 +18,5 @@ export * from "./events"
 export * from "./committees";
 
 export * from "./ai";
+
+export * from "./releases";

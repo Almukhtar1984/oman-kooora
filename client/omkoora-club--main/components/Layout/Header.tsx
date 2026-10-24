@@ -145,6 +145,7 @@ const Header = (props: Props) => {
         { path: '/members', label: 'الأعضاء', icon: <Users size={18} /> },
         { path: '/players_transfer', label: 'إنتقالات اللاعبين', icon: <ArrowsLeftRight size={18} /> },
         { path: '/players_loan', label: 'إعارات اللاعبين', icon: <Repeat size={18} /> },
+        { path: '/releases', label: 'إخلاء الطرف', icon: <ArrowsLeftRight size={18} /> },
         { path: '/messages', label: 'الرسائل', icon: <Inbox size={18} /> },
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={18} /> },
         { path: '/blog', label: 'الأخبار', icon: <Article size={18} /> },
