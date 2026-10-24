@@ -38,7 +38,8 @@ import {
     resolversStore,
     resolversAi,
     resolversPlayerRelease,
-    resolversPendingRequests
+    resolversPendingRequests,
+    resolversMembership
 
 } from "./Resolvers/index.mjs"
 
@@ -75,7 +76,8 @@ import {
     typeDefsStore,
     typeDefsAi,
     typeDefsPlayerRelease,
-    typeDefsPendingRequests
+    typeDefsPendingRequests,
+    typeDefsMembership
 
 
 } from "./Schemas/index.mjs"
@@ -166,14 +168,14 @@ let schema = makeExecutableSchema({
         typeDefsClubManagement, typeDefsTransfer, typeDefsRequest, typeDefsAssembly, typeDefsMessage, typeDefsExpense, typeDefsMeeting,
         typeDefsForm, typeDefsPermission, typeDefsStadium, typeDefsLeague,typeSanction,typeActionLogs,typeNotification,typeExternal,typeStat,
         typeDefsEvent, typeCommittee, typeMemberPayment, typePortal, typeMobileStats, typeDefsAcademy, typeDefsStore, typeDefsAi,
-        typeDefsPlayerRelease, typeDefsPendingRequests
+        typeDefsPlayerRelease, typeDefsPendingRequests, typeDefsMembership
     ],
     resolvers: [
         resolvers, resolversUser, resolversClub, resolversTeam, resolversMembers, resolversPlayers, resolversTechnicalApparatus, resolversBlog,
         resolversClubManagement, resolversTransfer, resolversRequest, resolversAssembly, resolversMessage, resolversExpense, resolversMeeting,
         resolversForm, resolversPermission, resolversStadium, resolversLeague,resolversSanction,resolversActionLogs,resolversNotification,resolversExternal,resolversStat,
         resolversEvent, resolversCommittee, resolversMemberPayment, resolversPortal, resolversMobileStats, resolversAcademy, resolversStore, resolversAi,
-        resolversPlayerRelease, resolversPendingRequests
+        resolversPlayerRelease, resolversPendingRequests, resolversMembership
     ],
 });
  
