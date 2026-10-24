@@ -12,6 +12,7 @@ import { hashPassword, alreadyExistUser } from '../../Helpers/index.mjs';
 import { computeYellowCardAlerts } from '../../Helpers/YellowCards.mjs';
 import { buildLineup, fullName } from '../../Helpers/MatchLineup.mjs';
 import { assertTeamInCallerClub } from '../../Helpers/clubScope.mjs';
+import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from '../../Helpers/memberLock.mjs';
 import { randomBytes } from 'crypto';
 
 
@@ -2560,6 +2561,12 @@ export const resolvers = {
               const player = await Players.findByPk(id);
               if (!player) throw new ApolloError("اللاعب غير موجود", "PLAYER_NOT_FOUND");
               await assertTeamInCallerClub(context, player.id_team);
+
+              // And a team cannot undo an approval its club gave: releasing an
+              // approved player is the club's call, through إخلاء الطرف.
+              if (isLockedForCaller(context?.user?.role, player.status)) {
+                  throw new ApolloError(LOCKED_MESSAGE, LOCKED_CODE);
+              }
 
               const result = await Players.update(
                 { id_team: null },

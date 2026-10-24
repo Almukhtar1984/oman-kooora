@@ -6,6 +6,7 @@ import logger from "../../Config/logger.mjs";
 import db from "../../Config/DBContact.mjs";
 
 import {Members, Person, Players, Team, User, TechnicalApparatus, Permission} from '../../Models/index.mjs';
+import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from "../../Helpers/memberLock.mjs";
 import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
 import {CreateNotificationTeam} from "../../Helpers/index.mjs"
 
@@ -13,6 +14,18 @@ dotenv.config();
 
 
 const {Op, col} = sequelize;
+
+
+// A record the club has approved is out of the team's hands.
+const assertNotLocked = async (context, find, id) => {
+    const role = context?.user?.role;
+    if (role !== "3") return;                       // only a team account is limited
+    const row = await find(id);
+    if (!row) return;
+    if (isLockedForCaller(role, row.status)) {
+        throw new ApolloError(LOCKED_MESSAGE, LOCKED_CODE);
+    }
+};
 
 export const resolvers = {
     Query: {
@@ -289,9 +302,9 @@ export const resolvers = {
         },
 
         updateMember: async (obj, {id, idPerson, content}, context, info) =>  {
-            console.log("---------updateMember-----------")
-            console.log(content)
             try {
+                await assertNotLocked(context, (x) => Members.findByPk(x), id);
+
                 let person = null
                 if (content.person) {
                     const personPatch = {...content.person};
@@ -305,6 +318,7 @@ export const resolvers = {
                     status: result[0] === 1 || person[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error(`Members.updateMember: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
@@ -359,8 +373,9 @@ export const resolvers = {
         },
 
         deleteMember: async (obj, {id}, context, info) =>  {
-   
             try {
+                await assertNotLocked(context, (x) => Members.findByPk(x), id);
+
                 const member = await Members.findByPk(id)
                 const result = await Members.destroy({ where: { id } })
 
@@ -372,6 +387,7 @@ export const resolvers = {
                     status: result === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error(`Members.deleteMember: ${error?.message || error}`)
                 throw new ApolloError(error)
             }

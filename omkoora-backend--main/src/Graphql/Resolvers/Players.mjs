@@ -12,6 +12,7 @@ import {createWriteStream, promises as fsPromises } from "fs";
 import {saveUpload} from "../../Helpers/Upload.mjs";
 import {ATTACH, DUPLICATE, PHONE_TAKEN, classifyExistingPerson} from "../../Helpers/playerRegistration.mjs";
 import { assertTeamInCallerClub } from "../../Helpers/clubScope.mjs";
+import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from "../../Helpers/memberLock.mjs";
 import { match } from 'assert';
 import {isIdentical} from "../../Helpers/isIdentical.mjs"
 import {CreateNotificationClub} from "../../Helpers/index.mjs"
@@ -21,6 +22,18 @@ dotenv.config();
 
 
 const {Op, col, literal} = sequelize;
+
+
+// A record the club has approved is out of the team's hands.
+const assertNotLocked = async (context, find, id) => {
+    const role = context?.user?.role;
+    if (role !== "3") return;                       // only a team account is limited
+    const row = await find(id);
+    if (!row) return;
+    if (isLockedForCaller(role, row.status)) {
+        throw new ApolloError(LOCKED_MESSAGE, LOCKED_CODE);
+    }
+};
 
 export const resolvers = {
     Query: {
@@ -732,6 +745,8 @@ export const resolvers = {
 
         updatePlayer: async (obj, { id, idPerson, content }, context, info) => {
             try {
+                await assertNotLocked(context, (x) => Players.findByPk(x), id);
+
                 const nationalID = content.nationalID;
                 const nationalIDBack = content.nationalIDBack;
                 const parentApproval = content.parentApproval;
@@ -829,6 +844,7 @@ export const resolvers = {
                     status: result[0] === 1 || (person && person[0] === 1)
                 };
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error("Error in updatePlayer:", error);
                 throw new ApolloError(error.message || "An unexpected error occurred");
             }
@@ -866,6 +882,8 @@ export const resolvers = {
 
         deletePlayer: async (obj, {id}, context, info) =>  {
             try {
+                await assertNotLocked(context, (x) => Players.findByPk(x), id);
+
                 const player = await Players.findByPk(id)
                 const result = await Players.destroy({
                     where: { id }
@@ -881,6 +899,7 @@ export const resolvers = {
                     status: result === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 logger.error(`Players.deletePlayer: ${error?.message || error}`)
                 throw new ApolloError(error)
             }

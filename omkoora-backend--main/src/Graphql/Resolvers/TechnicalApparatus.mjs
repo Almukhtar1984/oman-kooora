@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import logger from "../../Config/logger.mjs";
 
 import {Members, Person, Players, Team, TechnicalApparatus, AttachmentPerson} from '../../Models/index.mjs';
+import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from "../../Helpers/memberLock.mjs";
 import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
@@ -14,6 +15,18 @@ import {saveUpload} from "../../Helpers/Upload.mjs";
 dotenv.config();
 
 const {Op, col} = sequelize;
+
+
+// A record the club has approved is out of the team's hands.
+const assertNotLocked = async (context, find, id) => {
+    const role = context?.user?.role;
+    if (role !== "3") return;                       // only a team account is limited
+    const row = await find(id);
+    if (!row) return;
+    if (isLockedForCaller(role, row.status)) {
+        throw new ApolloError(LOCKED_MESSAGE, LOCKED_CODE);
+    }
+};
 
 export const resolvers = {
     Query: {
@@ -148,6 +161,8 @@ export const resolvers = {
 
         updateTechnicalApparatus: async (obj, {id, idPerson, content}, context, info) =>  {
             try {
+                await assertNotLocked(context, (x) => TechnicalApparatus.findByPk(x), id);
+
                 let person = null
                 if (content.person) {
                     const personPatch = {...content.person};
@@ -177,6 +192,7 @@ export const resolvers = {
                     status: result[0] === 1 || person[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error(`TechnicalApparatus.updateTechnicalApparatus: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
@@ -236,6 +252,8 @@ export const resolvers = {
 
         deleteTechnicalApparatus: async (obj, {id}, context, info) =>  {
             try {
+                await assertNotLocked(context, (x) => TechnicalApparatus.findByPk(x), id);
+
                 const technicalApparatus = await TechnicalApparatus.findByPk(id)
                 const result = await TechnicalApparatus.destroy({ where: { id } })
 
@@ -246,6 +264,7 @@ export const resolvers = {
                     status: result === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error(`TechnicalApparatus.deleteTechnicalApparatus: ${error?.message || error}`)
                 throw new ApolloError(error)
             }

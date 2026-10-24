@@ -118,6 +118,10 @@ export const MemberCard = ({
     
     const status = (type === 'transfer' || type === 'loan') ? data?.status || data?.lastTransfer?.status || data?.lastLoan?.status : data?.status;
     const isSuspended = status === 'suspended';
+    // الاعتماد توقيع النادي على التسجيل. فبعده لا يعدّل الفريق العضو ولا يحذفه
+    // ولا يحرّره — وإلا اختلفت البطاقة التي اعتمدها النادي عن الموجودة فعلاً.
+    const lockedByClub = (type === 'player' || type === 'technical' || type === 'member')
+        && status === 'accepted';
 
     // The subscription covers the calendar year it was paid in. A row with no
     // subscription date was never subscribed.
@@ -436,14 +440,13 @@ export const MemberCard = ({
                                                 </>
                                             ) : type === 'player' && status === 'accepted' ? (
                                                 <>
-                                                    {hasPermission("3") && <Menu.Item icon={<EditCircle size={14} />} onClick={() => onEdit && onEdit(data)}>تعديل</Menu.Item>}
+                                                    <Menu.Label>التعديل والحذف والتحرير بعد الاعتماد من صلاحية النادي</Menu.Label>
                                                     {hasPermission("3") && <Menu.Item icon={<Upload size={14} />} onClick={() => onAddImage && onAddImage(data?.person?.id || data?.id)}>إضافة صورة</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<Paperclip size={14} />} onClick={() => onAddAttachment && onAddAttachment(data?.id)}>إضافة مرفقات</Menu.Item>}
                                                     {data?.attachmentsPlayer?.length > 0 && <Menu.Item icon={<Paperclip size={14} />} onClick={() => onShowAttachments && onShowAttachments(data)}>المرفقات ({data?.attachmentsPlayer?.length})</Menu.Item>}
                                                     {hasPermission("1") && <Menu.Item icon={<ChartDots size={14} />} onClick={() => onStatPlayer && onStatPlayer(data?.id)}>احصائيات اللاعب</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<ArrowsLeftRight size={14} />} onClick={() => onChangeClassification && onChangeClassification(data)}>تغيير التصنيف</Menu.Item>}
                                                     {hasPermission("2") && <Menu.Item icon={<GiPlayerNext size={14} />} onClick={() => onLoanPlayer && onLoanPlayer(data)}>إعارة اللاعب</Menu.Item>}
-                                                    {hasPermission("2") && <Menu.Item icon={<LockOpen size={14} />} onClick={() => onFreePlayer && onFreePlayer(data?.id)}>تحرير اللاعب</Menu.Item>}
                                                 </>
                                             ) : type === 'player' ? (
                                                 <>
@@ -459,12 +462,13 @@ export const MemberCard = ({
                                                 </>
                                             ) : (
                                                 <>
-                                                    {hasPermission("3") && <Menu.Item icon={<EditCircle size={14} />} onClick={() => onEdit && onEdit(data)}>تعديل المعلومات</Menu.Item>}
+                                                    {lockedByClub && <Menu.Label>التعديل والحذف بعد الاعتماد من صلاحية النادي</Menu.Label>}
+                                                    {!lockedByClub && hasPermission("3") && <Menu.Item icon={<EditCircle size={14} />} onClick={() => onEdit && onEdit(data)}>تعديل المعلومات</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<Upload size={14} />} onClick={() => onAddImage && onAddImage(data?.person?.id || data?.id)}>إضافة صورة</Menu.Item>}
                                                     {type === 'technical' && hasPermission("3") && <Menu.Item icon={<Paperclip size={14} />} onClick={() => onAddAttachment && onAddAttachment(data?.id)}>إضافة مرفقات</Menu.Item>}
                                                     {type === 'technical' && data?.attachmentsTechnical?.length > 0 && <Menu.Item icon={<Paperclip size={14} />} onClick={() => onShowAttachments && onShowAttachments(data)}>المرفقات ({data?.attachmentsTechnical?.length})</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<ArrowsLeftRight size={14} />} onClick={() => onChangeClassification && onChangeClassification(data)}>تغيير التصنيف</Menu.Item>}
-                                                    {hasPermission("4") && <Menu.Item icon={<Trash size={14} color="red" />} color="red" onClick={() => onDelete && onDelete(data?.id)}>حذف</Menu.Item>}
+                                                    {!lockedByClub && hasPermission("4") && <Menu.Item icon={<Trash size={14} color="red" />} color="red" onClick={() => onDelete && onDelete(data?.id)}>حذف</Menu.Item>}
                                                 </>
                                             )}
                                             
