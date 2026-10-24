@@ -1,10 +1,11 @@
-import { createStyles, Container, Flex, Box, Text, ScrollArea } from "@mantine/core";
+import { Badge, createStyles, Container, Flex, Box, Text, ScrollArea } from "@mantine/core";
 import { useRouter } from "next/router";
 import {
     Home,
     BallFootball,
     Users,
     Inbox,
+    Bell,
     Send,
     CalendarEvent,
     Article,
@@ -22,6 +23,7 @@ import {
 // Public league/competitions site. Override with NEXT_PUBLIC_LEAGUE_URL.
 const LEAGUE_URL = process.env.NEXT_PUBLIC_LEAGUE_URL || "https://league.omkooora.com";
 import useStore from "../../store/useStore";
+import { useClubPendingRequests } from "../../graphql";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -126,12 +128,17 @@ const HorizontalNavbar = () => {
         return false;
     };
 
+    // الطلبات المعلّقة: العدّاد الأحمر على الشريط، محسوب من العمل نفسه.
+    const { data: pendingData } = useClubPendingRequests();
+    const pendingTotal = pendingData?.clubPendingRequests?.total || 0;
+
     const navItems = [
         { path: '/', label: 'الرئيسية', icon: <Home size={20} />, show: true },
         { path: '/statistics', label: 'الإحصاء', icon: <ChartBar size={20} />, show: role === "1" },
         { path: '/committees', label: 'اللجان', icon: <Scale size={20} />, show: role === "1" },
         { path: '/team', label: 'الفرق', icon: <BallFootball size={20} />, show: hasPermission("teams", "1") },
         { path: '/members', label: 'الأعضاء', icon: <Users size={20} />, show: hasPermission("members", "1") || hasPermission("technicals", "1") || hasPermission("players", "1") || hasPermission("assembly", "1") },
+        { path: '/requests', label: 'الطلبات', icon: <Bell size={20} />, show: true, badge: pendingTotal },
         { path: '/players_transfer', label: 'إنتقالات اللاعبين', icon: <ArrowsLeftRight size={20} />, show: hasPermission("transferPlayers", "1") },
         { path: '/players_loan', label: 'إعارات اللاعبين', icon: <Repeat size={20} />, show: hasPermission("loanPlayers", "1") },
         { path: '/releases', label: 'إخلاء الطرف', icon: <ArrowsLeftRight size={20} />, show: hasPermission("transferPlayers", "1") },
@@ -188,6 +195,7 @@ const HorizontalNavbar = () => {
                                             {item.icon}
                                         </Box>
                                         <Text>{item.label}</Text>
+                                        {(item.badge ?? 0) > 0 && <Badge color="red" variant="filled" size="sm">{item.badge}</Badge>}
                                     </Box>
                                 );
                             } else {
@@ -200,6 +208,7 @@ const HorizontalNavbar = () => {
                                                 {item.icon}
                                             </Box>
                                             <Text>{item.label}</Text>
+                                            {(item.badge ?? 0) > 0 && <Badge color="red" variant="filled" size="sm">{item.badge}</Badge>}
                                         </a>
                                     </Link>
                                 );
