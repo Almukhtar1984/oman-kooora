@@ -8,6 +8,7 @@ import logger from "../../Config/logger.mjs";
 import db from "../../Config/DBContact.mjs";
 
 import {Club, Members, Person, Players, Team, User,TechnicalApparatus, Stadium, Permission} from '../../Models/index.mjs';
+import { findTeamNameClash } from "../../Helpers/teamNaming.mjs";
 import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
@@ -17,6 +18,26 @@ dotenv.config();
 
 
 const {Op, col} = sequelize;
+
+// Two teams of one club may not share a name: nothing on screen tells them
+// apart, so whoever picks from a list of names picks at random. Across clubs a
+// repeated name is normal and stays allowed.
+const assertTeamNameFree = async (idClub, name, exceptTeamId = null) => {
+    if (!idClub || !String(name ?? "").trim()) return;
+
+    const teams = await Team.findAll({
+        where: { id_club: idClub },
+        attributes: ["id", "name"],
+    });
+
+    const clash = findTeamNameClash(teams, name, exceptTeamId);
+    if (!clash) return;
+
+    throw new ApolloError(
+        `يوجد في النادي فريق بهذا الاسم بالفعل (${clash.name}) — اختر اسماً مختلفاً حتى لا يختلط الفريقان.`,
+        "TEAM_NAME_TAKEN"
+    );
+};
 
 export const resolvers = {
     Query: {
@@ -208,6 +229,8 @@ export const resolvers = {
     Mutation: {
         createTeam: async (obj, {content}, context, info) =>  {
             try {
+                await assertTeamNameFree(content.id_club, content.name);
+
                 let team = await Team.create({
                     name:           content.name,
                     category:       content.category,
@@ -240,6 +263,8 @@ export const resolvers = {
 
                 return team
             } catch (error) {
+                // Our own refusals carry a code the client reads — keep them.
+                if (error instanceof ApolloError) throw error
                 logger.error(`Team.createTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
@@ -299,6 +324,8 @@ export const resolvers = {
             }
 
             try {
+                await assertTeamNameFree(team.id_club, team.name);
+
                 const result = await db.transaction(async (t) => {
                     const teamPayload = { ...team };
                     delete teamPayload.logo;
@@ -343,6 +370,7 @@ export const resolvers = {
                 });
                 return result;
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error(`createTeamWithAdmin error: ${error.message}`);
                 throw new ApolloError(error);
             }
@@ -357,6 +385,11 @@ export const resolvers = {
             }
             
             try {
+                if ("name" in content) {
+                    const current = await Team.findByPk(id);
+                    if (current) await assertTeamNameFree(current.id_club, content.name, id);
+                }
+
                 let logo = null
                 if ("logo" in content) {
                     if (content.logo !== null && content.logo !== undefined) {
@@ -392,6 +425,7 @@ export const resolvers = {
                     status: result[0] === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 logger.error(`Team.updateTeam: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
