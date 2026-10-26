@@ -6,8 +6,9 @@ import logger from "../../Config/logger.mjs";
 import {
   Club, Team, League, Players, Match, Stadium, Members, Blog,
   TechnicalApparatus, Assembly, ClubManagement, Transfer, User,
-  Event, Reservations,
+  Event, Reservations, Person,
 } from '../../Models/index.mjs';
+import { createDistinctCounter, identityKey } from "../../Helpers/peopleIdentity.mjs";
 
 dotenv.config();
 
@@ -100,11 +101,11 @@ export const resolvers = {
         ] = await Promise.all([
           Club.findAll({ attributes: ["id", "name", "mohafada"] }),
           Team.findAll({ attributes: ["id", "id_club", "activities"] }),
-          Players.findAll({ attributes: ["id_team", "class", "status"] }),
-          Members.findAll({ attributes: ["id_team"] }),
-          TechnicalApparatus.findAll({ attributes: ["id_team"] }),
-          Assembly.findAll({ attributes: ["id_club", "id_team"] }),
-          ClubManagement.findAll({ attributes: ["id_club"] }),
+          Players.findAll({ attributes: ["id", "id_team", "id_person", "class", "status"] }),
+          Members.findAll({ attributes: ["id", "id_team", "id_person"] }),
+          TechnicalApparatus.findAll({ attributes: ["id", "id_team", "id_person"] }),
+          Assembly.findAll({ attributes: ["id", "id_club", "id_team", "card_number"] }),
+          ClubManagement.findAll({ attributes: ["id", "id_club", "id_person"] }),
           User.findAll({ attributes: ["role"] }),
           Stadium.findAll({ attributes: ["id_team"] }),
           League.findAll({ attributes: ["id_club"] }),
@@ -116,6 +117,23 @@ export const resolvers = {
         // team -> club lookup (children of a team roll up to that team's club).
         const teamToClub = {};
         teams.forEach((t) => { teamToClub[t.id] = t.id_club; });
+
+        // The same human sits in several registers — a player who is also an
+        // assembly member, a coach on the board — so people are counted by
+        // identity (the civil number) instead of by row.
+        const people = await Person.findAll({ attributes: ["id", "card_number"] });
+        const personIdentity = new Map(
+          people.map((person) => [person.id, identityKey(person, "person")])
+        );
+        const keyOfPerson = (idPerson, fallbackId) =>
+          personIdentity.get(idPerson) || identityKey({ id: idPerson || fallbackId }, "person");
+
+        const distinctPeople = createDistinctCounter();
+        const ALL = "__all__";
+        const countPerson = (clubId, key) => {
+          distinctPeople.add(ALL, key);
+          distinctPeople.add(clubId, key);
+        };
 
         // Per-club accumulator (numbers + per-club breakdown maps).
         const perClub = {};
@@ -139,15 +157,31 @@ export const resolvers = {
         players.forEach((p) => {
           const clubId = teamToClub[p.id_team];
           bump(clubId, "players");
+          countPerson(clubId, keyOfPerson(p.id_person, p.id));
           if (clubId && perClub[clubId]) {
             const label = AGE_LABELS[p.class] || "أخرى";
             perClub[clubId]._ages[label] = (perClub[clubId]._ages[label] || 0) + 1;
           }
         });
-        members.forEach((m) => bump(teamToClub[m.id_team], "members"));
-        technicals.forEach((t) => bump(teamToClub[t.id_team], "technicals"));
-        assembly.forEach((a) => bump(a.id_club || teamToClub[a.id_team], "assembly"));
-        board.forEach((b) => bump(b.id_club, "board"));
+        members.forEach((m) => {
+          const clubId = teamToClub[m.id_team];
+          bump(clubId, "members");
+          countPerson(clubId, keyOfPerson(m.id_person, m.id));
+        });
+        technicals.forEach((t) => {
+          const clubId = teamToClub[t.id_team];
+          bump(clubId, "technicals");
+          countPerson(clubId, keyOfPerson(t.id_person, t.id));
+        });
+        assembly.forEach((a) => {
+          const clubId = a.id_club || teamToClub[a.id_team];
+          bump(clubId, "assembly");
+          countPerson(clubId, identityKey(a, "assembly"));
+        });
+        board.forEach((b) => {
+          bump(b.id_club, "board");
+          countPerson(b.id_club, keyOfPerson(b.id_person, b.id));
+        });
         leagueRows.forEach((l) => bump(l.id_club, "leagues"));
         stadiumRows.forEach((st) => bump(teamToClub[st.id_team], "stadiums"));
         transferRows.forEach((tr) => {
@@ -158,7 +192,9 @@ export const resolvers = {
         const clubTotals = Object.values(perClub)
           .map(({ _activities, _ages, ...c }) => ({
             ...c,
-            total: c.players + c.members + c.technicals + c.assembly + c.board,
+            // Distinct people — summing the five registers counted the same
+            // person once per register.
+            total: distinctPeople.count(c.id),
             activities: toChart(_activities),
             ageCategories: Object.keys(AGE_LABELS)
               .map((k) => AGE_LABELS[k])
@@ -195,8 +231,7 @@ export const resolvers = {
           roleAcc[label] = (roleAcc[label] || 0) + 1;
         });
 
-        const totalPeople =
-          players.length + members.length + technicals.length + assembly.length + board.length;
+        const totalPeople = distinctPeople.count(ALL);
 
         return {
           clubs: clubs.length,
@@ -273,20 +308,24 @@ export const resolvers = {
         const hasTeams = teamIds.length > 0;
         const inTeams = { id_team: { [Op.in]: teamIds } };
 
-        const [players, membersCount, technicalsCount, assemblyRows, boardCount, stadiumsCount, leaguesCount, transferRows] =
+        const [players, memberRows, technicalRows, assemblyRows, boardRows, stadiumsCount, leaguesCount, transferRows] =
           await Promise.all([
-            hasTeams ? Players.findAll({ where: inTeams, attributes: ["class", "status"] }) : [],
-            hasTeams ? Members.count({ where: inTeams }) : 0,
-            hasTeams ? TechnicalApparatus.count({ where: inTeams }) : 0,
+            hasTeams ? Players.findAll({ where: inTeams, attributes: ["id", "id_person", "class", "status"] }) : [],
+            hasTeams ? Members.findAll({ where: inTeams, attributes: ["id", "id_person"] }) : [],
+            hasTeams ? TechnicalApparatus.findAll({ where: inTeams, attributes: ["id", "id_person"] }) : [],
             Assembly.findAll({
               where: hasTeams ? { [Op.or]: [{ id_club: club.id }, { id_team: { [Op.in]: teamIds } }] } : { id_club: club.id },
-              attributes: ["id"],
+              attributes: ["id", "card_number"],
             }),
-            ClubManagement.count({ where: { id_club: club.id } }),
+            ClubManagement.findAll({ where: { id_club: club.id }, attributes: ["id", "id_person"] }),
             hasTeams ? Stadium.count({ where: inTeams }) : 0,
             League.count({ where: { id_club: club.id } }),
             Transfer.findAll({ attributes: ["transition_type", "id_club_to", "id_team_from"] }),
           ]);
+
+        const membersCount = memberRows.length;
+        const technicalsCount = technicalRows.length;
+        const boardCount = boardRows.length;
 
         const teamSet = new Set(teamIds);
         const clubTransfers = transferRows.filter((t) => t.id_club_to === club.id || teamSet.has(t.id_team_from));
@@ -308,7 +347,25 @@ export const resolvers = {
           statusAcc[stLabel] = (statusAcc[stLabel] || 0) + 1;
         });
 
-        const totalPeople = players.length + membersCount + technicalsCount + assemblyRows.length + boardCount;
+        // The same human appears in more than one register — a player who is
+        // also an assembly member, a coach on the board — so the club's size is
+        // the number of distinct people, not the sum of the five lists. Summing
+        // them showed one club 19,520 "أشخاص" against a real membership of
+        // 10,117, and the club read that as its own size.
+        const personRows = [...players, ...memberRows, ...technicalRows, ...boardRows];
+        const personIds = [...new Set(personRows.map((row) => row.id_person).filter(Boolean))];
+        const people = personIds.length
+          ? await Person.findAll({ where: { id: { [Op.in]: personIds } }, attributes: ["id", "card_number"] })
+          : [];
+        const personIdentity = new Map(people.map((person) => [person.id, identityKey(person, "person")]));
+
+        const distinct = new Set();
+        personRows.forEach((row) => {
+          distinct.add(personIdentity.get(row.id_person) || identityKey({ id: row.id_person || row.id }, "person"));
+        });
+        assemblyRows.forEach((row) => distinct.add(identityKey(row, "assembly")));
+
+        const totalPeople = distinct.size;
 
         return {
           club: club.name,
