@@ -138,6 +138,7 @@ const HorizontalNavbar = () => {
         { path: '/committees', label: 'اللجان', icon: <Scale size={20} />, show: role === "1" },
         { path: '/team', label: 'الفرق', icon: <BallFootball size={20} />, show: hasPermission("teams", "1") },
         { path: '/members', label: 'الأعضاء', icon: <Users size={20} />, show: hasPermission("members", "1") || hasPermission("technicals", "1") || hasPermission("players", "1") || hasPermission("assembly", "1") },
+        { path: '/membership', label: 'العضوية', icon: <Users size={20} />, show: hasPermission("assembly", "1") || hasPermission("players", "1") },
         { path: '/requests', label: 'الطلبات', icon: <Bell size={20} />, show: true, badge: pendingTotal },
         { path: '/players_transfer', label: 'إنتقالات اللاعبين', icon: <ArrowsLeftRight size={20} />, show: hasPermission("transferPlayers", "1") },
         { path: '/players_loan', label: 'إعارات اللاعبين', icon: <Repeat size={20} />, show: hasPermission("loanPlayers", "1") },

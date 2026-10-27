@@ -143,6 +143,7 @@ const Header = (props: Props) => {
         { path: '/', label: 'الرئيسية', icon: <Home size={18} /> },
         { path: '/team', label: 'الفرق', icon: <BallFootball size={18} /> },
         { path: '/members', label: 'الأعضاء', icon: <Users size={18} /> },
+        { path: '/membership', label: 'العضوية', icon: <Users size={18} /> },
         { path: '/requests', label: 'الطلبات', icon: <BellRinging size={18} /> },
         { path: '/players_transfer', label: 'إنتقالات اللاعبين', icon: <ArrowsLeftRight size={18} /> },
         { path: '/players_loan', label: 'إعارات اللاعبين', icon: <Repeat size={18} /> },

@@ -13,6 +13,7 @@ const { QueryTypes } = sequelize;
 // numbers and dates, which only it has.
 const UNION_SQL = `
     SELECT 'player' AS kind, pl.id AS id, pl.status AS status,
+           COALESCE(NULLIF(TRIM(p.card_number), ''), CONCAT('player:', pl.id)) AS identity,
            NULL AS membership_number, NULL AS membership_date,
            CONCAT_WS(' ', p.first_name, p.second_name, p.third_name, p.tribe) AS full_name,
            p.card_number AS card_number, p.phone AS phone, p.personal_picture AS personal_picture,
@@ -25,6 +26,7 @@ const UNION_SQL = `
     UNION ALL
 
     SELECT 'technical', ta.id, ta.status,
+           COALESCE(NULLIF(TRIM(p.card_number), ''), CONCAT('technical:', ta.id)),
            NULL, NULL,
            CONCAT_WS(' ', p.first_name, p.second_name, p.third_name, p.tribe),
            p.card_number, p.phone, p.personal_picture,
@@ -37,6 +39,7 @@ const UNION_SQL = `
     UNION ALL
 
     SELECT 'board', m.id, m.status,
+           COALESCE(NULLIF(TRIM(p.card_number), ''), CONCAT('board:', m.id)),
            NULL, NULL,
            CONCAT_WS(' ', p.first_name, p.second_name, p.third_name, p.tribe),
            p.card_number, p.phone, p.personal_picture,
@@ -49,6 +52,7 @@ const UNION_SQL = `
     UNION ALL
 
     SELECT 'assembly', a.id, 'accepted',
+           COALESCE(NULLIF(TRIM(a.card_number), ''), CONCAT('assembly:', a.id)),
            a.membership_number, a.membership_date,
            CONCAT_WS(' ', a.first_name, a.second_name, a.third_name, a.tribe),
            a.card_number, a.phone, a.personal_picture,
@@ -86,21 +90,45 @@ export const resolvers = {
                     like: filters.search ? `%${filters.search}%` : null,
                 };
 
+                // One row per person, not per record: a player who is also an
+                // assembly member is one member of this club carrying two
+                // classifications, and the owner was explicit — «بس ما يكون
+                // متكرر». The civil number is the identity; a row without one
+                // stands alone rather than merging with a stranger.
+                const GROUPED = `
+                    SELECT membership.identity AS identity,
+                           MAX(membership.id) AS id,
+                           GROUP_CONCAT(DISTINCT membership.kind ORDER BY membership.kind SEPARATOR ',') AS kinds,
+                           GROUP_CONCAT(DISTINCT membership.status ORDER BY membership.status SEPARATOR ',') AS statuses,
+                           MAX(membership.full_name) AS full_name,
+                           MAX(membership.card_number) AS card_number,
+                           MAX(membership.phone) AS phone,
+                           MAX(membership.personal_picture) AS personal_picture,
+                           MAX(membership.membership_number) AS membership_number,
+                           MAX(membership.membership_date) AS membership_date,
+                           MAX(membership.team_id) AS team_id,
+                           MAX(membership.team_name) AS team_name,
+                           MIN(membership.createdAt) AS createdAt
+                    FROM (${UNION_SQL}) AS membership
+                    ${FILTERS}
+                    GROUP BY membership.identity
+                `;
+
                 const [rows, totals, counts] = await Promise.all([
                     db.query(
-                        `SELECT * FROM (${UNION_SQL}) AS membership ${FILTERS}
-                         ORDER BY membership.createdAt DESC
-                         LIMIT ${filters.limit} OFFSET ${filters.offset}`,
+                        `${GROUPED} ORDER BY createdAt DESC LIMIT ${filters.limit} OFFSET ${filters.offset}`,
                         { replacements: bind, type: QueryTypes.SELECT }
                     ),
                     db.query(
-                        `SELECT COUNT(*) AS total FROM (${UNION_SQL}) AS membership ${FILTERS}`,
+                        `SELECT COUNT(DISTINCT membership.identity) AS total
+                         FROM (${UNION_SQL}) AS membership ${FILTERS}`,
                         { replacements: bind, type: QueryTypes.SELECT }
                     ),
-                    // The chips count every classification, ignoring the chosen
-                    // one — otherwise picking a filter would hide where else to go.
+                    // The chips count people per classification and ignore the
+                    // chosen one — otherwise picking a filter would hide where
+                    // else this club's people are.
                     db.query(
-                        `SELECT membership.kind AS kind, COUNT(*) AS count
+                        `SELECT membership.kind AS kind, COUNT(DISTINCT membership.identity) AS count
                          FROM (${UNION_SQL}) AS membership
                          WHERE (:status IS NULL OR membership.status = :status)
                            AND (:search IS NULL
@@ -117,7 +145,20 @@ export const resolvers = {
                     page: filters.page,
                     limit: filters.limit,
                     counts: membershipCounts(counts),
-                    rows: rows.map((row) => ({ ...row, label: kindLabel(row.kind) })),
+                    rows: rows.map((row) => {
+                        const kinds = String(row.kinds || "").split(",").filter(Boolean);
+                        const statuses = String(row.statuses || "").split(",").filter(Boolean);
+                        return {
+                            ...row,
+                            kind: kinds[0] || null,
+                            // «لاعب · عضو أساسي» — the person, and everything they are.
+                            label: kinds.map(kindLabel).filter(Boolean).join(" · "),
+                            // Pending anywhere means the club still has work on them.
+                            status: statuses.includes("waiting") || statuses.includes("waiting_club")
+                                ? "waiting"
+                                : (statuses[0] || null),
+                        };
+                    }),
                 };
             } catch (error) {
                 logger.error(`Membership.clubMembership: ${error?.message || error}`);
