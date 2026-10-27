@@ -49,6 +49,8 @@ import deviceTokenModel from './DeviceToken.mjs';
 import aiSettingModel from './AiSetting.mjs';
 import academyModel from './Academy.mjs';
 import playerReleaseModel from './PlayerRelease.mjs';
+import clubFeeModel from './ClubFee.mjs';
+import requestPaymentModel from './RequestPayment.mjs';
 import academyProgramModel from './AcademyProgram.mjs';
 import academyNewsModel from './AcademyNews.mjs';
 import academyRegistrationModel from './AcademyRegistration.mjs';
@@ -112,6 +114,8 @@ const DeviceToken = deviceTokenModel(DB, Sequelize);
 const AiSetting = aiSettingModel(DB, Sequelize);
 const Academy = academyModel(DB, Sequelize);
 const PlayerRelease = playerReleaseModel(DB, Sequelize);
+const ClubFee = clubFeeModel(DB, Sequelize);
+const RequestPayment = requestPaymentModel(DB, Sequelize);
 const AcademyProgram = academyProgramModel(DB, Sequelize);
 const AcademyNews = academyNewsModel(DB, Sequelize);
 const AcademyRegistration = academyRegistrationModel(DB, Sequelize);
@@ -538,6 +542,16 @@ PlayerRelease.belongsTo(Team, { foreignKey: { name: 'id_team' }, onDelete: 'CASC
 Club.hasMany(PlayerRelease, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 PlayerRelease.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 
+// قائمة أسعار النادي، ودفعاته: كلتاهما تخصّ نادياً، والدفعة تخصّ فريقاً أيضاً.
+Club.hasMany(ClubFee, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+ClubFee.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+Club.hasMany(RequestPayment, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+RequestPayment.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+Team.hasMany(RequestPayment, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+RequestPayment.belongsTo(Team, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
 export {
     User, Club, Team, Person, Members, Players, TechnicalApparatus, ClubManagement, Transfer, Request,Penalty,
     Assembly, Message, Attachment, Comment, Expense, Meeting, Blog, AttachmentBlog, Form, Permission,
@@ -546,5 +560,5 @@ export {
     Committee, CommitteeMember, MemberPayment, DeviceToken, AiSetting,
     Academy, AcademyProgram, AcademyNews, AcademyRegistration,
     Store, Product, Order, OrderItem,
-    PlayerRelease
+    PlayerRelease, ClubFee, RequestPayment
 }

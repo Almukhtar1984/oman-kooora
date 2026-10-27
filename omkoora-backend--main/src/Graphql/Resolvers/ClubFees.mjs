@@ -1,0 +1,248 @@
+import { ApolloError } from 'apollo-server-express';
+import { createWriteStream } from "fs";
+import path from "path";
+import { v4 as UUID } from 'uuid';
+
+import logger from "../../Config/logger.mjs";
+import { __dirname } from "../../app.mjs";
+import { Club, ClubFee, RequestPayment, Team } from '../../Models/index.mjs';
+import { callerClubId, clubOfTeam } from "../../Helpers/clubScope.mjs";
+import {
+    FEE_TYPES, feeLabel, isFeeType, normalizeAmount,
+    canSubmitReceipt, paymentDecision,
+    PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED,
+} from "../../Helpers/clubFees.mjs";
+
+const CLUB_ADMIN_ROLE = "2";
+const TEAM_ADMIN_ROLE = "3";
+const SUPER_ADMIN_ROLE = "1";
+
+const RECEIPT_TYPES = ["JPEG", "JPG", "PNG", "PDF"];
+
+const storeReceipt = async (upload) => {
+    const { createReadStream, filename } = await upload;
+    const parts = String(filename || "").split(".");
+    const type = parts[parts.length - 1].toUpperCase();
+
+    if (!RECEIPT_TYPES.includes(type)) {
+        throw new ApolloError("صيغة الإيصال غير مدعومة (صورة أو PDF)", "RECEIPT_TYPE_UNSUPPORTED");
+    }
+
+    const uniqueName = `${UUID()}.${type}`;
+    await createReadStream().pipe(createWriteStream(path.join(__dirname, `./../uploads/${uniqueName}`)));
+    return uniqueName;
+};
+
+// The team account's own team — a team may only pay for itself.
+const callerTeamId = async (context) => {
+    const { Members } = await import('../../Models/index.mjs');
+    const user = context?.user;
+    if (user?.role !== TEAM_ADMIN_ROLE || !user?.id_person) return null;
+    const member = await Members.findOne({ where: { id_person: user.id_person } });
+    return member?.id_team || null;
+};
+
+export const resolvers = {
+    Query: {
+        clubFees: async (obj, args, context) => {
+            try {
+                const idClub = await callerClubId(context);
+                if (!idClub) return [];
+
+                const stored = await ClubFee.findAll({ where: { id_club: idClub } });
+                const byType = new Map(stored.map((fee) => [fee.fee_type, fee]));
+
+                // Every type is returned, priced or not: a club setting its
+                // prices needs to see what it has not priced yet.
+                return FEE_TYPES.map(({ type, label }) => {
+                    const fee = byType.get(type);
+                    return {
+                        id: fee?.id || null,
+                        fee_type: type,
+                        label,
+                        amount: fee ? Number(fee.amount) : 0,
+                        active: fee ? Boolean(fee.active) : false,
+                    };
+                });
+            } catch (error) {
+                logger.error(`ClubFees.clubFees: ${error?.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        requestPayments: async (obj, { status, idTeam }, context) => {
+            try {
+                const where = {};
+                const idClub = await callerClubId(context);
+                const myTeam = await callerTeamId(context);
+
+                if (myTeam) where.id_team = myTeam;            // الفريق يرى مدفوعاته
+                else if (idClub) where.id_club = idClub;        // والنادي يرى مدفوعات ناديه
+                if (idTeam && !myTeam) where.id_team = idTeam;
+                if (status) where.status = status;
+
+                const rows = await RequestPayment.findAll({ where, order: [["createdAt", "DESC"]] });
+                return rows.map((row) => ({ ...row.get({ plain: true }), label: feeLabel(row.fee_type) }));
+            } catch (error) {
+                logger.error(`ClubFees.requestPayments: ${error?.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+    },
+
+    Mutation: {
+        saveClubFee: async (obj, { fee_type, amount, active }, context) => {
+            try {
+                const role = context?.user?.role;
+                const idClub = await callerClubId(context);
+                if (!idClub || (role !== CLUB_ADMIN_ROLE && role !== SUPER_ADMIN_ROLE)) {
+                    throw new ApolloError("ضبط الرسوم من صلاحية النادي", "FORBIDDEN_FEES");
+                }
+                if (!isFeeType(fee_type)) {
+                    throw new ApolloError("نوع رسوم غير معروف", "FEE_TYPE_UNKNOWN");
+                }
+
+                const value = normalizeAmount(amount ?? 0);
+                if (value === null) throw new ApolloError("المبلغ غير صحيح", "AMOUNT_INVALID");
+
+                const [fee] = await ClubFee.findOrCreate({
+                    where: { id_club: idClub, fee_type },
+                    defaults: { id_club: idClub, fee_type, amount: value, active: active ?? true },
+                });
+                await fee.update({ amount: value, active: active ?? fee.active });
+
+                return {
+                    id: fee.id,
+                    fee_type,
+                    label: feeLabel(fee_type),
+                    amount: Number(fee.amount),
+                    active: Boolean(fee.active),
+                };
+            } catch (error) {
+                if (error instanceof ApolloError) throw error;
+                logger.error(`ClubFees.saveClubFee: ${error?.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        createRequestPayment: async (obj, { content }, context) => {
+            try {
+                const role = context?.user?.role;
+                const idClub = await callerClubId(context);
+                if (!idClub || (role !== CLUB_ADMIN_ROLE && role !== SUPER_ADMIN_ROLE)) {
+                    throw new ApolloError("مطالبة الفريق بالرسوم من صلاحية النادي", "FORBIDDEN_FEES");
+                }
+                if (!isFeeType(content.fee_type)) {
+                    throw new ApolloError("نوع رسوم غير معروف", "FEE_TYPE_UNKNOWN");
+                }
+
+                const teamClub = await clubOfTeam(content.id_team);
+                if (teamClub && teamClub !== idClub) {
+                    throw new ApolloError("هذا الفريق لا يتبع ناديك", "TEAM_NOT_IN_CLUB");
+                }
+
+                // The club's own price unless it overrides it for this request.
+                const stored = await ClubFee.findOne({ where: { id_club: idClub, fee_type: content.fee_type } });
+                const amount = normalizeAmount(content.amount ?? stored?.amount ?? 0);
+                if (amount === null) throw new ApolloError("المبلغ غير صحيح", "AMOUNT_INVALID");
+
+                const payment = await RequestPayment.create({
+                    fee_type: content.fee_type,
+                    amount,
+                    entity_type: content.entity_type || null,
+                    entity_id: content.entity_id || null,
+                    note: content.note || null,
+                    status: PAYMENT_WAITING,
+                    id_club: idClub,
+                    id_team: content.id_team,
+                    id_requested_by: context?.user?.id || null,
+                });
+
+                return { ...payment.get({ plain: true }), label: feeLabel(payment.fee_type) };
+            } catch (error) {
+                if (error instanceof ApolloError) throw error;
+                logger.error(`ClubFees.createRequestPayment: ${error?.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        submitPaymentReceipt: async (obj, { id, reference_number, receipt, amount }, context) => {
+            try {
+                const payment = await RequestPayment.findByPk(id);
+                const myTeam = await callerTeamId(context);
+                const idClub = await callerClubId(context);
+
+                if (payment && myTeam && payment.id_team !== myTeam) {
+                    throw new ApolloError("هذا الدفع لا يخصّ فريقك", "FORBIDDEN_PAYMENT");
+                }
+                if (payment && !myTeam && idClub && payment.id_club !== idClub) {
+                    throw new ApolloError("هذا الدفع لا يخصّ ناديك", "FORBIDDEN_PAYMENT");
+                }
+
+                const verdict = canSubmitReceipt(payment, { reference_number, amount });
+                if (!verdict.ok) throw new ApolloError(verdict.message, verdict.code);
+
+                const stored = receipt ? await storeReceipt(receipt) : payment.receipt;
+
+                await payment.update({
+                    reference_number: String(reference_number).trim(),
+                    receipt: stored,
+                    status: PAYMENT_SUBMITTED,
+                    paid_at: new Date(),
+                });
+
+                return { status: true };
+            } catch (error) {
+                if (error instanceof ApolloError) throw error;
+                logger.error(`ClubFees.submitPaymentReceipt: ${error?.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        decidePayment: async (obj, { id, status, note }, context) => {
+            try {
+                const payment = await RequestPayment.findByPk(id);
+                if (!payment) throw new ApolloError("طلب الدفع غير موجود", "PAYMENT_NOT_FOUND");
+
+                const role = context?.user?.role;
+                const idClub = await callerClubId(context);
+                const isOwningClub = role === CLUB_ADMIN_ROLE && idClub && idClub === payment.id_club;
+                if (!isOwningClub && role !== SUPER_ADMIN_ROLE) {
+                    throw new ApolloError("اعتماد الإيصال من صلاحية النادي", "FORBIDDEN_PAYMENT_DECISION");
+                }
+
+                const decision = paymentDecision(payment.status, status);
+                if (!decision.valid) {
+                    throw new ApolloError(
+                        payment.status === PAYMENT_ACCEPTED
+                            ? "هذا الدفع معتمد مسبقاً"
+                            : "قرار غير مفهوم — اعتماد أو رفض",
+                        "PAYMENT_DECISION_INVALID"
+                    );
+                }
+
+                await payment.update({
+                    status: decision.status,
+                    note: note || null,
+                    decided_at: new Date(),
+                    id_decided_by: context?.user?.id || null,
+                    // A rejected receipt leaves the payment owed, and the
+                    // previous receipt is cleared so the team sends a new one.
+                    ...(decision.rejected ? { receipt: null, reference_number: null, paid_at: null } : {}),
+                });
+
+                return { status: true };
+            } catch (error) {
+                if (error instanceof ApolloError) throw error;
+                logger.error(`ClubFees.decidePayment: ${error?.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+    },
+
+    RequestPayment: {
+        team: async ({ id_team }) => (id_team ? await Team.findByPk(id_team) : null),
+        club: async ({ id_club }) => (id_club ? await Club.findByPk(id_club) : null),
+        label: ({ fee_type, label }) => label || feeLabel(fee_type),
+    },
+};
