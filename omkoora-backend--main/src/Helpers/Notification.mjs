@@ -308,6 +308,25 @@ export const CreateNotificationPlayer = async (Category , FunctionType ,id_team,
 
 
 
+/**
+ * إشعار مالي — يُرسل للنادي أو للفريق.
+ *
+ * The body says the amount and the request it is for: a team that reads only
+ * "لديك طلب دفع" has to go hunting for which of its requests that is, and the
+ * hunting is the very confusion the fees feature exists to end.
+ */
+export const CreatePaymentNotification = async ({ body, id_club = null, id_team = null }) => {
+    try {
+        const notification = await Notification.create({ body, id_club, id_team });
+        const socketServer = getSocketServerInstance();
+        if (!socketServer) return;
+        if (id_team) await socketServer.sendNewNotification('team', id_team, notification);
+        else if (id_club) await socketServer.sendNewNotification('club', id_club, notification);
+    } catch (error) {
+        console.error("CreatePaymentNotification error:", error);
+    }
+}
+
 export const CreateNotificationLeague = async (Category , FunctionType ,id_club,id_team,id_Player) => {
     let category = ''
     let functionType = ''

@@ -40,7 +40,14 @@ export default (db, types) => {
             type: types.STRING(100),
             allowNull: true
         },
+        // بيان الطلب الذي كتبه النادي عند المطالبة.
         note: {
+            type: types.STRING(255),
+            allowNull: true
+        },
+        // سبب قرار النادي على الإيصال. حقل منفصل عن البيان: لو كُتب الرفض
+        // فوقه لضاع ما تدفع عنه الدفعة، وهو عين الخربطة التي نعالجها.
+        decision_note: {
             type: types.STRING(255),
             allowNull: true
         },

@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Button, Container, Flex, MantineTheme, Menu, Text, Tooltip, Divider, Burger, Drawer, Stack, Group, Avatar } from "@mantine/core";
 import React, { useEffect, useState } from "react";
-import { ChevronDown, Logout, Search, Lock, BellRinging, User, ShieldLock, Activity, Home, BallFootball, Users, Inbox, Send, CalendarEvent, Article, FileText, ArrowsLeftRight, Repeat } from "tabler-icons-react";
+import { ChevronDown, Logout, Search, Lock, BellRinging, User, ShieldLock, Activity, Home, BallFootball, Users, Inbox, Send, CalendarEvent, Article, FileText, ArrowsLeftRight, Repeat, Coin } from "tabler-icons-react";
 import { useTheme } from "@emotion/react";
 import { useDisclosure } from "@mantine/hooks";
 import useStore from "../../store/useStore";
@@ -148,6 +148,7 @@ const Header = (props: Props) => {
         { path: '/players_transfer', label: 'إنتقالات اللاعبين', icon: <ArrowsLeftRight size={18} /> },
         { path: '/players_loan', label: 'إعارات اللاعبين', icon: <Repeat size={18} /> },
         { path: '/releases', label: 'إخلاء الطرف', icon: <ArrowsLeftRight size={18} /> },
+        { path: '/payments', label: 'المدفوعات', icon: <Coin size={18} /> },
         { path: '/messages', label: 'الرسائل', icon: <Inbox size={18} /> },
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={18} /> },
         { path: '/blog', label: 'الأخبار', icon: <Article size={18} /> },

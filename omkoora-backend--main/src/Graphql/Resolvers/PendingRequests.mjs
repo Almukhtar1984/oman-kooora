@@ -2,7 +2,7 @@ import { ApolloError } from 'apollo-server-express';
 import sequelize from 'sequelize';
 
 import logger from "../../Config/logger.mjs";
-import { Blog, Members, Players, PlayerRelease, Team, TechnicalApparatus, Transfer } from '../../Models/index.mjs';
+import { Blog, Members, Players, PlayerRelease, RequestPayment, Team, TechnicalApparatus, Transfer } from '../../Models/index.mjs';
 import { callerClubId } from "../../Helpers/clubScope.mjs";
 import { summarizePending } from "../../Helpers/pendingRequests.mjs";
 
@@ -24,7 +24,7 @@ export const resolvers = {
                 const byTeam = { id_team: { [Op.in]: teamIds }, status: { [Op.in]: UNDECIDED } };
 
                 // Counted in parallel: this runs behind a badge on every page.
-                const [players, technicals, members, transfers, loans, releases, news] = await Promise.all([
+                const [players, technicals, members, transfers, loans, releases, payments, news] = await Promise.all([
                     teamIds.length ? Players.count({ where: byTeam }) : 0,
                     teamIds.length ? TechnicalApparatus.count({ where: byTeam }) : 0,
                     teamIds.length ? Members.count({ where: byTeam }) : 0,
@@ -43,10 +43,12 @@ export const resolvers = {
                         },
                     }),
                     PlayerRelease.count({ where: { id_club: idClub, status: "waiting" } }),
+                    // A receipt the team sent and the club has not looked at yet.
+                    RequestPayment.count({ where: { id_club: idClub, status: "submitted" } }),
                     Blog.count({ where: { id_club: idClub, status: "waiting" } }),
                 ]);
 
-                return summarizePending({ players, technicals, members, transfers, loans, releases, news });
+                return summarizePending({ players, technicals, members, transfers, loans, releases, payments, news });
             } catch (error) {
                 logger.error(`PendingRequests.clubPendingRequests: ${error?.message || error}`);
                 throw new ApolloError(error);

@@ -7,6 +7,7 @@ import logger from "../../Config/logger.mjs";
 import { __dirname } from "../../app.mjs";
 import { Club, ClubFee, RequestPayment, Team } from '../../Models/index.mjs';
 import { callerClubId, clubOfTeam } from "../../Helpers/clubScope.mjs";
+import { CreatePaymentNotification } from "../../Helpers/index.mjs";
 import {
     FEE_TYPES, feeLabel, isFeeType, normalizeAmount,
     canSubmitReceipt, paymentDecision,
@@ -158,6 +159,14 @@ export const resolvers = {
                     id_requested_by: context?.user?.id || null,
                 });
 
+                // The team is told what it owes and for what — a fee nobody
+                // announced is a fee nobody pays.
+                void CreatePaymentNotification({
+                    id_team: payment.id_team,
+                    body: `رسوم ${feeLabel(payment.fee_type)}: مطلوب دفع ${amount} ر.ع`
+                        + (content.note ? ` — ${content.note}` : ""),
+                });
+
                 return { ...payment.get({ plain: true }), label: feeLabel(payment.fee_type) };
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
@@ -189,6 +198,15 @@ export const resolvers = {
                     receipt: stored,
                     status: PAYMENT_SUBMITTED,
                     paid_at: new Date(),
+                    // The previous rejection is answered by this receipt.
+                    decision_note: null,
+                });
+
+                const team = payment.id_team ? await Team.findByPk(payment.id_team) : null;
+                void CreatePaymentNotification({
+                    id_club: payment.id_club,
+                    body: `${team?.name || "فريق"} رفع إيصال رسوم ${feeLabel(payment.fee_type)}`
+                        + ` (${Number(payment.amount)} ر.ع) بانتظار اعتمادك`,
                 });
 
                 return { status: true };
@@ -223,12 +241,21 @@ export const resolvers = {
 
                 await payment.update({
                     status: decision.status,
-                    note: note || null,
+                    decision_note: note || null,
                     decided_at: new Date(),
                     id_decided_by: context?.user?.id || null,
                     // A rejected receipt leaves the payment owed, and the
                     // previous receipt is cleared so the team sends a new one.
                     ...(decision.rejected ? { receipt: null, reference_number: null, paid_at: null } : {}),
+                });
+
+                void CreatePaymentNotification({
+                    id_team: payment.id_team,
+                    body: decision.rejected
+                        // The reason travels with the rejection; otherwise the
+                        // team resubmits the same receipt and nothing moves.
+                        ? `تم رفض إيصال رسوم ${feeLabel(payment.fee_type)}${note ? ` — ${note}` : ""} — أعد رفع الإيصال`
+                        : `تم اعتماد إيصال رسوم ${feeLabel(payment.fee_type)} (${Number(payment.amount)} ر.ع)`,
                 });
 
                 return { status: true };

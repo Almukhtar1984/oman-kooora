@@ -19,6 +19,7 @@ export const REQUEST_TYPES = [
     { key: "transfers",  label: "انتقالات اللاعبين",   href: "/players_transfer" },
     { key: "loans",      label: "إعارات اللاعبين",     href: "/players_loan" },
     { key: "releases",   label: "طلبات إخلاء الطرف",   href: "/releases" },
+    { key: "payments",   label: "إيصالات بانتظار الاعتماد", href: "/payments" },
     { key: "news",       label: "أخبار بانتظار الاعتماد", href: "/blog" },
 ];
 

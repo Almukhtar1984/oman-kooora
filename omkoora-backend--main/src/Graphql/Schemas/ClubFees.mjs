@@ -51,6 +51,7 @@ export const typeDefs = gql`
         reference_number:  String
         receipt:           String @imgUrl
         note:              String
+        decision_note:     String
         paid_at:           Date @date(format: "yyyy-MM-dd")
         decided_at:        Date @date(format: "yyyy-MM-dd")
         createdAt:         Date @date(format: "yyyy-MM-dd")

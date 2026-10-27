@@ -34,7 +34,10 @@ CREATE TABLE IF NOT EXISTS request_payments (
     status            ENUM('waiting','submitted','accepted','rejected') NOT NULL DEFAULT 'waiting',
     reference_number  VARCHAR(64)   NULL,
     receipt           VARCHAR(100)  NULL,
+    -- بيان الطلب من النادي، وسبب قرار النادي على الإيصال — حقلان لا حقل
+    -- واحد: لو كتب الرفض فوق البيان لضاع ما تدفع عنه الدفعة أصلاً.
     note              VARCHAR(255)  NULL,
+    decision_note     VARCHAR(255)  NULL,
     paid_at           DATETIME      NULL,
     decided_at        DATETIME      NULL,
     id_club           CHAR(36)      NULL,
@@ -49,3 +52,11 @@ CREATE TABLE IF NOT EXISTS request_payments (
     KEY idx_request_payments_team (id_team),
     KEY idx_request_payments_entity (entity_type, entity_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- قواعد سابقة أنشأت الجدول بلا عمود سبب القرار.
+SET @has_decision_note := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'request_payments' AND COLUMN_NAME = 'decision_note');
+SET @sql := IF(@has_decision_note = 0,
+    'ALTER TABLE request_payments ADD COLUMN decision_note VARCHAR(255) NULL AFTER note',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

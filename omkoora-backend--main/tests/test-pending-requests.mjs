@@ -27,6 +27,13 @@ check("إخلاء الطرف ضمن الأنواع", REQUEST_TYPES.some((t) => t
 check("والانتقالات والإعارات نوعان مستقلان",
     REQUEST_TYPES.filter((t) => t.key === "transfers" || t.key === "loans").length, 2);
 
+// الإيصالات المرفوعة تنتظر قرار النادي أيضاً، فهي من الطلبات.
+const withPayments = summarizePending({ payments: 3, players: 1 });
+check("الإيصالات المرفوعة ضمن الطلبات", withPayments.groups.map((g) => g.key), ["players", "payments"]);
+check("وتُفتح على صفحة المدفوعات",
+    withPayments.groups.find((g) => g.key === "payments").href, "/payments");
+check("وتُحسب في الإجمالي", withPayments.total, 4);
+
 const messy = summarizePending({ players: "7", members: null, loans: undefined, news: -0 });
 check("قيمة نصية تُقرأ عدداً", messy.total, 7);
 check("والقيم الفارغة لا تُحسب", messy.groups.length, 1);

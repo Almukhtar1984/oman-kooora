@@ -17,3 +17,5 @@ export * from "./notification";
 export * from "./events";
 export * from "./memberPayments";
 export * from "./ai";
+
+export * from "./payments";
