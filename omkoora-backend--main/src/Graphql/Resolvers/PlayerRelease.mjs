@@ -11,6 +11,7 @@ import {
     RELEASE_WAITING, RELEASE_ACCEPTED, canRequestRelease, releaseDecision,
 } from "../../Helpers/playerRelease.mjs";
 import { CreateNotificationClub, CreateNotificationTeam } from "../../Helpers/index.mjs";
+import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
 
 const SUPER_ADMIN_ROLE = "1";
 const CLUB_ADMIN_ROLE = "2";
@@ -110,6 +111,16 @@ export const resolvers = {
                 if (idClub) {
                     void CreateNotificationClub("player", "create", idClub, "", player.id);
                 }
+
+                // والاستقالة طلبٌ كغيره: لها مسارها وخطّها.
+                await openFlow({
+                    request_type: "player_release",
+                    entity_type: "player_release",
+                    entity_id: release.id,
+                    id_club: idClub,
+                    id_team: player.id_team,
+                    id_user: context?.user?.id || null,
+                });
 
                 return release;
             } catch (error) {

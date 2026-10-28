@@ -53,8 +53,11 @@ CREATE TABLE IF NOT EXISTS request_flow_events (
     note       VARCHAR(255) NULL,
     actor      ENUM('team','club','system') NOT NULL DEFAULT 'system',
     id_user    CHAR(36)     NULL,
-    createdAt  DATETIME     NOT NULL,
-    updatedAt  DATETIME     NOT NULL,
+    -- بالمللي ثانية، لا بالثانية: خطوتان في الثانية نفسها — وهو ما يحدث حين
+    -- يبتّ النادي ثم يسدّد الفريق فوراً — تتساويان في DATETIME العادي فيختلّ
+    -- ترتيب الخط. وخطُّ تتبّعٍ مبعثر أسوأ من لا خط.
+    createdAt  DATETIME(3)  NOT NULL,
+    updatedAt  DATETIME(3)  NOT NULL,
     PRIMARY KEY (id),
     KEY idx_request_flow_events_flow (id_flow, createdAt)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -74,5 +77,14 @@ SET @pay_has_release := (SELECT COUNT(*) FROM information_schema.COLUMNS
       AND COLUMN_NAME = 'fee_type' AND COLUMN_TYPE LIKE '%player_release%');
 SET @sql := IF(@pay_has_release = 0,
     'ALTER TABLE request_payments MODIFY COLUMN fee_type ENUM(''player_registration'',''transfer'',''loan'',''team_registration'',''player_release'') NOT NULL',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- قواعد سابقة أنشأت جدول الأحداث بدقّة ثانية.
+SET @events_ms := (SELECT COALESCE(MAX(DATETIME_PRECISION), 0) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'request_flow_events'
+      AND COLUMN_NAME IN ('createdAt', 'updatedAt'));
+SET @sql := IF(@events_ms < 3,
+    'ALTER TABLE request_flow_events MODIFY COLUMN createdAt DATETIME(3) NOT NULL, MODIFY COLUMN updatedAt DATETIME(3) NOT NULL',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

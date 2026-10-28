@@ -33,6 +33,17 @@ export default (db, types) => {
             type: types.UUID,
             allowNull: true
         },
+        // بالمللي ثانية، لا بالثانية: خطوتان في الثانية الواحدة — والنادي يبتّ
+        // ثم يسدّد الفريق فوراً — تتساويان في DATETIME العادي فيختلّ ترتيب
+        // الخط. وخطُّ تتبّعٍ مبعثر أسوأ من لا خط.
+        createdAt: {
+            type: types.DATE(3),
+            allowNull: false
+        },
+        updatedAt: {
+            type: types.DATE(3),
+            allowNull: false
+        },
     }, {
         tableName: 'request_flow_events',
         timestamps: true,

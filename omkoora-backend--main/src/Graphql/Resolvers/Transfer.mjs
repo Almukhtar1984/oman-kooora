@@ -12,6 +12,7 @@ import {CreateNotificationTeam, CreateNotificationClub} from "../../Helpers/inde
 import {removeReceivingTeamParticipations, removeReceivingTeamParticipationsTechnical} from "../../Helpers/LoanReturn.mjs";
 import { initialTransferStatus, transferTransition, resolveDestinationTeam } from "../../Helpers/transferFlow.mjs";
 import { callerClubId, clubOfTeam } from "../../Helpers/clubScope.mjs";
+import { openFlow, flowFor, advanceFlow } from "../../Helpers/requestFlowRunner.mjs";
 
 const CLUB_ADMIN_ROLE = "2";
 
@@ -199,6 +200,22 @@ export const resolvers = {
                     await CreateNotificationTeam("loan", "request", content.id_team_to, subjectId, subjectType)
                 }
 
+                // مسار الطلب — للانتقال والإعارة وحدهما. والعودة من إعارة ليست
+                // طلباً بل انقضاء مدة، فلا خطّ لها. وانتقالٌ ولد معتمداً (نقل
+                // داخلي أنشأه النادي) لا شيء فيه ليُتتبّع.
+                if (status !== "accepted" && ["transition", "loan"].includes(transfer.transition_type)) {
+                    await openFlow({
+                        request_type: transfer.transition_type === "loan" ? "loan" : "transfer",
+                        entity_type: "transfer",
+                        entity_id: transfer.id,
+                        // النادي المستقبِل هو الذي يستكمل ويطالب ويعتمد؛
+                        // وسلسلة الناديين تمضي كما هي داخل المراجعة المبدئية.
+                        id_club: idClubTo,
+                        id_team: content.id_team_to || null,
+                        id_user: context?.user?.id || null,
+                    })
+                }
+
                 return transfer
             } catch (error) {
                 // logger.error(`Transfer.createTransfer: ${error?.message || error}`)
@@ -264,6 +281,26 @@ export const resolvers = {
                         await Subject.update({ status: "accepted" }, { where: { id: subjectId } })
                         if (isLoan) {
                             await CreateNotificationTeam("loan", "rejected", transfer.id_team_from, subjectId, subjectType)
+                        }
+                    }
+
+                    // وسلسلة الناديين تحرّك مسار الطلب معها، وإلا بقي خطّ
+                    // التتبّع واقفاً عند «مقدم من الفريق» وطلبه قد بُتّ فيه.
+                    //
+                    // ملاحظة: اللاعب ينتقل فعلياً باكتمال السلسلة كما كان —
+                    // لم تُغيَّر هذه اللحظة. فالرسوم هنا مطالبة لا بوابة، على
+                    // خلاف التسجيل والاستقالة حيث لا يُعتمد شيء قبل السداد.
+                    const flow = await flowFor("transfer", transfer.id, { withEvents: false })
+                    if (flow) {
+                        if (next.finalize) {
+                            await advanceFlow({ flow, to: "club_processing", by: "club", id_user: context?.user?.id || null })
+                            await advanceFlow({ flow, to: "awaiting_payment", by: "club", id_user: context?.user?.id || null })
+                        } else if (next.status === "rejected") {
+                            await advanceFlow({
+                                flow, to: "rejected_final", by: "club",
+                                reason: content.note || "رُفض الطلب",
+                                id_user: context?.user?.id || null,
+                            })
                         }
                     }
                 }

@@ -6,8 +6,9 @@ import { v4 as UUID } from 'uuid';
 import logger from "../../Config/logger.mjs";
 import { __dirname } from "../../app.mjs";
 import { Club, ClubFee, RequestPayment, Team } from '../../Models/index.mjs';
-import { callerClubId, clubOfTeam } from "../../Helpers/clubScope.mjs";
-import { CreatePaymentNotification } from "../../Helpers/index.mjs";
+import { callerClubId, callerTeamId, clubOfTeam } from "../../Helpers/clubScope.mjs";
+import { onReceiptSubmitted, onReceiptRejected } from "../../Helpers/requestFlowRunner.mjs";
+import { CreateDirectNotification } from "../../Helpers/index.mjs";
 import {
     FEE_TYPES, feeLabel, isFeeType, normalizeAmount,
     canSubmitReceipt, paymentDecision,
@@ -15,7 +16,6 @@ import {
 } from "../../Helpers/clubFees.mjs";
 
 const CLUB_ADMIN_ROLE = "2";
-const TEAM_ADMIN_ROLE = "3";
 const SUPER_ADMIN_ROLE = "1";
 
 const RECEIPT_TYPES = ["JPEG", "JPG", "PNG", "PDF"];
@@ -32,15 +32,6 @@ const storeReceipt = async (upload) => {
     const uniqueName = `${UUID()}.${type}`;
     await createReadStream().pipe(createWriteStream(path.join(__dirname, `./../uploads/${uniqueName}`)));
     return uniqueName;
-};
-
-// The team account's own team — a team may only pay for itself.
-const callerTeamId = async (context) => {
-    const { Members } = await import('../../Models/index.mjs');
-    const user = context?.user;
-    if (user?.role !== TEAM_ADMIN_ROLE || !user?.id_person) return null;
-    const member = await Members.findOne({ where: { id_person: user.id_person } });
-    return member?.id_team || null;
 };
 
 export const resolvers = {
@@ -161,7 +152,7 @@ export const resolvers = {
 
                 // The team is told what it owes and for what — a fee nobody
                 // announced is a fee nobody pays.
-                void CreatePaymentNotification({
+                void CreateDirectNotification({
                     id_team: payment.id_team,
                     body: `رسوم ${feeLabel(payment.fee_type)}: مطلوب دفع ${amount} ر.ع`
                         + (content.note ? ` — ${content.note}` : ""),
@@ -203,11 +194,15 @@ export const resolvers = {
                 });
 
                 const team = payment.id_team ? await Team.findByPk(payment.id_team) : null;
-                void CreatePaymentNotification({
+                void CreateDirectNotification({
                     id_club: payment.id_club,
                     body: `${team?.name || "فريق"} رفع إيصال رسوم ${feeLabel(payment.fee_type)}`
                         + ` (${Number(payment.amount)} ر.ع) بانتظار اعتمادك`,
                 });
+
+                // والطلب الذي تسدّده هذه الدفعة ينتقل معها إلى مراجعة النادي:
+                // المالك أراد السداد مرحلةً في الطلب لا سجلّاً إلى جواره.
+                await onReceiptSubmitted(payment, { id_user: context?.user?.id || null });
 
                 return { status: true };
             } catch (error) {
@@ -249,7 +244,14 @@ export const resolvers = {
                     ...(decision.rejected ? { receipt: null, reference_number: null, paid_at: null } : {}),
                 });
 
-                void CreatePaymentNotification({
+                if (decision.rejected) {
+                    await onReceiptRejected(payment, {
+                        reason: note || null,
+                        id_user: context?.user?.id || null,
+                    });
+                }
+
+                void CreateDirectNotification({
                     id_team: payment.id_team,
                     body: decision.rejected
                         // The reason travels with the rejection; otherwise the

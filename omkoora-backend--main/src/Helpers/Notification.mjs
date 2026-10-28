@@ -315,7 +315,9 @@ export const CreateNotificationPlayer = async (Category , FunctionType ,id_team,
  * "لديك طلب دفع" has to go hunting for which of its requests that is, and the
  * hunting is the very confusion the fees feature exists to end.
  */
-export const CreatePaymentNotification = async ({ body, id_club = null, id_team = null }) => {
+// إشعار مباشر لنادٍ أو لفريق بنصٍّ جاهز — تستعمله الرسوم ومسار الطلب معاً.
+// (كان اسمه CreatePaymentNotification، وكان أضيق من عمله.)
+export const CreateDirectNotification = async ({ body, id_club = null, id_team = null }) => {
     try {
         const notification = await Notification.create({ body, id_club, id_team });
         const socketServer = getSocketServerInstance();
@@ -323,7 +325,7 @@ export const CreatePaymentNotification = async ({ body, id_club = null, id_team 
         if (id_team) await socketServer.sendNewNotification('team', id_team, notification);
         else if (id_club) await socketServer.sendNewNotification('club', id_club, notification);
     } catch (error) {
-        console.error("CreatePaymentNotification error:", error);
+        console.error("CreateDirectNotification error:", error);
     }
 }
 

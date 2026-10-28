@@ -12,6 +12,7 @@ import {createWriteStream, promises as fsPromises } from "fs";
 import {saveUpload} from "../../Helpers/Upload.mjs";
 import {ATTACH, DUPLICATE, PHONE_TAKEN, classifyExistingPerson} from "../../Helpers/playerRegistration.mjs";
 import { assertTeamInCallerClub } from "../../Helpers/clubScope.mjs";
+import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
 import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from "../../Helpers/memberLock.mjs";
 import { match } from 'assert';
 import {isIdentical} from "../../Helpers/isIdentical.mjs"
@@ -662,6 +663,16 @@ export const resolvers = {
                         const team = await Team.findByPk(content.id_team);
                         if (team && team.id_club) {
                             await CreateNotificationClub("player", "create", team.id_club, team.name, result.id);
+                            // ويُفتح للطلب مساره، فيصير للفريق خطٌّ يتتبّعه بدل
+                            // شارة واحدة تقول حالته الآن وتمحو ما قبلها.
+                            await openFlow({
+                                request_type: "player_registration",
+                                entity_type: "player",
+                                entity_id: result.id,
+                                id_club: team.id_club,
+                                id_team: team.id,
+                                id_user: context?.user?.id || null,
+                            });
                         }
                     } catch (notifyErr) {
                         console.error("createPlayer: notification failed", notifyErr);

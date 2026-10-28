@@ -80,3 +80,15 @@ export const assertTeamInCallerClub = async (context, idTeam) => {
     error.code = "TEAM_NOT_IN_CLUB";
     throw error;
 };
+
+/**
+ * فريق المستدعي حين يكون حساب فريق (دور ٣) — وإلا فلا فريق له.
+ *
+ * الفريق لا يدفع عن غيره ولا يحرّك طلب غيره، فهذه هي الحدّ الذي يُقاس عليه.
+ */
+export const callerTeamId = async (context) => {
+    const user = context?.user;
+    if (!context?.isAuth || user?.role !== TEAM_ADMIN_ROLE || !user?.id_person) return null;
+    const member = await Members.findOne({ where: { id_person: user.id_person } });
+    return member?.id_team || null;
+};
