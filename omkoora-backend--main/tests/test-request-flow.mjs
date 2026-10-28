@@ -41,7 +41,8 @@ check("ولكل نوع رسومه، فوجودها قرار النادي حين 
 check("المسودة تُقدَّم", canAdvance(at(DRAFT), { to: SUBMITTED, by: "team" }).ok, true);
 check("والنادي يقبلها مبدئياً", canAdvance(at(SUBMITTED), { to: CLUB_PROCESSING, by: "club" }).ok, true);
 check("ثم يطالب بالرسوم", canAdvance(at(CLUB_PROCESSING), { to: AWAITING_PAYMENT, by: "club" }).ok, true);
-check("ويسدّد الفريق", canAdvance(at(AWAITING_PAYMENT), { to: PAID_REVIEW, by: "team" }).ok, true);
+check("ويسدّد الفريق برفع إيصاله",
+    canAdvance(at(AWAITING_PAYMENT), { to: PAID_REVIEW, by: "team", viaReceipt: true }).ok, true);
 check("فيعتمد النادي نهائياً", canAdvance(at(PAID_REVIEW), { to: APPROVED, by: "club" }).ok, true);
 
 // ——— من يملك الإجراء ———
@@ -51,6 +52,19 @@ check("ورسالتها تسمّي صاحب الحق",
     canAdvance(at(SUBMITTED), { to: CLUB_PROCESSING, by: "team" }).message, "هذا الإجراء من حق النادي");
 check("والنادي لا يسدّد عن الفريق",
     canAdvance(at(AWAITING_PAYMENT), { to: PAID_REVIEW, by: "club" }).code, "FLOW_FORBIDDEN");
+// ——— السداد يملكه الإيصال، لا زرّ ———
+// ولو كان زراً لأعلن الفريق سدادَ نفسه ومضى الطلب بلا ريال.
+check("الفريق لا يعلن سداده بزرّ",
+    canAdvance(at(AWAITING_PAYMENT), { to: PAID_REVIEW, by: "team" }).code, "RECEIPT_REQUIRED");
+check("ورسالتها تقول كيف يُسجَّل",
+    canAdvance(at(AWAITING_PAYMENT), { to: PAID_REVIEW, by: "team" }).message,
+    "السداد يُسجَّل برفع الإيصال ورقمه المرجعي");
+check("ولا يمنحه إيصالُ النادي نيابةً عنه",
+    canAdvance(at(AWAITING_PAYMENT), { to: PAID_REVIEW, by: "club", viaReceipt: true }).code,
+    "FLOW_FORBIDDEN");
+check("ولا يفتح الإيصال انتقالاً آخر",
+    canAdvance(at(SUBMITTED), { to: CLUB_PROCESSING, by: "team", viaReceipt: true }).code,
+    "FLOW_FORBIDDEN");
 
 // ——— الرفض لا يكون بلا سبب ———
 check("رفض مبدئي بلا سبب مرفوض",

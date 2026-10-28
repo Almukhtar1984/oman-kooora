@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Button, Container, Flex, MantineTheme, Menu, Text, Tooltip, Divider, Burger, Drawer, Stack, Group, Avatar } from "@mantine/core";
 import React, { useEffect, useState } from "react";
-import { ChevronDown, Logout, Search, BellRinging, User, Home, BallFootball, Users, Inbox, Send, CalendarEvent, Article, FileText, ShieldLock, Activity,Moneybag, InfoCircle, Coin } from "tabler-icons-react";
+import { ChevronDown, Logout, Search, BellRinging, User, Home, BallFootball, Users, Inbox, Send, CalendarEvent, Article, FileText, ShieldLock, Activity,Moneybag, InfoCircle, Coin, Route } from "tabler-icons-react";
 import { useTheme } from "@emotion/react";
 import { useDisclosure } from "@mantine/hooks";
 import useStore from "../../store/useStore";
@@ -117,6 +117,7 @@ const Header = (props: Props) => {
     const mobileNavLinks = [
         { path: '/', label: 'الرئيسية', icon: <Home size={18} /> },
         { path: '/requests' , label: 'الطلبات', icon: <InfoCircle size={18} />},
+        { path: '/tracking', label: 'تتبّع الطلبات', icon: <Route size={18} /> },
         { path: '/payments', label: 'المدفوعات', icon: <Coin size={18} /> },
         { path: '/messages', label: 'الرسائل', icon: <Inbox size={18} /> },
         { path: 'expenses' , label: 'المصروفات', icon: <Moneybag size={18} />},

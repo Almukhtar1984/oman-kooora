@@ -1,12 +1,14 @@
 import { ApolloError } from 'apollo-server-express';
 
 import logger from "../../Config/logger.mjs";
-import { Club, RequestFlow, RequestFlowEvent, RequestPayment, Team, Transfer } from '../../Models/index.mjs';
+import {
+    Club, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Team, Transfer,
+} from '../../Models/index.mjs';
 import { callerClubId, callerTeamId } from "../../Helpers/clubScope.mjs";
 import { advanceFlow, flowFor } from "../../Helpers/requestFlowRunner.mjs";
 import {
-    STAGES, stageInfo, stageLabel, isDone, requestTypeLabel,
-    canAdvance, CANCELLED,
+    STAGES, stageInfo, stageLabel, actionLabel, isDone, requestTypeLabel,
+    canAdvance,
 } from "../../Helpers/requestFlow.mjs";
 import { feeLabel } from "../../Helpers/clubFees.mjs";
 
@@ -30,6 +32,77 @@ const sideOf = async (context, flow) => {
     return null;
 };
 
+// اسم اللاعب الذي عن الطلب.
+//
+// بغيره يفتح الفريق خطّه فيجد ثلاثين سطراً نصّها واحد: «تسجيل لاعب جديد» —
+// فلا يعرف أيّها لاعبه. ويُجلب للقائمة كلها في ثلاثة استعلامات لا في اثنين
+// لكل سطر: نادٍ له خمسة وأربعون فريقاً يفتح هذه الصفحة في كل حال.
+const PERSON = {
+    model: Person, as: "person",
+    attributes: ["first_name", "second_name", "third_name", "tribe"],
+};
+
+const fullName = (person) =>
+    [person?.first_name, person?.second_name, person?.third_name, person?.tribe]
+        .filter(Boolean).join(" ").trim() || null;
+
+const subjectsFor = async (flows) => {
+    const names = new Map();
+    const ids = { player: [], transfer: [], player_release: [] };
+    flows.forEach((flow) => ids[flow.entity_type]?.push(flow.entity_id));
+
+    const inList = (list) => ({ id: list });
+    const [players, transfers, releases] = await Promise.all([
+        ids.player.length
+            ? Players.findAll({ where: inList(ids.player), include: [PERSON] }) : [],
+        ids.transfer.length
+            ? Transfer.findAll({
+                where: inList(ids.transfer),
+                include: [{ model: Players, as: "player", include: [PERSON] }],
+            }) : [],
+        ids.player_release.length
+            ? PlayerRelease.findAll({
+                where: inList(ids.player_release),
+                include: [{ model: Players, as: "player", include: [PERSON] }],
+            }) : [],
+    ]);
+
+    players.forEach((row) => names.set(`player:${row.id}`, fullName(row.person)));
+    transfers.forEach((row) => names.set(`transfer:${row.id}`, fullName(row.player?.person)));
+    releases.forEach((row) => names.set(`player_release:${row.id}`, fullName(row.player?.person)));
+    return names;
+};
+
+const subjectOf = (flow, names) => names.get(`${flow.entity_type}:${flow.entity_id}`) || null;
+
+/** مطالبات الرسوم لمجموعة مسارات — استعلام واحد لا استعلام لكل سطر. */
+const paymentsFor = async (flows) => {
+    const ids = flows.map((flow) => flow.id_payment).filter(Boolean);
+    if (!ids.length) return new Map();
+    const rows = await RequestPayment.findAll({ where: { id: ids } });
+    return new Map(rows.map((row) => [row.id, row.get({ plain: true })]));
+};
+
+/**
+ * المسار كما تقرأه الواجهة: مسمّياته، واسم لاعبه، ومطالبته، وما يجوز فيه.
+ *
+ * يُجلب ما يحتاجه السطر الواحد والقائمة كلها بالعدد نفسه من الاستعلامات.
+ */
+const enrich = async (flows, { by = null } = {}) => {
+    const [names, payments] = await Promise.all([subjectsFor(flows), paymentsFor(flows)]);
+    return flows.map((flow) => {
+        const plain = flow.get ? flow.get({ plain: true }) : flow;
+        return withLabels({
+            ...plain,
+            subject: subjectOf(plain, names),
+            payment: plain.payment || (plain.id_payment ? payments.get(plain.id_payment) || null : null),
+            // الخط من الأقدم إلى الأحدث — وهو ترتيبه الذي يُقرأ به.
+            events: [...(plain.events || [])].sort(
+                (a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
+        }, { by });
+    });
+};
+
 const withLabels = (flow, { by = null } = {}) => {
     const plain = flow.get ? flow.get({ plain: true }) : flow;
     const info = stageInfo(plain.stage) || {};
@@ -38,6 +111,7 @@ const withLabels = (flow, { by = null } = {}) => {
         request_label: requestTypeLabel(plain.request_type),
         label: info.label || "",
         also: info.also || null,
+        actor: info.actor || null,
         done: isDone(plain.stage),
         events: (plain.events || []).map((event) => ({
             ...event,
@@ -58,7 +132,7 @@ const availableActions = (flow, by) =>
         .filter((to) => canAdvance(flow, { to, by, reason: "—", type: flow.request_type }).ok)
         .map((to) => ({
             to,
-            label: to === CANCELLED ? "إلغاء الطلب" : stageLabel(to),
+            label: actionLabel(to),
             needsReason: Boolean(stageInfo(to)?.needsReason),
         }));
 
@@ -86,12 +160,8 @@ export const resolvers = {
                 const by = await sideOf(context, flow);
                 if (!by) return null;        // ليس طلبه، فلا يراه
 
-                const payment = flow.id_payment ? await RequestPayment.findByPk(flow.id_payment) : null;
-                const full = flow.get({ plain: true });
-                full.payment = payment ? payment.get({ plain: true }) : null;
-                full.events = (full.events || []).sort(
-                    (a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                return withLabels(full, { by });
+                const [enriched] = await enrich([flow], { by });
+                return enriched;
             } catch (error) {
                 logger.error(`RequestFlow.requestFlow: ${error?.message || error}`);
                 throw new ApolloError(error);
@@ -116,7 +186,7 @@ export const resolvers = {
                 const rows = await RequestFlow.findAll({
                     where, include: FLOW_INCLUDE, order: [["updatedAt", "DESC"]],
                 });
-                return rows.map((row) => withLabels(row, { by }));
+                return await enrich(rows, { by });
             } catch (error) {
                 logger.error(`RequestFlow.myRequestFlows: ${error?.message || error}`);
                 throw new ApolloError(error);
@@ -152,11 +222,12 @@ export const resolvers = {
                 }
 
                 const fresh = await flowFor(flow.entity_type, flow.entity_id);
+                const [enriched] = fresh ? await enrich([fresh], { by }) : [null];
                 return {
                     ok: true,
                     code: null,
                     message: `الطلب الآن: ${result.label}`,
-                    flow: fresh ? withLabels(fresh, { by }) : null,
+                    flow: enriched,
                 };
             } catch (error) {
                 logger.error(`RequestFlow.advanceRequestFlow: ${error?.message || error}`);

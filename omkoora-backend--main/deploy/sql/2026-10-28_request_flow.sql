@@ -63,7 +63,8 @@ CREATE TABLE IF NOT EXISTS request_flow_events (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- الاستقالة نوع طلب رابع، فيلحق بأنواع الرسوم كي يُسعّر النادي إن أراد.
--- (المسار نفسه لا يطالب عنها برسوم — انظر requestFlow.mjs.)
+-- وقال المالك «الرسوم المستحقة، إن وجدت» — فوجودها قرار النادي حين يسعّر:
+-- سعّرها فطالب بها المسار، وتركها فمضى الطلب إلى الاعتماد بلا سداد.
 SET @fees_has_release := (SELECT COUNT(*) FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'club_fees'
       AND COLUMN_NAME = 'fee_type' AND COLUMN_TYPE LIKE '%player_release%');

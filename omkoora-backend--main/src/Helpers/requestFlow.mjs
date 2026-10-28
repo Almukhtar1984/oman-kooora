@@ -98,6 +98,23 @@ export const STAGES = [
 
 const BY_STAGE = new Map(STAGES.map((s) => [s.stage, s]));
 
+// نصّ الزرّ الذي ينقل الطلب إلى هذه المرحلة.
+//
+// اسم المرحلة يصف حالاً، والزرّ يصف فعلاً: «مقبول مبدئياً» تُقرأ خبراً، و«قبول
+// مبدئي» تُقرأ أمراً — وهو ما يضغطه النادي.
+const ACTION_LABELS = {
+    [SUBMITTED]:        "إعادة إرسال الطلب",
+    [CLUB_PROCESSING]:  "قبول مبدئي",
+    [REJECTED_INITIAL]: "رفض مبدئي (مع السبب)",
+    [AWAITING_PAYMENT]: "مطالبة بالرسوم",
+    [PAID_REVIEW]:      "تأكيد السداد",
+    [APPROVED]:         "اعتماد نهائي",
+    [REJECTED_FINAL]:   "رفض نهائي (مع السبب)",
+    [CANCELLED]:        "إلغاء الطلب",
+};
+
+export const actionLabel = (stage) => ACTION_LABELS[stage] || stageLabel(stage);
+
 export const stageInfo  = (stage) => BY_STAGE.get(stage) || null;
 export const stageLabel = (stage) => BY_STAGE.get(stage)?.label || "";
 export const isStage    = (stage) => BY_STAGE.has(stage);
@@ -126,8 +143,8 @@ export const requestTypeLabel = (type) => BY_TYPE.get(type)?.label || "";
 export const isRequestType    = (type) => BY_TYPE.has(type);
 
 // هل يجوز للفريق تعديل الطلب وإعادة إرساله بعد الرفض المبدئي؟
-// «إذا كانت طبيعة الطلب تسمح بذلك» — والاستقالة لا تسمح: رفضها قرار على
-// اللاعب نفسه، لا نقص في ورقة تُستكمل.
+// «إذا كانت طبيعة الطلب تسمح بذلك» — ولم يسمِّ نوعاً لا يسمح، فالأربعة تسمح
+// (انظر resubmit في REQUEST_TYPES)، والمنع كلمة واحدة في سطر النوع.
 export const allowsResubmit = (type) => Boolean(BY_TYPE.get(type)?.resubmit);
 
 // ما يجوز الانتقال إليه من كل مرحلة، ومن يملكه.
@@ -141,7 +158,10 @@ const TRANSITIONS = {
                          // بلا رسوم مسعّرة يمضي النادي إلى الاعتماد مباشرة.
                          { to: APPROVED,         by: "club" },
                          { to: REJECTED_FINAL,   by: "club" }],
-    [AWAITING_PAYMENT]: [{ to: PAID_REVIEW,      by: "team" },
+    // والسداد لا يُعلنه زرّ: الفريق ينتقل من الانتظار إلى المراجعة برفع
+    // الإيصال ورقمه المرجعي، فيحرّكه رفعُ الإيصال نفسه (viaReceipt). ولو كان
+    // زراً لأعلن الفريق سدادَ نفسه ومضى الطلب بلا ريال.
+    [AWAITING_PAYMENT]: [{ to: PAID_REVIEW,      by: "team", viaReceipt: true },
                          { to: REJECTED_FINAL,   by: "club" }],
     // رفض الإيصال يعيد الطلب إلى السداد لا إلى طريق مسدود: يصحّح الفريق
     // إيصاله ويرسله ثانية، كما يفعل بالتسجيل المرفوض تماماً.
@@ -159,7 +179,7 @@ const TRANSITIONS = {
  * ترجع {ok:true} أو {ok:false, code, message} — بنفس أسلوب بقية المساعدات،
  * فالرافض يقول سببه بلغة تُعرض للمستخدم لا رمزاً يُترجم في الواجهة.
  */
-export const canAdvance = (flow, { to, by, reason, type } = {}) => {
+export const canAdvance = (flow, { to, by, reason, type, viaReceipt = false } = {}) => {
     if (!flow) {
         return { ok: false, code: "FLOW_NOT_FOUND", message: "مسار الطلب غير موجود" };
     }
@@ -199,6 +219,14 @@ export const canAdvance = (flow, { to, by, reason, type } = {}) => {
             message: allowed.by === "club"
                 ? "هذا الإجراء من حق النادي"
                 : "هذا الإجراء من حق الفريق",
+        };
+    }
+    // انتقالٌ يملكه الإيصال لا الزرّ.
+    if (allowed.viaReceipt && !viaReceipt) {
+        return {
+            ok: false,
+            code: "RECEIPT_REQUIRED",
+            message: "السداد يُسجَّل برفع الإيصال ورقمه المرجعي",
         };
     }
     // إعادة الإرسال بعد رفض مبدئي — وليس كل طلب يقبلها.

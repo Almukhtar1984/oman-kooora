@@ -19,6 +19,7 @@ import {
     Scale,
     Trophy,
     Coin,
+    Route,
 } from "tabler-icons-react";
 
 // Public league/competitions site. Override with NEXT_PUBLIC_LEAGUE_URL.
@@ -144,6 +145,7 @@ const HorizontalNavbar = () => {
         { path: '/players_transfer', label: 'إنتقالات اللاعبين', icon: <ArrowsLeftRight size={20} />, show: hasPermission("transferPlayers", "1") },
         { path: '/players_loan', label: 'إعارات اللاعبين', icon: <Repeat size={20} />, show: hasPermission("loanPlayers", "1") },
         { path: '/releases', label: 'إخلاء الطرف', icon: <ArrowsLeftRight size={20} />, show: hasPermission("transferPlayers", "1") },
+        { path: '/tracking', label: 'مسار الطلبات', icon: <Route size={20} />, show: true },
         { path: '/payments', label: 'المدفوعات', icon: <Coin size={20} />, show: true },
         { path: '/messages', label: ' الرسائل', icon: <Inbox size={20} />, show: hasPermission("inbox", "1") },
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={20} />, show: hasPermission("meetings", "1") },

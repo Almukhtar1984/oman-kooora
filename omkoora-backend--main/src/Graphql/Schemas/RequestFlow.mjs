@@ -41,11 +41,15 @@ export const typeDefs = gql`
         id:            ID
         request_type:  String
         request_label: String
+        # اسم اللاعب الذي عن الطلب — بغيره تتشابه ثلاثون سطراً.
+        subject:       String
         entity_type:   String
         entity_id:     ID
         stage:         String
         label:         String
         also:          String
+        # دور مَن الآن: الفريق أم النادي — به تفرز كل جهة ما يخصّها.
+        actor:         String
         done:          Boolean
         reason:        String
         createdAt:     Date @date(format: "yyyy-MM-dd")

@@ -159,6 +159,7 @@ const announce = async (flow, { payment = null } = {}) => {
  */
 export const advanceFlow = async ({
     flow, entity_type, entity_id, to, by, reason = null, id_user = null, note = null,
+    viaReceipt = false,
 }) => {
     try {
         const current = flow || await flowFor(entity_type, entity_id, { withEvents: false });
@@ -169,7 +170,9 @@ export const advanceFlow = async ({
         let target = to;
         let payment = null;
 
-        const allowed = canAdvance(current, { to: target, by, reason, type: current.request_type });
+        const allowed = canAdvance(current, {
+            to: target, by, reason, type: current.request_type, viaReceipt,
+        });
         if (!allowed.ok) return allowed;
 
         if (target === AWAITING_PAYMENT) {
@@ -213,7 +216,8 @@ export const advanceFlow = async ({
 export const onReceiptSubmitted = async (payment, { id_user = null } = {}) => {
     const flow = await flowFor(payment?.entity_type, payment?.entity_id, { withEvents: false });
     if (!flow || flow.stage !== AWAITING_PAYMENT) return null;
-    return advanceFlow({ flow, to: PAID_REVIEW, by: "team", id_user });
+    // الإيصال هو ما يملك هذا الانتقال — ومن هنا وحده يُمنح.
+    return advanceFlow({ flow, to: PAID_REVIEW, by: "team", id_user, viaReceipt: true });
 };
 
 /** النادي ردّ الإيصال، فيعود الطلب إلى السداد لا إلى طريق مسدود. */

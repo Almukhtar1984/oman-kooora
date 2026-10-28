@@ -2,9 +2,12 @@ import { ApolloError } from 'apollo-server-express';
 import sequelize from 'sequelize';
 
 import logger from "../../Config/logger.mjs";
-import { Blog, Members, Players, PlayerRelease, RequestPayment, Team, TechnicalApparatus, Transfer } from '../../Models/index.mjs';
+import {
+    Blog, Members, Players, PlayerRelease, RequestFlow, RequestPayment, Team, TechnicalApparatus, Transfer,
+} from '../../Models/index.mjs';
 import { callerClubId } from "../../Helpers/clubScope.mjs";
 import { summarizePending } from "../../Helpers/pendingRequests.mjs";
+import { AWAITING_PAYMENT } from "../../Helpers/requestFlow.mjs";
 
 const { Op } = sequelize;
 
@@ -23,9 +26,22 @@ export const resolvers = {
                 const teamIds = teams.map((team) => team.id);
                 const byTeam = { id_team: { [Op.in]: teamIds }, status: { [Op.in]: UNDECIDED } };
 
+                // طلبٌ ينتظر سداد الفريق ليس في ملعب النادي.
+                //
+                // الحالة القديمة تبقى «بانتظار النادي» لأن الشاشات القائمة تقرأها،
+                // فكان العدّاد الأحمر يحسب هذه الطلبات ويطارد النادي بعمل ليس عمله.
+                // المرحلة تعرف دور مَن هو، فتُستثنى بها.
+                const paused = { player: [], transfer: [], player_release: [] };
+                const waitingOnTeam = await RequestFlow.findAll({
+                    where: { id_club: idClub, stage: AWAITING_PAYMENT },
+                    attributes: ["entity_type", "entity_id"],
+                });
+                waitingOnTeam.forEach((flow) => paused[flow.entity_type]?.push(flow.entity_id));
+                const except = (ids) => (ids.length ? { id: { [Op.notIn]: ids } } : {});
+
                 // Counted in parallel: this runs behind a badge on every page.
                 const [players, technicals, members, transfers, loans, releases, payments, news] = await Promise.all([
-                    teamIds.length ? Players.count({ where: byTeam }) : 0,
+                    teamIds.length ? Players.count({ where: { ...byTeam, ...except(paused.player) } }) : 0,
                     teamIds.length ? TechnicalApparatus.count({ where: byTeam }) : 0,
                     teamIds.length ? Members.count({ where: byTeam }) : 0,
                     Transfer.count({
@@ -33,6 +49,7 @@ export const resolvers = {
                             transition_type: "transition",
                             status: { [Op.in]: TRANSFER_UNDECIDED },
                             [Op.or]: [{ id_club_from: idClub }, { id_club_to: idClub }],
+                            ...except(paused.transfer),
                         },
                     }),
                     Transfer.count({
@@ -40,9 +57,12 @@ export const resolvers = {
                             transition_type: "loan",
                             status: { [Op.in]: TRANSFER_UNDECIDED },
                             [Op.or]: [{ id_club_from: idClub }, { id_club_to: idClub }],
+                            ...except(paused.transfer),
                         },
                     }),
-                    PlayerRelease.count({ where: { id_club: idClub, status: "waiting" } }),
+                    PlayerRelease.count({
+                        where: { id_club: idClub, status: "waiting", ...except(paused.player_release) },
+                    }),
                     // A receipt the team sent and the club has not looked at yet.
                     RequestPayment.count({ where: { id_club: idClub, status: "submitted" } }),
                     Blog.count({ where: { id_club: idClub, status: "waiting" } }),
