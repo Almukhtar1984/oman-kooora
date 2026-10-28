@@ -51,6 +51,8 @@ import academyModel from './Academy.mjs';
 import playerReleaseModel from './PlayerRelease.mjs';
 import clubFeeModel from './ClubFee.mjs';
 import requestPaymentModel from './RequestPayment.mjs';
+import requestFlowModel from './RequestFlow.mjs';
+import requestFlowEventModel from './RequestFlowEvent.mjs';
 import academyProgramModel from './AcademyProgram.mjs';
 import academyNewsModel from './AcademyNews.mjs';
 import academyRegistrationModel from './AcademyRegistration.mjs';
@@ -116,6 +118,8 @@ const Academy = academyModel(DB, Sequelize);
 const PlayerRelease = playerReleaseModel(DB, Sequelize);
 const ClubFee = clubFeeModel(DB, Sequelize);
 const RequestPayment = requestPaymentModel(DB, Sequelize);
+const RequestFlow = requestFlowModel(DB, Sequelize);
+const RequestFlowEvent = requestFlowEventModel(DB, Sequelize);
 const AcademyProgram = academyProgramModel(DB, Sequelize);
 const AcademyNews = academyNewsModel(DB, Sequelize);
 const AcademyRegistration = academyRegistrationModel(DB, Sequelize);
@@ -552,6 +556,17 @@ RequestPayment.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CAS
 Team.hasMany(RequestPayment, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 RequestPayment.belongsTo(Team, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 
+// مسار الطلب: يخصّ نادياً وفريقاً، وخطّ تتبّعه أحداثه.
+Club.hasMany(RequestFlow, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+RequestFlow.belongsTo(Club, { foreignKey: { name: 'id_club' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+Team.hasMany(RequestFlow, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+RequestFlow.belongsTo(Team, { foreignKey: { name: 'id_team' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
+// حذف المسار يحذف خطّه — لا خط بلا طلب.
+RequestFlow.hasMany(RequestFlowEvent, { as: 'events', foreignKey: { name: 'id_flow' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+RequestFlowEvent.belongsTo(RequestFlow, { as: 'flow', foreignKey: { name: 'id_flow' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+
 export {
     User, Club, Team, Person, Members, Players, TechnicalApparatus, ClubManagement, Transfer, Request,Penalty,
     Assembly, Message, Attachment, Comment, Expense, Meeting, Blog, AttachmentBlog, Form, Permission,
@@ -560,5 +575,5 @@ export {
     Committee, CommitteeMember, MemberPayment, DeviceToken, AiSetting,
     Academy, AcademyProgram, AcademyNews, AcademyRegistration,
     Store, Product, Order, OrderItem,
-    PlayerRelease, ClubFee, RequestPayment
+    PlayerRelease, ClubFee, RequestPayment, RequestFlow, RequestFlowEvent
 }

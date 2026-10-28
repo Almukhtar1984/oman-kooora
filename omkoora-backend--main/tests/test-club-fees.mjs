@@ -14,8 +14,9 @@ const check = (label, got, want) => {
     else { fail++; console.log(`\x1b[31m✗\x1b[0m ${label} — توقعنا ${JSON.stringify(want)} وجاء ${JSON.stringify(got)}`); }
 };
 
-check("الأنواع الأربعة التي ذكرها", FEE_TYPES.map((f) => f.type),
-    ["player_registration", "transfer", "loan", "team_registration"]);
+// الأربعة الأولى من رسالته الأولى، والاستقالة لحقت بها حين عدّها نوعَ طلب رابعاً.
+check("أنواع الرسوم الخمسة", FEE_TYPES.map((f) => f.type),
+    ["player_registration", "transfer", "loan", "team_registration", "player_release"]);
 check("ولكل نوع اسم عربي", feeLabel("transfer"), "انتقال لاعب");
 check("نوع مجهول يُرفض", isFeeType("donation"), false);
 

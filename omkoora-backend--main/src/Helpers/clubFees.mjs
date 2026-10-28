@@ -21,6 +21,7 @@ export const FEE_TYPES = [
     { type: "transfer",            label: "انتقال لاعب" },
     { type: "loan",                label: "إعارة لاعب" },
     { type: "team_registration",   label: "تسجيل فريق" },
+    { type: "player_release",      label: "استقالة لاعب" },
 ];
 
 const FEE_KEYS = FEE_TYPES.map((f) => f.type);
