@@ -1,4 +1,4 @@
-import { createStyles, Container, Flex, Box, Text, ScrollArea } from "@mantine/core";
+import { ActionIcon, createStyles, Container, Flex, Box, Text, ScrollArea } from "@mantine/core";
 import { useRouter } from "next/router";
 import {
     Home,
@@ -15,11 +15,16 @@ import {
     InfoCircle,
     Coin,
     Route,
+    ChevronRight,
+    ChevronLeft,
 } from "tabler-icons-react";
 import { GiAbstract042, GiTrophyCup, GiPlayerNext } from "react-icons/gi";
 import useStore from "../../store/useStore";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import {
+    hasRailAfter, hasRailBefore, railDelta, railOverflows,
+} from "../../lib/helpers/navRail";
 
 const useStyles = createStyles((theme) => ({
     navbar: {
@@ -39,11 +44,10 @@ const useStyles = createStyles((theme) => ({
         display: 'flex',
         alignItems: 'center',
         gap: theme.spacing.xl,
-        overflowX: 'auto',
-        '&::-webkit-scrollbar': {
-            display: 'none',
-        },
-        scrollbarWidth: 'none',
+        // The strip takes its content's own width, so the tabs that do not fit
+        // are reached by scrolling the viewport around it — not by a second
+        // scrolling box inside it, which the arrows could not steer.
+        width: 'max-content',
     },
     link: {
         display: 'flex',
@@ -77,6 +81,17 @@ const useStyles = createStyles((theme) => ({
             backgroundColor: '#FEF3C7',
             color: '#F59E0B',
         }
+    },
+    arrow: {
+        // السهمان داخل الصفّ لا فوق الشريط: لو طافا عليه لحجبا أوّل تبويب
+        // وآخره، والمقصود أن تُرى الصفحات لا أن تُغطّى.
+        flexShrink: 0,
+        backgroundColor: theme.white,
+        borderColor: theme.colors.gray[3],
+        boxShadow: theme.shadows.xs,
+        '&:not(:disabled):hover': {
+            backgroundColor: theme.colors.gray[0],
+        },
     },
 }));
 
@@ -140,71 +155,151 @@ const HorizontalNavbar = () => {
         { path: 'https://cheeryourteam.com/', label: 'شجع فريقك', icon: <BallFootball size={20} />, external: true, show: true },
     ];
 
+    const visible = navItems.filter((item) => item.show);
+
+    // الشريط: مرجع حاويته، وهل خلفه أو أمامه صفحات لا تُرى.
+    const viewport = useRef<HTMLDivElement>(null);
+    const [rail, setRail] = useState({ overflows: false, before: false, after: false });
+
+    const readRail = useCallback(() => {
+        const el = viewport.current;
+        if (!el) return;
+        setRail({ overflows: railOverflows(el), before: hasRailBefore(el), after: hasRailAfter(el) });
+    }, []);
+
+    // عرض النافذة يتغيّر، والصلاحيات تصل متأخّرةً فتطول القائمة — وفي الحالتين
+    // يُعاد السؤال: أين طرفا الشريط الآن؟
+    useEffect(() => {
+        const el = viewport.current;
+        if (!el) return;
+        readRail();
+        if (typeof ResizeObserver === "undefined") return;
+
+        const observer = new ResizeObserver(readRail);
+        observer.observe(el);
+        if (el.firstElementChild) observer.observe(el.firstElementChild);
+        return () => observer.disconnect();
+    }, [readRail, visible.length]);
+
+    // والصفحة التي أنت فيها تُجلب إلى النظر: لو وقفت خارج الشريط لظننتَ أنك
+    // لا تقف عليها. تُقاس بالمستطيلات لا بـ scrollLeft — الفرق بين موضعين
+    // واحدٌ في كل المتصفحات، وإشارة scrollLeft ليست كذلك.
+    useEffect(() => {
+        const el = viewport.current;
+        const active = el?.querySelector<HTMLElement>("[data-active]");
+        if (!el || !active) return;
+
+        const box = el.getBoundingClientRect();
+        const item = active.getBoundingClientRect();
+        if (item.left >= box.left && item.right <= box.right) return;
+        el.scrollBy({ left: item.left + item.width / 2 - (box.left + box.width / 2) });
+    }, [router.pathname, visible.length]);
+
+    const nudge = (toward: "before" | "after") => {
+        const el = viewport.current;
+        if (!el) return;
+        // اتجاه اللوحة هو ما يقرّر إشارة الخطوة، والشريط يتبع اتجاه ما حوله.
+        el.scrollBy({ left: railDelta(el, toward, theme.dir === "rtl"), behavior: "smooth" });
+    };
+
+    // زرُّ تمرير واحد يُرسم مرّتين: يميناً للعودة، ويساراً للمتابعة.
+    const arrowButton = (toward: "before" | "after") => {
+        const label = toward === "before" ? "الصفحات السابقة" : "الصفحات التالية";
+        return (
+            <ActionIcon
+                variant="default"
+                radius="xl"
+                size={36}
+                className={classes.arrow}
+                disabled={toward === "before" ? !rail.before : !rail.after}
+                onClick={() => nudge(toward)}
+                aria-label={label}
+                title={label}
+            >
+                {toward === "before" ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </ActionIcon>
+        );
+    };
+
     return (
         <Box className={classes.navbar}>
             <Container size="xl" h="100%">
-                <ScrollArea type="never" h="100%" sx={{ '& > div': { height: '100%' } }}>
-                    <Flex className={classes.linksContainer} h="100%" align="center">
-                        {navItems.filter(item => item.show).map((item) => {
-                            const isMembersRelated = ['/members', '/technicalApparatus', '/players', '/assembly'].includes(router.pathname);
-                            const isMessagesRelated = ['/messages', '/inbox', '/outbox'].includes(router.pathname);
+                {/* اتجاه الصفّ من السمة لا من الأنماط: مُحوِّل الأنماط يقلب كل
+                    direction مكتوبٍ في CSS، فيقع سهم العودة في جهة النهاية. */}
+                <Flex h="100%" align="center" gap={6} dir={theme.dir}>
+                    {rail.overflows && arrowButton("before")}
+                    <ScrollArea
+                        type="never"
+                        h="100%"
+                        viewportRef={viewport}
+                        onScrollPositionChange={readRail}
+                        sx={{ flex: 1, minWidth: 0, '& > div': { height: '100%' } }}
+                    >
+                        <Flex className={classes.linksContainer} h="100%" align="center">
+                            {visible.map((item) => {
+                                const isMembersRelated = ['/members', '/technicalApparatus', '/players', '/assembly'].includes(router.pathname);
+                                const isMessagesRelated = ['/messages', '/inbox', '/outbox'].includes(router.pathname);
                             
-                            let isActive = router.pathname === item.path;
-                            if (item.path === '/members') isActive = isMembersRelated;
-                            if (item.path === '/messages') isActive = isMessagesRelated;
+                                let isActive = router.pathname === item.path;
+                                if (item.path === '/members') isActive = isMembersRelated;
+                                if (item.path === '/messages') isActive = isMessagesRelated;
 
-                            if (item.external) {
-                                return (
-                                    <Box
-                                        key={item.path}
-                                        onClick={() => window.open(item.path, '_blank')}
-                                        className={cx(classes.link, { [classes.linkActive]: isActive })}
-                                        sx={(theme) => ({
-                                            ...(item.path === 'https://cheeryourteam.com/' && {
-                                                backgroundColor: '#2563eb', 
-                                                color: 'white !important',
-                                                borderRadius: '12px',
-                                                height: '56px',
-                                                alignSelf: 'center',
-                                                padding: '0 20px',
-                                                boxShadow: theme.shadows.md,
-                                                '&:hover': {
-                                                    backgroundColor: '#1d4ed8',
-                                                    transform: 'translateY(-2px)',
-                                                },
-                                                '& .mantine-Text-root': {
-                                                    color: 'white !important',
-                                                    fontWeight: 700,
-                                                },
-                                                '& svg': {
-                                                    color: 'white !important',
-                                                }
-                                            })
-                                        })}
-                                    >
-                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                            {item.icon}
-                                        </Box>
-                                        <Text>{item.label}</Text>
-                                    </Box>
-                                );
-                            } else {
-                                return (
-                                    <Link href={item.path} key={item.path} passHref legacyBehavior>
-                                        <a
+                                if (item.external) {
+                                    return (
+                                        <Box
+                                            key={item.path}
+                                            onClick={() => window.open(item.path, '_blank')}
                                             className={cx(classes.link, { [classes.linkActive]: isActive })}
+                                            data-active={isActive || undefined}
+                                            sx={(theme) => ({
+                                                ...(item.path === 'https://cheeryourteam.com/' && {
+                                                    backgroundColor: '#2563eb', 
+                                                    color: 'white !important',
+                                                    borderRadius: '12px',
+                                                    height: '56px',
+                                                    alignSelf: 'center',
+                                                    padding: '0 20px',
+                                                    boxShadow: theme.shadows.md,
+                                                    '&:hover': {
+                                                        backgroundColor: '#1d4ed8',
+                                                        transform: 'translateY(-2px)',
+                                                    },
+                                                    '& .mantine-Text-root': {
+                                                        color: 'white !important',
+                                                        fontWeight: 700,
+                                                    },
+                                                    '& svg': {
+                                                        color: 'white !important',
+                                                    }
+                                                })
+                                            })}
                                         >
                                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                 {item.icon}
                                             </Box>
                                             <Text>{item.label}</Text>
-                                        </a>
-                                    </Link>
-                                );
-                            }
-                        })}
-                    </Flex>
-                </ScrollArea>
+                                        </Box>
+                                    );
+                                } else {
+                                    return (
+                                        <Link href={item.path} key={item.path} passHref legacyBehavior>
+                                            <a
+                                                className={cx(classes.link, { [classes.linkActive]: isActive })}
+                                                data-active={isActive || undefined}
+                                            >
+                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    {item.icon}
+                                                </Box>
+                                                <Text>{item.label}</Text>
+                                            </a>
+                                        </Link>
+                                    );
+                                }
+                            })}
+                        </Flex>
+                    </ScrollArea>
+                    {rail.overflows && arrowButton("after")}
+                </Flex>
             </Container>
         </Box>
     );
