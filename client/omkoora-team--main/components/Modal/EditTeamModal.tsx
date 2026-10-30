@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import React, {useState} from "react";
 import { useForm, Controller } from "react-hook-form";
 import TextInput from "../Input/TextInput";
+import ActivitiesSelect from "../Input/ActivitiesSelect";
 import Modal, { Props as ModalProps } from "./Modal";
 import {AllTeams, useUpdateTeam} from "../../graphql";
 
@@ -95,12 +96,17 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
                             />
                         </Col>
                         <Col span={6}>
-                            <TextInput
-                                label="النشاط"
-                                placeholder="النشاط"
-                                withAsterisk
-                                error={errors?.activities && true}
-                                {...register("activities", { required: true })}
+                            <Controller
+                                name="activities"
+                                control={control}
+                                rules={{ required: true }}
+                                render={({ field }) => (
+                                    <ActivitiesSelect
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        error={errors?.activities && true}
+                                    />
+                                )}
                             />
                         </Col>
                         <Col span={6}>

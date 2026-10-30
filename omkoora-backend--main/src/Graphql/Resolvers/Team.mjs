@@ -9,6 +9,7 @@ import db from "../../Config/DBContact.mjs";
 
 import {Club, Members, Person, Players, Team, User,TechnicalApparatus, Stadium, Permission} from '../../Models/index.mjs';
 import { findTeamNameClash } from "../../Helpers/teamNaming.mjs";
+import { formatActivities, teamActivities } from "../../Helpers/activities.mjs";
 import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
@@ -38,6 +39,11 @@ const assertTeamNameFree = async (idClub, name, exceptTeamId = null) => {
         "TEAM_NAME_TAKEN"
     );
 };
+
+// النشاط يُخزَّن باسمه الواحد: الواجهة تُرسل اختياراً من قائمة، وأي عميل أقدم
+// يُرسل نصّاً — فيُوحَّد هنا قبل أن يصل الجدول، فلا يعود الإحصاء يقسم الرياضة.
+const canonicalActivities = (raw) =>
+    raw === null || raw === undefined ? raw : formatActivities(teamActivities(raw));
 
 export const resolvers = {
     Query: {
@@ -236,7 +242,7 @@ export const resolvers = {
                     category:       content.category,
                     phone:          content.phone,
                     manager_name:    content.manager_name,
-                    activities:    content.activities,
+                    activities:    canonicalActivities(content.activities),
                     code:    content.code,
                     id_club: content.id_club
                 })
@@ -329,6 +335,7 @@ export const resolvers = {
                 const result = await db.transaction(async (t) => {
                     const teamPayload = { ...team };
                     delete teamPayload.logo;
+                    if ("activities" in teamPayload) teamPayload.activities = canonicalActivities(teamPayload.activities);
                     const newTeam = await Team.create(
                         { ...teamPayload, logo: logoFileName },
                         { transaction: t }
@@ -398,6 +405,8 @@ export const resolvers = {
                     delete content.logo
                 }
                 
+                if ("activities" in content) content.activities = canonicalActivities(content.activities)
+
                 let result = await Team.update({...content}, { where: { id } })
 
 

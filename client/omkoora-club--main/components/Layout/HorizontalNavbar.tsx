@@ -170,7 +170,6 @@ const HorizontalNavbar = () => {
         { path: '/forms', label: 'الاستمارات', icon: <FileText size={20} />, show: hasPermission("forms", "1") },
         { path: '/powers', label: 'الصلاحيات', icon: <ShieldLock size={20} />, show: hasPermission("permissions", "1") },
         { path: '/monitor', label: 'المراقبة', icon: <Activity size={20} />, show: hasPermission("monitor", "1") },
-        { path: 'https://cheeryourteam.com/', label: 'شجع فريقك', icon: <BallFootball size={20} />, external: true, show: true },
     ];
 
     const visible = navItems.filter((item) => item.show);
@@ -266,28 +265,6 @@ const HorizontalNavbar = () => {
                                             onClick={() => window.open(item.path, '_blank')}
                                             className={cx(classes.link, { [classes.linkActive]: isActive })}
                                             data-active={isActive || undefined}
-                                            sx={(theme) => ({
-                                                ...(item.path === 'https://cheeryourteam.com/' && {
-                                                    backgroundColor: '#285afeff', // Deep blue
-                                                    color: 'white !important',
-                                                    borderRadius: '12px',
-                                                    height: '56px',
-                                                    alignSelf: 'center',
-                                                    padding: '0 20px',
-                                                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-                                                    '&:hover': {
-                                                        backgroundColor: '#557dffff',
-                                                        transform: 'translateY(-2px)',
-                                                    },
-                                                    '& .mantine-Text-root': {
-                                                        color: 'white !important',
-                                                        fontWeight: 700,
-                                                    },
-                                                    '& svg': {
-                                                        color: 'white !important',
-                                                    }
-                                                })
-                                            })}
                                         >
                                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                 {item.icon}

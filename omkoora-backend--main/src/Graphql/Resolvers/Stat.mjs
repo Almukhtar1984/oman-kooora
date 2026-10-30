@@ -9,6 +9,7 @@ import {
   Event, Reservations, Person,
 } from '../../Models/index.mjs';
 import { createDistinctCounter, identityKey } from "../../Helpers/peopleIdentity.mjs";
+import { countActivities } from "../../Helpers/activities.mjs";
 
 dotenv.config();
 
@@ -149,10 +150,8 @@ export const resolvers = {
 
         teams.forEach((t) => {
           bump(t.id_club, "teams");
-          if (t.id_club && perClub[t.id_club]) {
-            const a = (t.activities && String(t.activities).trim()) || "غير محدد";
-            perClub[t.id_club]._activities[a] = (perClub[t.id_club]._activities[a] || 0) + 1;
-          }
+          // «كره القدم» و«FOOTBAL» نشاط واحد، والفريق ذو النشاطين يُعدّ فيهما.
+          if (t.id_club && perClub[t.id_club]) countActivities([t], perClub[t.id_club]._activities);
         });
         players.forEach((p) => {
           const clubId = teamToClub[p.id_team];
@@ -203,11 +202,7 @@ export const resolvers = {
           .sort((a, b) => b.total - a.total);
 
         // Breakdowns.
-        const activitiesAcc = {};
-        teams.forEach((t) => {
-          const key = (t.activities && String(t.activities).trim()) || "غير محدد";
-          activitiesAcc[key] = (activitiesAcc[key] || 0) + 1;
-        });
+        const activitiesAcc = countActivities(teams);
 
         const ageAcc = {};
         Object.keys(AGE_LABELS).forEach((k) => { ageAcc[AGE_LABELS[k]] = 0; });
@@ -333,11 +328,7 @@ export const resolvers = {
         const transfers = clubTransfers.filter((t) => t.transition_type === "transition").length;
 
         // Breakdowns.
-        const activitiesAcc = {};
-        teams.forEach((t) => {
-          const key = (t.activities && String(t.activities).trim()) || "غير محدد";
-          activitiesAcc[key] = (activitiesAcc[key] || 0) + 1;
-        });
+        const activitiesAcc = countActivities(teams);
         const ageAcc = {};
         const statusAcc = {};
         players.forEach((p) => {

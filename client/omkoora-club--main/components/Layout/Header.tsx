@@ -156,7 +156,6 @@ const Header = (props: Props) => {
         { path: '/forms', label: 'الاستمارات', icon: <FileText size={18} /> },
         { path: '/powers', label: 'الصلاحيات', icon: <ShieldLock size={18} /> },
         { path: '/monitor', label: 'المراقبة', icon: <Activity size={18} /> }, 
-        { path: 'https://cheeryourteam.com/', label: 'شجع فريقك', icon: <BallFootball size={18} />, external: true },
     ];
 
     return (

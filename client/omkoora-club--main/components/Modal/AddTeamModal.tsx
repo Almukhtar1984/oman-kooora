@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import {Notyf} from "notyf";
 
 import TextInput from "../Input/TextInput";
+import ActivitiesSelect from "../Input/ActivitiesSelect";
 import Modal, {Props as ModalProps} from "./Modal";
 import {AllTeams, useCreateTeamWithAdmin} from "./../../graphql";
 import useStore from "../../store/useStore";
@@ -278,12 +279,7 @@ export const AddTeamModal = (props: Props) => {
                             />
                         </Col>
                         <Col span={6}>
-                            <TextInput
-                                label="النشاط"
-                                placeholder="النشاط"
-                                withAsterisk
-                                {...form.getInputProps("activities")}
-                            />
+                            <ActivitiesSelect {...form.getInputProps("activities")} />
                         </Col>
                         <Col span={6}>
                             <TextInput

@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Button, Container, Flex, MantineTheme, Menu, Text, Tooltip, Divider, Burger, Drawer, Stack, Group, Avatar } from "@mantine/core";
 import React, { useEffect, useState } from "react";
-import { ChevronDown, Logout, Search, BellRinging, User, Home, BallFootball, Users, Inbox, Send, CalendarEvent, Article, FileText, ShieldLock, Activity,Moneybag, InfoCircle, Coin, Route } from "tabler-icons-react";
+import { ChevronDown, Logout, Search, BellRinging, User, Home, Users, Inbox, Send, CalendarEvent, Article, FileText, ShieldLock, Activity,Moneybag, InfoCircle, Coin, Route } from "tabler-icons-react";
 import { useTheme } from "@emotion/react";
 import { useDisclosure } from "@mantine/hooks";
 import useStore from "../../store/useStore";
@@ -120,14 +120,13 @@ const Header = (props: Props) => {
         { path: '/tracking', label: 'تتبّع الطلبات', icon: <Route size={18} /> },
         { path: '/payments', label: 'المدفوعات', icon: <Coin size={18} /> },
         { path: '/messages', label: 'الرسائل', icon: <Inbox size={18} /> },
-        { path: 'expenses' , label: 'المصروفات', icon: <Moneybag size={18} />},
+        { path: '/expenses', label: 'المصروفات', icon: <Moneybag size={18} />},
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={18} /> },
         { path: '/blog', label: 'الأخبار', icon: <Article size={18} /> },
-        { path: '/forms', label: 'الاستثمارات', icon: <FileText size={18} /> },
+        { path: '/forms', label: 'الاستمارات', icon: <FileText size={18} /> },
         // الملاعب انتقلت إلى لوحة مستقلّة (stadium.omkooora.com) — أُزيلت من قائمة الفريق
         { path: '/leagues', label: 'المسابقات', icon: <GiTrophyCup size={18} /> },
         { path: '/powers', label: 'الصلاحيات', icon: <ShieldLock size={18} /> },
-        { path: 'https://cheeryourteam.com/', label: 'شجع فريقك', icon: <BallFootball size={18} />, external: true },
     ];
 
     return (

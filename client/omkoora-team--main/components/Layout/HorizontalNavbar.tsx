@@ -2,7 +2,6 @@ import { ActionIcon, createStyles, Container, Flex, Box, Text, ScrollArea } from
 import { useRouter } from "next/router";
 import {
     Home,
-    BallFootball,
     Users,
     Inbox,
     CalendarEvent,
@@ -145,14 +144,13 @@ const HorizontalNavbar = () => {
         { path: '/tracking', label: 'تتبّع الطلبات', icon: <Route size={20} />, show: true },
         { path: '/payments', label: 'المدفوعات', icon: <Coin size={20} />, show: true },
         { path: '/messages', label: 'الرسائل', icon: <Inbox size={20} />, show: hasPermission("inbox", "1") || hasPermission("outbox", "1") },
-        { path: 'expenses' , label: 'المصروفات', icon: <Moneybag size={18} /> , show : true},
+        { path: '/expenses', label: 'المصروفات', icon: <Moneybag size={18} /> , show : true},
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={20} />, show: hasPermission("meeting", "1") },
         { path: '/blog', label: 'الأخبار', icon: <Article size={20} />, show: hasPermission("blogs", "1") },
-        { path: '/forms', label: 'الاستثمارات', icon: <FileText size={20} />, show: hasPermission("forms", "1") },
+        { path: '/forms', label: 'الاستمارات', icon: <FileText size={20} />, show: hasPermission("forms", "1") },
         // الملاعب انتقلت إلى لوحة مستقلّة (stadium.omkooora.com) — أُزيلت من قائمة الفريق
         { path: '/leagues', label: 'المسابقات', icon: <GiTrophyCup size={20} />, show: true },
         { path: '/powers', label: 'الصلاحيات', icon: <ShieldLock size={20} />, show: hasPermission("permissions", "1") },
-        { path: 'https://cheeryourteam.com/', label: 'شجع فريقك', icon: <BallFootball size={20} />, external: true, show: true },
     ];
 
     const visible = navItems.filter((item) => item.show);
@@ -244,57 +242,19 @@ const HorizontalNavbar = () => {
                                 if (item.path === '/members') isActive = isMembersRelated;
                                 if (item.path === '/messages') isActive = isMessagesRelated;
 
-                                if (item.external) {
-                                    return (
-                                        <Box
-                                            key={item.path}
-                                            onClick={() => window.open(item.path, '_blank')}
+                                return (
+                                    <Link href={item.path} key={item.path} passHref legacyBehavior>
+                                        <a
                                             className={cx(classes.link, { [classes.linkActive]: isActive })}
                                             data-active={isActive || undefined}
-                                            sx={(theme) => ({
-                                                ...(item.path === 'https://cheeryourteam.com/' && {
-                                                    backgroundColor: '#2563eb', 
-                                                    color: 'white !important',
-                                                    borderRadius: '12px',
-                                                    height: '56px',
-                                                    alignSelf: 'center',
-                                                    padding: '0 20px',
-                                                    boxShadow: theme.shadows.md,
-                                                    '&:hover': {
-                                                        backgroundColor: '#1d4ed8',
-                                                        transform: 'translateY(-2px)',
-                                                    },
-                                                    '& .mantine-Text-root': {
-                                                        color: 'white !important',
-                                                        fontWeight: 700,
-                                                    },
-                                                    '& svg': {
-                                                        color: 'white !important',
-                                                    }
-                                                })
-                                            })}
                                         >
                                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                 {item.icon}
                                             </Box>
                                             <Text>{item.label}</Text>
-                                        </Box>
-                                    );
-                                } else {
-                                    return (
-                                        <Link href={item.path} key={item.path} passHref legacyBehavior>
-                                            <a
-                                                className={cx(classes.link, { [classes.linkActive]: isActive })}
-                                                data-active={isActive || undefined}
-                                            >
-                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    {item.icon}
-                                                </Box>
-                                                <Text>{item.label}</Text>
-                                            </a>
-                                        </Link>
-                                    );
-                                }
+                                        </a>
+                                    </Link>
+                                );
                             })}
                         </Flex>
                     </ScrollArea>
