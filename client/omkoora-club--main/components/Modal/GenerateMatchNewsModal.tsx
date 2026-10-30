@@ -1,14 +1,17 @@
 import {
-    Box, Button, Group, Text, Stack, Paper, Badge, Loader, Center, ThemeIcon, Switch,
+    Box, Button, Group, Text, Stack, Paper, Badge, Loader, Center, ThemeIcon,
 } from "@mantine/core";
 import { Robot, Ballpen } from "tabler-icons-react";
 import React, { useEffect } from "react";
 import { Notyf } from "notyf";
 import Modal, { Props as ModalProps } from "./Modal";
 import useStore from "../../store/useStore";
-import { AllBlog, useAiMatchCandidates, useGenerateMatchNews } from "../../graphql";
+import { useAiMatchCandidates, useDraftMatchNews } from "../../graphql";
 
-type Props = {} & ModalProps;
+type Props = {
+    // يُسلَّم الخبر المكتوب لنموذج «إضافة خبر» — فيُراجَع ويُرفق بصوره قبل النشر.
+    onDraft: (draft: { subject?: string; short_description?: string; description?: string }) => void;
+} & ModalProps;
 
 const stateBadge = (s: string) => {
     if (s === "end") return <Badge size="sm" color="teal" variant="light">انتهت</Badge>;
@@ -21,9 +24,8 @@ export const GenerateMatchNewsModal = (props: Props) => {
     const idClub = userData?.person?.clubManagement?.club?.id;
 
     const [fetchCandidates, { data, loading }] = useAiMatchCandidates();
-    const [generate, { loading: generating }] = useGenerateMatchNews();
+    const [generate, { loading: generating }] = useDraftMatchNews();
     const [busyId, setBusyId] = React.useState<string | null>(null);
-    const [publish, setPublish] = React.useState(true);
 
     useEffect(() => {
         if (props.opened && idClub) fetchCandidates({ variables: { id_club: idClub, limit: 20 } });
@@ -31,16 +33,18 @@ export const GenerateMatchNewsModal = (props: Props) => {
 
     const matches: any[] = data?.aiMatchCandidates || [];
 
+    // الخبر يُكتب ولا يُنشر: «لما يعمل توليد، يجي المحتوى في الحقول، ويقدر يزيد،
+    // يعدّل، أو يضيف مرفقات» (العميل).
     const onGenerate = (m: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
         setBusyId(m.id);
         generate({
-            variables: { id_match: m.id, id_club: idClub, publish },
-            refetchQueries: [AllBlog],
-            onCompleted: () => {
+            variables: { id_match: m.id },
+            onCompleted: (res: any) => {
                 setBusyId(null);
-                notyf.success(publish ? "تم توليد الخبر ونشره" : "تم توليد الخبر كمسودة");
-                props.onClose();
+                const draft = res?.draftMatchNews;
+                if (!draft) { notyf.error("تعذّر توليد الخبر"); return; }
+                props.onDraft(draft);
             },
             onError: ({ graphQLErrors }: any) => {
                 setBusyId(null);
@@ -57,10 +61,9 @@ export const GenerateMatchNewsModal = (props: Props) => {
                         <ThemeIcon size={32} radius="md" variant="light" color="grape"><Robot size={18} /></ThemeIcon>
                         <Box>
                             <Text weight={600}>توليد خبر مباراة</Text>
-                            <Text size="xs" color="dimmed">اختر مباراة ليكتب الذكاء الاصطناعي خبر نتيجتها.</Text>
+                            <Text size="xs" color="dimmed">اختر مباراة ليكتب الذكاء الاصطناعي خبرها في نموذج «إضافة خبر» — راجعه وأرفق صوره ثم انشره.</Text>
                         </Box>
                     </Group>
-                    <Switch label="نشر مباشرة" color="teal" checked={publish} onChange={(e) => setPublish(e.currentTarget.checked)} styles={{ label: { fontSize: 12 } }} />
                 </Group>
 
                 {loading ? (
@@ -89,7 +92,7 @@ export const GenerateMatchNewsModal = (props: Props) => {
                                         disabled={generating}
                                         onClick={() => onGenerate(m)}
                                     >
-                                        توليد خبر
+                                        كتابة الخبر
                                     </Button>
                                 </Group>
                             </Paper>

@@ -16,6 +16,8 @@ export default function Blog() {
     const theme = useTheme() as MantineTheme;
     const [openAddModal, setOpenAddModal] = useState<boolean>(false);
     const [openMatchNewsModal, setOpenMatchNewsModal] = useState<boolean>(false);
+    // خبر المباراة المكتوب يُفتح به نموذج «إضافة خبر» قبل أن يُنشر.
+    const [matchDraft, setMatchDraft] = useState<any>(null);
     const [openShowModal, setOpenShowModal] = useState<boolean>(false);
     const [openEditModal, setOpenEditModal] = useState<boolean>(false);
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
@@ -164,8 +166,9 @@ export default function Blog() {
             </Container>
 
             {/* Portal Components */}
-            <AddBlog title="اضافة اخبار" opened={openAddModal} onClose={() => setOpenAddModal(false)}/>
-            <GenerateMatchNewsModal title="توليد خبر مباراة" opened={openMatchNewsModal} onClose={() => setOpenMatchNewsModal(false)}/>
+            <AddBlog title="اضافة اخبار" opened={openAddModal} draft={matchDraft} onClose={() => { setOpenAddModal(false); setMatchDraft(null); }}/>
+            <GenerateMatchNewsModal title="توليد خبر مباراة" opened={openMatchNewsModal} onClose={() => setOpenMatchNewsModal(false)}
+                onDraft={(draft) => { setMatchDraft(draft); setOpenMatchNewsModal(false); setOpenAddModal(true); }}/>
             <ShowBlog title="" opened={openShowModal} data={selectedData} onClose={() => setOpenShowModal(false)}/>
             <DeleteBlog title="" opened={openDeleteModal} data={selectedData} onClose={() => setOpenDeleteModal(false)}/>
 

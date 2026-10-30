@@ -36,10 +36,19 @@ import Superscript from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
 import {IconChevronDown} from "@tabler/icons-react";
 
+type NewsDraft = { subject?: string | null; short_description?: string | null; description?: string | null };
+
 type Props = {
     setSelectedData?: (id: string) => void;
     data?: any;
+    // مسودّة يكتبها الذكاء الاصطناعي (خبر مباراة) — يُفتح النموذج بها ليُراجَع
+    // ويُرفق بصوره قبل النشر، بدل أن يُنشر الخبر مباشرة.
+    draft?: NewsDraft | null;
 } & ModalProps;
+
+// النصّ المولَّد أسطرٌ، والمحرّر يقرأ فقرات.
+const draftHtml = (text?: string | null) =>
+    text ? `<p>${String(text).replace(/\n/g, "</p><p>")}</p>` : "";
 
 export const AddBlog = (props: Props) => {
     const userData = useStore((state: any) => state.userData);
@@ -112,7 +121,7 @@ export const AddBlog = (props: Props) => {
                 const d = dataRes?.draftNews;
                 if (!d) { notyf?.error("تعذّر التوليد"); return; }
                 setValues({ subject: d.subject || "", short_description: d.short_description || "" });
-                const html = d.description ? `<p>${String(d.description).replace(/\n/g, "</p><p>")}</p>` : "";
+                const html = draftHtml(d.description);
                 setContent(html);
                 editor?.commands.setContent(html);
                 notyf?.success("تم التوليد — راجع وعدّل ثم أرسل");
@@ -123,6 +132,14 @@ export const AddBlog = (props: Props) => {
             },
         });
     };
+
+    useEffect(() => {
+        if (!props.opened || !props.draft) return;
+        setValues({ subject: props.draft.subject || "", short_description: props.draft.short_description || "" });
+        const html = draftHtml(props.draft.description);
+        setContent(html);
+        editor?.commands.setContent(html);
+    }, [props.opened, props.draft, editor]);
 
     const closeModal = () => {
         setLoading(false)

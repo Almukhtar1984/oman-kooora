@@ -1,4 +1,4 @@
 export * from "./DraftNews";
 export * from "./DraftMessage";
 export * from "./AiMatchCandidates";
-export * from "./GenerateMatchNews";
+export * from "./DraftMatchNews";

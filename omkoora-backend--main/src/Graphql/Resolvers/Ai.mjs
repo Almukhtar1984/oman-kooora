@@ -139,6 +139,27 @@ const getSettings = async () => {
 
 const keyFor = (s, provider) => decryptSecret(provider === "openai" ? s.openai_api_key : s.gemini_api_key);
 
+// يكتب خبر المباراة من وقائعها — يُشترك فيه بين الحفظ المباشر والمسودّة.
+const writeMatchNews = async (id_match) => {
+    const facts = await gatherMatchFacts(id_match);
+    const { system, prompt } = buildMatchNewsPrompt(facts);
+
+    let text;
+    try {
+        text = await generateText({ prompt, system });
+    } catch (e) {
+        logger.error(`matchNews.generate(${id_match}): ${e?.message}`);
+        throw new ApolloError(e.message || "تعذّر توليد الخبر", "AI_GENERATE_FAILED");
+    }
+
+    try {
+        return parseNewsJSON(text);
+    } catch (e) {
+        logger.error(`matchNews.parse(${id_match}): ${e?.message}`);
+        throw new ApolloError(e.message || "تعذّرت قراءة الخبر المُولَّد", "AI_PARSE_FAILED");
+    }
+};
+
 export const resolvers = {
     Query: {
         aiSettings: async (obj, args, context) => {
@@ -297,25 +318,7 @@ export const resolvers = {
         // id_team / id_club tag the news so it shows under that team/club.
         generateMatchNews: async (obj, { id_match, publish, id_team, id_club }, context) => {
             const u = requireContentAuthor(context);
-
-            const facts = await gatherMatchFacts(id_match);
-            const { system, prompt } = buildMatchNewsPrompt(facts);
-
-            let text;
-            try {
-                text = await generateText({ prompt, system });
-            } catch (e) {
-                logger.error(`generateMatchNews.generate(${id_match}): ${e?.message}`);
-                throw new ApolloError(e.message || "تعذّر توليد الخبر", "AI_GENERATE_FAILED");
-            }
-
-            let news;
-            try {
-                news = parseNewsJSON(text);
-            } catch (e) {
-                logger.error(`generateMatchNews.parse(${id_match}): ${e?.message}`);
-                throw new ApolloError(e.message || "تعذّرت قراءة الخبر المُولَّد", "AI_PARSE_FAILED");
-            }
+            const news = await writeMatchNews(id_match);
 
             // Teams cannot self-publish; everyone else honours the publish flag.
             const status = resolveNewsStatus(u.role, publish);
@@ -335,6 +338,17 @@ export const resolvers = {
                 logger.error(`generateMatchNews.save(${id_match}): ${e?.message}`);
                 throw new ApolloError(e.message || "فشل حفظ الخبر", "AI_SAVE_FAILED");
             }
+        },
+
+        // خبر المباراة مسودّةً في حقول «إضافة خبر» — لا يُحفظ ولا يُنشر.
+        //
+        // العميل: «يوم تسوّيها في خبر ينشر مباشرة… هل ممكن… نسوّي ترفق صورة
+        // ومرفقات؟ — لما يعمل توليد، يجي مباشرة المحتوى في الحقول، ويقدر يزيد،
+        // يعدّل، أو يضيف مرفقات». فالنصّ يُعاد، ويحفظه صاحبه بـ createBlog بعد أن
+        // يراجعه ويرفق صوره.
+        draftMatchNews: async (obj, { id_match }, context) => {
+            requireContentAuthor(context);
+            return writeMatchNews(id_match);
         },
 
         // AI news editor — returns an editable draft only (no save). The caller

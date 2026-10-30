@@ -30,6 +30,10 @@ export const typeDefs = gql`
         # publish (publish=true). id_team/id_club tag the news. Returns the Blog.
         generateMatchNews(id_match: ID!, publish: Boolean, id_team: ID, id_club: ID): Blog @auth(requires: user)
 
+        # Match news as an editable draft (does NOT save): the caller fills the
+        # add-news form with it, attaches images, and saves via createBlog.
+        draftMatchNews(id_match: ID!): AiNewsDraft @auth(requires: user)
+
         # AI news editor: draft from an idea / reformulate / improve a text.
         # Returns an editable draft only (does NOT save) — the caller reviews and
         # then saves via createBlog. (super-admin or league admin)
