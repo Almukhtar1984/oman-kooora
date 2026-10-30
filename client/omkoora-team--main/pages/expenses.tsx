@@ -1,6 +1,6 @@
 import { useTheme } from "@emotion/react";
 import { Box, Button, Container, Group, MantineTheme, Stack, TextInput, Title, Menu, Table,Text,ActionIcon } from "@mantine/core";
-import { Lock, Plus, Search, Users } from "tabler-icons-react";
+import { Download, FileSpreadsheet, FileText, Lock, Plus, Search, Users } from "tabler-icons-react";
 import Head from "next/head";
 import React, { useEffect, useState } from "react";
 import { searchSortedData, sortedData } from "../lib/helpers/sort";
@@ -13,6 +13,9 @@ import { PaymentHandler } from "../thawani/index";
 import {Filter,Calendar,Refresh} from "tabler-icons-react";
 import {DateInput} from "@mantine/dates";
 import dayjs from "dayjs";
+import { Notyf } from "notyf";
+import { downloadLedgerExcel, printLedger } from "../lib/helpers/ledgerExport";
+
 export default function Expenses() {
     const userData = useStore((state: any) => state.userData);
     const theme = useTheme() as MantineTheme;
@@ -156,6 +159,30 @@ export default function Expenses() {
                 orderId={11}
             />
 
+            {/* التنزيل يأخذ ما في الجدول الآن — بعد البحث وتصفية التاريخ — ومعه ملخّصه. */}
+            <Menu position="bottom-end" width={200}>
+                <Menu.Target>
+                    <Button variant="default" rightIcon={<Download size={18} />}>تنزيل</Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                    <Menu.Item
+                        icon={<FileSpreadsheet size={16} />}
+                        onClick={() => downloadLedgerExcel(allExpensesSorting, dataExpenseSummary?.expenseSummary, userData?.person?.member?.team?.name)}
+                    >
+                        ملف Excel
+                    </Menu.Item>
+                    <Menu.Item
+                        icon={<FileText size={16} />}
+                        onClick={() => {
+                            const opened = printLedger(allExpensesSorting, dataExpenseSummary?.expenseSummary, userData?.person?.member?.team?.name);
+                            if (!opened) new Notyf({ position: { x: "right", y: "bottom" } }).error("اسمح للصفحة بفتح نافذة جديدة لتنزيل الـ PDF");
+                        }}
+                    >
+                        ملف PDF (طباعة)
+                    </Menu.Item>
+                </Menu.Dropdown>
+            </Menu>
+
             {/* Members' accounts ledger */}
             <Button
                 variant={"light"}
@@ -239,11 +266,13 @@ export default function Expenses() {
                 {dataExpenseSummary && (
                     <Box mt={40}>
                         <Title size={"h5"}>ملخص المصاريف</Title>
+                        {/* «كم الإيرادات، كم النفقات، وكم حسابات الأعضاء، وكم الصافي» (العميل). */}
                         <Table mt={20}>
                             <thead>
                                 <tr>
                                     <th>الإيرادات</th>
                                     <th>النفقات</th>
+                                    <th>حسابات الأعضاء</th>
                                     <th>الصافي</th>
                                 </tr>
                             </thead>
@@ -251,10 +280,12 @@ export default function Expenses() {
                                 <tr>
                                     <td>{dataExpenseSummary?.expenseSummary?.profits}</td>
                                     <td>{dataExpenseSummary?.expenseSummary?.expenses}</td>
-                                    <td>{dataExpenseSummary?.expenseSummary?.net}</td>
+                                    <td>{dataExpenseSummary?.expenseSummary?.memberAccounts ?? 0}</td>
+                                    <td><strong>{dataExpenseSummary?.expenseSummary?.balance ?? dataExpenseSummary?.expenseSummary?.net}</strong></td>
                                 </tr>
                             </tbody>
                         </Table>
+                        <Text size="xs" color="gray.6" mt={6}>الصافي = الإيرادات + حسابات الأعضاء − النفقات</Text>
                     </Box>
                 )}
             </Container>

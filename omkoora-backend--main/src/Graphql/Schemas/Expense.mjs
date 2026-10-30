@@ -57,6 +57,11 @@ export const typeDefs = gql`
     type ExpenseSummary {
         profits: Float
         expenses: Float
+        # الإيرادات ناقص النفقات.
         net: Float
+        # مجموع حسابات الأعضاء واللاعبين (المسجّل والمسدّد).
+        memberAccounts: Float
+        # الصافي مع حسابات الأعضاء: الإيرادات + حسابات الأعضاء − النفقات.
+        balance: Float
     }
 `;

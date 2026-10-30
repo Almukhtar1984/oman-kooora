@@ -6,7 +6,8 @@ import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
 
-import {Club, Team, Expense, Attachment, Comment} from '../../Models/index.mjs';
+import {Club, Team, Expense, Attachment, Comment, MemberPayment} from '../../Models/index.mjs';
+import { summarizeLedger } from "../../Helpers/ledgerSummary.mjs";
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 
@@ -62,24 +63,25 @@ export const resolvers = {
                     whereClause.id_team = idTeam;
                 }
 
-                const expenses = await Expense.findAll({
-                    where: whereClause,
+                // حسابات الأعضاء دفترٌ مستقلّ عن الصادر والوارد، والعميل يريدها في
+                // الملخّص: «كم الإيرادات، كم النفقات، وكم حسابات الأعضاء، وكم الصافي».
+                const teamIds = idTeam
+                    ? [idTeam]
+                    : idClub
+                        ? (await Team.findAll({ where: { id_club: idClub }, attributes: ["id"] })).map((t) => t.id)
+                        : [];
+
+                const [expenses, memberPayments] = await Promise.all([
+                    Expense.findAll({ where: whereClause, attributes: ["value"] }),
+                    teamIds.length
+                        ? MemberPayment.findAll({ where: { id_team: { [Op.in]: teamIds } }, attributes: ["amount", "status"] })
+                        : [],
+                ]);
+
+                return summarizeLedger({
+                    values: expenses.map((exp) => exp.value),
+                    memberPayments,
                 });
-
-                const profits = expenses
-                    .filter(exp => exp.value > 0)
-                    .reduce((acc, exp) => acc + exp.value, 0);
-                const totalExpenses = expenses
-                    .filter(exp => exp.value < 0)
-                    .reduce((acc, exp) => acc + Math.abs(exp.value), 0);
-
-                const net = profits - totalExpenses;
-
-                return {
-                    profits,
-                    expenses: totalExpenses,
-                    net,
-                };
             } catch (error) {
                 logger.error(`Expense.expenseSummary: ${error?.message || error}`);
                 throw new ApolloError(error);

@@ -6,6 +6,8 @@ export const ExpenseSummary = gql`
             profits
             expenses
             net
+            memberAccounts
+            balance
         }
     }
 `;
