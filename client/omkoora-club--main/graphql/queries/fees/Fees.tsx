@@ -40,6 +40,8 @@ export const RequestPayments = gql`
             note
             decision_note
             entity_type
+            subject
+            subject_card
             paid_at
             decided_at
             createdAt

@@ -34,6 +34,37 @@ const storeReceipt = async (upload) => {
     return uniqueName;
 };
 
+// اللاعب الذي تخصّه المطالبة — يُقرأ مرة لكل مطالبة في الطلب الواحد، وإن طُلب
+// اسمه ورقمه معاً.
+const paymentPerson = (payment, context) => {
+    if (!payment?.entity_id) return Promise.resolve(null);
+    const cache = context ? (context.__paymentPeople ||= new Map()) : new Map();
+    const key = `${payment.entity_type}:${payment.entity_id}`;
+    if (!cache.has(key)) cache.set(key, readPaymentPerson(payment));
+    return cache.get(key);
+};
+
+const readPaymentPerson = async ({ entity_type, entity_id }) => {
+    const person = { model: Person, as: "person", attributes: ["first_name", "second_name", "third_name", "tribe", "card_number"] };
+    let player = null;
+    if (entity_type === "player") {
+        player = await Players.findByPk(entity_id, { include: [person] });
+    } else if (entity_type === "transfer" || entity_type === "player_release") {
+        const Model = entity_type === "transfer" ? Transfer : PlayerRelease;
+        const row = await Model.findByPk(entity_id, {
+            paranoid: false,
+            include: [{ model: Players, as: "player", include: [person] }],
+        });
+        player = row?.player || null;
+    }
+    const p = player?.person;
+    if (!p) return null;
+    return {
+        name: [p.first_name, p.second_name, p.third_name, p.tribe].filter(Boolean).join(" ").trim() || null,
+        card: p.card_number || null,
+    };
+};
+
 export const resolvers = {
     Query: {
         clubFees: async (obj, args, context) => {
@@ -316,25 +347,11 @@ export const resolvers = {
     },
 
     RequestPayment: {
-        // اسم اللاعب الذي تسدّد عنه المطالبة — بغيره تتشابه أربع مطالبات «إعارة
-        // لاعب» في إيصالٍ واحد، وهو عين ما قال العميل: «ما يعرف هذا مال مين».
-        subject: async ({ entity_type, entity_id }) => {
-            if (!entity_id) return null;
-            const person = { model: Person, as: "person", attributes: ["first_name", "second_name", "third_name", "tribe"] };
-            let player = null;
-            if (entity_type === "player") {
-                player = await Players.findByPk(entity_id, { include: [person] });
-            } else if (entity_type === "transfer" || entity_type === "player_release") {
-                const Model = entity_type === "transfer" ? Transfer : PlayerRelease;
-                const row = await Model.findByPk(entity_id, {
-                    paranoid: false,
-                    include: [{ model: Players, as: "player", include: [person] }],
-                });
-                player = row?.player || null;
-            }
-            const p = player?.person;
-            return [p?.first_name, p?.second_name, p?.third_name, p?.tribe].filter(Boolean).join(" ").trim() || null;
-        },
+        // اسم اللاعب الذي تسدّد عنه المطالبة، ورقمه المدني — بغيرهما تتشابه أربع
+        // مطالبات «إعارة لاعب» في إيصالٍ واحد، وهو عين ما قال العميل: «ما يعرف
+        // هذا مال مين». والرقم المدني يُبحث به: «هل ممكن بالرقم المدني…».
+        subject: async (payment, args, context) => (await paymentPerson(payment, context))?.name || null,
+        subject_card: async (payment, args, context) => (await paymentPerson(payment, context))?.card || null,
         team: async ({ id_team }) => (id_team ? await Team.findByPk(id_team) : null),
         club: async ({ id_club }) => (id_club ? await Club.findByPk(id_club) : null),
         label: ({ fee_type, label }) => label || feeLabel(fee_type),

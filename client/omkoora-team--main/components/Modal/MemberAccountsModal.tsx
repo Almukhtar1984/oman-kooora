@@ -83,9 +83,13 @@ export const MemberAccountsModal = ({ idTeam, ...props }: Props) => {
         [filtered]
     );
 
+    // الاسم ومعه الرقم المدني، ويُبحث بأيّهما: «هل ممكن بالرقم المدني… يضرب
+    // بياناته؟» (العميل) — اسمان متشابهان يفرّق بينهما الرقم.
     const options = accounts.map((a) => {
         const s = subjectOf(a);
-        return { value: s?.id, label: fullName(s?.person) || s?.person?.phone || word };
+        const name = fullName(s?.person) || s?.person?.phone || word;
+        const card = String(s?.person?.card_number || "");
+        return { value: s?.id, label: card ? `${name} — ${card}` : name, card, phone: String(s?.person?.phone || "") };
     });
 
     const reload = () => (isMembers ? (mRefetch ? mRefetch() : fetchActive()) : (pRefetch ? pRefetch() : fetchActive()));
@@ -143,9 +147,13 @@ export const MemberAccountsModal = ({ idTeam, ...props }: Props) => {
                     <Group align="flex-end" grow>
                         <Select
                             label={word}
-                            placeholder={`اختر ${word}`}
+                            placeholder={`ابحث بالاسم أو الرقم المدني`}
                             searchable
                             nothingFound="لا يوجد"
+                            filter={(value, item: any) => {
+                                const query = value.trim();
+                                return !query || item.label.includes(query) || item.card.includes(query) || item.phone.includes(query);
+                            }}
                             data={options}
                             value={subjectId}
                             onChange={setSubjectId}

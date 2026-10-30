@@ -1,8 +1,8 @@
 import {
     Anchor, Badge, Box, Button, Container, Group, NumberInput, Paper,
-    SegmentedControl, Select, Stack, Text, Textarea, Title,
+    SegmentedControl, Select, Stack, Text, Textarea, TextInput, Title,
 } from "@mantine/core";
-import { AlertTriangle, Check, Coin, FileText, Plus, X } from "tabler-icons-react";
+import { AlertTriangle, Check, Coin, FileText, Plus, Search, X } from "tabler-icons-react";
 import Head from "next/head";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
@@ -12,6 +12,7 @@ import {
     useAllTeams, useClubFees, useCreateRequestPayment, useDecidePayment, useRequestPayments,
 } from "../graphql";
 import { getImageUrl } from "../lib/helpers/image";
+import { matchesPayment } from "../lib/helpers/paymentSearch";
 import DataState from "../components/Loading/DataState";
 import Modal from "../components/Modal/Modal";
 import useStore from "../store/useStore";
@@ -39,6 +40,7 @@ export default function Payments() {
     const userData = useStore((state: any) => state.userData);
 
     const [statusFilter, setStatusFilter] = useState("submitted");
+    const [search, setSearch] = useState("");
     const [billing, setBilling] = useState(false);
     const [rejecting, setRejecting] = useState<any>(null);
     const [rejectNote, setRejectNote] = useState("");
@@ -67,7 +69,7 @@ export default function Payments() {
         if (idClub) getTeams({ variables: { idClub }, fetchPolicy: "cache-and-network" });
     }, [userData, getTeams]);
 
-    const rows = data?.requestPayments || [];
+    const rows = (data?.requestPayments || []).filter((row: any) => matchesPayment(row, search));
     const fees = feesData?.clubFees || [];
     const teams = teamsData?.allTeam || [];
 
@@ -150,7 +152,14 @@ export default function Payments() {
                     </Group>
                 </Group>
 
-                <Group position="right" mb="md">
+                <Group position="apart" mb="md">
+                    <TextInput
+                        icon={<Search size={16} />}
+                        placeholder="ابحث باسم اللاعب أو الرقم المدني أو الرقم المرجعي"
+                        value={search}
+                        onChange={(event) => setSearch(event.currentTarget.value)}
+                        w={340}
+                    />
                     <SegmentedControl
                         value={statusFilter}
                         onChange={setStatusFilter}
@@ -177,6 +186,9 @@ export default function Payments() {
                                     <Box sx={{ flex: 1 }}>
                                         <Group spacing={8} mb={4}>
                                             <Text weight={600} color="gray.8">{row.label || row.fee_type}</Text>
+                                            {row.subject && (
+                                                <Text color="gray.7">— {row.subject}{row.subject_card ? ` (${row.subject_card})` : ""}</Text>
+                                            )}
                                             <Badge color="blue" variant="light">
                                                 {Number(row.amount).toLocaleString("en-US")} ر.ع
                                             </Badge>

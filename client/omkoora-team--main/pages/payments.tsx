@@ -2,13 +2,14 @@ import {
     Affix, Alert, Anchor, Badge, Box, Button, Checkbox, Container, FileInput, Group, Paper,
     SegmentedControl, Stack, Text, TextInput, Title,
 } from "@mantine/core";
-import { AlertCircle, Coin, FileText, Upload } from "tabler-icons-react";
+import { AlertCircle, Coin, FileText, Search, Upload } from "tabler-icons-react";
 import Head from "next/head";
 import React, { useEffect, useMemo, useState } from "react";
 import { Notyf } from "notyf";
 
 import { useRequestPayments, useSubmitPaymentReceipt, useSubmitPaymentsReceipt } from "../graphql";
 import { getImageUrl } from "../lib/helpers/image";
+import { matchesPayment } from "../lib/helpers/paymentSearch";
 import DataState from "../components/Loading/DataState";
 import Modal from "../components/Modal/Modal";
 
@@ -37,6 +38,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function Payments() {
     const [statusFilter, setStatusFilter] = useState("all");
+    const [search, setSearch] = useState("");
     const [paying, setPaying] = useState<any>(null);
     const [picked, setPicked] = useState<string[]>([]);
     const [batchOpen, setBatchOpen] = useState(false);
@@ -53,12 +55,13 @@ export default function Payments() {
         getPayments({ variables, fetchPolicy: "cache-and-network" });
     }, [statusFilter, getPayments]);
 
-    const rows = data?.requestPayments || [];
+    const all = data?.requestPayments || [];
+    const rows = all.filter((row: any) => matchesPayment(row, search));
 
     // ما على الفريق الآن — مجموع ما لم يُدفع بعد.
-    const due = useMemo(() => rows
+    const due = useMemo(() => all
         .filter((row: any) => row.status === "waiting")
-        .reduce((sum: number, row: any) => sum + (Number(row.amount) || 0), 0), [rows]);
+        .reduce((sum: number, row: any) => sum + (Number(row.amount) || 0), 0), [all]);
 
     const notyf = () => new Notyf({ position: { x: "right", y: "bottom" } });
     const refresh = () => getPayments({ variables, fetchPolicy: "network-only" });
@@ -66,7 +69,8 @@ export default function Payments() {
     useEffect(() => { setPicked([]); }, [statusFilter]);
     const toggle = (id: string) =>
         setPicked((list) => (list.includes(id) ? list.filter((item) => item !== id) : [...list, id]));
-    const pickedRows = rows.filter((row: any) => picked.includes(row.id));
+    // المختار من القائمة كلها لا مما يُظهره البحث: إيصالٌ يُرفع على ما اختير فعلاً.
+    const pickedRows = all.filter((row: any) => picked.includes(row.id));
     const pickedTotal = pickedRows.reduce((sum: number, row: any) => sum + (Number(row.amount) || 0), 0);
 
     const onSubmitBatch = () => {
@@ -130,6 +134,15 @@ export default function Payments() {
                     />
                 </Group>
 
+                <TextInput
+                    icon={<Search size={16} />}
+                    placeholder="ابحث باسم اللاعب أو الرقم المدني أو الرقم المرجعي"
+                    value={search}
+                    onChange={(event) => setSearch(event.currentTarget.value)}
+                    w={340}
+                    mb="md"
+                />
+
                 <DataState
                     loading={loading && !data}
                     empty={rows.length === 0}
@@ -152,7 +165,7 @@ export default function Payments() {
                                     <Box sx={{ flex: 1 }}>
                                         <Group spacing={8} mb={4}>
                                             <Text weight={600} color="gray.8">{row.label || row.fee_type}</Text>
-                                            {row.subject && <Text color="gray.7">— {row.subject}</Text>}
+                                            {row.subject && <Text color="gray.7">— {row.subject}{row.subject_card ? ` (${row.subject_card})` : ""}</Text>}
                                             <Badge color="blue" variant="light">
                                                 {Number(row.amount).toLocaleString("en-US")} ر.ع
                                             </Badge>

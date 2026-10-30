@@ -8,6 +8,7 @@ export const RequestPayments = gql`
             fee_type
             label
             subject
+            subject_card
             amount
             status
             reference_number
