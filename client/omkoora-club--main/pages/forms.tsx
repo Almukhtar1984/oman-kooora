@@ -1,12 +1,13 @@
 import { useTheme } from "@emotion/react";
 import {Box, Button, Col, Container, Grid, Group, MantineTheme, Stack, TextInput, Title} from "@mantine/core";
-import {Lock, Plus, Search,} from "tabler-icons-react";
+import {FileText, Lock, Plus, Search,} from "tabler-icons-react";
 import Head from "next/head";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
 import {AddForm, DeleteForm, UpdateForm} from "../components/Modal";
-import {useAllForm, } from "../graphql";
+import {useAllForm, useAllPlayers} from "../graphql";
+import { EFormBuilder } from "../components/EForms/EFormBuilder";
 import useStore from "../store/useStore";
 import CardForm from "../components/Card/CardForm";
 
@@ -17,6 +18,13 @@ export default function Forms() {
     const [openAddModal, setOpenAddModal] = useState<boolean>(false);
     const [openEditModal, setOpenEditModal] = useState<boolean>(false);
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
+    // الاستمارة الإلكترونية: لاعبو النادي يُجلبون حين تُفتح وحدها.
+    const [openEForm, setOpenEForm] = useState<boolean>(false);
+    const [getPlayers, { data: playersData, loading: playersLoading }] = useAllPlayers();
+    const club = userData?.person?.clubManagement?.club;
+    useEffect(() => {
+        if (openEForm && club?.id) getPlayers({ variables: { idClub: club.id }, fetchPolicy: "cache-first" });
+    }, [openEForm, club?.id]);
 
     const [searchValue, setSearchValue] = useState<string>("");
     const [selectedData, setSelectedData] = useState("");
@@ -108,17 +116,22 @@ export default function Forms() {
                     <Group position={"apart"}>
                         <TextInput value={searchValue} icon={<Search color={theme.colors.gray[4]} size={16} />} placeholder="بحث" onChange={handleSearchChange}/>
 
-                        {hasPermission("2")
-                            ? <Button
-                                rightIcon={<Plus size={16} strokeWidth="3" />}
-                                sx={{ fontWeight: 500 }}
-                                onClick={() => setOpenAddModal(true)}
-                                color={"primary"}
-                            >
-                                إضافة استمارة
+                        <Group spacing="xs">
+                            <Button variant="light" rightIcon={<FileText size={16} />} onClick={() => setOpenEForm(true)}>
+                                استمارة إلكترونية
                             </Button>
-                            : null
-                        }
+                            {hasPermission("2")
+                                ? <Button
+                                    rightIcon={<Plus size={16} strokeWidth="3" />}
+                                    sx={{ fontWeight: 500 }}
+                                    onClick={() => setOpenAddModal(true)}
+                                    color={"primary"}
+                                >
+                                    إضافة استمارة
+                                </Button>
+                                : null
+                            }
+                        </Group>
                     </Group>
                 </Box>
 
@@ -148,6 +161,13 @@ export default function Forms() {
             <DeleteForm title="" opened={openDeleteModal} data={selectedData} onClose={() => setOpenDeleteModal(false)}/>
 
             <UpdateForm title="تعديل الاستمارة" opened={openEditModal} data={selectedData} onClose={() => setOpenEditModal(false)}/>
+            <EFormBuilder
+                opened={openEForm}
+                onClose={() => setOpenEForm(false)}
+                players={playersData?.allPlayersClub || []}
+                loading={playersLoading}
+                club={club}
+            />
         </Box>
     );
 }

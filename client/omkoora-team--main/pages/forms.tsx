@@ -1,11 +1,12 @@
 import { useTheme } from "@emotion/react";
 import {Box, Button, Col, Container, Grid, Group, MantineTheme, Stack, TextInput, Title} from "@mantine/core";
-import {Lock, Plus, Search,} from "tabler-icons-react";
+import {FileText, Lock, Plus, Search,} from "tabler-icons-react";
 import Head from "next/head";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
-import {useAllForm, } from "../graphql";
+import {useAllForm, useAllPlayers} from "../graphql";
+import { EFormBuilder } from "../components/EForms/EFormBuilder";
 import useStore from "../store/useStore";
 import CardForm from "../components/Card/CardForm";
 
@@ -22,6 +23,14 @@ export default function Forms() {
     const [permissions, setPermissions] = useState([]);
 
     const [getAllForms, { loading, error, data: dataAllForms }] = useAllForm();
+
+    // الاستمارة الإلكترونية: لاعبو الفريق يُجلبون حين تُفتح وحدها.
+    const [openEForm, setOpenEForm] = useState<boolean>(false);
+    const [getPlayers, { data: playersData, loading: playersLoading }] = useAllPlayers();
+    const team = userData?.person?.member?.team;
+    useEffect(() => {
+        if (openEForm && team?.id) getPlayers({ variables: { idTeam: team.id }, fetchPolicy: "cache-first" });
+    }, [openEForm, team?.id]);
 
     useEffect(() => {
         if (userData?.person?.member?.team?.id) {
@@ -103,6 +112,9 @@ export default function Forms() {
                 <Box mb={30} mt={"20px"}>
                     <Group position={"apart"}>
                         <TextInput value={searchValue} icon={<Search color={theme.colors.gray[4]} size={16} />} placeholder="بحث" onChange={handleSearchChange}/>
+                        <Button variant="light" rightIcon={<FileText size={16} />} onClick={() => setOpenEForm(true)}>
+                            استمارة إلكترونية
+                        </Button>
                     </Group>
                 </Box>
 
@@ -114,6 +126,14 @@ export default function Forms() {
                     ))}
                 </Grid>
             </Container>
+            <EFormBuilder
+                opened={openEForm}
+                onClose={() => setOpenEForm(false)}
+                players={playersData?.allPlayers || []}
+                loading={playersLoading}
+                club={team?.club}
+                team={team}
+            />
         </Box>
     );
 }
