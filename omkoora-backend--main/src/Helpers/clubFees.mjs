@@ -96,3 +96,47 @@ export const paymentDecision = (currentStatus, decision) => {
     }
     return { status: currentStatus, settles: false, valid: false };
 };
+
+/**
+ * إيصالٌ واحد لعدّة مطالبات — هل يجوز، وكم مجموعها؟
+ *
+ * موسم المسابقات: «الفريق يسوّي ثلاث إعارات وانتقال… يرسل مية ريال مرة واحدة…
+ * المشكلة النادي ما يعرف هذا مال مين» (العميل). المطالبة واحدة لكل طلب أصلاً، فيكفي
+ * أن يختار الفريق مطالباته ويرفع عليها إيصاله الواحد: كل مطالبة تحمل الإيصال
+ * ورقمه، فيرى النادي أن العشرين لمحمد والثلاثين لمعاوية.
+ *
+ * الدفع كامل هنا أيضاً: التحويل لا يقلّ عن مجموع ما اختير.
+ */
+export const canSubmitBatchReceipt = (payments, { reference_number, amount } = {}) => {
+    const list = (payments || []).filter(Boolean);
+    if (!list.length) {
+        return { ok: false, code: "PAYMENTS_REQUIRED", message: "اختر المطالبات التي يسدّدها الإيصال" };
+    }
+    const settled = list.filter((payment) => payment.status === PAYMENT_ACCEPTED || payment.status === PAYMENT_SUBMITTED);
+    if (settled.length) {
+        return {
+            ok: false,
+            code: "PAYMENT_NOT_OPEN",
+            message: "بين المختار مطالبةٌ سُدّدت أو بانتظار مراجعة إيصالها",
+        };
+    }
+    const teams = new Set(list.map((payment) => payment.id_team));
+    if (teams.size > 1) {
+        return { ok: false, code: "PAYMENTS_MIXED", message: "الإيصال الواحد لفريقٍ واحد" };
+    }
+    if (!String(reference_number ?? "").trim()) {
+        return { ok: false, code: "REFERENCE_REQUIRED", message: "أدخل الرقم المرجعي للتحويل" };
+    }
+
+    const total = Math.round(list.reduce((sum, payment) => sum + (normalizeAmount(payment.amount) || 0), 0) * 100) / 100;
+    const paid = normalizeAmount(amount ?? total);
+    if (paid === null) return { ok: false, code: "AMOUNT_INVALID", message: "المبلغ غير صحيح" };
+    if (paid < total) {
+        return {
+            ok: false,
+            code: "PARTIAL_PAYMENT",
+            message: `المبلغ المحوَّل أقل من مجموع المطالبات (${total}) — الدفع يكون كاملاً`,
+        };
+    }
+    return { ok: true, total };
+};

@@ -19,6 +19,10 @@ export const typeDefs = gql`
         createRequestPayment(content: contentRequestPayment!): RequestPayment! @auth(requires: user)
         # الفريق يرفع الإيصال ورقمه المرجعي بعد الدفع.
         submitPaymentReceipt(id: ID!, reference_number: String!, receipt: Upload, amount: Float): statusUpdate @auth(requires: user)
+        # الفريق يسدّد عدّة مطالبات بتحويلٍ واحد — موسم المسابقات: ثلاث إعارات
+        # وانتقال بإيصال مئة ريال. كل مطالبة تحمل الإيصال ورقمه، فيعرف النادي ما
+        # سدّده كل جزء.
+        submitPaymentsReceipt(ids: [ID!]!, reference_number: String!, receipt: Upload, amount: Float): statusUpdate @auth(requires: user)
         # النادي يعتمد الإيصال أو يرفضه مع السبب (فيعود الطلب لانتظار الدفع).
         decidePayment(id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
     }

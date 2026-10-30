@@ -15,7 +15,7 @@ import {
     ClubFee, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Transfer,
 } from "../Models/index.mjs";
 import { CreateDirectNotification } from "./Notification.mjs";
-import { normalizeAmount, PAYMENT_WAITING } from "./clubFees.mjs";
+import { normalizeAmount, PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED } from "./clubFees.mjs";
 import {
     canAdvance, suggestedFee, legacyStatusFor, legacyDecisionMove, outcomeOf, stageLabelFor,
     requestTypeInfo, requestTypeLabel,
@@ -199,9 +199,21 @@ export const advanceFlow = async ({
         let payment = null;
         if (billing) {
             payment = await raiseFee(current, { amount: billAmount, id_user });
-        } else if (to === AWAITING_PAYMENT && current.id_payment) {
-            // عائد من ردّ الإيصال: مطالبته قائمة، ولا تُرفع ثانية.
+        } else if (current.id_payment) {
             payment = await RequestPayment.findByPk(current.id_payment);
+        }
+
+        // والدفعة تتبع قرار الطريق، فلا تقول صفحة المدفوعات غير ما يقوله الخط:
+        // الاعتماد النهائي يعتمد إيصاله، وردّ الإيصال يعيد المطالبة قائمةً بسببه.
+        if (payment && payment.status === PAYMENT_SUBMITTED) {
+            if (to === APPROVED) {
+                await payment.update({ status: PAYMENT_ACCEPTED, decided_at: new Date(), id_decided_by: id_user });
+            } else if (to === AWAITING_PAYMENT) {
+                await payment.update({
+                    status: PAYMENT_WAITING, decision_note: why, decided_at: new Date(), id_decided_by: id_user,
+                    receipt: null, reference_number: null, paid_at: null,
+                });
+            }
         }
 
         await current.update({

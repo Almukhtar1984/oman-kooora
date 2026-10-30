@@ -11,7 +11,7 @@ import { onReceiptSubmitted, onReceiptRejected } from "../../Helpers/requestFlow
 import { CreateDirectNotification } from "../../Helpers/index.mjs";
 import {
     FEE_TYPES, feeLabel, isFeeType, normalizeAmount,
-    canSubmitReceipt, paymentDecision,
+    canSubmitReceipt, canSubmitBatchReceipt, paymentDecision,
     PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED,
 } from "../../Helpers/clubFees.mjs";
 
@@ -208,6 +208,52 @@ export const resolvers = {
             } catch (error) {
                 if (error instanceof ApolloError) throw error;
                 logger.error(`ClubFees.submitPaymentReceipt: ${error?.message || error}`);
+                throw new ApolloError(error);
+            }
+        },
+
+        submitPaymentsReceipt: async (obj, { ids, reference_number, receipt, amount }, context) => {
+            try {
+                const myTeam = await callerTeamId(context);
+                const idClub = await callerClubId(context);
+                const payments = await RequestPayment.findAll({ where: { id: ids || [] } });
+
+                const foreign = payments.some((payment) => (myTeam
+                    ? payment.id_team !== myTeam
+                    : !idClub || payment.id_club !== idClub));
+                if (foreign || payments.length !== new Set(ids || []).size) {
+                    throw new ApolloError("بين المختار مطالبةٌ لا تخصّك", "FORBIDDEN_PAYMENT");
+                }
+
+                const verdict = canSubmitBatchReceipt(payments, { reference_number, amount });
+                if (!verdict.ok) throw new ApolloError(verdict.message, verdict.code);
+
+                // إيصالٌ واحد يُحفظ مرة، وتحمله كل مطالبة سدّدها — فيرى النادي
+                // كل جزءٍ عند طلبه، ويرى أنها تحويلٌ واحد برقمه.
+                const stored = receipt ? await storeReceipt(receipt) : null;
+                const reference = String(reference_number).trim();
+                for (const payment of payments) {
+                    await payment.update({
+                        reference_number: reference,
+                        receipt: stored,
+                        status: PAYMENT_SUBMITTED,
+                        paid_at: new Date(),
+                        decision_note: null,
+                    });
+                    await onReceiptSubmitted(payment, { id_user: context?.user?.id || null });
+                }
+
+                const team = payments[0]?.id_team ? await Team.findByPk(payments[0].id_team) : null;
+                void CreateDirectNotification({
+                    id_club: payments[0].id_club,
+                    body: `${team?.name || "فريق"} رفع إيصالاً واحداً (${reference}) يسدّد ${payments.length}`
+                        + ` مطالبات بمجموع ${verdict.total} ر.ع — بانتظار اعتمادك`,
+                });
+
+                return { status: true, message: `سُدّدت ${payments.length} مطالبات بإيصال واحد (${verdict.total} ر.ع)` };
+            } catch (error) {
+                if (error instanceof ApolloError) throw error;
+                logger.error(`ClubFees.submitPaymentsReceipt: ${error?.message || error}`);
                 throw new ApolloError(error);
             }
         },

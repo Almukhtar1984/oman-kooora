@@ -3,7 +3,7 @@
 
 import {
     FEE_TYPES, feeLabel, isFeeType, normalizeAmount,
-    canSubmitReceipt, paymentDecision,
+    canSubmitReceipt, canSubmitBatchReceipt, paymentDecision,
     PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED, PAYMENT_REJECTED, PAYMENT_STATUSES,
 } from "../src/Helpers/clubFees.mjs";
 
@@ -54,6 +54,31 @@ check("قرار غير مفهوم لا يغيّر شيئاً",
     paymentDecision(PAYMENT_SUBMITTED, "maybe"), { status: "submitted", settles: false, valid: false });
 
 check("الحالات الأربع معلنة", PAYMENT_STATUSES, ["waiting", "submitted", "accepted", "rejected"]);
+
+// ——— إيصال واحد لعدّة مطالبات (موسم المسابقات) ———
+// «يرسل مية ريال مرة واحدة… النادي ما يعرف هذا مال مين».
+const loanA = { id: "a", id_team: "t1", status: PAYMENT_WAITING, amount: 20 };
+const loanB = { id: "b", id_team: "t1", status: PAYMENT_WAITING, amount: 30 };
+const loanC = { id: "c", id_team: "t1", status: PAYMENT_WAITING, amount: 20 };
+const move  = { id: "d", id_team: "t1", status: PAYMENT_WAITING, amount: 30 };
+check("مئة ريال تسدّد ثلاث إعارات وانتقالاً",
+    canSubmitBatchReceipt([loanA, loanB, loanC, move], { reference_number: "TR-100", amount: 100 }),
+    { ok: true, total: 100 });
+check("وبلا مبلغ يُفترض المجموع",
+    canSubmitBatchReceipt([loanA, loanB], { reference_number: "TR-50" }).total, 50);
+check("والأقل من المجموع مرفوض بالمجموع نفسه",
+    canSubmitBatchReceipt([loanA, loanB, loanC, move], { reference_number: "TR", amount: 90 }).message,
+    "المبلغ المحوَّل أقل من مجموع المطالبات (100) — الدفع يكون كاملاً");
+check("والرقم المرجعي لازم",
+    canSubmitBatchReceipt([loanA], { reference_number: " " }).code, "REFERENCE_REQUIRED");
+check("ولا شيء يُسدَّد بلا اختيار", canSubmitBatchReceipt([], { reference_number: "x" }).code, "PAYMENTS_REQUIRED");
+check("ولا مطالبة سُدّدت قبلُ",
+    canSubmitBatchReceipt([loanA, { ...loanB, status: PAYMENT_ACCEPTED }], { reference_number: "x" }).code,
+    "PAYMENT_NOT_OPEN");
+check("ولا يجمع إيصالٌ فريقين",
+    canSubmitBatchReceipt([loanA, { ...loanB, id_team: "t2" }], { reference_number: "x" }).code, "PAYMENTS_MIXED");
+check("والمرفوض إيصالُه سابقاً عاد قائماً فيُسدَّد",
+    canSubmitBatchReceipt([{ ...loanA, status: PAYMENT_WAITING }], { reference_number: "x", amount: 20 }).ok, true);
 
 console.log(fail ? `\n\x1b[31m${fail} فشل\x1b[0m` : `\n\x1b[32mAll passed\x1b[0m (${pass})`);
 process.exit(fail ? 1 : 0);
