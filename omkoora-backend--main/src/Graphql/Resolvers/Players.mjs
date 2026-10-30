@@ -12,7 +12,8 @@ import {createWriteStream, promises as fsPromises } from "fs";
 import {saveUpload} from "../../Helpers/Upload.mjs";
 import {ATTACH, DUPLICATE, PHONE_TAKEN, classifyExistingPerson} from "../../Helpers/playerRegistration.mjs";
 import { assertTeamInCallerClub } from "../../Helpers/clubScope.mjs";
-import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
+import { openFlow, decideOnRoad } from "../../Helpers/requestFlowRunner.mjs";
+import { openingStage } from "../../Helpers/requestFlow.mjs";
 import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from "../../Helpers/memberLock.mjs";
 import { match } from 'assert';
 import {isIdentical} from "../../Helpers/isIdentical.mjs"
@@ -34,6 +35,41 @@ const assertNotLocked = async (context, find, id) => {
     if (isLockedForCaller(role, row.status)) {
         throw new ApolloError(LOCKED_MESSAGE, LOCKED_CODE);
     }
+};
+
+const CLUB_ADMIN_ROLE = "2";
+const PENDING_PLAYER = ["waiting", "waiting_club"];
+const MOVE_IN_FLIGHT = ["waiting", "waiting_club_from", "waiting_club_to", "waiting_payment"];
+
+/**
+ * قبول النادي تسجيلَ لاعب أو رفضه — على مسار الطلب، لا بكتابة الحالة.
+ *
+ * زرّ «قبول» في بطاقة اللاعب كان يفعّله فوراً فيتخطّى الرسوم، والخطّ واقفٌ عند
+ * «مقدم من الفريق». الآن القبول هو خطوة النادي التالية على الطريق (قبول مبدئي،
+ * أو اعتماد نهائي بعد السداد)، والرفض رفضٌ بسببه.
+ *
+ * يرجع null لما ليس تسجيلاً معلّقاً يبتّ فيه نادٍ — فيمضي على عادته: لاعبٌ
+ * معلّق لأنه في انتقال، أو حالةٌ أخرى كالإيقاف، أو مستدعٍ ليس نادياً.
+ */
+const decideRegistration = async (player, { status, note }, context) => {
+    if (context?.user?.role !== CLUB_ADMIN_ROLE) return null;
+    if (!["accepted", "rejected"].includes(status)) return null;
+    if (!PENDING_PLAYER.includes(player.status)) return null;
+
+    const moving = await Transfer.count({
+        where: { id_player: player.id, status: { [Op.in]: MOVE_IN_FLIGHT } },
+    });
+    if (moving) return null;
+
+    const team = player.id_team ? await Team.findByPk(player.id_team) : null;
+    return decideOnRoad({
+        entity_type: "player",
+        entity_id: player.id,
+        decision: status,
+        reason: note || null,
+        id_user: context?.user?.id || null,
+        open: { request_type: "player_registration", id_club: team?.id_club || null, id_team: player.id_team || null },
+    });
 };
 
 export const resolvers = {
@@ -604,6 +640,10 @@ export const resolvers = {
                 if (content.nationalIDBack) delete content.nationalIDBack;
                 if (content.parentApproval) delete content.parentApproval;
                 if (!content.type) content.type = "internal";
+                // اللاعب الذي يسجّله النادي بنفسه قبِله النادي بفعله — لكنه لا
+                // يُفعَّل بذلك: يبدأ مقبولاً مبدئياً ويمرّ برسوم فريقه واعتماده.
+                const byClub = context?.user?.role === CLUB_ADMIN_ROLE;
+                content.status = byClub ? "waiting_club" : "waiting";
         
                 let result = null;
                 if (verdict?.action === ATTACH) {
@@ -671,6 +711,8 @@ export const resolvers = {
                                 entity_id: result.id,
                                 id_club: team.id_club,
                                 id_team: team.id,
+                                stage: openingStage({ byClub }),
+                                actor: byClub ? "club" : "team",
                                 id_user: context?.user?.id || null,
                             });
                         }
@@ -863,6 +905,12 @@ export const resolvers = {
         ,
         changeStatusPlayer: async (obj, {id, status, note}, context, info) =>  {
             try {
+                const player = await Players.findByPk(id)
+                const road = player ? await decideRegistration(player, { status, note }, context) : null
+                if (road) {
+                    if (road.ok && note) await Players.update({ note }, { where: { id } })
+                    return { status: road.ok, message: road.message }
+                }
 
                 let result = await Players.update({status, note}, { where: { id } })
 
@@ -882,9 +930,36 @@ export const resolvers = {
                 }
 
                 const patch = note !== undefined && note !== null ? {status, note} : {status}
-                const [affected] = await Players.update(patch, { where: { id: { [Op.in]: ids } } })
 
-                return { success: affected, total: ids.length }
+                // تسجيلٌ معلّق يقبله النادي أو يرفضه يمرّ بالطريق — واحداً واحداً،
+                // لأن لكل لاعب مرحلته؛ وما سواه يُكتب دفعةً كما كان.
+                const players = await Players.findAll({ where: { id: { [Op.in]: ids } } })
+                const legacy = []
+                let onRoad = 0
+                let refused = 0
+                const reasons = new Set()
+                for (const player of players) {
+                    const road = await decideRegistration(player, { status, note }, context)
+                    if (!road) { legacy.push(player.id); continue }
+                    if (road.ok) onRoad += 1
+                    else { refused += 1; reasons.add(road.message) }
+                }
+
+                const [affected] = legacy.length
+                    ? await Players.update(patch, { where: { id: { [Op.in]: legacy } } })
+                    : [0]
+
+                const parts = []
+                if (onRoad && status === "accepted") {
+                    parts.push(`قُبل ${onRoad} مبدئياً — طالِب بالرسوم أو اعفِ منها من مسار الطلبات`)
+                }
+                if (refused) parts.push(`تعذّر ${refused}: ${[...reasons].join("، ")}`)
+
+                return {
+                    success: affected + onRoad,
+                    total: ids.length,
+                    message: parts.length ? parts.join(" — ") : null,
+                }
             } catch (error) {
                 logger.error(`changeStatusPlayersBulk error: ${error.message}`)
                 throw new ApolloError(error)

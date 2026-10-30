@@ -44,6 +44,13 @@ export default (db, types) => {
             type: types.UUID,
             allowNull: true
         },
+        // أعفاه النادي من الرسوم بقرار مكتوب («إعارة مجانية») — فمرّ بمرحلة
+        // السداد ولم يسدّد، ويقول خطّه ذلك بدل «تم السداد».
+        fee_waived: {
+            type: types.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        },
     }, {
         tableName: 'request_flows',
         timestamps: true,

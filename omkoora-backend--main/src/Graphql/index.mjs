@@ -137,6 +137,9 @@ const typeDefs = gql`
 
     type statusUpdate {
         status: Boolean
+        # ما يُقال للمستخدم حين يكون للنتيجة معنى غير «تمّ» — قبولٌ صار
+        # «مبدئياً» على مسار الطلب، أو سببُ تعذّره.
+        message: String
     }
 
     type statusDelete {
@@ -146,6 +149,7 @@ const typeDefs = gql`
     type bulkStatusResult {
         success: Int
         total: Int
+        message: String
     }
 `;
 

@@ -4,7 +4,8 @@
 import {
     STAGES, REQUEST_TYPES, stageLabel, stageInfo, isStage, isDone,
     requestTypeLabel, isRequestType, allowsResubmit,
-    canAdvance, afterProcessing, legacyStatus, legacyStatusFor,
+    canAdvance, legacyStatus, legacyStatusFor,
+    availableActions, suggestedFee, openingStage, stageLabelFor, outcomeOf, legacyDecisionMove,
     DRAFT, SUBMITTED, REJECTED_INITIAL, CLUB_PROCESSING,
     AWAITING_PAYMENT, PAID_REVIEW, APPROVED, REJECTED_FINAL, CANCELLED,
 } from "../src/Helpers/requestFlow.mjs";
@@ -40,7 +41,8 @@ check("ولكل نوع رسومه، فوجودها قرار النادي حين 
 // ——— الطريق الطبيعي كاملاً ———
 check("المسودة تُقدَّم", canAdvance(at(DRAFT), { to: SUBMITTED, by: "team" }).ok, true);
 check("والنادي يقبلها مبدئياً", canAdvance(at(SUBMITTED), { to: CLUB_PROCESSING, by: "club" }).ok, true);
-check("ثم يطالب بالرسوم", canAdvance(at(CLUB_PROCESSING), { to: AWAITING_PAYMENT, by: "club" }).ok, true);
+check("ثم يطالب بالرسوم بمبلغها",
+    canAdvance(at(CLUB_PROCESSING), { to: AWAITING_PAYMENT, by: "club", amount: 15 }).ok, true);
 check("ويسدّد الفريق برفع إيصاله",
     canAdvance(at(AWAITING_PAYMENT), { to: PAID_REVIEW, by: "team", viaReceipt: true }).ok, true);
 check("فيعتمد النادي نهائياً", canAdvance(at(PAID_REVIEW), { to: APPROVED, by: "club" }).ok, true);
@@ -105,17 +107,86 @@ check("الإلغاء متاح للفريق قبل الانتهاء", canAdvance
 check("وللنادي كذلك", canAdvance(at(SUBMITTED), { to: CANCELLED, by: "club" }).ok, true);
 check("ولا يُلغى المعتمد", canAdvance(at(APPROVED), { to: CANCELLED, by: "club" }).code, "FLOW_CLOSED");
 
-// ——— بعد استكمال الإجراءات: رسوم أم اعتماد مباشر؟ ———
-check("سعر مفعّل يحوّله للسداد",
-    afterProcessing({ type: "transfer", fee: { active: true, amount: 20 } }), AWAITING_PAYMENT);
-check("وسعر موقوف يمضي للاعتماد",
-    afterProcessing({ type: "transfer", fee: { active: false, amount: 20 } }), APPROVED);
-check("وسعر صفر لا يحبس الطلب",
-    afterProcessing({ type: "transfer", fee: { active: true, amount: 0 } }), APPROVED);
-check("ونادٍ لم يسعّر أصلاً", afterProcessing({ type: "transfer", fee: null }), APPROVED);
-check("والاستقالة تمرّ بالسداد إن سعّرها النادي",
-    afterProcessing({ type: "player_release", fee: { active: true, amount: 5 } }), AWAITING_PAYMENT);
-check("ونوع مجهول لا يطالَب برسوم", afterProcessing({ type: "x", fee: { active: true, amount: 9 } }), APPROVED);
+// ——— السداد مرحلة لا يتخطّاها طلب (اجتماع 2026-10-30) ———
+// «جميع الأندية تعتمد على هذا الشيء… إلا في الدفع الرسوم» — وكانت استقالةٌ قد
+// مرّت من «مقبول مبدئياً» إلى «معتمد نهائياً» لأن النادي لم يسعّرها.
+check("لا اعتماد من «مقبول مبدئياً» مباشرة",
+    canAdvance(at(CLUB_PROCESSING), { to: APPROVED, by: "club" }).code, "STAGE_TRANSITION_INVALID");
+check("والمطالبة بلا مبلغ تُردّ بسببها",
+    canAdvance(at(CLUB_PROCESSING), { to: AWAITING_PAYMENT, by: "club" }).code, "AMOUNT_REQUIRED");
+check("وبمبلغ صفر كذلك — الإعفاء قرارٌ له زرّه",
+    canAdvance(at(CLUB_PROCESSING), { to: AWAITING_PAYMENT, by: "club", amount: 0 }).code, "AMOUNT_REQUIRED");
+check("ورسالتها تدلّ على البديل",
+    canAdvance(at(CLUB_PROCESSING), { to: AWAITING_PAYMENT, by: "club" }).message,
+    "حدّد مبلغ الرسوم، أو اعفِ الطلب منها صراحةً");
+
+// ——— الإعفاء: «إعارة مجانية» قرارٌ مكتوب ———
+check("النادي يُعفي الطلب بسبب",
+    canAdvance(at(CLUB_PROCESSING), { to: PAID_REVIEW, by: "club", reason: "إعارة مجانية" }).ok, true);
+check("ولا إعفاء بلا سبب",
+    canAdvance(at(CLUB_PROCESSING), { to: PAID_REVIEW, by: "club" }).code, "WAIVER_REASON_REQUIRED");
+check("ولا يُعفي الفريقُ نفسه",
+    canAdvance(at(CLUB_PROCESSING), { to: PAID_REVIEW, by: "team", reason: "x" }).code, "FLOW_FORBIDDEN");
+check("والمُعفى لا إيصال فيه يُردّ",
+    canAdvance({ stage: PAID_REVIEW, fee_waived: true }, { to: AWAITING_PAYMENT, by: "club" }).code, "FEE_WAIVED");
+check("وخطّه يقول «أُعفي» لا «تم السداد»",
+    stageLabelFor(PAID_REVIEW, { fee_waived: true }), "أُعفي من الرسوم — بانتظار الاعتماد النهائي");
+check("وغير المُعفى يبقى بمسمّاه", stageLabelFor(PAID_REVIEW, {}), stageLabel(PAID_REVIEW));
+
+// ——— سعر النادي اقتراحٌ يملأ الحقل، لا قرار ———
+check("سعر مفعّل يُقترح", suggestedFee({ type: "transfer", fee: { active: true, amount: 20 } }), 20);
+check("وسعر موقوف لا يُقترح", suggestedFee({ type: "transfer", fee: { active: false, amount: 20 } }), null);
+check("ولا سعر صفر", suggestedFee({ type: "transfer", fee: { active: true, amount: 0 } }), null);
+check("ولا نادٍ لم يسعّر", suggestedFee({ type: "transfer", fee: null }), null);
+check("والكسور بمنزلتين", suggestedFee({ type: "loan", fee: { active: true, amount: "12.345" } }), 12.35);
+
+// ——— أزرار كل طرف ———
+const labels = (list) => list.map((a) => a.label);
+check("أمام النادي بعد القبول المبدئي: مطالبة، إعفاء، رفض، إلغاء",
+    labels(availableActions({ stage: CLUB_PROCESSING, request_type: "loan" }, "club")),
+    ["مطالبة بالرسوم", "إعفاء من الرسوم", "رفض نهائي (مع السبب)", "إلغاء الطلب"]);
+check("والمطالبة تطلب مبلغاً والإعفاء سبباً",
+    availableActions({ stage: CLUB_PROCESSING, request_type: "loan" }, "club")
+        .slice(0, 2).map((a) => [a.kind, a.needsAmount, a.needsReason]),
+    [["bill", true, false], ["waive", false, true]]);
+check("ولا زرّ سداد للفريق — الإيصال يحرّكه",
+    labels(availableActions({ stage: AWAITING_PAYMENT, request_type: "loan" }, "team")), ["إلغاء الطلب"]);
+check("وبعد السداد: اعتماد، ردّ الإيصال، رفض",
+    labels(availableActions({ stage: PAID_REVIEW, request_type: "loan" }, "club")),
+    ["اعتماد نهائي", "ردّ الإيصال للسداد", "رفض نهائي (مع السبب)", "إلغاء الطلب"]);
+check("وبعد الإعفاء لا «ردّ الإيصال»",
+    labels(availableActions({ stage: PAID_REVIEW, request_type: "loan", fee_waived: true }, "club")),
+    ["اعتماد نهائي", "رفض نهائي (مع السبب)", "إلغاء الطلب"]);
+check("وفي المراجعة المبدئية رفضان: يُعدَّل أو يُغلق",
+    labels(availableActions({ stage: SUBMITTED, request_type: "player_registration" }, "club")),
+    ["قبول مبدئي", "رفض مبدئي (مع السبب)", "رفض نهائي (مع السبب)", "إلغاء الطلب"]);
+check("ولا أزرار في طلب منتهٍ", availableActions({ stage: APPROVED }, "club"), []);
+check("ولا للمراقب", availableActions({ stage: SUBMITTED }, "observer"), []);
+
+// ——— طلبٌ أنشأه النادي بنفسه ———
+// «سوّينا إعارة… مفروض يمرّ على مسار الطلبات، أين راح؟» — كانت تولد معتمدة.
+check("يبدأ مقبولاً مبدئياً", openingStage({ byClub: true }), CLUB_PROCESSING);
+check("وطلب الفريق يبدأ مقدّماً", openingStage({ byClub: false }), SUBMITTED);
+
+// ——— الأثر عند نهاية الطريق وحدها ———
+check("الانتقال يُنفَّذ عند الاعتماد النهائي", outcomeOf("transfer", APPROVED), "finalize");
+check("لا عند القبول المبدئي", outcomeOf("transfer", CLUB_PROCESSING), null);
+check("ولا عند السداد", outcomeOf("transfer", PAID_REVIEW), null);
+check("ورفضه أو إلغاؤه يُبقي اللاعب",
+    [outcomeOf("transfer", REJECTED_FINAL), outcomeOf("transfer", CANCELLED)], ["abandon", "abandon"]);
+check("والاستقالة تُخلي طرفه عند الاعتماد", outcomeOf("player_release", APPROVED), "release");
+check("ورفضها يُبقيه", outcomeOf("player_release", REJECTED_FINAL), "refuse");
+check("والتسجيل تكفيه المرآة", outcomeOf("player", APPROVED), null);
+
+// ——— زرّا الصفحات القديمة على الطريق نفسه ———
+check("«قبول» في البطاقة قبولٌ مبدئي", legacyDecisionMove(SUBMITTED, "accepted"), { to: CLUB_PROCESSING });
+check("وبعد السداد اعتمادٌ نهائي", legacyDecisionMove(PAID_REVIEW, "accepted"), { to: APPROVED });
+check("وقبل قرار الرسوم يُقال لماذا لا",
+    legacyDecisionMove(CLUB_PROCESSING, "accepted").code, "FEE_DECISION_PENDING");
+check("وأثناء انتظار السداد كذلك", legacyDecisionMove(AWAITING_PAYMENT, "accepted").code, "AWAITING_PAYMENT");
+check("و«رفض» في المراجعة المبدئية يعيده للفريق", legacyDecisionMove(SUBMITTED, "rejected"), { to: REJECTED_INITIAL });
+check("وبعدها رفضٌ نهائي", legacyDecisionMove(PAID_REVIEW, "rejected"), { to: REJECTED_FINAL });
+check("والمنتهي لا يُقبل", legacyDecisionMove(APPROVED, "accepted").code, "FLOW_CLOSED");
 
 // ——— مرآة الحالة القديمة: الشاشات القائمة لا تنكسر ———
 check("المعتمد نهائياً هو accepted القديمة", legacyStatus(APPROVED), "accepted");
@@ -129,9 +200,12 @@ check("ولكل مرحلة مرآة", STAGES.every((s) => legacyStatus(s.stage) 
 check("سجلّ اللاعب يعرف waiting_club", legacyStatusFor("player", CLUB_PROCESSING), "waiting_club");
 check("والاستقالة لا تعرفها فانتظارها انتظار",
     legacyStatusFor("player_release", CLUB_PROCESSING), "waiting");
-check("والانتقال يدير سلسلته بنفسه قبل النهاية",
-    legacyStatusFor("transfer", CLUB_PROCESSING), null);
-check("ولا يكتب المسار فيه إلا نهايته",
+check("والانتقال يدير سلسلته بنفسه قبل اتفاق الناديين",
+    legacyStatusFor("transfer", SUBMITTED), null);
+check("وبعد اتفاقهما ينتظر رسومه واعتماده — لا «مقبول» واللاعب لم ينتقل",
+    [CLUB_PROCESSING, AWAITING_PAYMENT, PAID_REVIEW].map((st) => legacyStatusFor("transfer", st)),
+    ["waiting_payment", "waiting_payment", "waiting_payment"]);
+check("ونهايته مقبول أو مرفوض",
     [legacyStatusFor("transfer", APPROVED), legacyStatusFor("transfer", REJECTED_FINAL)],
     ["accepted", "rejected"]);
 check("والاعتماد النهائي accepted في الثلاثة",

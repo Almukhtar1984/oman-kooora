@@ -23,34 +23,39 @@ eq(initialTransferStatus({ callerIsClub: false, sameClub: true }), "waiting_club
     "a team creating an internal move also starts at its own club");
 eq(initialTransferStatus({ callerIsClub: true, sameClub: false }), "waiting_club_to",
     "a club creating a cross-club move goes straight to the destination club");
-eq(initialTransferStatus({ callerIsClub: true, sameClub: true }), "accepted",
-    "a club creating an internal move is accepted immediately");
+eq(initialTransferStatus({ callerIsClub: true, sameClub: true }), "waiting_payment",
+    "a club creating an internal move has agreed with itself — but still owes the fee and final approval");
+eq(initialTransferStatus({ callerIsClub: true, sameClub: true, isRequest: false }), "accepted",
+    "a club returning a loan is done at once — a return is not a request");
 
 // ───────────── the full teamA → clubA → clubB → teamB chain ─────────────
 // team creates external → waiting_club_from
 let s = initialTransferStatus({ callerIsClub: false, sameClub: false });
 let t1 = transferTransition(s, "accepted", false); // clubA approves
-eq(t1, { status: "waiting_club_to", finalize: false }, "clubA approval advances to the destination club (no move yet)");
+eq(t1, { status: "waiting_club_to", agreed: false }, "clubA approval advances to the destination club (no move yet)");
 let t2 = transferTransition(t1.status, "accepted", false); // clubB approves
-eq(t2, { status: "accepted", finalize: true }, "clubB approval finalizes the move (player changes team)");
+eq(t2, { status: "waiting_payment", agreed: true },
+    "clubB approval completes the chain — the player does NOT move yet: fee and final approval remain");
 
 // internal move via a team: clubA approval finalizes (no clubB)
 let si = initialTransferStatus({ callerIsClub: false, sameClub: true });
-eq(transferTransition(si, "accepted", true), { status: "accepted", finalize: true },
-    "an internal move needs only the own-club approval to finalize");
+eq(transferTransition(si, "accepted", true), { status: "waiting_payment", agreed: true },
+    "an internal move needs only the own-club approval to complete the chain");
 
 // ───────────── rejection at any stage ─────────────
-eq(transferTransition("waiting_club_from", "rejected", false), { status: "rejected", finalize: false },
+eq(transferTransition("waiting_club_from", "rejected", false), { status: "rejected", agreed: false },
     "clubA can reject");
-eq(transferTransition("waiting_club_to", "rejected", false), { status: "rejected", finalize: false },
+eq(transferTransition("waiting_club_to", "rejected", false), { status: "rejected", agreed: false },
     "clubB can reject");
 
 // ───────────── legacy + no-op ─────────────
-eq(transferTransition("waiting", "accepted", false), { status: "accepted", finalize: true },
-    "a legacy 'waiting' row finalizes on accept (backward compatible)");
-eq(transferTransition("accepted", "accepted", false), { status: "accepted", finalize: false },
-    "an already-accepted row does not re-finalize");
-eq(transferTransition("waiting_club_from", "weird", false), { status: "waiting_club_from", finalize: false },
+eq(transferTransition("waiting", "accepted", false), { status: "waiting_payment", agreed: true },
+    "a legacy 'waiting' row is agreed on accept, and then owes its fee like any other");
+eq(transferTransition("waiting_payment", "accepted", false), { status: "waiting_payment", agreed: false },
+    "an agreed row is past the chain — accepting it again does nothing here");
+eq(transferTransition("accepted", "accepted", false), { status: "accepted", agreed: false },
+    "an already-accepted row does not re-agree");
+eq(transferTransition("waiting_club_from", "weird", false), { status: "waiting_club_from", agreed: false },
     "an unknown decision is a no-op");
 
 // ───────────── pendingApprover (UI gating) ─────────────
@@ -59,9 +64,11 @@ eq(pendingApprover("waiting_club_to"), "to", "to-club is the approver at waiting
 eq(pendingApprover("waiting"), "to", "legacy waiting is the receiver's turn");
 eq(pendingApprover("accepted"), null, "a finalized row has no pending approver");
 eq(pendingApprover("rejected"), null, "a rejected row has no pending approver");
+eq(pendingApprover("waiting_payment"), null, "an agreed row waits on the road, not on a club's chain decision");
 
-assert(TRANSFER_STATUSES.includes("waiting_club_from") && TRANSFER_STATUSES.includes("waiting_club_to"),
-    "the new stage statuses are exported");
+assert(TRANSFER_STATUSES.includes("waiting_club_from") && TRANSFER_STATUSES.includes("waiting_club_to")
+    && TRANSFER_STATUSES.includes("waiting_payment"),
+    "the stage statuses are exported");
 
 // ───────────── who picks the destination team ─────────────
 // The receiving club does. A team id sent by anyone else is ignored, which also

@@ -15,6 +15,15 @@ const { Op } = sequelize;
 const UNDECIDED = ["waiting", "waiting_club"];
 const TRANSFER_UNDECIDED = ["waiting", "waiting_club_from", "waiting_club_to"];
 
+// انتقالٌ اتفق عليه الناديان ينتظر النادي المستقبِل: يطالب بالرسوم أو يُعفي،
+// ثم يعتمد — هو عمله، فيُعدّ له وحده (والسداد نفسه يُستثنى أدناه).
+const transferTurn = (idClub) => ({
+    [Op.or]: [
+        { status: { [Op.in]: TRANSFER_UNDECIDED }, [Op.or]: [{ id_club_from: idClub }, { id_club_to: idClub }] },
+        { status: "waiting_payment", id_club_to: idClub },
+    ],
+});
+
 export const resolvers = {
     Query: {
         clubPendingRequests: async (obj, args, context) => {
@@ -45,20 +54,10 @@ export const resolvers = {
                     teamIds.length ? TechnicalApparatus.count({ where: byTeam }) : 0,
                     teamIds.length ? Members.count({ where: byTeam }) : 0,
                     Transfer.count({
-                        where: {
-                            transition_type: "transition",
-                            status: { [Op.in]: TRANSFER_UNDECIDED },
-                            [Op.or]: [{ id_club_from: idClub }, { id_club_to: idClub }],
-                            ...except(paused.transfer),
-                        },
+                        where: { transition_type: "transition", ...transferTurn(idClub), ...except(paused.transfer) },
                     }),
                     Transfer.count({
-                        where: {
-                            transition_type: "loan",
-                            status: { [Op.in]: TRANSFER_UNDECIDED },
-                            [Op.or]: [{ id_club_from: idClub }, { id_club_to: idClub }],
-                            ...except(paused.transfer),
-                        },
+                        where: { transition_type: "loan", ...transferTurn(idClub), ...except(paused.transfer) },
                     }),
                     PlayerRelease.count({
                         where: { id_club: idClub, status: "waiting", ...except(paused.player_release) },

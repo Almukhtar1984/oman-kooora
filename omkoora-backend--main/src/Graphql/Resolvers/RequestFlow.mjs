@@ -4,32 +4,63 @@ import logger from "../../Config/logger.mjs";
 import {
     Club, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Team, Transfer,
 } from '../../Models/index.mjs';
+import sequelize from 'sequelize';
+
 import { callerClubId, callerTeamId } from "../../Helpers/clubScope.mjs";
-import { advanceFlow, flowFor } from "../../Helpers/requestFlowRunner.mjs";
+import { advanceFlow, flowFor, suggestedAmountFor } from "../../Helpers/requestFlowRunner.mjs";
 import {
-    STAGES, stageInfo, stageLabel, actionLabel, isDone, requestTypeLabel,
-    canAdvance,
+    STAGES, stageInfo, stageLabelFor, isDone, requestTypeLabel, availableActions,
+    SUBMITTED, CLUB_PROCESSING, CANCELLED,
 } from "../../Helpers/requestFlow.mjs";
+import { pendingApprover } from "../../Helpers/transferFlow.mjs";
 import { feeLabel } from "../../Helpers/clubFees.mjs";
+
+const { Op } = sequelize;
 
 // من هو المستدعي في هذا المسار؟
 //
-// صاحبُه الفريق الذي يسدّد، أو النادي الذي يبتّ — ولهما الإجراء. وللانتقال
-// طرفٌ ثانٍ: الفريق الذي يُخرج اللاعب وناديه. هذان يَريان الخط ولا يحرّكانه،
-// فالطلب طلبهما أيضاً — وقد كان محجوباً عنهما، فيقدّم الفريق طلباً ثم لا يرى
-// خطّه، وهو عين ما بُني الخط لإزالته.
-const sideOf = async (context, flow) => {
+// صاحبُه الفريق الذي يسدّد، أو النادي الذي يستكمل ويعتمد — ولهما الإجراء. وللانتقال
+// طرفٌ ثانٍ: الفريق الذي يُخرج اللاعب وناديه. هؤلاء يَرون الخط، فالطلب طلبهم
+// أيضاً — بل الفريق المُعير هو من قدّمه. ويملك النادي منهم قراره في سلسلة
+// الناديين حين يحين دوره فيها ("chain")، وإلا فهو مراقب يرى ولا يحرّك.
+const sideOf = async (context, flow, transfer = undefined) => {
     const [idClub, idTeam] = await Promise.all([callerClubId(context), callerTeamId(context)]);
     if (idTeam && flow.id_team === idTeam) return "team";
-    if (idClub && flow.id_club === idClub) return "club";
 
     if (flow.entity_type === "transfer") {
-        const transfer = await Transfer.findByPk(flow.entity_id);
-        const counterpart = (idTeam && transfer?.id_team_from === idTeam)
-            || (idClub && transfer?.id_club_from === idClub);
+        const row = transfer === undefined ? await Transfer.findByPk(flow.entity_id) : transfer;
+        // دور الناديين في المراجعة المبدئية: سلسلتهما لا أزرار المسار.
+        if (idClub && row && flow.stage === SUBMITTED) {
+            const turn = pendingApprover(row.status);
+            const approver = turn === "from" ? row.id_club_from : turn === "to" ? row.id_club_to : null;
+            if (approver && approver === idClub) return "chain";
+        }
+        if (idClub && flow.id_club === idClub) return "club";
+        const counterpart = (idTeam && row?.id_team_from === idTeam)
+            || (idClub && row?.id_club_from === idClub);
         if (counterpart) return "observer";
+        return null;
     }
+
+    if (idClub && flow.id_club === idClub) return "club";
     return null;
+};
+
+// قرار النادي في سلسلة الناديين يُتّخذ بزرّي السلسلة نفسها (updateTransfer):
+// القبول يختار الفريق المستقبِل حين يكون النادي هو المستقبِل ولم يُسمَّ فريقه.
+const chainActions = (transfer, idClub) => {
+    const receiving = transfer?.id_club_to && transfer.id_club_to === idClub;
+    return [
+        {
+            to: null, kind: "transfer_accept", label: "موافقة النادي",
+            needsReason: false, needsAmount: false,
+            needsTeam: Boolean(receiving),
+        },
+        {
+            to: null, kind: "transfer_reject", label: "رفض (مع السبب)",
+            needsReason: true, needsAmount: false, needsTeam: false,
+        },
+    ];
 };
 
 // اسم اللاعب الذي عن الطلب.
@@ -83,15 +114,31 @@ const paymentsFor = async (flows) => {
     return new Map(rows.map((row) => [row.id, row.get({ plain: true })]));
 };
 
+/** سجلّات الانتقال لمجموعة مسارات — استعلام واحد. */
+const transfersFor = async (flows) => {
+    const ids = flows.filter((flow) => flow.entity_type === "transfer").map((flow) => flow.entity_id);
+    if (!ids.length) return new Map();
+    const rows = await Transfer.findAll({ where: { id: ids } });
+    return new Map(rows.map((row) => [row.id, row]));
+};
+
 /**
- * المسار كما تقرأه الواجهة: مسمّياته، واسم لاعبه، ومطالبته، وما يجوز فيه.
+ * المسار كما تقرأه الواجهة: مسمّياته، واسم لاعبه، ومطالبته، وما يجوز فيه لهذا
+ * المستدعي — والمبلغ المقترح حين يكون الدور على النادي أن يطالب.
  *
  * يُجلب ما يحتاجه السطر الواحد والقائمة كلها بالعدد نفسه من الاستعلامات.
  */
-const enrich = async (flows, { by = null } = {}) => {
-    const [names, payments] = await Promise.all([subjectsFor(flows), paymentsFor(flows)]);
-    return flows.map((flow) => {
+const enrich = async (flows, context) => {
+    const [names, payments, transfers, idClub] = await Promise.all([
+        subjectsFor(flows), paymentsFor(flows), transfersFor(flows), callerClubId(context),
+    ]);
+    return Promise.all(flows.map(async (flow) => {
         const plain = flow.get ? flow.get({ plain: true }) : flow;
+        const transfer = plain.entity_type === "transfer" ? transfers.get(plain.entity_id) || null : undefined;
+        const side = await sideOf(context, plain, transfer);
+        const suggestedAmount = side === "club" && plain.stage === CLUB_PROCESSING
+            ? await suggestedAmountFor(plain)
+            : null;
         return withLabels({
             ...plain,
             subject: subjectOf(plain, names),
@@ -99,42 +146,47 @@ const enrich = async (flows, { by = null } = {}) => {
             // الخط من الأقدم إلى الأحدث — وهو ترتيبه الذي يُقرأ به.
             events: [...(plain.events || [])].sort(
                 (a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
-        }, { by });
-    });
+        }, { side, transfer, idClub, suggestedAmount });
+    }));
 };
 
-const withLabels = (flow, { by = null } = {}) => {
+const withLabels = (flow, { side = null, transfer = null, idClub = null, suggestedAmount = null } = {}) => {
     const plain = flow.get ? flow.get({ plain: true }) : flow;
     const info = stageInfo(plain.stage) || {};
     return {
         ...plain,
+        side,
+        suggestedAmount,
         request_label: requestTypeLabel(plain.request_type),
-        label: info.label || "",
+        label: stageLabelFor(plain.stage, plain),
         also: info.also || null,
         actor: info.actor || null,
         done: isDone(plain.stage),
+        fee_waived: Boolean(plain.fee_waived),
         events: (plain.events || []).map((event) => ({
             ...event,
-            label: stageLabel(event.stage),
+            label: stageLabelFor(event.stage, plain),
         })),
         payment: plain.payment
             ? { ...plain.payment, label: feeLabel(plain.payment.fee_type) }
             : null,
         // ما يجوز لهذا الطرف الآن — تُبنى منه الأزرار، فلا يُعرض زر يُرفض ضغطه.
         // ولا أزرار للمراقب: يرى الخط ولا يحرّكه.
-        actions: (by && by !== "observer") ? availableActions(plain, by) : [],
+        actions: actionsFor(plain, side, transfer, idClub),
     };
 };
 
-const availableActions = (flow, by) =>
-    STAGES
-        .map((stage) => stage.stage)
-        .filter((to) => canAdvance(flow, { to, by, reason: "—", type: flow.request_type }).ok)
-        .map((to) => ({
-            to,
-            label: actionLabel(to),
-            needsReason: Boolean(stageInfo(to)?.needsReason),
-        }));
+const actionsFor = (flow, side, transfer, idClub) => {
+    if (side === "chain") return chainActions(transfer, idClub);
+    if (side !== "team" && side !== "club") return [];
+    const list = availableActions(flow, side).map((action) => ({ ...action, needsTeam: false }));
+    // الانتقال في مراجعته المبدئية يمضي بسلسلة الناديين، لا بزرّ «قبول مبدئي»
+    // يتخطّاها — يبقى منه الإلغاء وحده.
+    if (flow.entity_type === "transfer" && flow.stage === SUBMITTED) {
+        return list.filter((action) => action.to === CANCELLED);
+    }
+    return list;
+};
 
 const FLOW_INCLUDE = [
     { model: RequestFlowEvent, as: "events", required: false },
@@ -157,10 +209,10 @@ export const resolvers = {
                 const flow = await flowFor(entity_type, entity_id);
                 if (!flow) return null;
 
-                const by = await sideOf(context, flow);
-                if (!by) return null;        // ليس طلبه، فلا يراه
+                const side = await sideOf(context, flow);
+                if (!side) return null;        // ليس طلبه، فلا يراه
 
-                const [enriched] = await enrich([flow], { by });
+                const [enriched] = await enrich([flow], context);
                 return enriched;
             } catch (error) {
                 logger.error(`RequestFlow.requestFlow: ${error?.message || error}`);
@@ -174,19 +226,31 @@ export const resolvers = {
                     callerClubId(context), callerTeamId(context),
                 ]);
 
-                const where = {};
-                let by = null;
-                if (idTeam) { where.id_team = idTeam; by = "team"; }
-                else if (idClub) { where.id_club = idClub; by = "club"; }
-                else return [];
+                if (!idTeam && !idClub) return [];
 
+                // طلبات الطرف نفسه، وطلبات الانتقال التي هو طرفها الثاني: الفريق
+                // المُعير قدّم الإعارة، والنادي المُرسِل يبتّ فيها أولاً — فكلاهما
+                // يجب أن يجد خطّها في صفحته، لا عند الطرف الآخر وحده.
+                const outgoing = await Transfer.findAll({
+                    where: idTeam ? { id_team_from: idTeam } : { id_club_from: idClub },
+                    attributes: ["id"],
+                });
+                const own = idTeam ? { id_team: idTeam } : { id_club: idClub };
+                const where = outgoing.length
+                    ? {
+                        [Op.or]: [
+                            own,
+                            { entity_type: "transfer", entity_id: { [Op.in]: outgoing.map((row) => row.id) } },
+                        ],
+                    }
+                    : own;
                 if (stage) where.stage = stage;
                 if (request_type) where.request_type = request_type;
 
                 const rows = await RequestFlow.findAll({
                     where, include: FLOW_INCLUDE, order: [["updatedAt", "DESC"]],
                 });
-                return await enrich(rows, { by });
+                return await enrich(rows, context);
             } catch (error) {
                 logger.error(`RequestFlow.myRequestFlows: ${error?.message || error}`);
                 throw new ApolloError(error);
@@ -195,7 +259,7 @@ export const resolvers = {
     },
 
     Mutation: {
-        advanceRequestFlow: async (obj, { id, to, reason }, context) => {
+        advanceRequestFlow: async (obj, { id, to, reason, amount }, context) => {
             try {
                 const flow = await RequestFlow.findByPk(id);
                 if (!flow) {
@@ -206,15 +270,25 @@ export const resolvers = {
                 if (!by) {
                     return { ok: false, code: "FLOW_FORBIDDEN", message: "هذا الطلب ليس لك", flow: null };
                 }
-                if (by === "observer") {
+                if (by === "observer" || by === "chain") {
                     return {
                         ok: false, code: "FLOW_OBSERVER", flow: null,
-                        message: "تتابع هذا الطلب ولا تملك البتّ فيه",
+                        message: by === "chain"
+                            ? "قرار ناديك في هذا الطلب بالموافقة أو الرفض في سلسلة الناديين"
+                            : "تتابع هذا الطلب ولا تملك البتّ فيه",
+                    };
+                }
+                // المراجعة المبدئية للانتقال سلسلة الناديين نفسها، لا زرّ يتخطّاها.
+                if (flow.entity_type === "transfer" && flow.stage === SUBMITTED && to !== CANCELLED) {
+                    return {
+                        ok: false, code: "TRANSFER_CHAIN", flow: null,
+                        message: "الانتقال في مراجعة الناديين — يُقبل أو يُرفض بقرارهما",
                     };
                 }
 
                 const result = await advanceFlow({
                     flow, to, by, reason,
+                    amount: amount ?? null,
                     id_user: context?.user?.id || null,
                 });
                 if (!result.ok) {
@@ -222,7 +296,7 @@ export const resolvers = {
                 }
 
                 const fresh = await flowFor(flow.entity_type, flow.entity_id);
-                const [enriched] = fresh ? await enrich([fresh], { by }) : [null];
+                const [enriched] = fresh ? await enrich([fresh], context) : [null];
                 return {
                     ok: true,
                     code: null,

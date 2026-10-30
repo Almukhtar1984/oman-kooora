@@ -13,6 +13,7 @@ import {removeReceivingTeamParticipations, removeReceivingTeamParticipationsTech
 import { initialTransferStatus, transferTransition, resolveDestinationTeam } from "../../Helpers/transferFlow.mjs";
 import { callerClubId, clubOfTeam } from "../../Helpers/clubScope.mjs";
 import { openFlow, flowFor, advanceFlow } from "../../Helpers/requestFlowRunner.mjs";
+import { openingStage, isDone, CLUB_PROCESSING, REJECTED_FINAL } from "../../Helpers/requestFlow.mjs";
 
 const CLUB_ADMIN_ROLE = "2";
 
@@ -170,9 +171,11 @@ export const resolvers = {
                 const idClubTo = (await clubIdOfTeam(content.id_team_to)) || content.id_club_to || null;
                 const sameClub = !!idClubFrom && idClubFrom === idClubTo;
                 const callerIsClub = context?.user?.role === CLUB_ADMIN_ROLE;
+                // انتقالٌ أو إعارة طلبٌ له طريقه؛ وعودة اللاعب من إعارته انقضاءُ مدة.
+                const isRequest = ["transition", "loan"].includes(content.transition_type || "transition");
 
                 // The backend owns the initial stage — the client's status is ignored.
-                const status = initialTransferStatus({ callerIsClub, sameClub });
+                const status = initialTransferStatus({ callerIsClub, sameClub, isRequest });
 
                 const transfer = await Transfer.create({
                     ...content,
@@ -182,7 +185,7 @@ export const resolvers = {
                 });
 
                 if (status === "accepted") {
-                    // A club created an internal move → it is already final.
+                    // A club returned a loan → it is done at once.
                     await Subject.update({ status: "accepted", id_team: content.id_team_to }, { where: { id: subjectId } })
                 } else if (subjectId) {
                     // In flight → mark the subject pending its club(s)' review.
@@ -201,9 +204,14 @@ export const resolvers = {
                 }
 
                 // مسار الطلب — للانتقال والإعارة وحدهما. والعودة من إعارة ليست
-                // طلباً بل انقضاء مدة، فلا خطّ لها. وانتقالٌ ولد معتمداً (نقل
-                // داخلي أنشأه النادي) لا شيء فيه ليُتتبّع.
-                if (status !== "accepted" && ["transition", "loan"].includes(transfer.transition_type)) {
+                // طلباً بل انقضاء مدة، فلا خطّ لها.
+                //
+                // وإعارة النادي الداخلية كانت تولد معتمدة واللاعب ينتقل فوراً، فلا
+                // يراها مسار الطلبات أصلاً — «سوّينا إعارة… مفروض يمرّ على مسار
+                // الطلبات، أين راح؟» (العميل). الآن تبدأ «مقبولةً مبدئياً» وتمرّ
+                // بالرسوم والاعتماد كغيرها.
+                if (isRequest) {
+                    const agreed = status === "waiting_payment";
                     await openFlow({
                         request_type: transfer.transition_type === "loan" ? "loan" : "transfer",
                         entity_type: "transfer",
@@ -211,7 +219,10 @@ export const resolvers = {
                         // النادي المستقبِل هو الذي يستكمل ويطالب ويعتمد؛
                         // وسلسلة الناديين تمضي كما هي داخل المراجعة المبدئية.
                         id_club: idClubTo,
+                        // والفريق المستقبِل هو الذي يسدّد: «الفريق باء يستعير… يدفع».
                         id_team: content.id_team_to || null,
+                        stage: openingStage({ byClub: agreed }),
+                        actor: callerIsClub ? "club" : "team",
                         id_user: context?.user?.id || null,
                     })
                 }
@@ -247,60 +258,72 @@ export const resolvers = {
                     callerClubId: await callerClubId(context),
                 });
 
+                // اتفق الناديان: ما بقي — الرسوم والاعتماد — على مسار الطلب، لا هنا.
+                if (transfer.status === "waiting_payment") {
+                    throw new ApolloError(
+                        "اتفق الناديان على هذا الطلب — رسومه واعتماده النهائي من مسار الطلبات",
+                        "TRANSFER_ON_ROAD"
+                    );
+                }
+
                 // Advance the approval chain from the current stage.
                 const sameClub = !!transfer.id_club_from && transfer.id_club_from === transfer.id_club_to
                 const decision = content.status // "accepted" (approve this stage) | "rejected"
                 const next = transferTransition(transfer.status, decision, sameClub)
 
-                // A player cannot land nowhere: the final approval must name a team.
-                if (next.finalize && !idTeamTo) {
+                // A player cannot land nowhere: the receiving club names the team
+                // when it agrees, and the final approval moves him there.
+                if (next.agreed && !idTeamTo) {
                     throw new ApolloError(
-                        "اختر الفريق الذي سينضم إليه اللاعب في ناديك قبل اعتماد الانتقال",
+                        "اختر الفريق الذي سينضم إليه اللاعب في ناديك قبل الموافقة على الطلب",
                         "TRANSFER_TEAM_REQUIRED"
                     );
                 }
 
-                // The transfer date is the date it became final — nobody types it.
-                const patch = { status: next.status, id_team_to: idTeamTo }
-                if (next.finalize && !transfer.date_start) patch.date_start = new Date()
+                const isRequest = ["transition", "loan"].includes(transfer.transition_type)
+                const flow = isRequest ? await flowFor("transfer", transfer.id, { withEvents: false }) : null
+                const onRoad = flow && !isDone(flow.stage)
+                const id_user = context?.user?.id || null
 
-                const result = await Transfer.update(patch, { where: { id } })
+                const result = await Transfer.update({ status: next.status, id_team_to: idTeamTo }, { where: { id } })
 
                 if (result[0] === 1) {
-                    if (next.finalize) {
-                        // Final approval → the player actually moves to the destination team.
-                        await Subject.update({ status: "accepted", id_team: idTeamTo }, { where: { id: subjectId } })
-                        if (isLoan) {
-                            await CreateNotificationTeam("loan", "accepted", transfer.id_team_from, subjectId, subjectType)
+                    if (next.agreed) {
+                        // الناديان اتفقا — واللاعب لا ينتقل بعد: يمرّ الطلب بالرسوم
+                        // ثم الاعتماد النهائي، وعنده ينتقل (requestOutcomes.mjs).
+                        if (onRoad) {
+                            const moved = await advanceFlow({ flow, to: CLUB_PROCESSING, by: "club", id_user })
+                            if (!moved.ok) logger.error(`Transfer.updateTransfer: road ${moved.code}`)
+                        } else if (isRequest) {
+                            // طلبٌ قُدّم قبل أن يوجد الخط: يُفتح له مساره الآن.
+                            await openFlow({
+                                request_type: isLoan ? "loan" : "transfer",
+                                entity_type: "transfer",
+                                entity_id: transfer.id,
+                                id_club: transfer.id_club_to || null,
+                                id_team: idTeamTo,
+                                stage: CLUB_PROCESSING,
+                                actor: "club",
+                                id_user,
+                            })
                         }
                     } else if (next.status === "waiting_club_to") {
                         // The own club approved → it's now the destination club's turn.
                         if (transfer.id_club_to) await CreateNotificationClub("player", "update", transfer.id_club_to, "", subjectId)
                     } else if (next.status === "rejected") {
-                        // Rejected anywhere → the player stays active in the current team.
-                        await Subject.update({ status: "accepted" }, { where: { id: subjectId } })
-                        if (isLoan) {
-                            await CreateNotificationTeam("loan", "rejected", transfer.id_team_from, subjectId, subjectType)
-                        }
-                    }
-
-                    // وسلسلة الناديين تحرّك مسار الطلب معها، وإلا بقي خطّ
-                    // التتبّع واقفاً عند «مقدم من الفريق» وطلبه قد بُتّ فيه.
-                    //
-                    // ملاحظة: اللاعب ينتقل فعلياً باكتمال السلسلة كما كان —
-                    // لم تُغيَّر هذه اللحظة. فالرسوم هنا مطالبة لا بوابة، على
-                    // خلاف التسجيل والاستقالة حيث لا يُعتمد شيء قبل السداد.
-                    const flow = await flowFor("transfer", transfer.id, { withEvents: false })
-                    if (flow) {
-                        if (next.finalize) {
-                            await advanceFlow({ flow, to: "club_processing", by: "club", id_user: context?.user?.id || null })
-                            await advanceFlow({ flow, to: "awaiting_payment", by: "club", id_user: context?.user?.id || null })
-                        } else if (next.status === "rejected") {
-                            await advanceFlow({
-                                flow, to: "rejected_final", by: "club",
-                                reason: content.note || "رُفض الطلب",
-                                id_user: context?.user?.id || null,
+                        if (onRoad) {
+                            // الطريق يُغلق الطلب ويُبقي اللاعب في فريقه ويُخبر الطرفين.
+                            const closed = await advanceFlow({
+                                flow, to: REJECTED_FINAL, by: "club",
+                                reason: content.note || "رُفض الطلب", id_user,
                             })
+                            if (!closed.ok) logger.error(`Transfer.updateTransfer: road ${closed.code}`)
+                        } else {
+                            // Rejected anywhere → the player stays active in the current team.
+                            await Subject.update({ status: "accepted" }, { where: { id: subjectId } })
+                            if (isLoan) {
+                                await CreateNotificationTeam("loan", "rejected", transfer.id_team_from, subjectId, subjectType)
+                            }
                         }
                     }
                 }

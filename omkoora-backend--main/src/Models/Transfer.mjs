@@ -11,7 +11,8 @@ export default (db, types) => {
             // Multi-stage approval chain: team → own club → destination club.
             //   waiting_club_from → waiting_club_to → accepted / rejected.
             // "waiting" is kept for backward compatibility with older rows.
-            values: ["accepted", "rejected", "waiting", "waiting_club_from", "waiting_club_to"],
+            // waiting_payment: اتفق الناديان، وبقي السداد والاعتماد النهائي.
+            values: ["accepted", "rejected", "waiting", "waiting_club_from", "waiting_club_to", "waiting_payment"],
             defaultValue: "waiting_club_from"
         },
         type: {

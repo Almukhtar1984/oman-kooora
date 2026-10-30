@@ -2,8 +2,9 @@
 //
 // The decisions live in requestFlow.mjs and stay pure. This file is the hands:
 // it opens a flow when a request is created, moves it when someone acts, keeps
-// the request's own legacy `status` column in step, raises the club's fee when
-// the road reaches payment, and tells the other side what happened.
+// the request's own legacy `status` column in step, raises the fee the club
+// bills when the road reaches payment, performs the request's effect at the
+// final approval (requestOutcomes.mjs), and tells the other side what happened.
 //
 // كل ما هنا «أفضل جهد»: فتح المسار أو تسجيل حدث لا يجوز أن يُسقط تسجيل لاعب.
 // الطلب نفسه هو الأصل، والخط خدمةٌ فوقه — فإن تعثّر الخط سُجّل الخطأ ومضى
@@ -11,15 +12,17 @@
 
 import logger from "../Config/logger.mjs";
 import {
-    ClubFee, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Team, Transfer,
+    ClubFee, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Transfer,
 } from "../Models/index.mjs";
 import { CreateDirectNotification } from "./Notification.mjs";
-import { feeLabel, normalizeAmount, PAYMENT_WAITING } from "./clubFees.mjs";
+import { normalizeAmount, PAYMENT_WAITING } from "./clubFees.mjs";
 import {
-    canAdvance, afterProcessing, legacyStatusFor, stageLabel, requestTypeInfo, requestTypeLabel,
+    canAdvance, suggestedFee, legacyStatusFor, legacyDecisionMove, outcomeOf, stageLabelFor,
+    requestTypeInfo, requestTypeLabel,
     SUBMITTED, REJECTED_INITIAL, CLUB_PROCESSING, AWAITING_PAYMENT, PAID_REVIEW,
     APPROVED, REJECTED_FINAL, CANCELLED,
 } from "./requestFlow.mjs";
+import { outcomeBlocker, performOutcome } from "./requestOutcomes.mjs";
 
 // السجلّ الذي يحمل الحالة القديمة لكل نوع طلب.
 const ENTITY_MODELS = {
@@ -68,6 +71,12 @@ export const openFlow = async ({
             request_type, entity_type, entity_id, stage, id_club, id_team,
         });
         await addEvent(flow, { stage, note, actor, id_user });
+        // طلبٌ فتحه النادي بنفسه يبدأ «مقبولاً مبدئياً»، فسجلّه يتبعه من الآن،
+        // ويُخبَر الفريق الذي سيسدّد.
+        if (stage !== SUBMITTED) {
+            await mirrorLegacy(flow);
+            void announce(flow);
+        }
         return flow;
     } catch (error) {
         // الطلب أهمّ من خطّه: يُسجَّل الخطأ ويمضي الإنشاء.
@@ -89,23 +98,26 @@ const mirrorLegacy = async (flow) => {
     }
 };
 
+/** المبلغ الذي يقترحه سعر النادي لهذا الطلب، أو null إن لم يسعّره. */
+export const suggestedAmountFor = async (flow) => {
+    const feeType = requestTypeInfo(flow?.request_type)?.fee;
+    if (!feeType || !flow?.id_club) return null;
+    const fee = await ClubFee.findOne({ where: { id_club: flow.id_club, fee_type: feeType } });
+    return suggestedFee({ type: flow.request_type, fee });
+};
+
 /**
- * يرفع مطالبة الرسوم بسعر النادي المعلن لهذا النوع.
+ * يرفع مطالبة الرسوم بالمبلغ الذي سمّاه النادي.
  *
  * وأخيراً يُملأ العمودان entity_type/entity_id في جدول المدفوعات: كانا موجودين
  * منذ البداية ولا يملؤهما أحد، فكانت الدفعة تشير إلى طلبها بنصّ حرّ يكتبه
  * موظف. الآن الدفعة تعرف طلبها، والطلب يعرف دفعته.
  */
-const raiseFee = async (flow, { id_user = null } = {}) => {
+const raiseFee = async (flow, { amount, id_user = null } = {}) => {
     const feeType = requestTypeInfo(flow.request_type)?.fee;
-    if (!feeType || !flow.id_club) return null;
-
-    const fee = await ClubFee.findOne({ where: { id_club: flow.id_club, fee_type: feeType } });
-    if (afterProcessing({ type: flow.request_type, fee }) !== AWAITING_PAYMENT) return null;
-
     const payment = await RequestPayment.create({
         fee_type: feeType,
-        amount: normalizeAmount(fee.amount),
+        amount: normalizeAmount(amount),
         entity_type: flow.entity_type,
         entity_id: flow.entity_id,
         status: PAYMENT_WAITING,
@@ -138,7 +150,9 @@ const announce = async (flow, { payment = null } = {}) => {
                 ? `طلب ${what}: مطلوب سداد ${Number(payment.amount)} ر.ع لاستكمال الاعتماد`
                 : `طلب ${what}: بانتظار سداد الرسوم`);
         case PAID_REVIEW:
-            return toClub(`سُدّدت رسوم طلب ${what} — بانتظار اعتمادك النهائي`);
+            return flow.fee_waived
+                ? toTeam(`أُعفي طلب ${what} من الرسوم${reason} — بانتظار الاعتماد النهائي`)
+                : toClub(`سُدّدت رسوم طلب ${what} — بانتظار اعتمادك النهائي`);
         case APPROVED:
             return toTeam(`اعتُمد طلب ${what} نهائياً`);
         case REJECTED_FINAL:
@@ -151,15 +165,15 @@ const announce = async (flow, { payment = null } = {}) => {
 };
 
 /**
- * ينقل الطلب إلى مرحلته التالية — بعد التأكد من جوازه ومن صاحب الحق فيه.
+ * ينقل الطلب إلى مرحلته التالية — بعد التأكد من جوازه ومن صاحب الحق فيه، ومن
+ * أن أثره ممكن التنفيذ.
  *
- * ويُستثنى من حرفية الطلب موضع واحد: النادي يطلب الانتقال إلى «سداد الرسوم»
- * فلا يجد لنوع الطلب سعراً مفعّلاً عنده، فيمضي الطلب إلى الاعتماد النهائي بدل
- * أن يُحبس على رسوم لم يضعها أحد.
+ * المطالبة بالرسوم تأخذ مبلغ النادي، أو سعره المعلن إن لم يسمِّ مبلغاً — ولا
+ * تمضي بلا مبلغ: لا يُعتمد طلبٌ بغياب سعرٍ، بل بإعفاءٍ مكتوب.
  */
 export const advanceFlow = async ({
     flow, entity_type, entity_id, to, by, reason = null, id_user = null, note = null,
-    viaReceipt = false,
+    viaReceipt = false, amount = null,
 }) => {
     try {
         const current = flow || await flowFor(entity_type, entity_id, { withEvents: false });
@@ -167,44 +181,105 @@ export const advanceFlow = async ({
             return { ok: false, code: "FLOW_NOT_FOUND", message: "مسار الطلب غير موجود" };
         }
 
-        let target = to;
-        let payment = null;
+        const from = current.stage;
+        const billing = to === AWAITING_PAYMENT && from === CLUB_PROCESSING;
+        const waiving = to === PAID_REVIEW && from === CLUB_PROCESSING;
+        const billAmount = billing ? (amount ?? await suggestedAmountFor(current)) : null;
+        const why = String(reason ?? "").trim() || null;
 
         const allowed = canAdvance(current, {
-            to: target, by, reason, type: current.request_type, viaReceipt,
+            to, by, reason, type: current.request_type, viaReceipt, amount: billAmount,
         });
         if (!allowed.ok) return allowed;
 
-        if (target === AWAITING_PAYMENT) {
-            if (current.id_payment) {
-                // عائد من ردّ الإيصال: مطالبته قائمة، ولا تُرفع ثانية.
-                payment = await RequestPayment.findByPk(current.id_payment);
-            } else {
-                payment = await raiseFee(current, { id_user });
-                // لا سعر مفعّل — فلا انتظار.
-                if (!payment) target = APPROVED;
-            }
+        const outcome = outcomeOf(current.entity_type, to);
+        const blocked = outcome ? await outcomeBlocker(current, outcome) : null;
+        if (blocked) return { ok: false, ...blocked };
+
+        let payment = null;
+        if (billing) {
+            payment = await raiseFee(current, { amount: billAmount, id_user });
+        } else if (to === AWAITING_PAYMENT && current.id_payment) {
+            // عائد من ردّ الإيصال: مطالبته قائمة، ولا تُرفع ثانية.
+            payment = await RequestPayment.findByPk(current.id_payment);
         }
 
         await current.update({
-            stage: target,
-            // السبب يخصّ الرفض وحده، ولا يُترك معلّقاً على مرحلة لاحقة.
-            reason: String(reason ?? "").trim() || null,
+            stage: to,
+            // السبب يخصّ الرفض والإعفاء، ولا يُترك معلّقاً على مرحلة لاحقة.
+            reason: why,
+            ...(waiving ? { fee_waived: true } : {}),
         });
+
+        try {
+            if (outcome) await performOutcome(current, outcome, { id_user, reason: why });
+        } catch (error) {
+            // الطلب لا يُعتمد على الورق واللاعبُ لم ينتقل: يعود إلى مرحلته.
+            await current.update({ stage: from });
+            return { ok: false, code: "OUTCOME_FAILED", message: "تعذّر تنفيذ الطلب — لم يتغيّر شيء" };
+        }
+
         await addEvent(current, {
-            stage: target,
-            note: String(reason ?? "").trim() || note || null,
+            stage: to,
+            note: waiving ? `أُعفي من الرسوم: ${why}` : (why || note || null),
             actor: by || "system",
             id_user,
         });
         await mirrorLegacy(current);
         void announce(current, { payment });
 
-        return { ok: true, flow: current, payment, stage: target, label: stageLabel(target) };
+        return { ok: true, flow: current, payment, stage: to, label: stageLabelFor(to, current) };
     } catch (error) {
         logger.error(`requestFlow.advanceFlow: ${error?.message || error}`);
         return { ok: false, code: "FLOW_FAILED", message: "تعذّر تنفيذ الإجراء" };
     }
+};
+
+/**
+ * قبول أو رفض من صفحةٍ قديمة (بطاقة اللاعب، الإعارات، إخلاء الطرف) — على
+ * الطريق نفسه لا بجانبه.
+ *
+ * طلبٌ بلا مسار — قُدّم قبل أن يوجد الخط — يُفتح له مساره عند قبوله، مقبولاً
+ * مبدئياً، فيمرّ بالرسوم كغيره. ورفضه بلا مسار يبقى للصفحة كما كان.
+ *
+ * @returns {Promise<null | {ok:boolean, code?:string, message:string, stage?:string}>}
+ *          null حين لا مسار ولا شيء يُفعل هنا — فتمضي الصفحة على عادتها.
+ */
+export const decideOnRoad = async ({
+    entity_type, entity_id, decision, reason = null, id_user = null, open = null,
+}) => {
+    const flow = await flowFor(entity_type, entity_id, { withEvents: false });
+
+    if (!flow) {
+        if (decision !== "accepted" || !open) return null;
+        const opened = await openFlow({
+            ...open, entity_type, entity_id, stage: CLUB_PROCESSING, actor: "club", id_user,
+            note: "قُبل من صفحة النادي",
+        });
+        if (!opened) return { ok: false, code: "FLOW_FAILED", message: "تعذّر فتح مسار الطلب" };
+        return {
+            ok: true,
+            stage: CLUB_PROCESSING,
+            message: "قُبل الطلب مبدئياً — طالِب بالرسوم أو اعفِه منها من مسار الطلبات",
+        };
+    }
+
+    const move = legacyDecisionMove(flow.stage, decision);
+    if (!move.to) return { ok: false, code: move.code, message: move.message };
+
+    const result = await advanceFlow({
+        flow, to: move.to, by: "club",
+        reason: reason || (decision === "rejected" ? "رُفض الطلب" : null),
+        id_user,
+    });
+    if (!result.ok) return result;
+    return {
+        ok: true,
+        stage: result.stage,
+        message: result.stage === CLUB_PROCESSING
+            ? "قُبل الطلب مبدئياً — طالِب بالرسوم أو اعفِه منها من مسار الطلبات"
+            : `الطلب الآن: ${result.label}`,
+    };
 };
 
 /**

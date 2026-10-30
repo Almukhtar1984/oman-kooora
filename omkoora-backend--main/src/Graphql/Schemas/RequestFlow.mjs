@@ -15,8 +15,9 @@ export const typeDefs = gql`
     }
 
     extend type Mutation {
-        # نقل الطلب إلى مرحلته التالية. الرفض لا يمرّ بلا سبب.
-        advanceRequestFlow(id: ID!, to: String!, reason: String): RequestFlowResult @auth(requires: user)
+        # نقل الطلب إلى مرحلته التالية. الرفض والإعفاء لا يمرّان بلا سبب،
+        # والمطالبة بالرسوم تسمّي مبلغها (يُقترح من قائمة أسعار النادي).
+        advanceRequestFlow(id: ID!, to: String!, reason: String, amount: Float): RequestFlowResult @auth(requires: user)
     }
 
     type RequestFlowStage {
@@ -52,6 +53,12 @@ export const typeDefs = gql`
         actor:         String
         done:          Boolean
         reason:        String
+        # أعفاه النادي من الرسوم بقرار مكتوب — فخطّه يقول «أُعفي» لا «تم السداد».
+        fee_waived:    Boolean
+        # موقع المستدعي من الطلب: team | club | chain (دوره في سلسلة الناديين) | observer.
+        side:          String
+        # سعر النادي المعلن لهذا النوع، يملأ حقل المطالبة حين يحين دورها.
+        suggestedAmount: Float
         createdAt:     Date @date(format: "yyyy-MM-dd")
         team:          Team
         club:          Club
@@ -63,9 +70,16 @@ export const typeDefs = gql`
     }
 
     type RequestFlowAction {
+        # المرحلة التي ينقل إليها — فارغة لقرارَي سلسلة الناديين.
         to:          String
         label:       String
+        # bill | waive | return_receipt | transfer_accept | transfer_reject — أو فارغ.
+        kind:        String
         needsReason: Boolean
+        # المطالبة بالرسوم: مبلغها.
+        needsAmount: Boolean
+        # موافقة النادي المستقبِل: الفريق الذي سينضم إليه اللاعب.
+        needsTeam:   Boolean
     }
 
     type RequestFlowResult {

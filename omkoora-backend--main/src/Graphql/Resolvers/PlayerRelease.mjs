@@ -11,7 +11,8 @@ import {
     RELEASE_WAITING, RELEASE_ACCEPTED, canRequestRelease, releaseDecision,
 } from "../../Helpers/playerRelease.mjs";
 import { CreateNotificationClub, CreateNotificationTeam } from "../../Helpers/index.mjs";
-import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
+import { openFlow, decideOnRoad } from "../../Helpers/requestFlowRunner.mjs";
+import { openingStage } from "../../Helpers/requestFlow.mjs";
 
 const SUPER_ADMIN_ROLE = "1";
 const CLUB_ADMIN_ROLE = "2";
@@ -112,13 +113,17 @@ export const resolvers = {
                     void CreateNotificationClub("player", "create", idClub, "", player.id);
                 }
 
-                // والاستقالة طلبٌ كغيره: لها مسارها وخطّها.
+                // والاستقالة طلبٌ كغيره: لها مسارها وخطّها. وإن فتحها النادي
+                // بنفسه بدأت مقبولةً مبدئياً، ومرّت بالرسوم والاعتماد كغيرها.
+                const byClub = context?.user?.role === CLUB_ADMIN_ROLE;
                 await openFlow({
                     request_type: "player_release",
                     entity_type: "player_release",
                     entity_id: release.id,
                     id_club: idClub,
                     id_team: player.id_team,
+                    stage: openingStage({ byClub }),
+                    actor: byClub ? "club" : "team",
                     id_user: context?.user?.id || null,
                 });
 
@@ -156,6 +161,23 @@ export const resolvers = {
                     );
                 }
 
+                // على الطريق نفسه: «اعتماد» هنا هو خطوة النادي التالية (قبول
+                // مبدئي، أو اعتماد نهائي بعد السداد) — وإخلاء الطرف يقع عند
+                // الاعتماد النهائي وحده (requestOutcomes.mjs).
+                const road = await decideOnRoad({
+                    entity_type: "player_release",
+                    entity_id: release.id,
+                    decision: status,
+                    reason: note || null,
+                    id_user: context?.user?.id || null,
+                    open: { request_type: "player_release", id_club: release.id_club, id_team: release.id_team },
+                });
+                if (road) {
+                    if (!road.ok) throw new ApolloError(road.message, road.code);
+                    return { status: true, message: road.message };
+                }
+
+                // رفضُ طلبٍ قُدّم قبل أن يوجد الخط: يُكتب كما كان.
                 await release.update({
                     status: decision.status,
                     note: note || null,
