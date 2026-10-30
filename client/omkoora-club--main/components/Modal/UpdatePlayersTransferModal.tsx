@@ -15,8 +15,9 @@ type Props = {
 export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
     const form = useForm({
-        initialValues: {id_team_to: ""}
+        initialValues: {id_team_to: "", note: ""}
     });
+    const rejecting = data?.status === "rejected";
     const [updateTransfer] = useUpdateTransfer();
     const [allTeams, setAllTeams] = useState<{label: string, value: string, disabled?: boolean}[]>([]);
     const [getAllTeams, { loading: loadingAllTeams, error: errorAllTeams, data: dataAllTeams }] = useAllTeams();
@@ -43,7 +44,7 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
         }
     }, [dataAllTeams])
 
-    const onSubmit = ({id_team_to}: any) => {
+    const onSubmit = ({id_team_to, note}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
         // Accepting without naming a team used to leave the player attached to
@@ -53,14 +54,21 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
             return;
         }
 
+        // والرفض بلا سبب هو ما يشكو منه الفريق: يُرفض طلبه ولا يدري لماذا.
+        if (rejecting && !String(note || "").trim()) {
+            form.setFieldError("note", "اكتب سبب الرفض — يظهر للفريق في تتبّع طلبه");
+            return;
+        }
+
         updateTransfer({
             variables: {
                 id: data?.id,
                 content: {
                     id_player: data?.id_player,
                     status: data?.status,
-                    id_team_from: data?.team_from.id,
-                    id_team_to: id_team_to !== "" ? id_team_to : null
+                    id_team_from: data?.team_from?.id,
+                    id_team_to: id_team_to !== "" ? id_team_to : null,
+                    ...(rejecting ? { note: String(note).trim() } : {}),
                 }
             },
             refetchQueries: [AllPlayersClubTransferred, AllPlayersClubLoan, AllPlayers],
@@ -96,10 +104,25 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
             }
         >
             <Stack align={"center"} justify={"center"}>
-                {data?.status === "accepted"
-                    ? <>
-                        <Text size={"xl"} my={30} mx={"auto"}>هل انت متأكد من قبول انتقال اللاعب؟</Text>
-                        <form style={{width: "100%"}} onSubmit={form.onSubmit(onSubmit)} id="submit_form">
+                {/* النموذج يُرسم في الحالتين: زرّ «تأكيد» يرسله بمعرّفه، وكان
+                    يُرسم في القبول وحده فيضغط النادي «تأكيد» على الرفض فلا يحدث
+                    شيء — عين ما رآه العميل في الإعارات. */}
+                <form style={{width: "100%"}} onSubmit={form.onSubmit(onSubmit)} id="submit_form">
+                    {rejecting
+                        ? <>
+                            <Text size={"xl"} my={30} mx={"auto"} align="center">هل انت متأكد من رفض انتقال اللاعب؟</Text>
+                            <Textarea
+                                label="سبب الرفض"
+                                placeholder="يظهر للفريق في تتبّع طلبه"
+                                withAsterisk
+                                autosize
+                                minRows={2}
+                                mb={20}
+                                {...form.getInputProps("note")}
+                            />
+                        </>
+                        : <>
+                            <Text size={"xl"} my={30} mx={"auto"} align="center">هل انت متأكد من قبول انتقال اللاعب؟</Text>
                             <Grid gutter={20} mb={20}>
                                 <Col span={12}>
                                     <Select
@@ -119,12 +142,9 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
                                     />
                                 </Col>
                             </Grid>
-                        </form>
-                    </>
-                    : data?.status === "rejected"
-                        ? <Text size={"xl"} my={30} mx={"auto"}>هل انت متأكد من رفض انتقال اللاعب؟</Text>
-                        : null
-                }
+                        </>
+                    }
+                </form>
             </Stack>
         </Modal>
     );

@@ -60,5 +60,9 @@ export const typeDefs = gql`
         id_technical_apparatus: ID
         id_club_to:   ID
         id_club_from: ID
+
+        # سبب الرفض — لا يُخزَّن في سجلّ الانتقال، بل يُكتب في خطّ تتبّع الطلب
+        # كي يعرف الفريق لماذا رُفض طلبه.
+        note:         String
     }
 `;
