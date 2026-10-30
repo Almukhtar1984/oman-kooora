@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, Avatar, Text, Group, Badge, Stack, Divider, Menu, ActionIcon, Flex, Box, Tooltip, Modal, Grid, Col, MantineTheme } from '@mantine/core';
 import {
     DotsVertical, EditCircle, Trash, Id, Paperclip, Upload, ChartDots,
-    XboxX, History, Printer, Check, X, CalendarStats, Phone, Mail, MapPin, Target, LayoutDashboard, Briefcase, Medal, FileCertificate, Eye, ArrowsLeftRight, LockOpen
+    XboxX, History, Printer, Check, X, CalendarStats, Phone, Mail, MapPin, Target, LayoutDashboard, Briefcase, Medal, FileCertificate, Eye, ArrowsLeftRight, LockOpen, Route
 } from 'tabler-icons-react';
 import { GiPlayerPrevious as GiPlayerPreviousIcon, GiPlayerNext as GiPlayerNextIcon } from "react-icons/gi";
 import dayjs from 'dayjs';
@@ -34,6 +34,8 @@ interface MemberCardProps {
     onConvertToTechnical?: (id: string) => void;
     onFreePlayer?: (id: string) => void;
     onShowDetails?: (data: any) => void;
+    // درج تتبّع الطلب لانتقالٍ أو إعارة — خطّه ورسومه واعتماده.
+    onTrack?: (transfer: any) => void;
 }
 
 const CLASS_LABELS: Record<string, string> = {
@@ -105,7 +107,7 @@ export const MemberCard = ({
     onEdit, onDelete, onChangeStatus, onVerifyIdentity, onShowAttachments,
     onAddAttachment, onStatPlayer, onTransferPlayer, onLoanPlayer,
     onOpenTransferHistory, onAddSanction, onUpdateSanction, onRenewSubscription,
-    onChangeClassification, onAddImage, onConvertToTechnical, onFreePlayer, onShowDetails
+    onChangeClassification, onAddImage, onConvertToTechnical, onFreePlayer, onShowDetails, onTrack,
 }: MemberCardProps) => {
     const [detailsOpen, setDetailsOpen] = useState(false);
     const theme = useTheme() as MantineTheme;
@@ -118,7 +120,11 @@ export const MemberCard = ({
     const avatarUrl = person?.personal_picture ? getImageUrl(person.personal_picture) : '/unknow player.png';
     const age = ageInYears(person?.date_birth) ?? 'N/A';
     
-    const status = (type === 'transfer' || type === 'loan') ? data?.status || data?.lastTransfer?.status || data?.lastLoan?.status : data?.status;
+    // بطاقة الانتقال والإعارة تقول حالة الطلب لا حالة اللاعب: اللاعب «بانتظار
+    // النادي» طوال الطلب، والطلب نفسه يمرّ بسلسلة الناديين ثم الرسوم ثم الاعتماد.
+    const status = (type === 'transfer' || type === 'loan')
+        ? data?.lastTransfer?.status || data?.lastLoan?.status || data?.status
+        : data?.status;
     const isSuspended = status === 'suspended';
 
     // Transfer/loan approval chain: a move goes teamA → clubA → clubB → teamB.
@@ -162,6 +168,8 @@ export const MemberCard = ({
             case "rejected": return <Badge color="red" variant="filled" size="xs">مرفوض</Badge>;
             case "waiting_club_from": return <Badge color="yellow" variant="filled" size="xs">بانتظار نادي اللاعب</Badge>;
             case "waiting_club_to": return <Badge color="yellow" variant="filled" size="xs">بانتظار النادي المستقبِل</Badge>;
+            // اتفق الناديان؛ بقي السداد والاعتماد النهائي، وعنده ينتقل اللاعب.
+            case "waiting_payment": return <Badge color="orange" variant="filled" size="xs">بانتظار الرسوم والاعتماد</Badge>;
             case "waiting_club": return <Badge color="yellow" variant="filled" size="xs">بانتظار النادي</Badge>;
             case "waiting": return <Badge color="yellow" variant="filled" size="xs">بانتظار الفريق</Badge>;
             case "suspended": return <Badge color="red" variant="filled" size="xs">معاقب</Badge>;
@@ -516,7 +524,12 @@ export const MemberCard = ({
                                                 </>
                                             )}
 
-                                            {type === 'loan' && (
+                                            {(type === 'transfer' || type === 'loan') && onTrack && reviewTr && (
+                                                <Menu.Item icon={<Route size={14} />} color="blue" onClick={() => onTrack(reviewTr)}>تتبّع الطلب</Menu.Item>
+                                            )}
+
+                                            {/* إعارةٌ على الطريق تُلغى من خطّها، كي لا يبقى مسارها معلّقاً. */}
+                                            {type === 'loan' && status !== 'waiting_payment' && (
                                                 <>
                                                     <Menu.Item icon={<CalendarStats size={14} />} onClick={() => onRenewSubscription && onRenewSubscription(data?.lastLoan)}>تمديد</Menu.Item>
                                                     <Menu.Item icon={<Trash size={14} color="red" />} onClick={() => onDelete && onDelete(data?.lastLoan)}>إلغاء</Menu.Item>

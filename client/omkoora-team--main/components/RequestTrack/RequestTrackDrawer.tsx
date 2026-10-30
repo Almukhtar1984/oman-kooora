@@ -1,18 +1,24 @@
 import {
-    Alert, Anchor, Badge, Box, Button, Divider, Drawer, Group, Loader,
+    Alert, Badge, Box, Button, Divider, Drawer, Group, Loader,
     Paper, Stack, Text, Textarea, Timeline,
 } from "@mantine/core";
-import { AlertCircle, Check, Clock, Coin, X } from "tabler-icons-react";
+import { AlertCircle, Check, Clock, X } from "tabler-icons-react";
 import React, { useEffect, useState } from "react";
 
 import { useAdvanceRequestFlow, useRequestFlow, useRequestFlowStages } from "../../graphql";
-import { isConditional, remainingRoad } from "../../lib/helpers/requestFlow";
+import { remainingRoad, SIDE_PANEL_KINDS, turnText } from "../../lib/helpers/requestFlow";
+import { SidePanel } from "./SidePanel";
 
 // تتبّع الطلب — الخط الذي يُقرأ، لا الشارة التي تمحو ما قبلها.
 //
 // شحنةٌ تُتتبّع تقول: خرجت، وصلت المستودع، في الطريق إليك. وطلب الفريق كان
 // يقول كلمة واحدة: «بانتظار النادي» — فلا يدري الفريق أدخلت الورقة عين أحد
 // أم لا. هنا: ما مرّ بتواريخه، وأين يقف، وما بقي، ومن عليه الدور.
+//
+// والرسوم في الدرج نفسه لا في صفحة أخرى — «ليش ما سوّيت المدفوعات في نفس
+// مسار الطلب؟» (العميل): النادي يطالب أو يُعفي، والفريق يرفع إيصاله، والنادي
+// يرى الإيصال بجانب زرّ الاعتماد. ذلك في SidePanel، وهو وحده ما يختلف بين
+// لوحة النادي ولوحة الفريق؛ وهذا الملف نفسه في اللوحتين.
 //
 // ويُبنى الإجراء من `actions` التي يرسلها الخادم: فلا يُعرض زرّ يُرفض ضغطه.
 
@@ -22,24 +28,9 @@ const ACTOR_LABEL: Record<string, string> = {
     system: "النظام",
 };
 
-const PAYMENT_LABEL: Record<string, string> = {
-    waiting: "مطلوب السداد",
-    submitted: "الإيصال بانتظار اعتماد النادي",
-    accepted: "معتمد",
-    rejected: "مرفوض",
-};
+const CLOSING = ["rejected_initial", "rejected_final", "cancelled"];
 
-const PAYMENT_COLOR: Record<string, string> = {
-    waiting: "orange",
-    submitted: "blue",
-    accepted: "teal",
-    rejected: "red",
-};
-
-const CLOSING = ["rejected_final", "cancelled"];
-
-const isRefusal = (stage: string) =>
-    stage === "rejected_initial" || stage === "rejected_final" || stage === "cancelled";
+const isRefusal = (stage: string) => CLOSING.includes(stage);
 
 type Target = { entity_type: string; entity_id: string } | null;
 
@@ -47,14 +38,11 @@ interface Props {
     opened: boolean;
     onClose: () => void;
     target: Target;
-    // «أنا الفريق» أم «أنا النادي» — تُغيّر نصّ من عليه الدور، لا الصلاحيات:
-    // الصلاحيات من الخادم.
-    side?: "team" | "club";
-    onActed?: () => void;
+    onActed?: (message?: string) => void;
     onError?: (message: string) => void;
 }
 
-export function RequestTrackDrawer({ opened, onClose, target, side = "team", onActed, onError }: Props) {
+export function RequestTrackDrawer({ opened, onClose, target, onActed, onError }: Props) {
     const [pending, setPending] = useState<any>(null);
     const [reason, setReason] = useState("");
 
@@ -64,7 +52,8 @@ export function RequestTrackDrawer({ opened, onClose, target, side = "team", onA
 
     const flow = data?.requestFlow;
     const events = flow?.events || [];
-    const actions = flow?.actions || [];
+    // ما يخصّ الرسوم وسلسلة الناديين يُقرَّر في لوحته، والباقي هنا.
+    const actions = (flow?.actions || []).filter((action: any) => !SIDE_PANEL_KINDS.includes(action.kind));
     const stages = stagesData?.requestFlowStages || [];
     const labelOf = (stage: string) =>
         stages.find((item: any) => item.stage === stage)?.label || stage;
@@ -83,6 +72,13 @@ export function RequestTrackDrawer({ opened, onClose, target, side = "team", onA
         if (!opened) { setPending(null); setReason(""); }
     }, [opened, target?.entity_type, target?.entity_id]);
 
+    const acted = (message?: string) => {
+        setPending(null);
+        setReason("");
+        load();
+        onActed?.(message);
+    };
+
     const act = (action: any, note: string) => {
         advance({
             variables: { id: flow.id, to: action.to, reason: note.trim() || null },
@@ -92,10 +88,7 @@ export function RequestTrackDrawer({ opened, onClose, target, side = "team", onA
                     onError?.(result?.message || "تعذّر تنفيذ الإجراء");
                     return;
                 }
-                setPending(null);
-                setReason("");
-                load();
-                onActed?.();
+                acted(result?.message);
             },
             onError: (error: any) => onError?.(error?.message || "تعذّر تنفيذ الإجراء"),
         });
@@ -112,11 +105,7 @@ export function RequestTrackDrawer({ opened, onClose, target, side = "team", onA
     };
 
     const remaining = remainingRoad(flow);
-    const turn = flow?.done
-        ? null
-        : flow?.actor === side
-            ? "الدور عليك"
-            : `الدور على ${ACTOR_LABEL[flow?.actor] || "الطرف الآخر"}`;
+    const turn = turnText(flow);
 
     return (
         <Drawer
@@ -145,34 +134,18 @@ export function RequestTrackDrawer({ opened, onClose, target, side = "team", onA
 
                     <Paper
                         withBorder radius="md" p="md"
-                        bg={isRefusal(flow.stage) ? "red.0" : flow.done ? "teal.0" : "blue.0"}
+                        bg={isRefusal(flow.stage) ? "red.0" : flow.done ? "teal.0" : flow.actor === "team" ? "orange.0" : "blue.0"}
                     >
                         <Text size="xs" color="gray.6">الحالة الآن</Text>
                         <Text weight={700} color="gray.8">{flow.label}</Text>
-                        {flow.also && <Text size="sm" color="gray.6">{flow.also}</Text>}
-                        {flow.reason && (
+                        {flow.also && !flow.fee_waived && <Text size="sm" color="gray.6">{flow.also}</Text>}
+                        {flow.reason && isRefusal(flow.stage) && (
                             <Text size="sm" color="red.7" mt={6}>السبب: {flow.reason}</Text>
                         )}
                         {turn && <Text size="xs" color="gray.7" mt={6}>{turn}</Text>}
                     </Paper>
 
-                    {flow.payment && (
-                        <Paper withBorder radius="md" p="md">
-                            <Group spacing={8} position="apart">
-                                <Group spacing={8}>
-                                    <Coin size={16} />
-                                    <Text size="sm" color="gray.8">
-                                        رسوم {flow.payment.label}:{" "}
-                                        <strong>{Number(flow.payment.amount).toLocaleString("en-US")} ر.ع</strong>
-                                    </Text>
-                                    <Badge color={PAYMENT_COLOR[flow.payment.status] || "gray"} variant="light">
-                                        {PAYMENT_LABEL[flow.payment.status] || flow.payment.status}
-                                    </Badge>
-                                </Group>
-                                <Anchor href="/payments" size="sm">المدفوعات</Anchor>
-                            </Group>
-                        </Paper>
-                    )}
+                    <SidePanel flow={flow} onActed={acted} onError={(message) => onError?.(message)} />
 
                     <Divider label="الخط" labelPosition="center" />
 
@@ -201,11 +174,7 @@ export function RequestTrackDrawer({ opened, onClose, target, side = "team", onA
                                 color="gray"
                                 bullet={<Clock size={12} />}
                                 title={<Text size="sm" color="gray.6">{labelOf(stage)}</Text>}
-                            >
-                                {isConditional(flow, stage) && (
-                                    <Text size="xs" color="gray.5">إن كانت على الطلب رسوم</Text>
-                                )}
-                            </Timeline.Item>
+                            />
                         ))}
                     </Timeline>
 
@@ -244,7 +213,7 @@ export function RequestTrackDrawer({ opened, onClose, target, side = "team", onA
                                             key={action.to}
                                             size="xs"
                                             loading={advancing}
-                                            color={CLOSING.includes(action.to) || action.to === "rejected_initial"
+                                            color={isRefusal(action.to)
                                                 ? "red"
                                                 : action.to === "approved" ? "teal" : "blue"}
                                             variant={action.to === "cancelled" ? "outline" : "filled"}

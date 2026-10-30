@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ROAD, isConditional, remainingRoad } from "../../lib/helpers/requestFlow";
+import { ROAD, remainingRoad, turnText } from "../../lib/helpers/requestFlow";
 
 // ما بقي من الطريق.
 //
@@ -43,14 +43,19 @@ describe("بقية طريق الطلب", () => {
         expect(remainingRoad({ stage: "لا شيء" })).toEqual([]);
     });
 
-    it("ومرحلتا المال مشروطتان حتى تصدر المطالبة", () => {
-        // نادٍ لم يسعّر هذا النوع لا يمرّ طلبه بالسداد أصلاً، فلا يُوعد به جزماً.
-        const unbilled = { stage: "club_processing" };
-        expect(isConditional(unbilled, "awaiting_payment")).toBe(true);
-        expect(isConditional(unbilled, "paid_review")).toBe(true);
-        expect(isConditional(unbilled, "approved")).toBe(false);
+    it("ومرحلتا المال من الطريق دائماً — تُسدَّدان أو يُعفى منهما، ولا تُتخطّيان", () => {
+        // «جميع الأندية تعتمد على هذا الشيء» (العميل، 2026-10-30).
+        expect(remainingRoad({ stage: "club_processing" })).toContain("awaiting_payment");
+        expect(remainingRoad({ stage: "club_processing" })).toContain("paid_review");
+    });
 
-        const billed = { stage: "awaiting_payment", payment: { id: "pay-1" } };
-        expect(isConditional(billed, "awaiting_payment")).toBe(false);
+    it("ومن عليه الدور يُقال بلسان من يقرأ", () => {
+        expect(turnText({ stage: "awaiting_payment", actor: "team", side: "team" })).toBe("الدور عليك");
+        expect(turnText({ stage: "awaiting_payment", actor: "team", side: "club" })).toBe("الدور على الفريق");
+        expect(turnText({ stage: "submitted", actor: "club", side: "chain" }))
+            .toBe("الدور على ناديك: موافقة أو رفض في سلسلة الناديين");
+        expect(turnText({ stage: "submitted", actor: "club", side: "observer" }))
+            .toBe("تتابع هذا الطلب — والقرار فيه لغيرك");
+        expect(turnText({ stage: "approved", done: true })).toBeNull();
     });
 });

@@ -2,7 +2,7 @@
 //
 // المالك أراد الطلب يُتتبّع كما تُتتبّع الشحنة: لا شارةً تقول حالته الآن وتمحو
 // ما قبلها، بل خطاً يُقرأ — ما مرّ، وأين يقف، وما بقي. الأحداث تقول ما مرّ،
-// وهذا الملف يقول ما بقي.
+// وهذا الملف يقول ما بقي، ومن عليه الدور.
 //
 // قرارات محضة: لا استعلام ولا واجهة.
 
@@ -15,17 +15,19 @@ export const PAID_REVIEW = "paid_review";
 export const APPROVED = "approved";
 
 // الطريق بترتيبه. والرفض والإلغاء ليسا منه: هما خروج عنه، ويظهران في الخط
-// حيث وقعا لا في قائمة ما ينتظر.
+// حيث وقعا لا في قائمة ما ينتظر. والسداد منه دائماً: «جميع الأندية تعتمد على
+// هذا الشيء» — يُسدَّد أو يُعفى منه بقرار، ولا يُتخطّى.
 export const ROAD = [SUBMITTED, CLUB_PROCESSING, AWAITING_PAYMENT, PAID_REVIEW, APPROVED];
 
-// مرحلتا المال. ونادٍ لم يسعّر هذا النوع لا يمرّ طلبه بهما أصلاً، فتُعرضان
-// معلّقتين على شرطهما حتى تصدر المطالبة.
-const MONEY = [AWAITING_PAYMENT, PAID_REVIEW];
+// إجراءات تُقرَّر في لوحة الرسوم وسلسلة الناديين، لا بين أزرار الخط العامة.
+export const SIDE_PANEL_KINDS = ["bill", "waive", "return_receipt", "transfer_accept", "transfer_reject"];
 
 export interface Flow {
     stage?: string | null;
     done?: boolean | null;
-    payment?: { id?: string } | null;
+    actor?: string | null;
+    side?: string | null;
+    fee_waived?: boolean | null;
 }
 
 /**
@@ -46,6 +48,18 @@ export const remainingRoad = (flow?: Flow | null): string[] => {
     return ROAD.slice(at + 1);
 };
 
-/** مرحلة مشروطة برسوم لم يطالب بها أحد بعد؟ */
-export const isConditional = (flow: Flow | null | undefined, stage: string): boolean =>
-    !flow?.payment && MONEY.includes(stage);
+const ACTOR = { team: "الفريق", club: "النادي" } as Record<string, string>;
+
+/**
+ * من عليه الدور، بلسان من يقرأ: «الدور عليك» أو «الدور على النادي».
+ *
+ * والنادي الذي يأتي دوره في سلسلة الناديين يُقال له ذلك صراحةً — المسار نفسه
+ * عند النادي المستقبِل، والقرار الآن عند ناديه.
+ */
+export const turnText = (flow?: Flow | null): string | null => {
+    if (!flow || flow.done) return null;
+    if (flow.side === "chain") return "الدور على ناديك: موافقة أو رفض في سلسلة الناديين";
+    if (flow.side === "observer") return "تتابع هذا الطلب — والقرار فيه لغيرك";
+    if (flow.actor && flow.actor === flow.side) return "الدور عليك";
+    return `الدور على ${ACTOR[flow.actor || ""] || "الطرف الآخر"}`;
+};

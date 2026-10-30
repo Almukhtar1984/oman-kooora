@@ -27,9 +27,16 @@ export const ChangeStatusPlayersModal = ({id, status, opened, ...props}: Props) 
             refetchQueries: [AllPlayers, AllPlayersClubLoan, AllPlayersClubTransferred],
             awaitRefetchQueries: true,
         })
-        .then(() => {
+        .then((res: any) => {
+            const result = res?.data?.changeStatusPlayer;
+            // الخادم يقول ما حدث فعلاً: القبول صار خطوةً على مسار الطلب (قبول
+            // مبدئي ثم رسوم ثم اعتماد)، أو يقول لماذا لم يكن.
+            if (result && result.status === false) {
+                notyf.error(result.message || "تعذّر تحديث حالة اللاعب");
+                return;
+            }
             closeModal();
-            notyf.success("تم تحديث حالة اللاعب بنجاح")
+            notyf.success(result?.message || "تم تحديث حالة اللاعب بنجاح")
         })
         .catch(reason => {
             console.log(reason)

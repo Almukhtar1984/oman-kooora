@@ -16,6 +16,8 @@ export const transferStageBadge = (status: string) => {
         case "rejected": return <Badge fw={500} color="red">مرفوض</Badge>;
         case "waiting_club_from": return <Badge fw={500} color="yellow">بانتظار نادي اللاعب</Badge>;
         case "waiting_club_to": return <Badge fw={500} color="orange">بانتظار النادي المستقبِل</Badge>;
+        // اتفق الناديان؛ بقي السداد والاعتماد النهائي، وعنده ينتقل اللاعب.
+        case "waiting_payment": return <Badge fw={500} color="orange">بانتظار الرسوم والاعتماد</Badge>;
         default: return <Badge fw={500} color="yellow">قيد الانتظار</Badge>;
     }
 };

@@ -23,8 +23,12 @@ const { Op } = sequelize;
 // طرفٌ ثانٍ: الفريق الذي يُخرج اللاعب وناديه. هؤلاء يَرون الخط، فالطلب طلبهم
 // أيضاً — بل الفريق المُعير هو من قدّمه. ويملك النادي منهم قراره في سلسلة
 // الناديين حين يحين دوره فيها ("chain")، وإلا فهو مراقب يرى ولا يحرّك.
-const sideOf = async (context, flow, transfer = undefined) => {
+const callerOf = async (context) => {
     const [idClub, idTeam] = await Promise.all([callerClubId(context), callerTeamId(context)]);
+    return { idClub, idTeam };
+};
+
+const sideOf = async ({ idClub, idTeam }, flow, transfer = undefined) => {
     if (idTeam && flow.id_team === idTeam) return "team";
 
     if (flow.entity_type === "transfer") {
@@ -129,13 +133,15 @@ const transfersFor = async (flows) => {
  * يُجلب ما يحتاجه السطر الواحد والقائمة كلها بالعدد نفسه من الاستعلامات.
  */
 const enrich = async (flows, context) => {
-    const [names, payments, transfers, idClub] = await Promise.all([
-        subjectsFor(flows), paymentsFor(flows), transfersFor(flows), callerClubId(context),
+    // من المستدعي يُسأل مرة للقائمة كلها، لا مرتين لكل سطر.
+    const [names, payments, transfers, caller] = await Promise.all([
+        subjectsFor(flows), paymentsFor(flows), transfersFor(flows), callerOf(context),
     ]);
+    const { idClub } = caller;
     return Promise.all(flows.map(async (flow) => {
         const plain = flow.get ? flow.get({ plain: true }) : flow;
         const transfer = plain.entity_type === "transfer" ? transfers.get(plain.entity_id) || null : undefined;
-        const side = await sideOf(context, plain, transfer);
+        const side = await sideOf(caller, plain, transfer);
         const suggestedAmount = side === "club" && plain.stage === CLUB_PROCESSING
             ? await suggestedAmountFor(plain)
             : null;
@@ -209,7 +215,7 @@ export const resolvers = {
                 const flow = await flowFor(entity_type, entity_id);
                 if (!flow) return null;
 
-                const side = await sideOf(context, flow);
+                const side = await sideOf(await callerOf(context), flow);
                 if (!side) return null;        // ليس طلبه، فلا يراه
 
                 const [enriched] = await enrich([flow], context);
@@ -266,7 +272,7 @@ export const resolvers = {
                     return { ok: false, code: "FLOW_NOT_FOUND", message: "مسار الطلب غير موجود", flow: null };
                 }
 
-                const by = await sideOf(context, flow);
+                const by = await sideOf(await callerOf(context), flow);
                 if (!by) {
                     return { ok: false, code: "FLOW_FORBIDDEN", message: "هذا الطلب ليس لك", flow: null };
                 }

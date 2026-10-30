@@ -49,7 +49,7 @@ export default function PlayersTransfer() {
     }, [allTransfers]);
 
     const pending = allTransfers.filter(
-        (t: any) => t?.status === "waiting_club_from" || t?.status === "waiting_club_to"
+        (t: any) => t?.status === "waiting_club_from" || t?.status === "waiting_club_to" || t?.status === "waiting_payment"
     ).length;
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {

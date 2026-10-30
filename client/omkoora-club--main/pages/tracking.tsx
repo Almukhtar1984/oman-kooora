@@ -1,12 +1,12 @@
 import {
-    Badge, Box, Button, Container, Group, Paper, SegmentedControl, Select, Stack, Text, Title,
+    Affix, Badge, Box, Button, Checkbox, Container, Group, Paper, SegmentedControl, Select, Stack, Text, Title,
 } from "@mantine/core";
 import { Coin, Route } from "tabler-icons-react";
 import Head from "next/head";
 import React, { useEffect, useMemo, useState } from "react";
 import { Notyf } from "notyf";
 
-import { useMyRequestFlows } from "../graphql";
+import { useAdvanceRequestFlow, useMyRequestFlows } from "../graphql";
 import DataState from "../components/Loading/DataState";
 import { RequestTrackDrawer } from "../components/RequestTrack";
 
@@ -16,6 +16,9 @@ import { RequestTrackDrawer } from "../components/RequestTrack";
 // الإعارات، إخلاء الطرف. والمالك وصف طريقاً واحداً تسلكه الأربعة — مراجعة
 // مبدئية، فاستكمال إجراءات، فمطالبة بالرسوم، فاعتماد نهائي — فهذه هي اللوحة
 // التي يُمشى الطريق منها، وتُبنى أزرارها من صلاحية الخادم لا من تخمين الواجهة.
+//
+// وفي موسم المسابقات تصل الطلبات بالعشرات وإيصالها واحد: ما بلغ «تم السداد»
+// يُختار معاً ويُعتمد بضغطة.
 
 const STAGE_COLOR: Record<string, string> = {
     draft: "gray",
@@ -40,8 +43,11 @@ export default function Tracking() {
     const [filter, setFilter] = useState("mine");
     const [type, setType] = useState<string | null>(null);
     const [target, setTarget] = useState<any>(null);
+    const [picked, setPicked] = useState<string[]>([]);
+    const [approving, setApproving] = useState(false);
 
     const [getFlows, { data, loading }] = useMyRequestFlows();
+    const [advance] = useAdvanceRequestFlow();
 
     const variables = type ? { request_type: type } : {};
     const refresh = () => getFlows({ variables, fetchPolicy: "network-only" });
@@ -52,11 +58,15 @@ export default function Tracking() {
 
     const rows = data?.myRequestFlows || [];
 
-    // ما ينتظر قرار النادي — وهو ما تُفتح عليه اللوحة.
+    // ما ينتظر قرار النادي — وهو ما تُفتح عليه اللوحة: دوره على الطريق، أو دوره
+    // في سلسلة الناديين لطلبٍ يخرج منه لاعبه.
     const mine = useMemo(
-        () => rows.filter((row: any) => !row.done && row.actor === "club"),
+        () => rows.filter((row: any) => !row.done
+            && ((row.side === "club" && row.actor === "club") || row.side === "chain")),
         [rows]
     );
+
+    const approvable = (row: any) => (row.actions || []).some((action: any) => action.to === "approved");
 
     const shown = useMemo(() => {
         if (filter === "mine") return mine;
@@ -66,6 +76,32 @@ export default function Tracking() {
     }, [rows, mine, filter]);
 
     const notyf = () => new Notyf({ position: { x: "right", y: "bottom" } });
+
+    useEffect(() => { setPicked([]); }, [filter, type]);
+
+    const toggle = (id: string) =>
+        setPicked((list) => (list.includes(id) ? list.filter((item) => item !== id) : [...list, id]));
+
+    // كل طلب يُعتمد بقراره هو على الطريق — والخادم يردّ ما لا يجوز منها بسببه.
+    const approvePicked = async () => {
+        setApproving(true);
+        let done = 0;
+        const failed: string[] = [];
+        for (const id of picked) {
+            try {
+                const { data: result } = await advance({ variables: { id, to: "approved" } });
+                if (result?.advanceRequestFlow?.ok) done += 1;
+                else failed.push(result?.advanceRequestFlow?.message || "تعذّر");
+            } catch (error: any) {
+                failed.push(error?.message || "تعذّر");
+            }
+        }
+        setApproving(false);
+        setPicked([]);
+        if (done) notyf().success(`اعتُمد ${done} ${done === 1 ? "طلب" : "طلبات"} نهائياً`);
+        if (failed.length) notyf().error(`تعذّر ${failed.length}: ${Array.from(new Set(failed)).join("، ")}`);
+        refresh();
+    };
 
     return (
         <Box bg="gray.0" sx={{ minHeight: "100%" }}>
@@ -83,7 +119,7 @@ export default function Tracking() {
                             )}
                         </Group>
                         <Text size="sm" color="gray.6">
-                            طلبات الفرق الأربعة في طريق واحد — اقبل مبدئياً، أو ارفض بسببه، أو طالب بالرسوم، أو اعتمد نهائياً.
+                            كل طلب في طريق واحد: قبول مبدئي، ثم الرسوم — مطالبة أو إعفاء — ثم الاعتماد النهائي.
                         </Text>
                     </Box>
                     <Group spacing="xs" align="flex-end">
@@ -119,6 +155,14 @@ export default function Tracking() {
                         {shown.map((row: any) => (
                             <Paper key={row.id} p="md" radius="md" withBorder>
                                 <Group position="apart" align="flex-start" noWrap>
+                                    {approvable(row) && (
+                                        <Checkbox
+                                            mt={4}
+                                            checked={picked.includes(row.id)}
+                                            onChange={() => toggle(row.id)}
+                                            aria-label={`اختيار ${row.subject || row.request_label} للاعتماد`}
+                                        />
+                                    )}
                                     <Box sx={{ flex: 1 }}>
                                         <Group spacing={8} mb={4}>
                                             <Badge variant="light">{row.request_label}</Badge>
@@ -131,7 +175,10 @@ export default function Tracking() {
                                         </Group>
                                         {row.also && <Text size="xs" color="gray.6">{row.also}</Text>}
                                         {row.reason && (
-                                            <Text size="sm" color="red.7" mt={4}>السبب: {row.reason}</Text>
+                                            // سبب الإعفاء خبرٌ لا رفض، فلا يُكتب بلون الرفض.
+                                            <Text size="sm" color={row.fee_waived ? "teal.8" : "red.7"} mt={4}>
+                                                {row.fee_waived ? "سبب الإعفاء" : "السبب"}: {row.reason}
+                                            </Text>
                                         )}
                                         {row.payment && (
                                             <Group spacing={6} mt={4}>
@@ -161,10 +208,23 @@ export default function Tracking() {
                 opened={Boolean(target)}
                 onClose={() => setTarget(null)}
                 target={target ? { entity_type: target.entity_type, entity_id: target.entity_id } : null}
-                side="club"
-                onActed={refresh}
+                onActed={(message) => { if (message) notyf().success(message); refresh(); }}
                 onError={(message) => notyf().error(message)}
             />
+
+            {picked.length > 0 && (
+                <Affix position={{ bottom: 24, left: 24 }}>
+                    <Paper shadow="md" radius="md" p="sm" withBorder>
+                        <Group spacing="sm">
+                            <Text size="sm" weight={600}>{picked.length} محدّدة — سُدّدت رسومها</Text>
+                            <Button color="teal" loading={approving} onClick={approvePicked}>
+                                اعتماد نهائي للمحدّد
+                            </Button>
+                            <Button variant="subtle" color="gray" onClick={() => setPicked([])}>إلغاء التحديد</Button>
+                        </Group>
+                    </Paper>
+                </Affix>
+            )}
         </Box>
     );
 }

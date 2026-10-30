@@ -23,16 +23,26 @@ export const MyRequestFlows = gql`
             done
             reason
             createdAt
+            fee_waived
+            side
+            suggestedAmount
             payment {
                 id
                 label
                 amount
                 status
+                reference_number
+                receipt
+                decision_note
+                paid_at
             }
             actions {
                 to
                 label
+                kind
                 needsReason
+                needsAmount
+                needsTeam
             }
         }
     }
@@ -55,11 +65,18 @@ export const RequestFlowTrack = gql`
             done
             reason
             createdAt
+            fee_waived
+            side
+            suggestedAmount
             payment {
                 id
                 label
                 amount
                 status
+                reference_number
+                receipt
+                decision_note
+                paid_at
             }
             events {
                 id
@@ -72,7 +89,10 @@ export const RequestFlowTrack = gql`
             actions {
                 to
                 label
+                kind
                 needsReason
+                needsAmount
+                needsTeam
             }
         }
     }
@@ -94,8 +114,8 @@ export const RequestFlowStages = gql`
 
 // إجراء الفريق على طلبه: إعادة إرساله بعد رفض مبدئي، أو إلغاؤه.
 export const AdvanceRequestFlow = gql`
-    mutation AdvanceRequestFlow($id: ID!, $to: String!, $reason: String) {
-        advanceRequestFlow(id: $id, to: $to, reason: $reason) {
+    mutation AdvanceRequestFlow($id: ID!, $to: String!, $reason: String, $amount: Float) {
+        advanceRequestFlow(id: $id, to: $to, reason: $reason, amount: $amount) {
             ok
             code
             message

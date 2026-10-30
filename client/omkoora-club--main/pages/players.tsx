@@ -223,7 +223,8 @@ export default function Players() {
         })
             .then((res) => {
                 const r = res?.data?.changeStatusPlayersBulk;
-                notyf.success(`تم ${bulkAction === "accepted" ? "قبول" : "رفض"} ${r?.success ?? 0} من أصل ${r?.total ?? selectedIds.length}`);
+                notyf.success(r?.message
+                    || `تم ${bulkAction === "accepted" ? "قبول" : "رفض"} ${r?.success ?? 0} من أصل ${r?.total ?? selectedIds.length}`);
                 setSelectedIds([]);
                 setBulkAction(null);
             })

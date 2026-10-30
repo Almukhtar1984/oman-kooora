@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Button, Container, Flex, MantineTheme, Menu, Text, Tooltip, Divider, Burger, Drawer, Stack, Group, Avatar } from "@mantine/core";
 import React, { useEffect, useState } from "react";
-import { ChevronDown, Logout, Search, Lock, BellRinging, User, ShieldLock, Activity, Home, BallFootball, Users, Inbox, Send, CalendarEvent, Article, FileText, ArrowsLeftRight, Repeat, Coin, Route } from "tabler-icons-react";
+import { ChevronDown, Logout, Search, Lock, BellRinging, User, ShieldLock, Activity, Home, BallFootball, Users, Inbox, Send, CalendarEvent, Article, FileText } from "tabler-icons-react";
 import { useTheme } from "@emotion/react";
 import { useDisclosure } from "@mantine/hooks";
 import useStore from "../../store/useStore";
@@ -142,14 +142,26 @@ const Header = (props: Props) => {
     const mobileNavLinks = [
         { path: '/', label: 'الرئيسية', icon: <Home size={18} /> },
         { path: '/team', label: 'الفرق', icon: <BallFootball size={18} /> },
-        { path: '/members', label: 'الأعضاء', icon: <Users size={18} /> },
-        { path: '/membership', label: 'العضوية', icon: <Users size={18} /> },
-        { path: '/requests', label: 'الطلبات', icon: <BellRinging size={18} /> },
-        { path: '/players_transfer', label: 'إنتقالات اللاعبين', icon: <ArrowsLeftRight size={18} /> },
-        { path: '/players_loan', label: 'إعارات اللاعبين', icon: <Repeat size={18} /> },
-        { path: '/releases', label: 'إخلاء الطرف', icon: <ArrowsLeftRight size={18} /> },
-        { path: '/tracking', label: 'مسار الطلبات', icon: <Route size={18} /> },
-        { path: '/payments', label: 'المدفوعات', icon: <Coin size={18} /> },
+        // الأقسام كما في الشريط: بندٌ واحد وصفحاته تحته.
+        {
+            path: '/members', label: 'الأعضاء', icon: <Users size={18} />,
+            children: [
+                { path: '/members', label: 'سجلات الأعضاء' },
+                { path: '/membership', label: 'العضوية الموحّدة' },
+            ],
+        },
+        {
+            path: '/requests', label: 'الطلبات', icon: <BellRinging size={18} />,
+            children: [
+                { path: '/requests', label: 'بانتظار قرارك' },
+                { path: '/tracking', label: 'مسار الطلبات' },
+                { path: '/players_transfer', label: 'الانتقالات' },
+                { path: '/players_loan', label: 'الإعارات' },
+                { path: '/releases', label: 'إخلاء الطرف' },
+                { path: '/payments', label: 'المدفوعات' },
+                { path: '/fees', label: 'أسعار الرسوم' },
+            ],
+        },
         { path: '/messages', label: 'الرسائل', icon: <Inbox size={18} /> },
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={18} /> },
         { path: '/blog', label: 'الأخبار', icon: <Article size={18} /> },
@@ -343,9 +355,28 @@ const Header = (props: Props) => {
             >
                 <Stack spacing="xs" sx={{ direction: 'rtl' }}>
                     <Divider label="التنقل" labelPosition="center" />
-                    {mobileNavLinks.map((nav: any) => (
-                        <Box
+                    {mobileNavLinks.map((nav: any) => nav.children ? (
+                        <Box key={nav.path}>
+                            <Group spacing={12} px={16} pt={10} pb={4}>
+                                <Box sx={{ color: theme.colors.gray[5], display: 'flex' }}>{nav.icon}</Box>
+                                <Text size="sm" weight={700} color="gray.8">{nav.label}</Text>
+                            </Group>
+                            {nav.children.map((child: any) => (
+                                <MobileNavRow
+                                    key={child.path}
+                                    label={child.label}
+                                    active={router.pathname === child.path}
+                                    indent
+                                    onClick={() => { router.push(child.path); closeDrawer(); }}
+                                />
+                            ))}
+                        </Box>
+                    ) : (
+                        <MobileNavRow
                             key={nav.path}
+                            label={nav.label}
+                            icon={nav.icon}
+                            active={router.pathname === nav.path}
                             onClick={() => {
                                 if (nav.external) {
                                     window.open(nav.path, '_blank');
@@ -354,29 +385,7 @@ const Header = (props: Props) => {
                                 }
                                 closeDrawer();
                             }}
-                            
-                            sx={(theme) => ({
-                                padding: '12px 16px',
-                                borderRadius: theme.radius.sm,
-                                cursor: 'pointer',
-                                backgroundColor: router.pathname === nav.path ? theme.colors.blue[0] : 'transparent',
-                                color: router.pathname === nav.path ? theme.colors.blue[7] : theme.colors.gray[7],
-                                '&:hover': {
-                                    backgroundColor: theme.colors.gray[1],
-                                },
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                justifyContent: 'flex-start'
-                            })}
-                        >
-                            <Box sx={{ color: router.pathname === nav.path ? theme.colors.blue[6] : theme.colors.gray[5] }}>
-                                {nav.icon}
-                            </Box>
-                            <Text size="sm" weight={router.pathname === nav.path ? 600 : 500}>
-                                {nav.label}
-                            </Text>
-                        </Box>
+                        />
                     ))}
 
                     <Box mt="xl">
@@ -420,5 +429,36 @@ const Header = (props: Props) => {
         </Box>
     );
 };
+
+// سطرٌ في قائمة الهاتف — والصفحة من قسمٍ تُزاح تحت اسمه.
+function MobileNavRow({ label, icon, active, indent = false, onClick }: {
+    label: string; icon?: React.ReactNode; active: boolean; indent?: boolean; onClick: () => void;
+}) {
+    return (
+        <Box
+            onClick={onClick}
+            sx={(theme) => ({
+                padding: indent ? '10px 16px 10px 16px' : '12px 16px',
+                paddingInlineStart: indent ? 46 : 16,
+                borderRadius: theme.radius.sm,
+                cursor: 'pointer',
+                backgroundColor: active ? theme.colors.blue[0] : 'transparent',
+                color: active ? theme.colors.blue[7] : theme.colors.gray[7],
+                '&:hover': { backgroundColor: theme.colors.gray[1] },
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                justifyContent: 'flex-start',
+            })}
+        >
+            {icon && (
+                <Box sx={(theme) => ({ color: active ? theme.colors.blue[6] : theme.colors.gray[5], display: 'flex' })}>
+                    {icon}
+                </Box>
+            )}
+            <Text size="sm" weight={active ? 600 : 500}>{label}</Text>
+        </Box>
+    );
+}
 
 export default Header;

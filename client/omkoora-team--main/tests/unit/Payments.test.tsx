@@ -12,6 +12,7 @@ const h = vi.hoisted(() => ({
     getPayments: vi.fn(),
     paymentsResult: { data: undefined as any, loading: false },
     submit: vi.fn(),
+    submitBatch: vi.fn(),
     notyfSuccess: vi.fn(),
     notyfError: vi.fn(),
 }));
@@ -19,6 +20,7 @@ const h = vi.hoisted(() => ({
 vi.mock("../../graphql", () => ({
     useRequestPayments: () => [h.getPayments, h.paymentsResult],
     useSubmitPaymentReceipt: () => [h.submit, { loading: false }],
+    useSubmitPaymentsReceipt: () => [h.submitBatch, { loading: false }],
 }));
 
 vi.mock("notyf", () => ({
@@ -151,5 +153,44 @@ describe("صفحة المدفوعات (الفريق)", () => {
 
         expect(await screen.findByText("معتمد")).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /الإيصال/ })).not.toBeInTheDocument();
+    });
+
+    it("وتسدّد عدّة مطالبات بإيصال واحد — ويرى النادي ما يخصّ كل لاعب", async () => {
+        // «يرسل مية ريال مرة واحدة… النادي ما يعرف هذا مال مين» (العميل).
+        h.paymentsResult = {
+            data: {
+                requestPayments: [
+                    payment({ id: "pay-a", label: "إعارة لاعب", subject: "محمد", amount: 20 }),
+                    payment({ id: "pay-b", label: "إعارة لاعب", subject: "معاوية", amount: 30 }),
+                    payment({ id: "pay-c", status: "accepted", subject: "علي", amount: 20 }),
+                ],
+            },
+            loading: false,
+        };
+        h.submitBatch.mockImplementation((opts: any) => opts.onCompleted({
+            submitPaymentsReceipt: { status: true, message: "سُدّدت 2 مطالبات بإيصال واحد (50 ر.ع)" },
+        }));
+        renderPage();
+
+        // المعتمدة لا تُختار.
+        const boxes = await screen.findAllByRole("checkbox");
+        expect(boxes).toHaveLength(2);
+        boxes.forEach((box) => fireEvent.click(box));
+        expect(screen.getByText("2 مطالبات — 50 ر.ع")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", { name: "سداد المحدّد بإيصال واحد" }));
+        expect(await screen.findByText("إعارة لاعب — محمد")).toBeInTheDocument();
+        expect(screen.getByText("إعارة لاعب — معاوية")).toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText(/الرقم المرجعي للتحويل/), { target: { value: "TR-COMP-9" } });
+        const file = new File(["r"], "receipt.png", { type: "image/png" });
+        fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } });
+        fireEvent.click(screen.getByRole("button", { name: "إرسال الإيصال" }));
+
+        await waitFor(() => expect(h.submitBatch).toHaveBeenCalledTimes(1));
+        expect(h.submitBatch.mock.calls[0][0].variables).toMatchObject({
+            ids: ["pay-a", "pay-b"], reference_number: "TR-COMP-9", amount: 50,
+        });
+        await waitFor(() => expect(h.notyfSuccess).toHaveBeenCalledWith("سُدّدت 2 مطالبات بإيصال واحد (50 ر.ع)"));
     });
 });

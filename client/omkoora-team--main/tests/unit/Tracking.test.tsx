@@ -14,8 +14,10 @@ const h = vi.hoisted(() => ({
     getFlow: vi.fn(),
     flowResult: { data: undefined as any, loading: false },
     advance: vi.fn(),
+    submitReceipt: vi.fn(),
     push: vi.fn(),
     notyfError: vi.fn(),
+    notyfSuccess: vi.fn(),
 }));
 
 const STAGES = [
@@ -35,12 +37,13 @@ vi.mock("../../graphql", () => ({
     useRequestFlow: () => [h.getFlow, h.flowResult],
     useRequestFlowStages: () => ({ data: { requestFlowStages: STAGES }, loading: false }),
     useAdvanceRequestFlow: () => [h.advance, { loading: false }],
+    useSubmitPaymentReceipt: () => [h.submitReceipt, { loading: false }],
 }));
 
 vi.mock("next/router", () => ({ useRouter: () => ({ push: h.push }) }));
 
 vi.mock("notyf", () => ({
-    Notyf: class { success = vi.fn(); error = h.notyfError; open = vi.fn(); },
+    Notyf: class { success = h.notyfSuccess; error = h.notyfError; open = vi.fn(); },
 }));
 
 import Tracking from "../../pages/tracking";
@@ -52,6 +55,7 @@ const flow = (over: any = {}) => ({
     subject: "سالم بن محمد الهنائي",
     entity_type: "player",
     entity_id: "player-1",
+    side: "team",
     stage: "awaiting_payment",
     label: "بانتظار سداد الرسوم",
     also: null,
@@ -124,12 +128,34 @@ describe("صفحة تتبّع الطلبات (الفريق)", () => {
         expect(await screen.findByText("السبب: صورة البطاقة غير واضحة")).toBeInTheDocument();
     });
 
-    it("وتأخذ المطالبة إلى حيث يُرفع الإيصال", async () => {
+    it("و«سدّد الرسوم» يفتح الطلب نفسه، والإيصال يُرفع فيه", async () => {
+        // «ليش ما سوّيت المدفوعات في نفس مسار الطلب؟» (العميل).
+        h.flowResult = {
+            data: { requestFlow: flow({ events: [{ id: "e1", stage: "awaiting_payment", label: "بانتظار سداد الرسوم", note: null, actor: "club", createdAt: "2026-10-28 11:00" }] }) },
+            loading: false,
+        };
+        h.submitReceipt.mockImplementation((opts: any) => opts.onCompleted({ submitPaymentReceipt: { status: true } }));
         renderPage();
 
         expect(await screen.findByText(/رسوم تسجيل لاعب: 15 ر.ع/)).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", { name: /سدّد الرسوم/ }));
-        expect(h.push).toHaveBeenCalledWith("/payments");
+        expect(h.push).not.toHaveBeenCalled();
+
+        expect(await screen.findByText("سداد رسوم تسجيل لاعب")).toBeInTheDocument();
+        const send = screen.getByRole("button", { name: "رفع الإيصال" });
+        expect(send).toBeDisabled();
+
+        fireEvent.change(screen.getByLabelText(/الرقم المرجعي للتحويل/), { target: { value: "TR-778" } });
+        const file = new File(["receipt"], "receipt.png", { type: "image/png" });
+        const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+
+        await waitFor(() => expect(send).not.toBeDisabled());
+        fireEvent.click(send);
+
+        await waitFor(() => expect(h.submitReceipt).toHaveBeenCalledTimes(1));
+        expect(h.submitReceipt.mock.calls[0][0].variables).toMatchObject({ id: "pay-1", reference_number: "TR-778" });
+        await waitFor(() => expect(h.notyfSuccess).toHaveBeenCalledWith("رُفع الإيصال — الطلب بانتظار مراجعة النادي"));
     });
 
     it("والدرج يقرأ الخط بترتيبه ثم يُكمل ما بقي", async () => {
@@ -162,8 +188,11 @@ describe("صفحة تتبّع الطلبات (الفريق)", () => {
         expect(line.indexOf("09:10")).toBeLessThan(line.indexOf("09:30"));
         expect(line.indexOf("09:30")).toBeLessThan(line.indexOf("10:20"));
         expect(line.indexOf("10:20")).toBeLessThan(line.indexOf("معتمد نهائياً"));
-        // ورسوم لم يطالب بها أحد لا تُوعد جزماً.
-        expect(screen.getAllByText("إن كانت على الطلب رسوم").length).toBe(2);
+        // والسداد من الطريق دائماً: يُرى ما بقي منه قبل الاعتماد (آخر ذكرٍ له
+        // هو بقية الخط في الدرج؛ ما قبله سطر القائمة خلفه).
+        const fee = line.lastIndexOf("بانتظار سداد الرسوم");
+        expect(line.indexOf("10:20")).toBeLessThan(fee);
+        expect(fee).toBeLessThan(line.lastIndexOf("معتمد نهائياً"));
     });
 
     it("ولا يرسم الدرج زراً لم يأذن به الخادم", async () => {

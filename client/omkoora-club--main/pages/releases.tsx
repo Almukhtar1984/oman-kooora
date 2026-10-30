@@ -66,7 +66,12 @@ export default function Releases() {
         decide({
             variables: { id: row.id, status: "accepted" },
             refetchQueries: [AllPlayerReleases],
-            onCompleted: () => { notyf().success("تم إخلاء طرف اللاعب — صار متاحاً للتسجيل في نادٍ جديد"); refresh(); },
+            // الاعتماد خطوةٌ على مسار الطلب: يُخلى الطرف عند الاعتماد النهائي بعد
+            // الرسوم، والخادم يقول أين وصل.
+            onCompleted: (res: any) => {
+                notyf().success(res?.decidePlayerRelease?.message || "تم إخلاء طرف اللاعب — صار متاحاً للتسجيل في نادٍ جديد");
+                refresh();
+            },
             onError: (e) => notyf().error(e?.message || "تعذّر اعتماد الطلب"),
         });
     };

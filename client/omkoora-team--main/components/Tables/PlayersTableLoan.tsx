@@ -120,6 +120,7 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
                 : item?.status == "rejected" ? <Badge fw={500} color="red">مرفوض</Badge>
                     : item?.status == "waiting_club_from" ? <Badge fw={500} color="yellow">بانتظار نادي اللاعب</Badge>
                         : item?.status == "waiting_club_to" ? <Badge fw={500} color="orange">بانتظار النادي المستقبِل</Badge>
+                        : item?.status == "waiting_payment" ? <Badge fw={500} color="orange">بانتظار الرسوم والاعتماد</Badge>
                             : <Badge fw={500} color="yellow">قيد الانتظار</Badge>
         )},
         {label: 'إسم الفريق القديم', renderCell: (item) => `${item?.team_from?.name}`  },

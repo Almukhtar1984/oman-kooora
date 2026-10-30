@@ -5,6 +5,7 @@ interface VariableProps {
     id: string;
     to: string;
     reason?: string | null;
+    amount?: number | null;
 }
 
 export const useAdvanceRequestFlow = (): MutationTuple<any, VariableProps> => {

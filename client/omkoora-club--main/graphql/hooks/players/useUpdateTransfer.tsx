@@ -6,9 +6,11 @@ interface VariableProps {
     id?:          string;
     content: {
         status: string;
-        id_team_from: string;
-        id_team_to: string;
-        id_player: string;
+        id_team_from?: string;
+        id_team_to?: string | null;
+        id_player?: string;
+        // سبب الرفض — يُكتب في خطّ تتبّع الطلب.
+        note?: string;
     };
 }
 

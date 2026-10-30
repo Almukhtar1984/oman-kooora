@@ -1,4 +1,4 @@
-import { ActionIcon, createStyles, Container, Flex, Box, Text, ScrollArea } from "@mantine/core";
+import { ActionIcon, Badge, createStyles, Container, Flex, Box, Text, ScrollArea } from "@mantine/core";
 import { useRouter } from "next/router";
 import {
     Home,
@@ -11,19 +11,19 @@ import {
     BuildingCommunity,
     Trophy,
     Moneybag,
-    InfoCircle,
-    Coin,
     Route,
     ChevronRight,
     ChevronLeft,
 } from "tabler-icons-react";
-import { GiAbstract042, GiTrophyCup, GiPlayerNext } from "react-icons/gi";
+import { GiAbstract042, GiTrophyCup } from "react-icons/gi";
 import useStore from "../../store/useStore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
     hasRailAfter, hasRailBefore, railDelta, railOverflows,
 } from "../../lib/helpers/navRail";
+import { activeSection, isItemActive, NavItem, resolveNav } from "../../lib/helpers/navSections";
+import { useMyRequestFlows } from "../../graphql";
 
 const useStyles = createStyles((theme) => ({
     navbar: {
@@ -32,7 +32,7 @@ const useStyles = createStyles((theme) => ({
         boxShadow: theme.shadows.sm,
         position: 'sticky',
         top: 70, // Matches Header height
-        height: 90,
+        // الصفّ الأوّل 90، ويطول بالصفّ الثاني حين يُفتح قسم.
         zIndex: 100,
         direction: 'rtl',
         [`@media (max-width: 720px)`]: {
@@ -80,6 +80,42 @@ const useStyles = createStyles((theme) => ({
             backgroundColor: '#FEF3C7',
             color: '#F59E0B',
         }
+    },
+    // الصفّ الثاني: صفحات القسم المفتوح. أخفض صوتاً من الصفّ الأوّل كي يُقرأ تابعاً
+    // له، والصفحة المفتوحة منه بلون الشريط نفسه.
+    subRow: {
+        borderTop: `1px solid ${theme.colors.gray[2]}`,
+        backgroundColor: theme.colors.gray[0],
+    },
+    subLinks: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        height: 48,
+        overflowX: 'auto',
+        scrollbarWidth: 'none',
+        '&::-webkit-scrollbar': { display: 'none' },
+    },
+    subLink: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '6px 14px',
+        borderRadius: theme.radius.xl,
+        fontSize: theme.fontSizes.sm,
+        fontWeight: 600,
+        color: theme.colors.gray[7],
+        textDecoration: 'none',
+        whiteSpace: 'nowrap',
+        border: '1px solid transparent',
+        '&:hover': { backgroundColor: theme.white, borderColor: theme.colors.gray[3] },
+        '&:focus-visible': { outline: `2px solid ${theme.colors.blue[5]}`, outlineOffset: 2 },
+    },
+    subLinkActive: {
+        backgroundColor: theme.white,
+        borderColor: '#F59E0B',
+        color: '#B45309',
+        '&:hover': { borderColor: '#F59E0B' },
     },
     arrow: {
         // السهمان داخل الصفّ لا فوق الشريط: لو طافا عليه لحجبا أوّل تبويب
@@ -136,15 +172,28 @@ const HorizontalNavbar = () => {
         return false;
     };
 
-    const navItems = [
+    // ما ينتظر الفريق نفسه على مسار طلباته — رقمٌ على «الطلبات» كي لا يُضطرّ أن
+    // يفتح التتبّع ليعرف أن عليه شيئاً: «لازم يروح يتتبّع حتى يشوف الطلب» (العميل).
+    const [getFlows, { data: flowsData }] = useMyRequestFlows();
+    useEffect(() => { getFlows({ fetchPolicy: "cache-and-network" }); }, [getFlows, router.pathname]);
+    const myTurn = (flowsData?.myRequestFlows || [])
+        .filter((flow: any) => !flow.done && flow.actor === "team" && flow.side === "team").length;
+
+    const navItems: NavItem[] = [
         { path: '/', label: 'الرئيسية', icon: <Home size={20} />, show: true },
-        { path: '/players_loan', label: 'إعارة اللاعبين', icon: <GiPlayerNext size={20} />, show: hasPermission("players", "1") },
-        { path: '/players_transfer', label: 'انتقالات اللاعبين', icon: <GiPlayerNext size={20} />, show: hasPermission("players", "1") },
-        { path: '/requests' , label: 'الطلبات', icon: <InfoCircle size={18} /> , show: true  },
-        { path: '/tracking', label: 'تتبّع الطلبات', icon: <Route size={20} />, show: true },
-        { path: '/payments', label: 'المدفوعات', icon: <Coin size={20} />, show: true },
-        { path: '/messages', label: 'الرسائل', icon: <Inbox size={20} />, show: hasPermission("inbox", "1") || hasPermission("outbox", "1") },
-        { path: '/expenses', label: 'المصروفات', icon: <Moneybag size={18} /> , show : true},
+        // كل ما يخصّ الطلب في بندٍ واحد، كما في لوحة النادي.
+        {
+            path: '/tracking', label: 'الطلبات', icon: <Route size={20} />, show: true, badge: myTurn,
+            children: [
+                { path: '/tracking', label: 'طلباتي', badge: myTurn },
+                { path: '/players_loan', label: 'الإعارات', show: hasPermission("players", "1") },
+                { path: '/players_transfer', label: 'الانتقالات', show: hasPermission("players", "1") },
+                { path: '/payments', label: 'المدفوعات' },
+                { path: '/requests', label: 'طلبات اللاعبين' },
+            ],
+        },
+        { path: '/messages', label: 'الرسائل', icon: <Inbox size={20} />, show: hasPermission("inbox", "1") || hasPermission("outbox", "1"), also: ['/inbox', '/outbox'] },
+        { path: '/expenses', label: 'المصروفات', icon: <Moneybag size={18} />, show: true },
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={20} />, show: hasPermission("meeting", "1") },
         { path: '/blog', label: 'الأخبار', icon: <Article size={20} />, show: hasPermission("blogs", "1") },
         { path: '/forms', label: 'الاستمارات', icon: <FileText size={20} />, show: hasPermission("forms", "1") },
@@ -153,7 +202,8 @@ const HorizontalNavbar = () => {
         { path: '/powers', label: 'الصلاحيات', icon: <ShieldLock size={20} />, show: hasPermission("permissions", "1") },
     ];
 
-    const visible = navItems.filter((item) => item.show);
+    const visible = resolveNav(navItems);
+    const section = activeSection(visible, router.pathname);
 
     // الشريط: مرجع حاويته، وهل خلفه أو أمامه صفحات لا تُرى.
     const viewport = useRef<HTMLDivElement>(null);
@@ -221,7 +271,7 @@ const HorizontalNavbar = () => {
 
     return (
         <Box className={classes.navbar}>
-            <Container size="xl" h="100%">
+            <Container size="xl" h={90}>
                 {/* اتجاه الصفّ من السمة لا من الأنماط: مُحوِّل الأنماط يقلب كل
                     direction مكتوبٍ في CSS، فيقع سهم العودة في جهة النهاية. */}
                 <Flex h="100%" align="center" gap={6} dir={theme.dir}>
@@ -235,12 +285,7 @@ const HorizontalNavbar = () => {
                     >
                         <Flex className={classes.linksContainer} h="100%" align="center">
                             {visible.map((item) => {
-                                const isMembersRelated = ['/members', '/technicalApparatus', '/players', '/assembly'].includes(router.pathname);
-                                const isMessagesRelated = ['/messages', '/inbox', '/outbox'].includes(router.pathname);
-                            
-                                let isActive = router.pathname === item.path;
-                                if (item.path === '/members') isActive = isMembersRelated;
-                                if (item.path === '/messages') isActive = isMessagesRelated;
+                                const isActive = isItemActive(item, router.pathname);
 
                                 return (
                                     <Link href={item.path} key={item.path} passHref legacyBehavior>
@@ -252,6 +297,7 @@ const HorizontalNavbar = () => {
                                                 {item.icon}
                                             </Box>
                                             <Text>{item.label}</Text>
+                                            {(item.badge ?? 0) > 0 && <Badge color="orange" variant="filled" size="sm">{item.badge}</Badge>}
                                         </a>
                                     </Link>
                                 );
@@ -261,6 +307,31 @@ const HorizontalNavbar = () => {
                     {rail.overflows && arrowButton("after")}
                 </Flex>
             </Container>
+
+            {section && (
+                <Box className={classes.subRow}>
+                    <Container size="xl">
+                        <nav aria-label={section.label} className={classes.subLinks} dir={theme.dir}>
+                            {section.children!.map((child) => {
+                                const current = router.pathname === child.path;
+                                return (
+                                    <Link href={child.path} key={child.path} passHref legacyBehavior>
+                                        <a
+                                            className={cx(classes.subLink, { [classes.subLinkActive]: current })}
+                                            aria-current={current ? "page" : undefined}
+                                        >
+                                            {child.label}
+                                            {(child.badge ?? 0) > 0 && (
+                                                <Badge color="orange" variant="filled" size="xs">{child.badge}</Badge>
+                                            )}
+                                        </a>
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                    </Container>
+                </Box>
+            )}
         </Box>
     );
 };

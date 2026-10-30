@@ -51,6 +51,8 @@ export const typeDefs = gql`
         amount:            Float
         entity_type:       String
         entity_id:         ID
+        # اللاعب الذي تسدّد عنه المطالبة.
+        subject:           String
         status:            String
         reference_number:  String
         receipt:           String @imgUrl

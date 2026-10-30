@@ -15,6 +15,10 @@ vi.mock("next/router", () => ({ useRouter: () => ({ pathname: h.pathname }) }));
 vi.mock("../../store/useStore", () => ({
     default: (selector: any) => selector({ userData: { person: { member: { classification: "رئيس" } } } }),
 }));
+// رقم «بانتظارك» على «الطلبات» يُقرأ من مسار الطلبات.
+vi.mock("../../graphql", () => ({
+    useMyRequestFlows: () => [vi.fn(), { data: { myRequestFlows: [] } }],
+}));
 import HorizontalNavbar from "../../components/Layout/HorizontalNavbar";
 
 const NEXT = "الصفحات التالية";

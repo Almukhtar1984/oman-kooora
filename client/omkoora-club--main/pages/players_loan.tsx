@@ -17,6 +17,7 @@ import {UpdateLoanModal} from "../components/Modal/UpdateLoanModal";
 import {DeleteConfirmationModal} from "../components/Modal/DeleteConfirmationModal";
 import {useBackToOldTeamTransfer} from "../graphql";
 import { Notyf } from "notyf";
+import { RequestTrackDrawer } from "../components/RequestTrack";
 import dayjs from "dayjs";
 
 export default function PlayersLoan() {
@@ -41,6 +42,7 @@ export default function PlayersLoan() {
     const [selectedLoan, setSelectedLoan] = useState<any>(null);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
     const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
+    const [tracked, setTracked] = useState<any>(null);
     const [role, setRole] = useState(null);
     const [permissions, setPermissions] = useState([]);
 
@@ -237,6 +239,7 @@ export default function PlayersLoan() {
                                                 setSelectedTransfer(loan);
                                                 setDeleteModalOpened(true);
                                             }}
+                                            onTrack={setTracked}
                                         />
                                     </Col>
                                 ))}
@@ -269,6 +272,17 @@ export default function PlayersLoan() {
                 opened={deleteModalOpened}
                 onClose={() => setDeleteModalOpened(false)}
                 onConfirm={handleDeleteLoan}
+            />
+            {/* خطّ الطلب ورسومه واعتماده — من البطاقة نفسها، لا من صفحة أخرى. */}
+            <RequestTrackDrawer
+                opened={Boolean(tracked)}
+                onClose={() => setTracked(null)}
+                target={tracked ? { entity_type: "transfer", entity_id: tracked.id } : null}
+                onActed={(message) => {
+                    if (message) new Notyf({ position: { x: "right", y: "bottom" } }).success(message);
+                    handleRefresh();
+                }}
+                onError={(message) => new Notyf({ position: { x: "right", y: "bottom" } }).error(message)}
             />
         </Box>
     );

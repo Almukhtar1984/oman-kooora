@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Button, Container, Flex, MantineTheme, Menu, Text, Tooltip, Divider, Burger, Drawer, Stack, Group, Avatar } from "@mantine/core";
 import React, { useEffect, useState } from "react";
-import { ChevronDown, Logout, Search, BellRinging, User, Home, Users, Inbox, Send, CalendarEvent, Article, FileText, ShieldLock, Activity,Moneybag, InfoCircle, Coin, Route } from "tabler-icons-react";
+import { ChevronDown, Logout, Search, BellRinging, User, Home, Users, Inbox, Send, CalendarEvent, Article, FileText, ShieldLock, Activity,Moneybag, Route } from "tabler-icons-react";
 import { useTheme } from "@emotion/react";
 import { useDisclosure } from "@mantine/hooks";
 import useStore from "../../store/useStore";
@@ -116,9 +116,17 @@ const Header = (props: Props) => {
 
     const mobileNavLinks = [
         { path: '/', label: 'الرئيسية', icon: <Home size={18} /> },
-        { path: '/requests' , label: 'الطلبات', icon: <InfoCircle size={18} />},
-        { path: '/tracking', label: 'تتبّع الطلبات', icon: <Route size={18} /> },
-        { path: '/payments', label: 'المدفوعات', icon: <Coin size={18} /> },
+        // الأقسام كما في الشريط: بندٌ واحد وصفحاته تحته.
+        {
+            path: '/tracking', label: 'الطلبات', icon: <Route size={18} />,
+            children: [
+                { path: '/tracking', label: 'طلباتي' },
+                { path: '/players_loan', label: 'الإعارات' },
+                { path: '/players_transfer', label: 'الانتقالات' },
+                { path: '/payments', label: 'المدفوعات' },
+                { path: '/requests', label: 'طلبات اللاعبين' },
+            ],
+        },
         { path: '/messages', label: 'الرسائل', icon: <Inbox size={18} /> },
         { path: '/expenses', label: 'المصروفات', icon: <Moneybag size={18} />},
         { path: '/meetings', label: 'الاجتماعات', icon: <CalendarEvent size={18} /> },
@@ -304,9 +312,28 @@ const Header = (props: Props) => {
             >
                 <Stack spacing="xs" sx={{ direction: 'rtl' }}>
                     <Divider label="التنقل" labelPosition="center" />
-                    {mobileNavLinks.map((nav: any) => (
-                        <Box
+                    {mobileNavLinks.map((nav: any) => nav.children ? (
+                        <Box key={nav.path}>
+                            <Group spacing={12} px={16} pt={10} pb={4}>
+                                <Box sx={{ color: theme.colors.gray[5], display: 'flex' }}>{nav.icon}</Box>
+                                <Text size="sm" weight={700} color="gray.8">{nav.label}</Text>
+                            </Group>
+                            {nav.children.map((child: any) => (
+                                <MobileNavRow
+                                    key={child.path}
+                                    label={child.label}
+                                    active={router.pathname === child.path}
+                                    indent
+                                    onClick={() => { router.push(child.path); closeDrawer(); }}
+                                />
+                            ))}
+                        </Box>
+                    ) : (
+                        <MobileNavRow
                             key={nav.path}
+                            label={nav.label}
+                            icon={nav.icon}
+                            active={router.pathname === nav.path}
                             onClick={() => {
                                 if (nav.external) {
                                     window.open(nav.path, '_blank');
@@ -315,28 +342,7 @@ const Header = (props: Props) => {
                                 }
                                 closeDrawer();
                             }}
-                            sx={(theme) => ({
-                                padding: '12px 16px',
-                                borderRadius: theme.radius.sm,
-                                cursor: 'pointer',
-                                backgroundColor: router.pathname === nav.path ? theme.colors.blue[0] : 'transparent',
-                                color: router.pathname === nav.path ? theme.colors.blue[7] : theme.colors.gray[7],
-                                '&:hover': {
-                                    backgroundColor: theme.colors.gray[1],
-                                },
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                justifyContent: 'flex-start'
-                            })}
-                        >
-                            <Box sx={{ color: router.pathname === nav.path ? theme.colors.blue[6] : theme.colors.gray[5], display: 'flex' }}>
-                                {nav.icon}
-                            </Box>
-                            <Text size="sm" weight={router.pathname === nav.path ? 600 : 500}>
-                                {nav.label}
-                            </Text>
-                        </Box>
+                        />
                     ))}
 
                     <Box mt="xl">
@@ -379,5 +385,36 @@ const Header = (props: Props) => {
         </Box>
     );
 };
+
+// سطرٌ في قائمة الهاتف — والصفحة من قسمٍ تُزاح تحت اسمه.
+function MobileNavRow({ label, icon, active, indent = false, onClick }: {
+    label: string; icon?: React.ReactNode; active: boolean; indent?: boolean; onClick: () => void;
+}) {
+    return (
+        <Box
+            onClick={onClick}
+            sx={(theme) => ({
+                padding: indent ? '10px 16px' : '12px 16px',
+                paddingInlineStart: indent ? 46 : 16,
+                borderRadius: theme.radius.sm,
+                cursor: 'pointer',
+                backgroundColor: active ? theme.colors.blue[0] : 'transparent',
+                color: active ? theme.colors.blue[7] : theme.colors.gray[7],
+                '&:hover': { backgroundColor: theme.colors.gray[1] },
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                justifyContent: 'flex-start',
+            })}
+        >
+            {icon && (
+                <Box sx={(theme) => ({ color: active ? theme.colors.blue[6] : theme.colors.gray[5], display: 'flex' })}>
+                    {icon}
+                </Box>
+            )}
+            <Text size="sm" weight={active ? 600 : 500}>{label}</Text>
+        </Box>
+    );
+}
 
 export default Header;

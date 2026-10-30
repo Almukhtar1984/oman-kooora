@@ -3,7 +3,6 @@ import {
 } from "@mantine/core";
 import { Coin, Route } from "tabler-icons-react";
 import Head from "next/head";
-import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Notyf } from "notyf";
 
@@ -15,7 +14,8 @@ import { RequestTrackDrawer } from "../components/RequestTrack";
 //
 // «الفريق يقدم طلب على اللاعب … يعني الرجّال ما يدري اتخذ قرار ولا لا». أربعة
 // طلبات تمشي في طريق واحد — تسجيل، انتقال، إعارة، استقالة — وهذه الصفحة تقول
-// لكل واحد منها: أين يقف، ودور مَن الآن، وما بقي عليه.
+// لكل واحد منها: أين يقف، ودور مَن الآن، وما بقي عليه. والسداد من الطلب نفسه:
+// «سدّد الرسوم» يفتح خطّه حيث يُرفع الإيصال، لا صفحةً أخرى يُبحث فيها عنه.
 
 const STAGE_COLOR: Record<string, string> = {
     draft: "gray",
@@ -30,7 +30,6 @@ const STAGE_COLOR: Record<string, string> = {
 };
 
 export default function Tracking() {
-    const router = useRouter();
     const [filter, setFilter] = useState("mine");
     const [target, setTarget] = useState<any>(null);
 
@@ -42,9 +41,10 @@ export default function Tracking() {
 
     const rows = data?.myRequestFlows || [];
 
-    // ما ينتظر الفريق نفسه — وهو أول ما يُفتح، لأنه العمل لا الخبر.
+    // ما ينتظر الفريق نفسه — وهو أول ما يُفتح، لأنه العمل لا الخبر. وإعارةٌ
+    // قدّمها الفريق المُعير يتابعها ولا يسدّدها، فليست من عمله.
     const mine = useMemo(
-        () => rows.filter((row: any) => !row.done && row.actor === "team"),
+        () => rows.filter((row: any) => !row.done && row.actor === "team" && row.side === "team"),
         [rows]
     );
 
@@ -73,7 +73,7 @@ export default function Tracking() {
                             )}
                         </Group>
                         <Text size="sm" color="gray.6">
-                            كل طلب قدّمته: أين يقف، ودور مَن الآن، وما بقي عليه — افتح الطلب لترى خطّه كاملاً.
+                            كل طلب قدّمته: أين يقف، ودور مَن الآن، وما بقي عليه — وتُسدَّد رسومه من الطلب نفسه.
                         </Text>
                     </Box>
                     <SegmentedControl
@@ -114,7 +114,10 @@ export default function Tracking() {
                                         )}
                                         {row.reason && (
                                             // السبب هو ما كان الفريق يُحرم منه، فيُعرض في السطر لا في الدرج وحده.
-                                            <Text size="sm" color="red.7" mt={4}>السبب: {row.reason}</Text>
+                                            // وسبب الإعفاء خبرٌ لا رفض، فلا يُكتب بلون الرفض.
+                                            <Text size="sm" color={row.fee_waived ? "teal.8" : "red.7"} mt={4}>
+                                                {row.fee_waived ? "سبب الإعفاء" : "السبب"}: {row.reason}
+                                            </Text>
                                         )}
                                         {row.payment && (
                                             <Group spacing={6} mt={4}>
@@ -134,12 +137,13 @@ export default function Tracking() {
                                         <Button size="xs" variant="light" onClick={() => setTarget(row)}>
                                             تتبّع الطلب
                                         </Button>
-                                        {row.stage === "awaiting_payment" && (
-                                            // السداد يُسجَّل بالإيصال، فالزرّ يأخذه إلى حيث يرفعه.
+                                        {row.stage === "awaiting_payment" && row.side === "team"
+                                            && row.payment?.status === "waiting" && (
+                                            // السداد يُسجَّل بالإيصال، والإيصال يُرفع في خطّ الطلب نفسه.
                                             <Button
                                                 size="xs"
                                                 leftIcon={<Coin size={14} />}
-                                                onClick={() => router.push("/payments")}
+                                                onClick={() => setTarget(row)}
                                             >
                                                 سدّد الرسوم
                                             </Button>
@@ -156,8 +160,7 @@ export default function Tracking() {
                 opened={Boolean(target)}
                 onClose={() => setTarget(null)}
                 target={target ? { entity_type: target.entity_type, entity_id: target.entity_id } : null}
-                side="team"
-                onActed={refresh}
+                onActed={(message) => { if (message) notyf().success(message); refresh(); }}
                 onError={(message) => notyf().error(message)}
             />
         </Box>

@@ -5,6 +5,7 @@ export const ChangeStatusPlayersBulk = gql`
         changeStatusPlayersBulk(ids: $ids, status: $status, note: $note) {
             success
             total
+            message
         }
     }
 `;

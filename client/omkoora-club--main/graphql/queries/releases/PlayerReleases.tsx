@@ -37,6 +37,7 @@ export const DecidePlayerRelease = gql`
     mutation DecidePlayerRelease($id: ID!, $status: String!, $note: String) {
         decidePlayerRelease(id: $id, status: $status, note: $note) {
             status
+            message
         }
     }
 `;

@@ -13,6 +13,7 @@ import {IconDatabaseOff} from "@tabler/icons-react";
 import {DataEmpty, DataLoading} from "../components/Loading/DataState";
 import {ChangeStatusPlayersModal, UpdatePlayersTransferModal, UpdatePlayerModal, DeleteConfirmationModal} from "../components/Modal";
 import { Notyf } from "notyf";
+import { RequestTrackDrawer } from "../components/RequestTrack";
 
 export default function PlayersTransfer() {
     const userData = useStore((state: any) => state.userData);
@@ -37,6 +38,7 @@ export default function PlayersTransfer() {
 
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
     const [selectedTransferToDelete, setSelectedTransferToDelete] = useState<any>(null);
+    const [tracked, setTracked] = useState<any>(null);
 
     const [getAllPlayersTransferred, { refetch, loading, called, error, data: dataAllPlayersTransferred }] = useAllPlayersClubTransferred();
     const [deleteTransfer] = useBackToOldTeamTransfer();
@@ -204,6 +206,7 @@ export default function PlayersTransfer() {
                                                 setSelectedTransferToDelete(item?.lastTransfer);
                                                 setDeleteModalOpened(true);
                                             }}
+                                            onTrack={setTracked}
                                         />
                                     </Col>
                                 ))}
@@ -227,6 +230,17 @@ export default function PlayersTransfer() {
                 opened={deleteModalOpened}
                 onClose={() => setDeleteModalOpened(false)}
                 onConfirm={handleDeleteTransfer}
+            />
+            {/* خطّ الطلب ورسومه واعتماده — من البطاقة نفسها، لا من صفحة أخرى. */}
+            <RequestTrackDrawer
+                opened={Boolean(tracked)}
+                onClose={() => setTracked(null)}
+                target={tracked ? { entity_type: "transfer", entity_id: tracked.id } : null}
+                onActed={(message) => {
+                    if (message) new Notyf({ position: { x: "right", y: "bottom" } }).success(message);
+                    handleRefresh();
+                }}
+                onError={(message) => new Notyf({ position: { x: "right", y: "bottom" } }).error(message)}
             />
         </Box>
     );
