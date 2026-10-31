@@ -11,7 +11,6 @@ export * from "./UpdateParticipatingTeams";
 export * from "./DeleteParticipatingTeams";
 
 export * from "./AddMatch";
-export * from "./UpdateMatch";
 export * from "./DeleteMatch";
 
 export * from "./AddMatchCard";

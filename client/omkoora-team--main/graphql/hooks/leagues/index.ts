@@ -10,7 +10,6 @@ export * from "./useDeleteParticipatingTeams";
 export * from "./useUpdateParticipatingTeams";
 
 export * from "./useAddMatch";
-export * from "./useUpdateMatch";
 export * from "./useDeleteMatch";
 
 export * from "./useAddMatchCard";

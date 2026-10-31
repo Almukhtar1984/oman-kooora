@@ -2,7 +2,6 @@ export * from "./useAddStadium";
 export * from "./useUpdateStadium";
 export * from "./useDeleteStadium";
 export * from "./useAllStadium";
-export * from "./useStadium";
 export * from "./useAllReservations";
 export * from "./useUpdateReservationStatus";
 export * from "./useDeleteReservation";
