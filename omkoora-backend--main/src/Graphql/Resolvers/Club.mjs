@@ -12,6 +12,8 @@ import {
 } from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
 import {pickHeadCoach} from "../../Helpers/staffRoles.mjs";
+import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
+import { openingStage } from "../../Helpers/requestFlow.mjs";
 import {__dirname} from "../../app.mjs";
 
 
@@ -331,6 +333,12 @@ uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
         .map((p) => nameKey(p.person?.first_name, p.person?.second_name, p.person?.third_name, p.person?.tribe))
     );
 
+    // كل لاعب يُستورد طلبُ تسجيلٍ على الطريق كغيره — «ما ممكن يسجّل اللاعب… إلا في
+    // الدفع الرسوم» (العميل). النادي الذي يستورد قَبِل بفعله، فيبدأ كل طلب مقبولاً
+    // مبدئياً ثم يمرّ برسوم فريقه واعتماده؛ وتُطالَب الدفعة كلها معاً من مسار الطلبات.
+    const byClub = user.role === "2";
+    const team = await Team.findByPk(teamId, { attributes: ["id", "id_club"] });
+
     // Skip civil ids already present so re-runs don't duplicate people.
     let created = 0, duplicates = 0, failed = 0, total = 0;
 
@@ -362,7 +370,23 @@ uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
           phone: cap(cleanPhone(val(row, idxPhone)) || "", 15),
           date_birth: (toDateOnly(val(row, idxBirth)) || ""),
         });
-        await Players.create({ id_person: person.id, id_team: teamId, activity: "", player_center: "", job: "", type: "internal" });
+        const player = await Players.create({
+          id_person: person.id, id_team: teamId, activity: "", player_center: "", job: "", type: "internal",
+          status: byClub ? "waiting_club" : "waiting",
+        });
+        if (team?.id_club) {
+          await openFlow({
+            request_type: "player_registration",
+            entity_type: "player",
+            entity_id: player.id,
+            id_club: team.id_club,
+            id_team: teamId,
+            stage: openingStage({ byClub }),
+            actor: byClub ? "club" : "team",
+            id_user: user.id || null,
+            note: "مستورد من ملف Excel",
+          });
+        }
         created++;
       } catch (rowErr) {
         logger.error(`uploadPlayersSheet row failed: ${rowErr.message}`);
