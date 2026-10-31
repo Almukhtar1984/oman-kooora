@@ -1,5 +1,6 @@
 import {
-    Affix, Badge, Box, Button, Checkbox, Container, Group, Paper, SegmentedControl, Select, Stack, Text, Title,
+    Affix, Badge, Box, Button, Checkbox, Chip, Container, Group, Modal, Paper, SegmentedControl, Select, Stack, Text,
+    Textarea, Title,
 } from "@mantine/core";
 import { Coin, Route } from "tabler-icons-react";
 import Head from "next/head";
@@ -9,6 +10,7 @@ import { Notyf } from "notyf";
 import { useAdvanceRequestFlow, useMyRequestFlows } from "../graphql";
 import DataState from "../components/Loading/DataState";
 import { RequestTrackDrawer } from "../components/RequestTrack";
+import { AWAITING_PAYMENT, APPROVED, PAID_REVIEW, WAIVER_SUGGESTIONS, bulkMoves } from "../lib/helpers/requestFlow";
 
 // مسار الطلبات — لوحة النادي على الطريق الواحد.
 //
@@ -17,8 +19,10 @@ import { RequestTrackDrawer } from "../components/RequestTrack";
 // مبدئية، فاستكمال إجراءات، فمطالبة بالرسوم، فاعتماد نهائي — فهذه هي اللوحة
 // التي يُمشى الطريق منها، وتُبنى أزرارها من صلاحية الخادم لا من تخمين الواجهة.
 //
-// وفي موسم المسابقات تصل الطلبات بالعشرات وإيصالها واحد: ما بلغ «تم السداد»
-// يُختار معاً ويُعتمد بضغطة.
+// وفي موسم المسابقات — أو حين يُستورد ملف Excel بخمسين لاعباً — تصل الطلبات
+// بالعشرات وقرارها واحد: تُختار معاً، فيُطالَب فريقها بالسعر المعلن أو تُعفى
+// بسبب واحد، وما سُدّد منها يُعتمد بضغطة. وكل طلب يمضي بقراره هو على الطريق،
+// والخادم يردّ ما لا يجوز منها.
 
 const STAGE_COLOR: Record<string, string> = {
     draft: "gray",
@@ -37,14 +41,19 @@ const TYPES = [
     { value: "transfer", label: "انتقال لاعب" },
     { value: "loan", label: "إعارة لاعب" },
     { value: "player_release", label: "استقالة لاعب" },
+    { value: "team_registration", label: "تسجيل فريق" },
 ];
+
+const count = (n: number) => `${n} ${n === 1 ? "طلب" : "طلبات"}`;
 
 export default function Tracking() {
     const [filter, setFilter] = useState("mine");
     const [type, setType] = useState<string | null>(null);
     const [target, setTarget] = useState<any>(null);
     const [picked, setPicked] = useState<string[]>([]);
-    const [approving, setApproving] = useState(false);
+    const [busy, setBusy] = useState<string | null>(null);
+    const [waiving, setWaiving] = useState(false);
+    const [reason, setReason] = useState("");
 
     const [getFlows, { data, loading }] = useMyRequestFlows();
     const [advance] = useAdvanceRequestFlow();
@@ -66,8 +75,6 @@ export default function Tracking() {
         [rows]
     );
 
-    const approvable = (row: any) => (row.actions || []).some((action: any) => action.to === "approved");
-
     const shown = useMemo(() => {
         if (filter === "mine") return mine;
         if (filter === "team") return rows.filter((row: any) => !row.done && row.actor === "team");
@@ -82,25 +89,56 @@ export default function Tracking() {
     const toggle = (id: string) =>
         setPicked((list) => (list.includes(id) ? list.filter((item) => item !== id) : [...list, id]));
 
-    // كل طلب يُعتمد بقراره هو على الطريق — والخادم يردّ ما لا يجوز منها بسببه.
-    const approvePicked = async () => {
-        setApproving(true);
+    const selectable = useMemo(() => shown.filter((row: any) => {
+        const moves = bulkMoves(row);
+        return moves.approve || moves.bill || moves.waive;
+    }), [shown]);
+    const allPicked = selectable.length > 0 && selectable.every((row: any) => picked.includes(row.id));
+
+    // ما يجوز في المحدّد من كل قرار — قد يجتمع فيه ما سُدّد وما لم يُطالَب به بعد.
+    const chosen = useMemo(() => {
+        const rowsPicked = rows.filter((row: any) => picked.includes(row.id));
+        const by = (move: "approve" | "bill" | "waive") => rowsPicked.filter((row: any) => bulkMoves(row)[move]);
+        return { approve: by("approve"), bill: by("bill"), waive: by("waive") };
+    }, [rows, picked]);
+    const unpriced = chosen.waive.length - chosen.bill.length;
+
+    // كل طلب يمضي بقراره هو على الطريق — والخادم يردّ ما لا يجوز منها بسببه.
+    const runBulk = async (key: string, list: any[], variablesFor: (row: any) => any, success: (n: number) => string) => {
+        setBusy(key);
         let done = 0;
         const failed: string[] = [];
-        for (const id of picked) {
+        for (const row of list) {
             try {
-                const { data: result } = await advance({ variables: { id, to: "approved" } });
+                const { data: result } = await advance({ variables: variablesFor(row) });
                 if (result?.advanceRequestFlow?.ok) done += 1;
                 else failed.push(result?.advanceRequestFlow?.message || "تعذّر");
             } catch (error: any) {
                 failed.push(error?.message || "تعذّر");
             }
         }
-        setApproving(false);
+        setBusy(null);
         setPicked([]);
-        if (done) notyf().success(`اعتُمد ${done} ${done === 1 ? "طلب" : "طلبات"} نهائياً`);
+        if (done) notyf().success(success(done));
         if (failed.length) notyf().error(`تعذّر ${failed.length}: ${Array.from(new Set(failed)).join("، ")}`);
         refresh();
+    };
+
+    const approvePicked = () => runBulk("approve", chosen.approve,
+        (row) => ({ id: row.id, to: APPROVED }),
+        (n) => `اعتُمد ${count(n)} نهائياً`);
+
+    const billPicked = () => runBulk("bill", chosen.bill,
+        (row) => ({ id: row.id, to: AWAITING_PAYMENT, amount: Number(row.suggestedAmount) }),
+        (n) => `طُولبت الفرق برسوم ${count(n)} — بالسعر المعلن`);
+
+    const waivePicked = async () => {
+        const text = reason.trim();
+        setWaiving(false);
+        setReason("");
+        await runBulk("waive", chosen.waive,
+            (row) => ({ id: row.id, to: PAID_REVIEW, reason: text }),
+            (n) => `أُعفي ${count(n)} من الرسوم — بانتظار اعتمادك النهائي`);
     };
 
     return (
@@ -152,15 +190,23 @@ export default function Tracking() {
                     emptyLabel={filter === "mine" ? "لا طلب ينتظر قرارك" : "لا توجد طلبات"}
                 >
                     <Stack spacing="sm">
+                        {selectable.length > 1 && (
+                            <Checkbox
+                                label={`تحديد كل ما يقبل قراراً جماعياً (${selectable.length})`}
+                                checked={allPicked}
+                                indeterminate={!allPicked && picked.length > 0}
+                                onChange={() => setPicked(allPicked ? [] : selectable.map((row: any) => row.id))}
+                            />
+                        )}
                         {shown.map((row: any) => (
                             <Paper key={row.id} p="md" radius="md" withBorder>
                                 <Group position="apart" align="flex-start" noWrap>
-                                    {approvable(row) && (
+                                    {selectable.includes(row) && (
                                         <Checkbox
                                             mt={4}
                                             checked={picked.includes(row.id)}
                                             onChange={() => toggle(row.id)}
-                                            aria-label={`اختيار ${row.subject || row.request_label} للاعتماد`}
+                                            aria-label={`اختيار ${row.subject || row.request_label}`}
                                         />
                                     )}
                                     <Box sx={{ flex: 1 }}>
@@ -212,16 +258,70 @@ export default function Tracking() {
                 onError={(message) => notyf().error(message)}
             />
 
+            <Modal
+                opened={waiving}
+                onClose={() => setWaiving(false)}
+                title={`إعفاء ${count(chosen.waive.length)} من الرسوم`}
+                centered
+            >
+                <Stack spacing="xs">
+                    <Chip.Group value={reason} onChange={(value) => setReason(String(value))}>
+                        <Group spacing={6}>
+                            {WAIVER_SUGGESTIONS.map((suggestion) => (
+                                <Chip key={suggestion} value={suggestion} size="xs">{suggestion}</Chip>
+                            ))}
+                        </Group>
+                    </Chip.Group>
+                    <Textarea
+                        label="سبب الإعفاء"
+                        description="سببٌ واحد يُكتب في خطّ كل طلب منها، ويراه فريقه"
+                        placeholder="مثل: إعارة مجانية"
+                        minRows={2}
+                        autosize
+                        value={reason}
+                        onChange={(event) => setReason(event.currentTarget.value)}
+                        withAsterisk
+                    />
+                    <Group spacing="xs" mt="xs">
+                        <Button color="teal" disabled={!reason.trim()} onClick={waivePicked}>تأكيد الإعفاء</Button>
+                        <Button variant="subtle" color="gray" onClick={() => setWaiving(false)}>رجوع</Button>
+                    </Group>
+                </Stack>
+            </Modal>
+
             {picked.length > 0 && (
                 <Affix position={{ bottom: 24, left: 24 }}>
-                    <Paper shadow="md" radius="md" p="sm" withBorder>
+                    <Paper shadow="md" radius="md" p="sm" withBorder maw="calc(100vw - 48px)">
                         <Group spacing="sm">
-                            <Text size="sm" weight={600}>{picked.length} محدّدة — سُدّدت رسومها</Text>
-                            <Button color="teal" loading={approving} onClick={approvePicked}>
-                                اعتماد نهائي للمحدّد
-                            </Button>
+                            <Text size="sm" weight={600}>{picked.length} محدّدة</Text>
+                            {chosen.approve.length > 0 && (
+                                <Button color="teal" loading={busy === "approve"} disabled={Boolean(busy)} onClick={approvePicked}>
+                                    اعتماد نهائي ({chosen.approve.length})
+                                </Button>
+                            )}
+                            {chosen.bill.length > 0 && (
+                                <Button loading={busy === "bill"} disabled={Boolean(busy)} onClick={billPicked}>
+                                    مطالبة بالسعر المعلن ({chosen.bill.length})
+                                </Button>
+                            )}
+                            {chosen.waive.length > 0 && (
+                                <Button
+                                    variant="light"
+                                    color="teal"
+                                    loading={busy === "waive"}
+                                    disabled={Boolean(busy)}
+                                    onClick={() => setWaiving(true)}
+                                >
+                                    إعفاء من الرسوم ({chosen.waive.length})
+                                </Button>
+                            )}
                             <Button variant="subtle" color="gray" onClick={() => setPicked([])}>إلغاء التحديد</Button>
                         </Group>
+                        {unpriced > 0 && (
+                            <Text size="xs" color="gray.6" mt={6}>
+                                {count(unpriced)} بلا سعر معلن في قائمة أسعار ناديك — يُطالَب بها من مسارها بمبلغها، أو تُعفى.
+                            </Text>
+                        )}
                     </Paper>
                 </Affix>
             )}

@@ -241,15 +241,50 @@ describe("لوحة مسار الطلبات (النادي)", () => {
         h.advance.mockResolvedValue({ data: { advanceRequestFlow: { ok: true } } });
         renderPage();
 
-        const boxes = await screen.findAllByRole("checkbox");
-        expect(boxes).toHaveLength(2);
-        boxes.forEach((box) => fireEvent.click(box));
-        fireEvent.click(await screen.findByRole("button", { name: "اعتماد نهائي للمحدّد" }));
+        // اختيار الكل، ثم اعتماد ما سُدّد.
+        fireEvent.click(await screen.findByLabelText("تحديد كل ما يقبل قراراً جماعياً (2)"));
+        fireEvent.click(await screen.findByRole("button", { name: "اعتماد نهائي (2)" }));
 
         await waitFor(() => expect(h.advance).toHaveBeenCalledTimes(2));
         expect(h.advance.mock.calls.map((call: any) => call[0].variables)).toEqual([
             { id: "p1", to: "approved" }, { id: "p2", to: "approved" },
         ]);
         await waitFor(() => expect(h.notyfSuccess).toHaveBeenCalledWith("اعتُمد 2 طلبات نهائياً"));
+    });
+
+    it("وملف Excel بخمسين لاعباً: مطالبةٌ بالسعر المعلن معاً، وما لا سعر له لا يُخترع له مبلغ", async () => {
+        const unpriced = { ...atFee, id: "flow-4", entity_id: "transfer-4", subject: "يوسف", suggestedAmount: null };
+        h.flowsResult = { data: { myRequestFlows: [atFee, unpriced] }, loading: false };
+        h.advance.mockResolvedValue({ data: { advanceRequestFlow: { ok: true } } });
+        renderPage();
+
+        fireEvent.click(await screen.findByLabelText("تحديد كل ما يقبل قراراً جماعياً (2)"));
+        expect(screen.getByText(/1 طلب بلا سعر معلن/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "مطالبة بالسعر المعلن (1)" }));
+
+        await waitFor(() => expect(h.advance).toHaveBeenCalledTimes(1));
+        expect(h.advance.mock.calls[0][0].variables).toEqual({ id: "flow-3", to: "awaiting_payment", amount: 25 });
+    });
+
+    it("والإعفاء الجماعي بسببٍ واحد، ولا يمرّ بلا سبب", async () => {
+        const second = { ...atFee, id: "flow-5", entity_id: "transfer-5", subject: "سعيد" };
+        h.flowsResult = { data: { myRequestFlows: [atFee, second] }, loading: false };
+        h.advance.mockResolvedValue({ data: { advanceRequestFlow: { ok: true } } });
+        renderPage();
+
+        fireEvent.click(await screen.findByLabelText("تحديد كل ما يقبل قراراً جماعياً (2)"));
+        fireEvent.click(screen.getByRole("button", { name: "إعفاء من الرسوم (2)" }));
+        const confirm = await screen.findByRole("button", { name: "تأكيد الإعفاء" });
+        expect(confirm).toBeDisabled();
+
+        fireEvent.click(screen.getByText("إعارة مجانية"));
+        fireEvent.click(confirm);
+
+        await waitFor(() => expect(h.advance).toHaveBeenCalledTimes(2));
+        expect(h.advance.mock.calls.map((call: any) => call[0].variables)).toEqual([
+            { id: "flow-3", to: "paid_review", reason: "إعارة مجانية" },
+            { id: "flow-5", to: "paid_review", reason: "إعارة مجانية" },
+        ]);
+        await waitFor(() => expect(h.notyfSuccess).toHaveBeenCalledWith("أُعفي 2 طلبات من الرسوم — بانتظار اعتمادك النهائي"));
     });
 });

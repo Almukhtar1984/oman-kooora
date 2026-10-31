@@ -3,7 +3,9 @@
 // ولهذا لا ينزل بفتح القائمة — بل باتخاذ القرار على الطلب، وهي القاعدة التي
 // طلبها المالك حرفياً.
 
-import { summarizePending, REQUEST_TYPES } from "../src/Helpers/pendingRequests.mjs";
+import {
+    liveCharges, summarizePending, summarizeTeamPending, REQUEST_TYPES, TEAM_REQUEST_TYPES,
+} from "../src/Helpers/pendingRequests.mjs";
 
 let pass = 0, fail = 0;
 const check = (label, got, want) => {
@@ -37,6 +39,28 @@ check("وتُحسب في الإجمالي", withPayments.total, 4);
 const messy = summarizePending({ players: "7", members: null, loans: undefined, news: -0 });
 check("قيمة نصية تُقرأ عدداً", messy.total, 7);
 check("والقيم الفارغة لا تُحسب", messy.groups.length, 1);
+
+// تسجيل الفرق صار طلباً على الطريق، فينتظر النادي فيه أيضاً.
+check("تسجيل الفرق ضمن ما ينتظر النادي", REQUEST_TYPES.some((t) => t.key === "teams"), true);
+check("ويُعدّ في الإجمالي", summarizePending({ teams: 2, players: 1 }).total, 3);
+
+// وما ينتظر الفريق — عمله هو، لا قرارات النادي.
+const team = summarizeTeamPending({ payments: 2, returned: 1, playerRequests: 0 });
+check("ما ينتظر الفريق: السداد أولاً، ثم ما أعاده النادي", team.groups.map((g) => g.key), ["payments", "returned"]);
+check("وإجماليه", team.total, 3);
+check("ولكل مجموعة صفحة في لوحة الفريق", TEAM_REQUEST_TYPES.every((g) => g.href.startsWith("/")), true);
+check("ولا يختلط بعدّاد النادي", summarizeTeamPending({ players: 5, news: 2 }).total, 0);
+
+// مطالبةُ طلبٍ أُلغي لا يُطالَب بها.
+const charges = [
+    { id: "a", entity_type: "player", entity_id: "p1" },
+    { id: "b", entity_type: "transfer", entity_id: "t1" },
+    { id: "c", entity_type: null, entity_id: null },
+];
+check("مطالبة الطلب الملغى لا تُعدّ", liveCharges(charges, [{ entity_type: "player", entity_id: "p1" }]).map((p) => p.id), ["b", "c"]);
+check("والمطالبة المباشرة بلا طلب حيّةٌ حتى تُسدَّد", liveCharges(charges, []).length, 3);
+check("ونوع الكيان من المفتاح: لاعبٌ وانتقالٌ بالمعرّف نفسه شيئان",
+    liveCharges([{ id: "x", entity_type: "transfer", entity_id: "p1" }], [{ entity_type: "player", entity_id: "p1" }]).length, 1);
 
 console.log(fail ? `\n\x1b[31m${fail} فشل\x1b[0m` : `\n\x1b[32mAll passed\x1b[0m (${pass})`);
 process.exit(fail ? 1 : 0);

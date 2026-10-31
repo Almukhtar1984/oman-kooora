@@ -15,9 +15,10 @@ vi.mock("next/router", () => ({ useRouter: () => ({ pathname: h.pathname }) }));
 vi.mock("../../store/useStore", () => ({
     default: (selector: any) => selector({ userData: { person: { member: { classification: "رئيس" } } } }),
 }));
-// رقم «بانتظارك» على «الطلبات» يُقرأ من مسار الطلبات.
+// رقما «الطلبات» و«طلباتي» يُقرآن من الخادم: ما ينتظر الفريق، ودوره على مسار طلباته.
 vi.mock("../../graphql", () => ({
     useMyRequestFlows: () => [vi.fn(), { data: { myRequestFlows: [] } }],
+    useTeamPendingRequests: () => ({ data: { teamPendingRequests: { total: 0, groups: [] } } }),
 }));
 import HorizontalNavbar from "../../components/Layout/HorizontalNavbar";
 

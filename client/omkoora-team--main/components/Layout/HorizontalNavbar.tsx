@@ -23,7 +23,7 @@ import {
     hasRailAfter, hasRailBefore, railDelta, railOverflows,
 } from "../../lib/helpers/navRail";
 import { activeSection, isItemActive, NavItem, resolveNav } from "../../lib/helpers/navSections";
-import { useMyRequestFlows } from "../../graphql";
+import { useMyRequestFlows, useTeamPendingRequests } from "../../graphql";
 
 const useStyles = createStyles((theme) => ({
     navbar: {
@@ -179,12 +179,17 @@ const HorizontalNavbar = () => {
     const myTurn = (flowsData?.myRequestFlows || [])
         .filter((flow: any) => !flow.done && flow.actor === "team" && flow.side === "team").length;
 
+    // وما ينتظر الفريق كله — رسومه وما أعاده النادي وطلبات لاعبيه — على البند نفسه.
+    const { data: pendingData } = useTeamPendingRequests();
+    const pendingTotal = pendingData?.teamPendingRequests?.total || 0;
+
     const navItems: NavItem[] = [
         { path: '/', label: 'الرئيسية', icon: <Home size={20} />, show: true },
         // كل ما يخصّ الطلب في بندٍ واحد، كما في لوحة النادي.
         {
-            path: '/tracking', label: 'الطلبات', icon: <Route size={20} />, show: true, badge: myTurn,
+            path: '/pending', label: 'الطلبات', icon: <Route size={20} />, show: true, badge: pendingTotal,
             children: [
+                { path: '/pending', label: 'بانتظارك', badge: pendingTotal },
                 { path: '/tracking', label: 'طلباتي', badge: myTurn },
                 { path: '/players_loan', label: 'الإعارات', show: hasPermission("players", "1") },
                 { path: '/players_transfer', label: 'الانتقالات', show: hasPermission("players", "1") },

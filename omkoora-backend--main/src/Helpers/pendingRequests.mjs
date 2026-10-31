@@ -19,9 +19,30 @@ export const REQUEST_TYPES = [
     { key: "transfers",  label: "انتقالات اللاعبين",   href: "/players_transfer" },
     { key: "loans",      label: "إعارات اللاعبين",     href: "/players_loan" },
     { key: "releases",   label: "طلبات إخلاء الطرف",   href: "/releases" },
+    { key: "teams",      label: "تسجيل فرق",           href: "/tracking" },
     { key: "payments",   label: "إيصالات بانتظار الاعتماد", href: "/payments" },
     { key: "news",       label: "أخبار بانتظار الاعتماد", href: "/blog" },
 ];
+
+// وما ينتظر الفريق نفسه — الوجه الآخر للعدّاد. الفريق لا يقرّر في طلبات
+// غيره؛ عمله أن يسدّد ما طُولب به، وأن يعدّل ما أعاده النادي ويعيد إرساله،
+// وأن يردّ على طلبات لاعبيه.
+export const TEAM_REQUEST_TYPES = [
+    { key: "payments",       label: "رسوم بانتظار السداد",          href: "/payments" },
+    { key: "returned",       label: "طلبات أعادها النادي للتعديل",  href: "/tracking" },
+    { key: "playerRequests", label: "طلبات اللاعبين بانتظار ردّك",  href: "/requests" },
+];
+
+const summarize = (types, counts = {}) => {
+    const groups = types
+        .map(({ key, label, href }) => ({ key, label, href, count: Number(counts[key]) || 0 }))
+        .filter((group) => group.count > 0);
+
+    return {
+        total: groups.reduce((sum, group) => sum + group.count, 0),
+        groups,
+    };
+};
 
 /**
  * Turn raw counts into the list the club reads, newest concern first.
@@ -31,13 +52,21 @@ export const REQUEST_TYPES = [
  *
  * @param {Record<string, number>} counts  keyed by the types above
  */
-export const summarizePending = (counts = {}) => {
-    const groups = REQUEST_TYPES
-        .map(({ key, label, href }) => ({ key, label, href, count: Number(counts[key]) || 0 }))
-        .filter((group) => group.count > 0);
+export const summarizePending = (counts = {}) => summarize(REQUEST_TYPES, counts);
 
-    return {
-        total: groups.reduce((sum, group) => sum + group.count, 0),
-        groups,
-    };
+/** والشيء نفسه للفريق، بأنواعه هو. */
+export const summarizeTeamPending = (counts = {}) => summarize(TEAM_REQUEST_TYPES, counts);
+
+/**
+ * المطالبات التي ما زالت تُطلب: ما أُلغي طلبه أو رُفض نهائياً لا يُطالَب برسومه،
+ * وإن بقيت مطالبته «بانتظار السداد» في السجل. والمطالبة بلا طلبٍ — رسومٌ
+ * يطالب بها النادي مباشرة — حيّةٌ حتى تُسدَّد.
+ *
+ * @param {{entity_type?: string, entity_id?: string}[]} payments  مطالبات بانتظار السداد
+ * @param {{entity_type?: string, entity_id?: string}[]} closed    طلباتٌ انتهت بلا اعتماد
+ */
+export const liveCharges = (payments = [], closed = []) => {
+    const key = (row) => `${row?.entity_type}:${row?.entity_id}`;
+    const dead = new Set((closed || []).map(key));
+    return (payments || []).filter((payment) => !(payment?.entity_id && dead.has(key(payment))));
 };
