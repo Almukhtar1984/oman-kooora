@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 
 import { useAdvanceRequestFlow, useAllTeams, useUpdateTransfer } from "../../graphql";
 import { getImageUrl } from "../../lib/helpers/image";
+import { WAIVER_SUGGESTIONS } from "../../lib/helpers/requestFlow";
 import useStore from "../../store/useStore";
 
 // لوحة النادي في درج التتبّع: الرسوم وقرار سلسلة الناديين، حيث يُرى الطلب.
@@ -14,8 +15,6 @@ import useStore from "../../store/useStore";
 // النادي بعد القبول المبدئي يطالب بمبلغ (يُقترح من سعره) أو يُعفي بسبب —
 // «خليها خيارات» (العميل) — ولا ثالث: لا يُعتمد طلبٌ لغياب سعر. وبعد السداد
 // يرى الإيصال ورقمه بجانب زرّ الاعتماد، ويردّه بسبب إن لم يُقبل.
-
-const WAIVER_SUGGESTIONS = ["إعارة مجانية", "إعفاء بقرار النادي"];
 
 const money = (value: any) => `${Number(value || 0).toLocaleString("en-US")} ر.ع`;
 
@@ -249,6 +248,7 @@ function ChainDecision({ flow, actions, onActed, onError }: any) {
 
     const [mode, setMode] = useState<"accept" | "reject" | null>(null);
     const [team, setTeam] = useState<string | null>(null);
+    const [fee, setFee] = useState<number | "">(accept?.suggestedAmount ?? 0);
     const [reason, setReason] = useState("");
     const [getTeams, { data: teamsData }] = useAllTeams();
     const [updateTransfer, { loading }] = useUpdateTransfer();
@@ -256,7 +256,7 @@ function ChainDecision({ flow, actions, onActed, onError }: any) {
     useEffect(() => {
         if (accept?.needsTeam && idClub) getTeams({ variables: { idClub }, fetchPolicy: "cache-first" });
     }, [accept?.needsTeam, idClub]);
-    useEffect(() => { setMode(null); setTeam(null); setReason(""); }, [flow?.id]);
+    useEffect(() => { setMode(null); setTeam(null); setReason(""); setFee(accept?.suggestedAmount ?? 0); }, [flow?.id]);
 
     const teams = (teamsData?.allTeam || []).map((item: any) => ({ value: item.id, label: item.name }));
 
@@ -266,6 +266,7 @@ function ChainDecision({ flow, actions, onActed, onError }: any) {
             content: {
                 status,
                 ...(status === "accepted" && team ? { id_team_to: team } : {}),
+                ...(status === "accepted" && accept?.feeOptional && Number(fee) > 0 ? { fee: Number(fee) } : {}),
                 ...(status === "rejected" ? { note: reason.trim() } : {}),
             },
         },
@@ -282,12 +283,33 @@ function ChainDecision({ flow, actions, onActed, onError }: any) {
 
             {mode === null && (
                 <Group spacing="xs">
-                    {accept && <Button onClick={() => (accept.needsTeam ? setMode("accept") : decide("accepted"))} loading={loading}>{accept.label}</Button>}
+                    {accept && <Button onClick={() => (accept.needsTeam || accept.feeOptional ? setMode("accept") : decide("accepted"))} loading={loading}>{accept.label}</Button>}
                     {reject && <Button color="red" variant="outline" onClick={() => setMode("reject")}>{reject.label}</Button>}
                 </Group>
             )}
 
-            {mode === "accept" && (
+            {mode === "accept" && accept?.feeOptional && (
+                <Stack spacing="xs">
+                    <NumberInput
+                        label="رسوم ناديك على هذا الطلب"
+                        description="يسدّدها فريقك المُرسِل، ولا يُعتمد الطلب نهائياً قبل أن تعتمد إيصالها — اتركها صفراً إن كانت بلا رسوم"
+                        value={fee}
+                        onChange={(value) => setFee(value === undefined ? "" : value)}
+                        min={0}
+                        precision={2}
+                        rightSection={<Text size="xs" color="gray.6" pr={8}>ر.ع</Text>}
+                        rightSectionWidth={40}
+                    />
+                    <Group spacing="xs">
+                        <Button loading={loading} onClick={() => decide("accepted")}>
+                            {Number(fee) > 0 ? `موافقة ومطالبة بـ ${money(fee)}` : "موافقة بلا رسوم"}
+                        </Button>
+                        <Button variant="subtle" color="gray" onClick={() => setMode(null)}>رجوع</Button>
+                    </Group>
+                </Stack>
+            )}
+
+            {mode === "accept" && !accept?.feeOptional && (
                 <Stack spacing="xs">
                     <Select
                         label="الفريق الذي سينضم إليه اللاعب في ناديك"

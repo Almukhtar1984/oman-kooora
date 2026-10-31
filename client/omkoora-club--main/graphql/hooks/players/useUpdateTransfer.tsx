@@ -11,6 +11,8 @@ interface VariableProps {
         id_player?: string;
         // سبب الرفض — يُكتب في خطّ تتبّع الطلب.
         note?: string;
+        // رسوم النادي المُرسِل (اختيارية).
+        fee?: number;
     };
 }
 

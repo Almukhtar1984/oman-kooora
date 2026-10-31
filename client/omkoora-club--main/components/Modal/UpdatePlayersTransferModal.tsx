@@ -1,9 +1,10 @@
-import {Box, Button, Col, Grid, Group, Select, Stack, Text, Textarea,} from "@mantine/core";
+import {Box, Button, Col, Grid, Group, NumberInput, Select, Stack, Text, Textarea,} from "@mantine/core";
 import {Check, ChevronDown, X} from "tabler-icons-react";
 import React, {useEffect, useState} from "react";
 import TextInput from "../Input/TextInput";
 import Modal, { Props as ModalProps } from "./Modal";
-import {AllPlayers, AllPlayersClubTransferred, AllPlayersClubLoan, useAllTeams, useUpdatePlayer, useUpdateTransfer} from "../../graphql";
+import {AllPlayers, AllPlayersClubTransferred, AllPlayersClubLoan, useAllTeams, useClubFees, useUpdatePlayer, useUpdateTransfer} from "../../graphql";
+import { transferFeeType, transferSide } from "../../lib/helpers/transferSide";
 import { useForm } from '@mantine/form';
 import useStore from "../../store/useStore";
 import { Notyf } from "notyf";
@@ -15,9 +16,17 @@ type Props = {
 export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
     const form = useForm({
-        initialValues: {id_team_to: "", note: ""}
+        initialValues: {id_team_to: "", note: "", fee: 0 as number | ""}
     });
     const rejecting = data?.status === "rejected";
+    // النادي المُرسِل في انتقالٍ إلى نادٍ آخر يقرّر رسومه، والمستقبِل يختار الفريق.
+    const sending = transferSide(data, userData?.person?.clubManagement?.club?.id) === "sending";
+    const [getFees, { data: feesData }] = useClubFees();
+    useEffect(() => { if (opened && sending) getFees({ fetchPolicy: "cache-first" }); }, [opened, sending]);
+    useEffect(() => {
+        const price = (feesData?.clubFees || []).find((fee: any) => fee.fee_type === transferFeeType(data) && fee.active);
+        if (opened && sending) form.setFieldValue("fee", Number(price?.amount) || 0);
+    }, [opened, sending, feesData, data?.id]);
     const [updateTransfer] = useUpdateTransfer();
     const [allTeams, setAllTeams] = useState<{label: string, value: string, disabled?: boolean}[]>([]);
     const [getAllTeams, { loading: loadingAllTeams, error: errorAllTeams, data: dataAllTeams }] = useAllTeams();
@@ -44,12 +53,12 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
         }
     }, [dataAllTeams])
 
-    const onSubmit = ({id_team_to, note}: any) => {
+    const onSubmit = ({id_team_to, note, fee}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
 
         // Accepting without naming a team used to leave the player attached to
         // nothing; the receiving club is the one that decides where he plays.
-        if (data?.status === "accepted" && !id_team_to) {
+        if (data?.status === "accepted" && !sending && !id_team_to) {
             notyf.error("اختر الفريق الذي سينضم إليه اللاعب في ناديك");
             return;
         }
@@ -69,6 +78,7 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
                     id_team_from: data?.team_from?.id,
                     id_team_to: id_team_to !== "" ? id_team_to : null,
                     ...(rejecting ? { note: String(note).trim() } : {}),
+                    ...(!rejecting && sending && Number(fee) > 0 ? { fee: Number(fee) } : {}),
                 }
             },
             refetchQueries: [AllPlayersClubTransferred, AllPlayersClubLoan, AllPlayers],
@@ -119,6 +129,20 @@ export const UpdatePlayersTransferModal = ({data, opened, ...props}: Props) => {
                                 minRows={2}
                                 mb={20}
                                 {...form.getInputProps("note")}
+                            />
+                        </>
+                        : sending
+                        ? <>
+                            <Text size={"xl"} my={30} mx={"auto"} align="center">هل انت متأكد من الموافقة على خروج اللاعب؟</Text>
+                            <NumberInput
+                                label="رسوم ناديك على هذا الطلب"
+                                description="يسدّدها فريقك المُرسِل، ولا يُعتمد الطلب نهائياً قبل أن تعتمد إيصالها — اتركها صفراً إن كانت بلا رسوم (إعارة مجانية)"
+                                min={0}
+                                precision={2}
+                                mb={20}
+                                rightSection={<Text size="xs" color="gray.6" pr={8}>ر.ع</Text>}
+                                rightSectionWidth={40}
+                                {...form.getInputProps("fee")}
                             />
                         </>
                         : <>

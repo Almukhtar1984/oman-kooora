@@ -6,6 +6,7 @@ import {
     requestTypeLabel, isRequestType, allowsResubmit,
     canAdvance, legacyStatus, legacyStatusFor,
     availableActions, suggestedFee, openingStage, stageLabelFor, outcomeOf, legacyDecisionMove,
+    unsettledCounterFees, eventLabelFor,
     DRAFT, SUBMITTED, REJECTED_INITIAL, CLUB_PROCESSING,
     AWAITING_PAYMENT, PAID_REVIEW, APPROVED, REJECTED_FINAL, CANCELLED,
 } from "../src/Helpers/requestFlow.mjs";
@@ -29,14 +30,14 @@ check("مرحلة مجهولة تُرفض", isStage("waiting_forever"), false);
 check("المنتهية ثلاث: اعتماد ورفض نهائي وإلغاء",
     STAGES.filter((s) => s.done).map((s) => s.stage), [APPROVED, REJECTED_FINAL, CANCELLED]);
 
-// ——— أنواع الطلبات الأربعة ———
-check("الأنواع الأربعة التي عدّها", REQUEST_TYPES.map((t) => t.type),
-    ["player_registration", "transfer", "loan", "player_release"]);
+// ——— أنواع الطلبات: الأربعة التي عدّها، وتسجيل الفريق الذي أضافه في الاجتماع ———
+check("الأنواع الخمسة", REQUEST_TYPES.map((t) => t.type),
+    ["player_registration", "transfer", "loan", "player_release", "team_registration"]);
 check("ولكل نوع اسمه", requestTypeLabel("player_release"), "استقالة لاعب");
 check("نوع مجهول يُرفض", isRequestType("friendly_match"), false);
-check("ولكل نوع رسومه، فوجودها قرار النادي حين يسعّر",
+check("ولكل نوع رسومه",
     REQUEST_TYPES.map((t) => t.fee),
-    ["player_registration", "transfer", "loan", "player_release"]);
+    ["player_registration", "transfer", "loan", "player_release", "team_registration"]);
 
 // ——— الطريق الطبيعي كاملاً ———
 check("المسودة تُقدَّم", canAdvance(at(DRAFT), { to: SUBMITTED, by: "team" }).ok, true);
@@ -79,8 +80,8 @@ check("ورفض نهائي بلا سبب مرفوض كذلك",
 // ——— إعادة الإرسال بعد الرفض المبدئي ———
 check("المرفوض مبدئياً يُعدَّل ويُرسل ثانية",
     canAdvance(at(REJECTED_INITIAL), { to: SUBMITTED, by: "team", type: "player_registration" }).ok, true);
-check("والأربعة تقبلها حتى يحدّد المالك أيّها لا يقبل",
-    REQUEST_TYPES.map((t) => allowsResubmit(t.type)), [true, true, true, true]);
+check("والخمسة تقبلها حتى يحدّد المالك أيّها لا يقبل",
+    REQUEST_TYPES.map((t) => allowsResubmit(t.type)), [true, true, true, true, true]);
 check("والمنع — حين يُحدَّد — يردّ بسببه",
     canAdvance(at(REJECTED_INITIAL), { to: SUBMITTED, by: "team", type: "unknown_type" }).code,
     "RESUBMIT_NOT_ALLOWED");
@@ -177,6 +178,10 @@ check("ورفضه أو إلغاؤه يُبقي اللاعب",
 check("والاستقالة تُخلي طرفه عند الاعتماد", outcomeOf("player_release", APPROVED), "release");
 check("ورفضها يُبقيه", outcomeOf("player_release", REJECTED_FINAL), "refuse");
 check("والتسجيل تكفيه المرآة", outcomeOf("player", APPROVED), null);
+check("وتسجيل الفريق يفتح له إضافة اللاعبين عند الاعتماد", outcomeOf("team", APPROVED), "open_team");
+check("ولا قبله", outcomeOf("team", PAID_REVIEW), null);
+check("ورفضه يُبقيها مغلقة", outcomeOf("team", REJECTED_FINAL), "close_team");
+check("ولا مرآة لسجلّ الفريق", legacyStatusFor("team", APPROVED), null);
 
 // ——— زرّا الصفحات القديمة على الطريق نفسه ———
 check("«قبول» في البطاقة قبولٌ مبدئي", legacyDecisionMove(SUBMITTED, "accepted"), { to: CLUB_PROCESSING });
@@ -212,6 +217,22 @@ check("والاعتماد النهائي accepted في الثلاثة",
     ["player", "player_release", "transfer"].map((e) => legacyStatusFor(e, APPROVED)),
     ["accepted", "accepted", "accepted"]);
 check("وسجلّ مجهول لا يُكتب فيه شيء", legacyStatusFor("stadium", APPROVED), null);
+
+// ——— رسوم النادي المُرسِل في الانتقال بين ناديين ———
+// «النادي هذا يأخذ رسوم والنادي الآخر يأخذ رسوم… في بعض الأحيان بدون رسوم».
+const RECEIVING = "club-to", SENDING = "club-from";
+check("رسوم المُرسِل المعلّقة تمنع الاعتماد",
+    unsettledCounterFees([{ id_club: SENDING, status: "waiting", amount: 10 }], RECEIVING).length, 1);
+check("وإيصالها المرفوع لم يُعتمد بعد فهي معلّقة",
+    unsettledCounterFees([{ id_club: SENDING, status: "submitted" }], RECEIVING).length, 1);
+check("والمعتمدة لا تمنع", unsettledCounterFees([{ id_club: SENDING, status: "accepted" }], RECEIVING), []);
+check("ورسوم المستقبِل نفسه ليست «الطرف الآخر» — طريقها مرحلة السداد",
+    unsettledCounterFees([{ id_club: RECEIVING, status: "waiting" }], RECEIVING), []);
+check("وبلا رسوم من المُرسِل لا شيء يمنع", unsettledCounterFees([], RECEIVING), []);
+check("وموافقة المُرسِل تُسمّى في الخط باسمها",
+    eventLabelFor({ stage: SUBMITTED, actor: "club", note: "وافق النادي المُرسِل بلا رسوم" }), "موافقة النادي المُرسِل");
+check("وفتح الطلب نفسه يبقى «مقدم»",
+    eventLabelFor({ stage: SUBMITTED, actor: "team", note: null }), stageLabel(SUBMITTED));
 
 console.log(fail ? `\n\x1b[31m${fail} فشل\x1b[0m` : `\n\x1b[32mAll passed\x1b[0m (${pass})`);
 process.exit(fail ? 1 : 0);

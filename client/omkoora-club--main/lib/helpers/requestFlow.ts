@@ -22,13 +22,36 @@ export const ROAD = [SUBMITTED, CLUB_PROCESSING, AWAITING_PAYMENT, PAID_REVIEW, 
 // إجراءات تُقرَّر في لوحة الرسوم وسلسلة الناديين، لا بين أزرار الخط العامة.
 export const SIDE_PANEL_KINDS = ["bill", "waive", "return_receipt", "transfer_accept", "transfer_reject"];
 
+// أسباب الإعفاء الشائعة — تُختار بضغطة ويُكتب غيرها.
+export const WAIVER_SUGGESTIONS = ["إعارة مجانية", "إعفاء بقرار النادي"];
+
 export interface Flow {
     stage?: string | null;
     done?: boolean | null;
     actor?: string | null;
     side?: string | null;
     fee_waived?: boolean | null;
+    suggestedAmount?: number | null;
+    actions?: { to?: string | null; kind?: string | null }[] | null;
 }
+
+/**
+ * ما يجوز في الطلب من القرارات التي تُتّخذ لعدّة طلبات معاً.
+ *
+ * ملف Excel يأتي بخمسين لاعباً، وموسم المسابقات بأكثر — وكلها تمرّ بالقرار
+ * نفسه: مطالبةٌ بالسعر المعلن، أو إعفاءٌ بسبب واحد، أو اعتمادٌ بعد السداد.
+ * والمطالبة جماعياً لا تكون إلا بسعر معلن: ما لا سعر له يُطالَب به من مساره
+ * بمبلغه، فلا يُخترع له مبلغ.
+ */
+export const bulkMoves = (flow?: Flow | null) => {
+    const actions = flow?.actions || [];
+    const has = (match: (action: { to?: string | null; kind?: string | null }) => boolean) => actions.some(match);
+    return {
+        approve: has((action) => action.to === APPROVED),
+        bill: has((action) => action.kind === "bill") && Number(flow?.suggestedAmount) > 0,
+        waive: has((action) => action.kind === "waive"),
+    };
+};
 
 /**
  * ما بقي من الطريق بعد المرحلة التي يقف عندها الطلب.

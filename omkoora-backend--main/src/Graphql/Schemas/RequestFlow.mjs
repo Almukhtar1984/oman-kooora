@@ -63,6 +63,8 @@ export const typeDefs = gql`
         team:          Team
         club:          Club
         payment:       RequestPayment
+        # رسوم الطرف الآخر على الطلب نفسه — النادي المُرسِل في الانتقال بين ناديين.
+        otherPayments: [RequestPayment!]
         # الخط نفسه، من الأقدم إلى الأحدث.
         events:        [RequestFlowEvent!]
         # ما يجوز لهذا المستدعي فعله الآن — فلا ترسم الواجهة زراً يُرفض ضغطه.
@@ -80,6 +82,10 @@ export const typeDefs = gql`
         needsAmount: Boolean
         # موافقة النادي المستقبِل: الفريق الذي سينضم إليه اللاعب.
         needsTeam:   Boolean
+        # موافقة النادي المُرسِل على انتقالٍ إلى نادٍ آخر: رسومه اختيارية.
+        feeOptional: Boolean
+        # سعر ناديك لهذا النوع، يقترح المبلغ.
+        suggestedAmount: Float
     }
 
     type RequestFlowResult {

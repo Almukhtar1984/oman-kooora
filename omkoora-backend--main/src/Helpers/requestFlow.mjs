@@ -137,6 +137,10 @@ export const REQUEST_TYPES = [
     { type: "transfer",            label: "انتقال لاعب",      entity: "transfer",       fee: "transfer",            resubmit: true },
     { type: "loan",                label: "إعارة لاعب",       entity: "transfer",       fee: "loan",                resubmit: true },
     { type: "player_release",      label: "استقالة لاعب",     entity: "player_release", fee: "player_release",      resubmit: true },
+    // «تسجيل الفريق» عدّه العميل مع الأربعة: لا يُسجَّل فريق إلا بموافقة النادي
+    // ورسومه. والحساب يعمل من أول يوم — كي يسدّد — لكن إضافة اللاعبين تُفتح عند
+    // الاعتماد النهائي.
+    { type: "team_registration",   label: "تسجيل فريق",       entity: "team",           fee: "team_registration",   resubmit: true },
 ];
 
 const BY_TYPE = new Map(REQUEST_TYPES.map((t) => [t.type, t]));
@@ -416,6 +420,8 @@ export const legacyStatusFor = (entityType, stage) => {
  *   abandon  — الانتقال/الإعارة: الطلب يسقط واللاعب باقٍ في فريقه.
  *   release  — الاستقالة: يُخلى طرف اللاعب من فريقه.
  *   refuse   — الاستقالة: تُرفض ويبقى.
+ *   open_team  — تسجيل الفريق: تُفتح له إضافة اللاعبين.
+ *   close_team — تسجيل الفريق: تبقى مغلقة.
  * والتسجيل تكفيه المرآة: الاعتماد يجعل اللاعب accepted.
  */
 export const outcomeOf = (entityType, stage) => {
@@ -426,6 +432,10 @@ export const outcomeOf = (entityType, stage) => {
     if (entityType === "player_release") {
         if (stage === APPROVED) return "release";
         if (stage === REJECTED_FINAL || stage === CANCELLED) return "refuse";
+    }
+    if (entityType === "team") {
+        if (stage === APPROVED) return "open_team";
+        if (stage === REJECTED_FINAL || stage === CANCELLED) return "close_team";
     }
     return null;
 };
@@ -475,3 +485,25 @@ export const legacyDecisionMove = (stage, decision) => {
             return { code: "DECISION_INVALID", message: "لا يُقبل الطلب من مرحلته هذه" };
     }
 };
+
+/**
+ * رسوم الطرف الآخر التي لم تُعتمد بعد — تمنع الاعتماد النهائي.
+ *
+ * في الانتقال بين ناديين قد يطالب النادي المُرسِل فريقه برسومه («بعض الأحيان
+ * بدون رسوم» — فهي اختيارية)، والنادي المستقبِل يطالب برسومه هو على الطريق.
+ * لا يتحرّك اللاعب ما دامت إحداهما معلّقة. والمرفوض إيصالها عائدةٌ قائمة.
+ *
+ * @param {{id_club:string, status:string}[]} payments  مطالبات الطلب كلها
+ * @param {string} ownerClub  النادي صاحب المسار (المستقبِل)
+ */
+export const unsettledCounterFees = (payments = [], ownerClub = null) =>
+    (payments || []).filter((payment) => payment?.id_club && payment.id_club !== ownerClub && payment.status !== "accepted");
+
+/**
+ * مسمّى حدثٍ في الخط. قرار النادي المُرسِل في سلسلة الناديين يُكتب حدثاً عند
+ * «مقدم» (الطلب ما زال في مراجعته المبدئية) — فيُسمّى بما هو، لا باسم المرحلة.
+ */
+export const eventLabelFor = (event, flow = null) =>
+    event?.stage === SUBMITTED && event?.actor === "club" && String(event?.note || "").startsWith("وافق النادي المُرسِل")
+        ? "موافقة النادي المُرسِل"
+        : stageLabelFor(event?.stage, flow);

@@ -6,8 +6,9 @@
 // is that nothing passes without the club's approval AND its fee.
 
 import logger from "../Config/logger.mjs";
-import { PlayerRelease, Players, TechnicalApparatus, Transfer } from "../Models/index.mjs";
-import { CreateNotificationTeam } from "./Notification.mjs";
+import { PlayerRelease, Players, RequestPayment, Team, TechnicalApparatus, Transfer } from "../Models/index.mjs";
+import { unsettledCounterFees } from "./requestFlow.mjs";
+import { CreateDirectNotification, CreateNotificationTeam } from "./Notification.mjs";
 
 /** اللاعب أو عضو الجهاز الفني الذي يخصّه الانتقال. */
 const subjectOf = (transfer) => {
@@ -31,6 +32,16 @@ export const outcomeBlocker = async (flow, outcome) => {
         return {
             code: "TRANSFER_TEAM_REQUIRED",
             message: "اختر الفريق الذي سينضم إليه اللاعب في ناديك قبل الاعتماد النهائي",
+        };
+    }
+    // ورسوم النادي المُرسِل — إن طالب بها — تُعتمد قبل أن يتحرّك اللاعب.
+    const payments = await RequestPayment.findAll({ where: { entity_type: "transfer", entity_id: transfer.id } });
+    const pending = unsettledCounterFees(payments, flow.id_club);
+    if (pending.length) {
+        const total = pending.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+        return {
+            code: "COUNTER_FEE_PENDING",
+            message: `رسوم النادي المُرسِل (${total} ر.ع) لم تُعتمد بعد — يعتمد إيصالها النادي المُرسِل من مدفوعاته`,
         };
     }
     return null;
@@ -92,11 +103,23 @@ const refuseRelease = async (flow, { id_user, reason }) => {
     }
 };
 
+// الفريق المعتمد تُفتح له إضافة اللاعبين؛ ومن رُفض تسجيله تبقى مغلقة.
+const openTeam = async (flow) => {
+    await Team.update({ enableAddPlayer: true }, { where: { id: flow.entity_id } });
+    void CreateDirectNotification({ id_team: flow.entity_id, body: "اعتُمد تسجيل فريقك — إضافة اللاعبين مفتوحة الآن" });
+};
+
+const closeTeam = async (flow) => {
+    await Team.update({ enableAddPlayer: false }, { where: { id: flow.entity_id } });
+};
+
 const PERFORM = {
     finalize: finalizeTransfer,
     abandon: abandonTransfer,
     release: releasePlayer,
     refuse: refuseRelease,
+    open_team: openTeam,
+    close_team: closeTeam,
 };
 
 /** ينفّذ الأثر. يرمي عند الفشل، كي يُعاد الطلب إلى مرحلته ولا يُعتمد على الورق وحده. */

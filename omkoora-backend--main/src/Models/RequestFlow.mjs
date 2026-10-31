@@ -14,7 +14,7 @@ export default (db, types) => {
         },
         request_type: {
             type: types.ENUM,
-            values: ['player_registration', 'transfer', 'loan', 'player_release'],
+            values: ['player_registration', 'transfer', 'loan', 'player_release', 'team_registration'],
             allowNull: false
         },
         // الطلب الذي يتتبّعه هذا المسار: نوع السجل ومعرّفه.

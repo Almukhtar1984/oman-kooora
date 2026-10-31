@@ -30,6 +30,14 @@ const ACTOR_LABEL: Record<string, string> = {
 
 const CLOSING = ["rejected_initial", "rejected_final", "cancelled"];
 
+const OTHER_LABEL: Record<string, string> = {
+    waiting: "بانتظار السداد",
+    submitted: "الإيصال بانتظار الاعتماد",
+    accepted: "معتمد",
+    rejected: "مرفوض",
+};
+const OTHER_COLOR: Record<string, string> = { waiting: "orange", submitted: "blue", accepted: "teal", rejected: "red" };
+
 const isRefusal = (stage: string) => CLOSING.includes(stage);
 
 type Target = { entity_type: string; entity_id: string } | null;
@@ -146,6 +154,24 @@ export function RequestTrackDrawer({ opened, onClose, target, onActed, onError }
                     </Paper>
 
                     <SidePanel flow={flow} onActed={acted} onError={(message) => onError?.(message)} />
+
+                    {(flow.otherPayments || []).length > 0 && (
+                        // رسوم النادي المُرسِل في الانتقال بين ناديين — لا يُعتمد الطلب قبلها.
+                        <Paper withBorder radius="md" p="sm">
+                            <Text size="sm" weight={600} color="gray.8" mb={4}>رسوم أخرى على الطلب</Text>
+                            {flow.otherPayments.map((payment: any) => (
+                                <Group key={payment.id} position="apart" spacing={6}>
+                                    <Text size="sm" color="gray.7">{payment.note || payment.label}</Text>
+                                    <Group spacing={6}>
+                                        <Text size="sm" weight={600}>{Number(payment.amount).toLocaleString("en-US")} ر.ع</Text>
+                                        <Badge size="sm" variant="light" color={OTHER_COLOR[payment.status] || "gray"}>
+                                            {OTHER_LABEL[payment.status] || payment.status}
+                                        </Badge>
+                                    </Group>
+                                </Group>
+                            ))}
+                        </Paper>
+                    )}
 
                     <Divider label="الخط" labelPosition="center" />
 

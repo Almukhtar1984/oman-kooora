@@ -11,6 +11,9 @@
 -- transfers.status          — 'waiting_payment': both clubs agreed; the fee and
 --                            the final approval remain. The player moves only at
 --                            the final approval.
+-- request_flows.request_type — 'team_registration': a team the club creates is a
+--                            request too; it pays its registration fee and adds
+--                            players only after the final approval.
 --
 -- Additive and idempotent — safe to re-run. No row changes.
 
@@ -26,5 +29,13 @@ SET @has_waiting_payment := (SELECT COUNT(*) FROM information_schema.COLUMNS
       AND COLUMN_NAME = 'status' AND COLUMN_TYPE LIKE '%waiting_payment%');
 SET @sql := IF(@has_waiting_payment = 0,
     'ALTER TABLE transfers MODIFY COLUMN status ENUM(''accepted'',''rejected'',''waiting'',''waiting_club_from'',''waiting_club_to'',''waiting_payment'') NULL DEFAULT ''waiting_club_from''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @has_team_reg := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'request_flows'
+      AND COLUMN_NAME = 'request_type' AND COLUMN_TYPE LIKE '%team_registration%');
+SET @sql := IF(@has_team_reg = 0,
+    'ALTER TABLE request_flows MODIFY COLUMN request_type ENUM(''player_registration'',''transfer'',''loan'',''player_release'',''team_registration'') NOT NULL',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

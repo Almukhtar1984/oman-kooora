@@ -43,6 +43,8 @@ export const MyRequestFlows = gql`
                 needsReason
                 needsAmount
                 needsTeam
+                feeOptional
+                suggestedAmount
             }
         }
     }
@@ -86,6 +88,13 @@ export const RequestFlowTrack = gql`
                 actor
                 createdAt
             }
+            otherPayments {
+                id
+                label
+                note
+                amount
+                status
+            }
             actions {
                 to
                 label
@@ -93,6 +102,8 @@ export const RequestFlowTrack = gql`
                 needsReason
                 needsAmount
                 needsTeam
+                feeOptional
+                suggestedAmount
             }
         }
     }

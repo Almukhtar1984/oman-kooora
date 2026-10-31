@@ -2,14 +2,14 @@ import { ApolloError } from 'apollo-server-express';
 
 import logger from "../../Config/logger.mjs";
 import {
-    Club, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Team, Transfer,
+    Club, ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Team, Transfer,
 } from '../../Models/index.mjs';
 import sequelize from 'sequelize';
 
 import { callerClubId, callerTeamId } from "../../Helpers/clubScope.mjs";
 import { advanceFlow, flowFor, suggestedAmountFor } from "../../Helpers/requestFlowRunner.mjs";
 import {
-    STAGES, stageInfo, stageLabelFor, isDone, requestTypeLabel, availableActions,
+    STAGES, stageInfo, stageLabelFor, eventLabelFor, isDone, requestTypeLabel, availableActions, requestTypeInfo, suggestedFee,
     SUBMITTED, CLUB_PROCESSING, CANCELLED,
 } from "../../Helpers/requestFlow.mjs";
 import { pendingApprover } from "../../Helpers/transferFlow.mjs";
@@ -52,17 +52,21 @@ const sideOf = async ({ idClub, idTeam }, flow, transfer = undefined) => {
 
 // قرار النادي في سلسلة الناديين يُتّخذ بزرّي السلسلة نفسها (updateTransfer):
 // القبول يختار الفريق المستقبِل حين يكون النادي هو المستقبِل ولم يُسمَّ فريقه.
-const chainActions = (transfer, idClub) => {
+const chainActions = (transfer, idClub, sendingFee = null) => {
     const receiving = transfer?.id_club_to && transfer.id_club_to === idClub;
+    // النادي المُرسِل في انتقالٍ إلى نادٍ آخر يأخذ رسومه إن شاء — «بعض الأحيان بدون رسوم».
+    const sending = !receiving && transfer?.id_club_from === idClub && transfer?.id_club_to !== idClub;
     return [
         {
             to: null, kind: "transfer_accept", label: "موافقة النادي",
             needsReason: false, needsAmount: false,
             needsTeam: Boolean(receiving),
+            feeOptional: Boolean(sending),
+            suggestedAmount: sending ? sendingFee : null,
         },
         {
             to: null, kind: "transfer_reject", label: "رفض (مع السبب)",
-            needsReason: true, needsAmount: false, needsTeam: false,
+            needsReason: true, needsAmount: false, needsTeam: false, feeOptional: false,
         },
     ];
 };
@@ -83,11 +87,11 @@ const fullName = (person) =>
 
 const subjectsFor = async (flows) => {
     const names = new Map();
-    const ids = { player: [], transfer: [], player_release: [] };
+    const ids = { player: [], transfer: [], player_release: [], team: [] };
     flows.forEach((flow) => ids[flow.entity_type]?.push(flow.entity_id));
 
     const inList = (list) => ({ id: list });
-    const [players, transfers, releases] = await Promise.all([
+    const [players, transfers, releases, teams] = await Promise.all([
         ids.player.length
             ? Players.findAll({ where: inList(ids.player), include: [PERSON] }) : [],
         ids.transfer.length
@@ -100,11 +104,13 @@ const subjectsFor = async (flows) => {
                 where: inList(ids.player_release),
                 include: [{ model: Players, as: "player", include: [PERSON] }],
             }) : [],
+        ids.team.length ? Team.findAll({ where: inList(ids.team), attributes: ["id", "name"] }) : [],
     ]);
 
     players.forEach((row) => names.set(`player:${row.id}`, fullName(row.person)));
     transfers.forEach((row) => names.set(`transfer:${row.id}`, fullName(row.player?.person)));
     releases.forEach((row) => names.set(`player_release:${row.id}`, fullName(row.player?.person)));
+    teams.forEach((row) => names.set(`team:${row.id}`, row.name || null));
     return names;
 };
 
@@ -116,6 +122,19 @@ const paymentsFor = async (flows) => {
     if (!ids.length) return new Map();
     const rows = await RequestPayment.findAll({ where: { id: ids } });
     return new Map(rows.map((row) => [row.id, row.get({ plain: true })]));
+};
+
+/** كل مطالبات الطلبات — للطرف الآخر رسومه على الطلب نفسه أحياناً. */
+const otherPaymentsFor = async (flows) => {
+    const keys = flows.map((flow) => flow.entity_id);
+    if (!keys.length) return new Map();
+    const rows = await RequestPayment.findAll({ where: { entity_id: keys } });
+    const map = new Map();
+    rows.forEach((row) => {
+        const key = `${row.entity_type}:${row.entity_id}`;
+        map.set(key, [...(map.get(key) || []), row.get({ plain: true })]);
+    });
+    return map;
 };
 
 /** سجلّات الانتقال لمجموعة مسارات — استعلام واحد. */
@@ -134,10 +153,11 @@ const transfersFor = async (flows) => {
  */
 const enrich = async (flows, context) => {
     // من المستدعي يُسأل مرة للقائمة كلها، لا مرتين لكل سطر.
-    const [names, payments, transfers, caller] = await Promise.all([
-        subjectsFor(flows), paymentsFor(flows), transfersFor(flows), callerOf(context),
+    const [names, payments, transfers, caller, others] = await Promise.all([
+        subjectsFor(flows), paymentsFor(flows), transfersFor(flows), callerOf(context), otherPaymentsFor(flows),
     ]);
     const { idClub } = caller;
+    const myFees = idClub ? await ClubFee.findAll({ where: { id_club: idClub } }) : [];
     return Promise.all(flows.map(async (flow) => {
         const plain = flow.get ? flow.get({ plain: true }) : flow;
         const transfer = plain.entity_type === "transfer" ? transfers.get(plain.entity_id) || null : undefined;
@@ -145,18 +165,29 @@ const enrich = async (flows, context) => {
         const suggestedAmount = side === "club" && plain.stage === CLUB_PROCESSING
             ? await suggestedAmountFor(plain)
             : null;
+        // سعر النادي المُرسِل لهذا النوع — يقترح رسومه حين يوافق في السلسلة.
+        const sendingFee = side === "chain"
+            ? suggestedFee({
+                type: plain.request_type,
+                fee: myFees.find((fee) => fee.fee_type === requestTypeInfo(plain.request_type)?.fee),
+            })
+            : null;
         return withLabels({
             ...plain,
             subject: subjectOf(plain, names),
             payment: plain.payment || (plain.id_payment ? payments.get(plain.id_payment) || null : null),
+            // رسوم الطرف الآخر على الطلب نفسه (النادي المُرسِل في الانتقال بين ناديين).
+            otherPayments: (others.get(`${plain.entity_type}:${plain.entity_id}`) || [])
+                .filter((payment) => payment.id !== plain.id_payment)
+                .map((payment) => ({ ...payment, label: feeLabel(payment.fee_type) })),
             // الخط من الأقدم إلى الأحدث — وهو ترتيبه الذي يُقرأ به.
             events: [...(plain.events || [])].sort(
                 (a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
-        }, { side, transfer, idClub, suggestedAmount });
+        }, { side, transfer, idClub, suggestedAmount, sendingFee });
     }));
 };
 
-const withLabels = (flow, { side = null, transfer = null, idClub = null, suggestedAmount = null } = {}) => {
+const withLabels = (flow, { side = null, transfer = null, idClub = null, suggestedAmount = null, sendingFee = null } = {}) => {
     const plain = flow.get ? flow.get({ plain: true }) : flow;
     const info = stageInfo(plain.stage) || {};
     return {
@@ -171,21 +202,21 @@ const withLabels = (flow, { side = null, transfer = null, idClub = null, suggest
         fee_waived: Boolean(plain.fee_waived),
         events: (plain.events || []).map((event) => ({
             ...event,
-            label: stageLabelFor(event.stage, plain),
+            label: eventLabelFor(event, plain),
         })),
         payment: plain.payment
             ? { ...plain.payment, label: feeLabel(plain.payment.fee_type) }
             : null,
         // ما يجوز لهذا الطرف الآن — تُبنى منه الأزرار، فلا يُعرض زر يُرفض ضغطه.
         // ولا أزرار للمراقب: يرى الخط ولا يحرّكه.
-        actions: actionsFor(plain, side, transfer, idClub),
+        actions: actionsFor(plain, side, transfer, idClub, sendingFee),
     };
 };
 
-const actionsFor = (flow, side, transfer, idClub) => {
-    if (side === "chain") return chainActions(transfer, idClub);
+const actionsFor = (flow, side, transfer, idClub, sendingFee = null) => {
+    if (side === "chain") return chainActions(transfer, idClub, sendingFee);
     if (side !== "team" && side !== "club") return [];
-    const list = availableActions(flow, side).map((action) => ({ ...action, needsTeam: false }));
+    const list = availableActions(flow, side).map((action) => ({ ...action, needsTeam: false, feeOptional: false }));
     // الانتقال في مراجعته المبدئية يمضي بسلسلة الناديين، لا بزرّ «قبول مبدئي»
     // يتخطّاها — يبقى منه الإلغاء وحده.
     if (flow.entity_type === "transfer" && flow.stage === SUBMITTED) {

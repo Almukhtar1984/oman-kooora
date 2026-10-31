@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 
 import logger from "../../Config/logger.mjs";
 
-import {AttachmentPerson, Club, Members, Person, TechnicalApparatus,Players, Team, Transfer,Sanction,ParticipatingPlayers,ParticipatingTeams,League,ScorerMatch,ParticipatingPlayersMatch} from '../../Models/index.mjs';
+import {AttachmentPerson, Club, Members, Person, TechnicalApparatus,Players, Team, Transfer,Sanction,ParticipatingPlayers,ParticipatingTeams,League,ScorerMatch,ParticipatingPlayersMatch, RequestFlow} from '../../Models/index.mjs';
 import {v4 as UUID} from "uuid";
 import path from "path";
 import {__dirname} from "../../app.mjs";
@@ -570,8 +570,14 @@ export const resolvers = {
 
                     const team = await Team.findByPk(content.id_team);
                     if (team && team.enableAddPlayer === false) {
+                        // فريقٌ تسجيله على الطريق لم يُعتمد بعد: يُقال له ذلك، لا «أوقفها النادي».
+                        const registration = await RequestFlow.findOne({
+                            where: { entity_type: "team", entity_id: team.id, stage: { [Op.notIn]: ["approved", "rejected_final", "cancelled"] } },
+                        });
                         return new ApolloError(
-                            "إضافة اللاعبين متوقفة لهذا الفريق من قبل النادي",
+                            registration
+                                ? "تسجيل فريقك بانتظار الرسوم والاعتماد — تُفتح إضافة اللاعبين عند اعتماده (تابعه من «الطلبات»)"
+                                : "إضافة اللاعبين متوقفة لهذا الفريق من قبل النادي",
                             "ADD_PLAYER_DISABLED"
                         );
                     }

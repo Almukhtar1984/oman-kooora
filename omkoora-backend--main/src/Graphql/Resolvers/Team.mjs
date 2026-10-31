@@ -10,6 +10,8 @@ import db from "../../Config/DBContact.mjs";
 import {Club, Members, Person, Players, Team, User,TechnicalApparatus, Stadium, Permission} from '../../Models/index.mjs';
 import { findTeamNameClash } from "../../Helpers/teamNaming.mjs";
 import { formatActivities, teamActivities } from "../../Helpers/activities.mjs";
+import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
+import { openingStage } from "../../Helpers/requestFlow.mjs";
 import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
@@ -39,6 +41,22 @@ const assertTeamNameFree = async (idClub, name, exceptTeamId = null) => {
         "TEAM_NAME_TAKEN"
     );
 };
+
+const CLUB_ADMIN_ROLE = "2";
+
+// تسجيل الفريق طلبٌ على الطريق — «ما ممكن… تسجيل الفريق… إلا في الدفع الرسوم»
+// (العميل). النادي الذي ينشئه قَبِله بفعله، فيبدأ مقبولاً مبدئياً، ويسدّد الفريق
+// رسومه من حسابه، وتُفتح له إضافة اللاعبين عند الاعتماد (requestOutcomes.mjs).
+const openTeamRegistration = (team, context) => openFlow({
+    request_type: "team_registration",
+    entity_type: "team",
+    entity_id: team.id,
+    id_club: team.id_club,
+    id_team: team.id,
+    stage: openingStage({ byClub: true }),
+    actor: "club",
+    id_user: context?.user?.id || null,
+});
 
 // النشاط يُخزَّن باسمه الواحد: الواجهة تُرسل اختياراً من قائمة، وأي عميل أقدم
 // يُرسل نصّاً — فيُوحَّد هنا قبل أن يصل الجدول، فلا يعود الإحصاء يقسم الرياضة.
@@ -237,6 +255,7 @@ export const resolvers = {
             try {
                 await assertTeamNameFree(content.id_club, content.name);
 
+                const byClub = context?.user?.role === CLUB_ADMIN_ROLE;
                 let team = await Team.create({
                     name:           content.name,
                     category:       content.category,
@@ -244,8 +263,11 @@ export const resolvers = {
                     manager_name:    content.manager_name,
                     activities:    canonicalActivities(content.activities),
                     code:    content.code,
-                    id_club: content.id_club
+                    id_club: content.id_club,
+                    // يُسجَّل لاعبوه بعد اعتماد تسجيله.
+                    ...(byClub ? { enableAddPlayer: false } : {}),
                 })
+                if (byClub) await openTeamRegistration(team, context)
 
                 if (team && content.logo) {
                     const listType = ["JPEG", "JPG", "PNG"]
@@ -337,7 +359,11 @@ export const resolvers = {
                     delete teamPayload.logo;
                     if ("activities" in teamPayload) teamPayload.activities = canonicalActivities(teamPayload.activities);
                     const newTeam = await Team.create(
-                        { ...teamPayload, logo: logoFileName },
+                        {
+                            ...teamPayload, logo: logoFileName,
+                            // يُسجَّل لاعبوه بعد اعتماد تسجيله — والحساب يعمل ليسدّد.
+                            ...(user.role === CLUB_ADMIN_ROLE ? { enableAddPlayer: false } : {}),
+                        },
                         { transaction: t }
                     );
 
@@ -375,6 +401,7 @@ export const resolvers = {
 
                     return newTeam;
                 });
+                if (user.role === CLUB_ADMIN_ROLE) await openTeamRegistration(result, context);
                 return result;
             } catch (error) {
                 if (error instanceof ApolloError) throw error

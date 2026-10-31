@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ROAD, remainingRoad, turnText } from "../../lib/helpers/requestFlow";
+import { ROAD, bulkMoves, remainingRoad, turnText } from "../../lib/helpers/requestFlow";
 
 // ما بقي من الطريق.
 //
@@ -57,5 +57,27 @@ describe("بقية طريق الطلب", () => {
         expect(turnText({ stage: "submitted", actor: "club", side: "observer" }))
             .toBe("تتابع هذا الطلب — والقرار فيه لغيرك");
         expect(turnText({ stage: "approved", done: true })).toBeNull();
+    });
+});
+
+describe("القرارات الجماعية", () => {
+    const fee = [{ to: "awaiting_payment", kind: "bill" }, { to: "paid_review", kind: "waive" }];
+
+    it("بعد القبول المبدئي: مطالبة بالسعر المعلن أو إعفاء", () => {
+        expect(bulkMoves({ suggestedAmount: 25, actions: fee })).toEqual({ approve: false, bill: true, waive: true });
+    });
+
+    it("ولا مطالبة جماعية بلا سعر معلن — يُطالَب به من مساره بمبلغه", () => {
+        expect(bulkMoves({ suggestedAmount: null, actions: fee }).bill).toBe(false);
+        expect(bulkMoves({ suggestedAmount: 0, actions: fee }).bill).toBe(false);
+    });
+
+    it("وبعد السداد: الاعتماد وحده", () => {
+        expect(bulkMoves({ actions: [{ to: "approved" }, { to: "awaiting_payment", kind: "return_receipt" }] }))
+            .toEqual({ approve: true, bill: false, waive: false });
+    });
+
+    it("وما لا قرار فيه لا يُختار", () => {
+        expect(bulkMoves(null)).toEqual({ approve: false, bill: false, waive: false });
     });
 });
