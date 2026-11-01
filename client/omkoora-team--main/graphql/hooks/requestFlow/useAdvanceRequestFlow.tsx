@@ -9,5 +9,6 @@ interface VariableProps {
 }
 
 export const useAdvanceRequestFlow = (): MutationTuple<any, VariableProps> => {
-    return useMutation<any, VariableProps>(AdvanceRequestFlow);
+    // ما يفعله الفريق هنا ينقص عدّاد «بانتظارك»، فيُقرأ بعده لا بعد دقيقة.
+    return useMutation<any, VariableProps>(AdvanceRequestFlow, { refetchQueries: ["TeamPendingRequests"] });
 };

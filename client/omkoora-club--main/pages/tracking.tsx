@@ -108,9 +108,15 @@ export default function Tracking() {
         setBusy(key);
         let done = 0;
         const failed: string[] = [];
-        for (const row of list) {
+        for (let index = 0; index < list.length; index += 1) {
+            const row = list[index];
             try {
-                const { data: result } = await advance({ variables: variablesFor(row) });
+                // العدّاد يُقرأ مرة بعد آخر قرار، لا خمسين مرة.
+                const last = index === list.length - 1;
+                const { data: result } = await advance({
+                    variables: variablesFor(row),
+                    refetchQueries: last ? ["ClubPendingRequests"] : [],
+                });
                 if (result?.advanceRequestFlow?.ok) done += 1;
                 else failed.push(result?.advanceRequestFlow?.message || "تعذّر");
             } catch (error: any) {
@@ -144,7 +150,8 @@ export default function Tracking() {
     return (
         <Box bg="gray.0" sx={{ minHeight: "100%" }}>
             <Head><title>مسار الطلبات</title></Head>
-            <Container size="lg" py="lg">
+            {/* شريط القرار الجماعي ثابتٌ أسفل الشاشة، فلا يغطّي آخر طلب في القائمة. */}
+            <Container size="lg" pt="lg" pb={picked.length > 0 ? 140 : "lg"}>
                 <Group position="apart" align="flex-end" mb="md">
                     <Box>
                         <Group spacing={10}>

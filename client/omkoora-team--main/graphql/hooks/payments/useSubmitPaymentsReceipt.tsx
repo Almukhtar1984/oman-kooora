@@ -9,5 +9,6 @@ interface VariableProps {
 }
 
 export const useSubmitPaymentsReceipt = (): MutationTuple<any, VariableProps> => {
-    return useMutation<any, VariableProps>(SubmitPaymentsReceipt);
+    // ما يفعله الفريق هنا ينقص عدّاد «بانتظارك»، فيُقرأ بعده لا بعد دقيقة.
+    return useMutation<any, VariableProps>(SubmitPaymentsReceipt, { refetchQueries: ["TeamPendingRequests"] });
 };
