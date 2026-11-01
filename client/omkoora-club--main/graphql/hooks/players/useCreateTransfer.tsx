@@ -15,6 +15,9 @@ interface VariableProps {
         date_end?: string;
 
         date_start?: string;
+
+        // رسوم النادي المُرسِل حين يُخرج لاعبه بنفسه إلى نادٍ آخر (اختيارية).
+        fee?: number;
     };
 }
 

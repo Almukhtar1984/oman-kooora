@@ -4,6 +4,7 @@ import React, {useEffect, useState} from "react";
 import Modal, { Props as ModalProps } from "./Modal";
 import {usePlayer, useCreateTransfer, useAllTeams, useAllClub, AllPlayers, AllPlayersClubLoan, AllPlayersClubTransferred} from "../../graphql";
 import useStore from "../../store/useStore";
+import { SendingFeeInput } from "../RequestTrack/SendingFeeInput";
 import {DateInput, DatePicker} from "@mantine/dates";
 import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
@@ -26,6 +27,8 @@ export const PlayersLoanModal = ({data, opened, ...props}: Props) => {
     const [allTeams, setAllTeams] = useState<{label: string, value: string, disabled?: boolean}[]>([]);
     const [allClubs, setAllClubs] = useState<{label: string, value: string, disabled?: boolean}[]>([]);
     const [type, setType] = useState(false);
+    // النادي الذي يُخرج لاعبه بنفسه إلى نادٍ آخر يسمّي رسومه هنا — لا موافقة بعدها يسمّيها عندها.
+    const [fee, setFee] = useState<number | "">(0);
     const [clubSelected, setClubSelected] = useState<string | null>("");
     const form = useForm({
         initialValues: {id_team_to: ""}
@@ -114,6 +117,7 @@ export const PlayersLoanModal = ({data, opened, ...props}: Props) => {
                     id_team_to: id_team_to !== "" ? id_team_to : null,
                     id_club_to: type ? clubSelected : null ,
                     transition_type: "loan",
+                    ...(type && Number(fee) > 0 ? { fee: Number(fee) } : {}),
                     date_end: dayjs(date_end).format("YYYY-MM-DD"),
                     date_start: dayjs(date_start).format("YYYY-MM-DD"),
                 }
@@ -134,6 +138,7 @@ export const PlayersLoanModal = ({data, opened, ...props}: Props) => {
     const closeModal = () => {
         props.onClose();
         form.reset();
+        setFee(0);
     };
 
     return (
@@ -232,6 +237,11 @@ export const PlayersLoanModal = ({data, opened, ...props}: Props) => {
                                 clearable={true}
                             />
                         </Col>
+                        {type && (
+                            <Col span={12}>
+                                <SendingFeeInput feeType="loan" active={opened && type} value={fee} onChange={setFee} />
+                            </Col>
+                        )}
                     </Grid>
                 </form>
             </Box>

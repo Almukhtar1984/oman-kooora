@@ -33,6 +33,48 @@ dotenv.config();
 
 const {Op, col} = sequelize;
 
+/**
+ * رسوم النادي المُرسِل على انتقالٍ أو إعارة إلى نادٍ آخر — «النادي هذا يأخذ رسوم
+ * والنادي الآخر يأخذ رسوم… في بعض الأحيان بدون رسوم» (العميل). يسدّدها فريقه
+ * المُرسِل، ولا يُعتمد الطلب نهائياً قبل أن يعتمد إيصالها (requestOutcomes.mjs).
+ *
+ * يكتب قراره في خطّ الطلب — برسومٍ أو بلا رسوم — ويخبر الفريق بما عليه.
+ */
+const chargeSendingFee = async ({ transfer, fee, flow, id_user }) => {
+    const isLoan = transfer.transition_type === "loan"
+    const amount = normalizeAmount(fee)
+    const onRoad = flow && !isDone(flow.stage)
+
+    if (amount && transfer.id_club_from && transfer.id_team_from) {
+        await RequestPayment.create({
+            fee_type: isLoan ? "loan" : "transfer",
+            amount,
+            entity_type: "transfer",
+            entity_id: transfer.id,
+            status: PAYMENT_WAITING,
+            note: `رسوم النادي المُرسِل — ${isLoan ? "إعارة لاعب" : "انتقال لاعب"}`,
+            id_club: transfer.id_club_from,
+            id_team: transfer.id_team_from,
+            id_requested_by: id_user,
+        })
+        if (onRoad) {
+            await RequestFlowEvent.create({
+                id_flow: flow.id, stage: flow.stage, actor: "club", id_user,
+                note: `وافق النادي المُرسِل وطالب فريقه برسومه: ${amount} ر.ع`,
+            })
+        }
+        void CreateDirectNotification({
+            id_team: transfer.id_team_from,
+            body: `${isLoan ? "إعارة" : "انتقال"} لاعبك: مطلوب سداد رسوم ناديك ${amount} ر.ع — من «المدفوعات»`,
+        })
+    } else if (onRoad) {
+        await RequestFlowEvent.create({
+            id_flow: flow.id, stage: flow.stage, actor: "club", id_user,
+            note: "وافق النادي المُرسِل بلا رسوم",
+        })
+    }
+};
+
 export const resolvers = {
     Query: {
         transfer: async (obj, {id}, context, info) =>  {
@@ -214,7 +256,7 @@ export const resolvers = {
                 // بالرسوم والاعتماد كغيرها.
                 if (isRequest) {
                     const agreed = status === "waiting_payment";
-                    await openFlow({
+                    const opened = await openFlow({
                         request_type: transfer.transition_type === "loan" ? "loan" : "transfer",
                         entity_type: "transfer",
                         entity_id: transfer.id,
@@ -227,6 +269,15 @@ export const resolvers = {
                         actor: callerIsClub ? "club" : "team",
                         id_user: context?.user?.id || null,
                     })
+
+                    // النادي الذي يُخرج لاعبه بنفسه إلى نادٍ آخر وافق بإنشائه الطلب، فلا
+                    // «موافقة» بعدها يسمّي عندها رسومه: يسمّيها هنا، أو يمضي بلا رسوم.
+                    if (callerIsClub && !sameClub && idClubFrom && (await callerClubId(context)) === idClubFrom) {
+                        await chargeSendingFee({
+                            transfer, fee: content.fee, id_user: context?.user?.id || null,
+                            flow: opened || await flowFor("transfer", transfer.id, { withEvents: false }),
+                        })
+                    }
                 }
 
                 return transfer
@@ -313,38 +364,8 @@ export const resolvers = {
                         // The own club approved → it's now the destination club's turn.
                         if (transfer.id_club_to) await CreateNotificationClub("player", "update", transfer.id_club_to, "", subjectId)
 
-                        // والنادي المُرسِل يأخذ رسومه إن شاء — «النادي هذا يأخذ رسوم والنادي
-                        // الآخر يأخذ رسوم… في بعض الأحيان بدون رسوم» (العميل). يسدّدها
-                        // فريقه المُرسِل، ولا يُعتمد الطلب نهائياً قبل أن يعتمد إيصالها.
-                        const fee = normalizeAmount(content.fee)
-                        if (fee && transfer.id_club_from && transfer.id_team_from) {
-                            await RequestPayment.create({
-                                fee_type: isLoan ? "loan" : "transfer",
-                                amount: fee,
-                                entity_type: "transfer",
-                                entity_id: transfer.id,
-                                status: PAYMENT_WAITING,
-                                note: `رسوم النادي المُرسِل — ${isLoan ? "إعارة لاعب" : "انتقال لاعب"}`,
-                                id_club: transfer.id_club_from,
-                                id_team: transfer.id_team_from,
-                                id_requested_by: id_user,
-                            })
-                            if (onRoad) {
-                                await RequestFlowEvent.create({
-                                    id_flow: flow.id, stage: flow.stage, actor: "club", id_user,
-                                    note: `وافق النادي المُرسِل وطالب فريقه برسومه: ${fee} ر.ع`,
-                                })
-                            }
-                            void CreateDirectNotification({
-                                id_team: transfer.id_team_from,
-                                body: `${isLoan ? "إعارة" : "انتقال"} لاعبك: مطلوب سداد رسوم ناديك ${fee} ر.ع — من «المدفوعات»`,
-                            })
-                        } else if (onRoad) {
-                            await RequestFlowEvent.create({
-                                id_flow: flow.id, stage: flow.stage, actor: "club", id_user,
-                                note: "وافق النادي المُرسِل بلا رسوم",
-                            })
-                        }
+                        // والنادي المُرسِل يأخذ رسومه إن شاء.
+                        await chargeSendingFee({ transfer, fee: content.fee, flow, id_user })
                     } else if (next.status === "rejected") {
                         if (onRoad) {
                             // الطريق يُغلق الطلب ويُبقي اللاعب في فريقه ويُخبر الطرفين.
