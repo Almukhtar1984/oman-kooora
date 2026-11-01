@@ -12,7 +12,8 @@ import {
 } from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
 import {pickHeadCoach} from "../../Helpers/staffRoles.mjs";
-import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
+import { addPlayerRefusal, openFlow } from "../../Helpers/requestFlowRunner.mjs";
+import { assertTeamInCallerClub, callerTeamId } from "../../Helpers/clubScope.mjs";
 import { openingStage } from "../../Helpers/requestFlow.mjs";
 import {__dirname} from "../../app.mjs";
 
@@ -337,7 +338,22 @@ uploadPlayersSheet: async (obj, { file, teamId }, context, info) => {
     // الدفع الرسوم» (العميل). النادي الذي يستورد قَبِل بفعله، فيبدأ كل طلب مقبولاً
     // مبدئياً ثم يمرّ برسوم فريقه واعتماده؛ وتُطالَب الدفعة كلها معاً من مسار الطلبات.
     const byClub = user.role === "2";
-    const team = await Team.findByPk(teamId, { attributes: ["id", "id_club"] });
+
+    // الملف يدخل فريقاً من فرق نادي المستورِد — والفريق يستورد إلى نفسه وحده —
+    // ومن الباب نفسه الذي تُغلقه إضافة اللاعبين: فريقٌ لم يُعتمد تسجيله لا يُملأ
+    // بملف ما دام لا يُملأ لاعباً لاعباً.
+    try {
+      await assertTeamInCallerClub(context, teamId);
+    } catch (e) {
+      if (e?.code === "TEAM_NOT_IN_CLUB") throw new ApolloError(e.message, e.code);
+      throw e;
+    }
+    if (user.role === "3" && (await callerTeamId(context)) !== teamId) {
+      throw new ApolloError("يستورد الفريق اللاعبين إلى فريقه هو", "TEAM_NOT_YOURS");
+    }
+    const team = await Team.findByPk(teamId, { attributes: ["id", "id_club", "enableAddPlayer"] });
+    const refusal = await addPlayerRefusal(team);
+    if (refusal) throw new ApolloError(refusal, "ADD_PLAYER_DISABLED");
 
     // Skip civil ids already present so re-runs don't duplicate people.
     let created = 0, duplicates = 0, failed = 0, total = 0;

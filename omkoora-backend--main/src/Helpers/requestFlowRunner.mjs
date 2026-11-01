@@ -11,6 +11,7 @@
 // الطلب. أما الانتقال بين المراحل فيردّ نتيجته للمستدعي، لأنه هو الإجراء.
 
 import logger from "../Config/logger.mjs";
+import sequelize from "sequelize";
 import {
     ClubFee, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Transfer,
 } from "../Models/index.mjs";
@@ -18,10 +19,12 @@ import { CreateDirectNotification } from "./Notification.mjs";
 import { normalizeAmount, PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED } from "./clubFees.mjs";
 import {
     canAdvance, suggestedFee, legacyStatusFor, legacyDecisionMove, outcomeOf, stageLabelFor,
-    requestTypeInfo, requestTypeLabel,
+    requestTypeInfo, requestTypeLabel, drivesFlow,
     SUBMITTED, REJECTED_INITIAL, CLUB_PROCESSING, AWAITING_PAYMENT, PAID_REVIEW,
     APPROVED, REJECTED_FINAL, CANCELLED,
 } from "./requestFlow.mjs";
+
+const { Op } = sequelize;
 import { outcomeBlocker, performOutcome } from "./requestOutcomes.mjs";
 
 // السجلّ الذي يحمل الحالة القديمة لكل نوع طلب.
@@ -29,6 +32,25 @@ const ENTITY_MODELS = {
     player:         Players,
     transfer:       Transfer,
     player_release: PlayerRelease,
+};
+
+/**
+ * لماذا لا يُضاف لاعبٌ إلى هذا الفريق — أو null إن جاز.
+ *
+ * فريقٌ تسجيله على الطريق لم يُعتمد بعد يُقال له ذلك، لا «أوقفها النادي». ويسري
+ * على كل باب يدخل منه لاعب: الإضافة واحداً واحداً، والاستيراد من ملف.
+ *
+ * @param {{id:string, enableAddPlayer?:boolean}|null} team
+ */
+export const addPlayerRefusal = async (team) => {
+    if (!team || team.enableAddPlayer !== false) return null;
+    const registration = await RequestFlow.findOne({
+        where: { entity_type: "team", entity_id: team.id, stage: { [Op.notIn]: [APPROVED, REJECTED_FINAL, CANCELLED] } },
+        attributes: ["id"],
+    });
+    return registration
+        ? "تسجيل فريقك بانتظار الرسوم والاعتماد — تُفتح إضافة اللاعبين عند اعتماده (تابعه من «الطلبات»)"
+        : "إضافة اللاعبين متوقفة لهذا الفريق من قبل النادي";
 };
 
 /** مسار طلب بعينه، ومعه خطّه مرتباً من الأقدم للأحدث. */
@@ -154,7 +176,10 @@ const announce = async (flow, { payment = null } = {}) => {
                 ? toTeam(`أُعفي طلب ${what} من الرسوم${reason} — بانتظار الاعتماد النهائي`)
                 : toClub(`سُدّدت رسوم طلب ${what} — بانتظار اعتمادك النهائي`);
         case APPROVED:
-            return toTeam(`اعتُمد طلب ${what} نهائياً`);
+            // والفريق المعتمد تسجيله يُقال له ما انفتح له، في الإشعار نفسه.
+            return toTeam(flow.request_type === "team_registration"
+                ? "اعتُمد تسجيل فريقك — إضافة اللاعبين مفتوحة الآن"
+                : `اعتُمد طلب ${what} نهائياً`);
         case REJECTED_FINAL:
             return toTeam(`رُفض طلب ${what} نهائياً${reason}`);
         case CANCELLED:
@@ -231,6 +256,15 @@ export const advanceFlow = async ({
             return { ok: false, code: "OUTCOME_FAILED", message: "تعذّر تنفيذ الطلب — لم يتغيّر شيء" };
         }
 
+        // طلبٌ أُغلق بلا اعتماد لا يُطالَب برسومه: ما لم يُسدَّد من مطالباته — رسومه
+        // ورسوم النادي المُرسِل — يُسحب، فلا يبقى في صفحة المدفوعات ديناً يُدفع خطأً.
+        // وما رُفع إيصاله يبقى أمام ناديه يقرّر فيه. والسحب حذفٌ ناعم يُسترجع.
+        if (to === CANCELLED || to === REJECTED_FINAL) {
+            await RequestPayment.destroy({
+                where: { entity_type: current.entity_type, entity_id: current.entity_id, status: PAYMENT_WAITING },
+            });
+        }
+
         await addEvent(current, {
             stage: to,
             note: waiving ? `أُعفي من الرسوم: ${why}` : (why || note || null),
@@ -302,7 +336,7 @@ export const decideOnRoad = async ({
  */
 export const onReceiptSubmitted = async (payment, { id_user = null } = {}) => {
     const flow = await flowFor(payment?.entity_type, payment?.entity_id, { withEvents: false });
-    if (!flow || flow.stage !== AWAITING_PAYMENT) return null;
+    if (!flow || flow.stage !== AWAITING_PAYMENT || !drivesFlow(payment, flow)) return null;
     // الإيصال هو ما يملك هذا الانتقال — ومن هنا وحده يُمنح.
     return advanceFlow({ flow, to: PAID_REVIEW, by: "team", id_user, viaReceipt: true });
 };
@@ -310,6 +344,6 @@ export const onReceiptSubmitted = async (payment, { id_user = null } = {}) => {
 /** النادي ردّ الإيصال، فيعود الطلب إلى السداد لا إلى طريق مسدود. */
 export const onReceiptRejected = async (payment, { reason = null, id_user = null } = {}) => {
     const flow = await flowFor(payment?.entity_type, payment?.entity_id, { withEvents: false });
-    if (!flow || flow.stage !== PAID_REVIEW) return null;
+    if (!flow || flow.stage !== PAID_REVIEW || !drivesFlow(payment, flow)) return null;
     return advanceFlow({ flow, to: AWAITING_PAYMENT, by: "club", reason, id_user });
 };

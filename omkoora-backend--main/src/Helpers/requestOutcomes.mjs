@@ -8,7 +8,7 @@
 import logger from "../Config/logger.mjs";
 import { PlayerRelease, Players, RequestPayment, Team, TechnicalApparatus, Transfer } from "../Models/index.mjs";
 import { unsettledCounterFees } from "./requestFlow.mjs";
-import { CreateDirectNotification, CreateNotificationTeam } from "./Notification.mjs";
+import { CreateNotificationTeam } from "./Notification.mjs";
 
 /** اللاعب أو عضو الجهاز الفني الذي يخصّه الانتقال. */
 const subjectOf = (transfer) => {
@@ -103,10 +103,10 @@ const refuseRelease = async (flow, { id_user, reason }) => {
     }
 };
 
-// الفريق المعتمد تُفتح له إضافة اللاعبين؛ ومن رُفض تسجيله تبقى مغلقة.
+// الفريق المعتمد تُفتح له إضافة اللاعبين؛ ومن رُفض تسجيله تبقى مغلقة. وإشعاره
+// إشعار الاعتماد نفسه (requestFlowRunner.mjs)، لا إشعارٌ ثانٍ للحدث الواحد.
 const openTeam = async (flow) => {
     await Team.update({ enableAddPlayer: true }, { where: { id: flow.entity_id } });
-    void CreateDirectNotification({ id_team: flow.entity_id, body: "اعتُمد تسجيل فريقك — إضافة اللاعبين مفتوحة الآن" });
 };
 
 const closeTeam = async (flow) => {

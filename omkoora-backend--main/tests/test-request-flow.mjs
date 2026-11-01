@@ -6,7 +6,7 @@ import {
     requestTypeLabel, isRequestType, allowsResubmit,
     canAdvance, legacyStatus, legacyStatusFor,
     availableActions, suggestedFee, openingStage, stageLabelFor, outcomeOf, legacyDecisionMove,
-    unsettledCounterFees, eventLabelFor,
+    unsettledCounterFees, eventLabelFor, drivesFlow,
     DRAFT, SUBMITTED, REJECTED_INITIAL, CLUB_PROCESSING,
     AWAITING_PAYMENT, PAID_REVIEW, APPROVED, REJECTED_FINAL, CANCELLED,
 } from "../src/Helpers/requestFlow.mjs";
@@ -233,6 +233,21 @@ check("وموافقة المُرسِل تُسمّى في الخط باسمها",
     eventLabelFor({ stage: SUBMITTED, actor: "club", note: "وافق النادي المُرسِل بلا رسوم" }), "موافقة النادي المُرسِل");
 check("وفتح الطلب نفسه يبقى «مقدم»",
     eventLabelFor({ stage: SUBMITTED, actor: "team", note: null }), stageLabel(SUBMITTED));
+check("والطلب الذي قدّمه النادي نفسه لا يُنسب إلى الفريق",
+    eventLabelFor({ stage: SUBMITTED, actor: "club", note: null }), "مقدم من النادي");
+
+// إيصال المُرسِل لا يحرّك مرحلة السداد — وُجد حيّاً: كان يقول «تم السداد»
+// والفريق المستقبِل لم يدفع.
+const ownFlow = { id_payment: "main", id_club: RECEIVING };
+check("إيصال مطالبة الطلب نفسه يحرّك السداد", drivesFlow({ id: "main", id_club: RECEIVING }, ownFlow), true);
+check("وإيصال رسوم المُرسِل لا يحرّكه", drivesFlow({ id: "counter", id_club: SENDING }, ownFlow), false);
+check("ولا مطالبةٌ أخرى للنادي نفسه غير مطالبة الطلب",
+    drivesFlow({ id: "other", id_club: RECEIVING }, ownFlow), false);
+check("وطلبٌ بلا مطالبة مسجّلة تحرّكه مطالبة ناديه",
+    drivesFlow({ id: "manual", id_club: RECEIVING }, { id_payment: null, id_club: RECEIVING }), true);
+check("لا مطالبة المُرسِل",
+    drivesFlow({ id: "counter", id_club: SENDING }, { id_payment: null, id_club: RECEIVING }), false);
+check("ولا شيء بلا طلب", drivesFlow({ id: "x" }, null), false);
 
 console.log(fail ? `\n\x1b[31m${fail} فشل\x1b[0m` : `\n\x1b[32mAll passed\x1b[0m (${pass})`);
 process.exit(fail ? 1 : 0);

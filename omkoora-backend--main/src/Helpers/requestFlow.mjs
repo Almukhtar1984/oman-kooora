@@ -500,10 +500,35 @@ export const unsettledCounterFees = (payments = [], ownerClub = null) =>
     (payments || []).filter((payment) => payment?.id_club && payment.id_club !== ownerClub && payment.status !== "accepted");
 
 /**
- * مسمّى حدثٍ في الخط. قرار النادي المُرسِل في سلسلة الناديين يُكتب حدثاً عند
- * «مقدم» (الطلب ما زال في مراجعته المبدئية) — فيُسمّى بما هو، لا باسم المرحلة.
+ * هل يحرّك إيصالُ هذه المطالبة مرحلةَ السداد في الطلب؟
+ *
+ * لا يحرّكها إلا مطالبة الطلب نفسه. فالطلب بين ناديين تتعلّق به مطالبتان: رسوم
+ * المستقبِل وهي مرحلة السداد، ورسوم المُرسِل وهي حاجزٌ عند الاعتماد لا مرحلة —
+ * وإيصال المُرسِل لو حرّكها لقال الخط «تم السداد» والفريق المستقبِل لم يدفع
+ * شيئاً، ولو ردّه ناديه لأعاد طلب المستقبِل إلى السداد بلا ذنب.
+ *
+ * والطلب الذي لم تُسجَّل له مطالبته — مطالبةٌ رُفعت يدوياً قبل أن يوجد الخط —
+ * تحرّكه مطالبة ناديه صاحب المسار.
+ *
+ * @param {{id?:string, id_club?:string}} payment
+ * @param {{id_payment?:string, id_club?:string}} flow
  */
-export const eventLabelFor = (event, flow = null) =>
-    event?.stage === SUBMITTED && event?.actor === "club" && String(event?.note || "").startsWith("وافق النادي المُرسِل")
-        ? "موافقة النادي المُرسِل"
-        : stageLabelFor(event?.stage, flow);
+export const drivesFlow = (payment, flow) => {
+    if (!payment || !flow) return false;
+    if (flow.id_payment) return payment.id === flow.id_payment;
+    return !payment.id_club || !flow.id_club || payment.id_club === flow.id_club;
+};
+
+/**
+ * مسمّى حدثٍ في الخط. ما يكتبه النادي عند «مقدم» يُسمّى بما هو، لا باسم
+ * المرحلة: قرار النادي المُرسِل في سلسلة الناديين (الطلب ما زال في مراجعته
+ * المبدئية)، أو طلبٌ قدّمه النادي نفسه — إعارة لاعبه إلى نادٍ آخر — لا الفريق.
+ */
+export const eventLabelFor = (event, flow = null) => {
+    if (event?.stage === SUBMITTED && event?.actor === "club") {
+        return String(event?.note || "").startsWith("وافق النادي المُرسِل")
+            ? "موافقة النادي المُرسِل"
+            : "مقدم من النادي";
+    }
+    return stageLabelFor(event?.stage, flow);
+};
