@@ -14,6 +14,8 @@ import {
     Stack,
     Text,
     Select,
+    MultiSelect,
+    Radio,
 } from "@mantine/core";
 import {Check, Paperclip, Trash, X, Robot} from "tabler-icons-react";
 import React, {useEffect, useMemo, useRef, useState} from "react";
@@ -67,21 +69,26 @@ const PRIORITIES = [
     {label: "عاجل جدا", value: "very_urgent"}
 ];
 
+// The club writes to all of its teams by default — a message with no receiving
+// team reaches every team of the club (allMessageTeamReceiver). Making one team
+// mandatory took that away: «أنا بس أختار الجميع… تروح للكل» (the client).
 const initialValues = {
     subject: "",
     priority: null as string | null,
-    id_team_receiver: null as string | null,
+    recipients: "all" as "all" | "some",
+    id_teams_receiver: [] as string[],
 };
 
 export const AddMessage = (props: Props) => {
     const userData = useStore((state: any) => state.userData);
     const idClub = userData?.person?.clubManagement?.club?.id;
-    const {getInputProps, reset, onSubmit, setFieldValue} = useForm({
+    const {values, getInputProps, reset, onSubmit, setFieldValue, setFieldError} = useForm({
         initialValues,
         validate: {
             subject: (value) => (value?.trim() ? null : "الموضوع مطلوب"),
             priority: (value) => (value ? null : "اختر الاولوية"),
-            id_team_receiver: (value) => (value ? null : "اختر الفريق المرسل اليه"),
+            id_teams_receiver: (value, form) =>
+                form.recipients === "some" && !value.length ? "اختر فريقاً واحداً على الأقل" : null,
         },
     });
     const [attachments, setAttachments] = useState<File[]>([]);
@@ -124,9 +131,20 @@ export const AddMessage = (props: Props) => {
         onUpdate: ({editor}) => setContent(editor.isEmpty ? "" : editor.getHTML())
     });
 
-    const onFormSubmit = ({subject, priority, id_team_receiver}: typeof initialValues) => {
+    const onFormSubmit = ({subject, priority, recipients, id_teams_receiver}: typeof initialValues) => {
         if (loading) return;
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+
+        // Without a club the message is stored with no sender and reaches no one.
+        if (!idClub) {
+            notyf.error("تعذّر تحديد ناديك — سجّل الدخول مرة أخرى");
+            return;
+        }
+        // "All teams" of a club that has none would go nowhere.
+        if (recipients === "all" && !loadingTeams && teams.length === 0) {
+            setFieldError("recipients", "لا توجد فرق في ناديك لتصلها الرسالة");
+            return;
+        }
 
         setLoading(true)
         createMessage({
@@ -137,7 +155,9 @@ export const AddMessage = (props: Props) => {
                     priority: priority as string,
                     attachment: attachments,
                     id_club_sender: idClub,
-                    id_team_receiver,
+                    id_team_receiver: null,
+                    // Several teams → the server writes one message per team.
+                    ...(recipients === "some" ? {id_teams_receiver} : {}),
                     id_team_sender: ""
                 }
             },
@@ -335,16 +355,35 @@ export const AddMessage = (props: Props) => {
                         </Col>
 
                         <Col xs={12} sm={6}>
-                            <Select
-                                {...selectProps}
-                                searchable
-                                label="الفريق المرسل اليه"
-                                placeholder="اختر الفريق المرسل اليه"
-                                data={teams}
-                                nothingFound={loadingTeams ? "جاري تحميل الفرق..." : "لا توجد فرق لهذا النادي"}
-                                {...getInputProps("id_team_receiver")}
-                            />
+                            <Radio.Group
+                                label="المرسل اليه"
+                                withAsterisk
+                                description={values.recipients === "all" && teams.length
+                                    ? `تصل الرسالة إلى كل فرق النادي (${teams.length})`
+                                    : undefined}
+                                {...getInputProps("recipients")}
+                            >
+                                <Group mt={8}>
+                                    <Radio value="all" label="جميع الفرق" />
+                                    <Radio value="some" label="فرق محددة" />
+                                </Group>
+                            </Radio.Group>
                         </Col>
+
+                        {values.recipients === "some" ?
+                            <Col span={12}>
+                                <MultiSelect
+                                    {...selectProps}
+                                    searchable
+                                    label="الفرق المرسل اليها"
+                                    placeholder="اختر فريقاً أو أكثر"
+                                    data={teams}
+                                    nothingFound={loadingTeams ? "جاري تحميل الفرق..." : "لا توجد فرق لهذا النادي"}
+                                    {...getInputProps("id_teams_receiver")}
+                                />
+                            </Col>
+                            : null
+                        }
 
                         <Col span={12} >
                             <Text size={"sm"} mb={10} >

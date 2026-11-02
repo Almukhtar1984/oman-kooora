@@ -58,6 +58,8 @@ export const typeDefs = gql`
         id_team_sender:   ID
         id_team_receiver: ID
         id_club_receiver: ID
+        # النادي يرسل الرسالة نفسها لعدة فرق: رسالةٌ لكل فريق.
+        id_teams_receiver: [ID]
     }
     
     type Attachment {
