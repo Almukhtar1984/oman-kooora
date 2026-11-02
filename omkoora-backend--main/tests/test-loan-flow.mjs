@@ -39,10 +39,26 @@ const read = (...parts) => {
     }
 };
 
-// Take ~N chars after a named resolver opens so assertions stay scoped to it.
-const sliceFn = (src, name, length = 1400) => {
-    const m = src.match(new RegExp(`${name}\\s*:\\s*async`));
+// Slice one function's body by matching its braces, so assertions stay scoped
+// to it without a fixed character window — the resolvers grew (club chain,
+// request road) and pushed later steps past the old 1400/2400-char cut-off.
+// Matches a resolver (`name: async`) or a module-level `const name = async`;
+// `length` stays as the fallback when the braces don't pair.
+const sliceFn = (src, name, length = 1800) => {
+    const m = src.match(new RegExp(`${name}\\s*[:=]\\s*async`));
     if (!m || m.index === undefined) return "";
+
+    // Start at the arrow body, not at the destructured-args braces in
+    // `async (obj, { id }, context, info) =>`.
+    const arrow = src.indexOf("=>", m.index);
+    const open = arrow === -1 ? -1 : src.indexOf("{", arrow);
+    if (open === -1) return src.slice(m.index, m.index + length);
+
+    let depth = 0;
+    for (let i = open; i < src.length; i++) {
+        if (src[i] === "{") depth++;
+        else if (src[i] === "}" && --depth === 0) return src.slice(m.index, i + 1);
+    }
     return src.slice(m.index, m.index + length);
 };
 
@@ -54,7 +70,10 @@ console.log(`${c.cyan}▶ Notification helper (loan category)${c.reset}`);
 {
     const src = read(BACKEND, "src", "Helpers", "Notification.mjs");
     assert(src !== "", "Notification.mjs exists");
-    const loanCase = src.slice(src.indexOf('case "loan"'), src.indexOf('case "loan"') + 600);
+    // Scope to the case up to its own `break` — a fixed window fell short once
+    // the case started naming technical staff as well as players.
+    const loanStart = src.indexOf('case "loan"');
+    const loanCase = loanStart === -1 ? "" : src.slice(loanStart, src.indexOf("break", loanStart));
     assert(/case\s*"loan"\s*:/.test(src), 'CreateNotificationTeam has a "loan" case');
     assert(/FunctionType\s*===\s*"request"/.test(loanCase), "handles request");
     assert(/FunctionType\s*===\s*"accepted"/.test(loanCase), "handles accepted");
@@ -67,8 +86,10 @@ console.log(`${c.cyan}▶ Transfer resolver (create / update)${c.reset}`);
 {
     const src = read(BACKEND, "src", "Graphql", "Resolvers", "Transfer.mjs");
     assert(src !== "", "Transfer.mjs exists");
+    // The same import also brings CreateNotificationClub (the club chain), so
+    // accept any named-import list that includes CreateNotificationTeam.
     assert(
-        /import\s*\{\s*CreateNotificationTeam\s*\}\s*from\s*["'][^"']*Helpers\/index\.mjs["']/.test(src),
+        /import\s*\{[^}]*\bCreateNotificationTeam\b[^}]*\}\s*from\s*["'][^"']*Helpers\/index\.mjs["']/.test(src),
         "imports CreateNotificationTeam from Helpers/index.mjs"
     );
 
@@ -79,23 +100,46 @@ console.log(`${c.cyan}▶ Transfer resolver (create / update)${c.reset}`);
         "createTransfer notifies the receiving team on a pending loan request"
     );
 
-    const update = sliceFn(src, "updateTransfer", 2400);
+    const update = sliceFn(src, "updateTransfer");
     assert(/Transfer\.findByPk\(\s*id\s*\)/.test(update), "updateTransfer loads the transfer first");
     assert(
         /content\.id_player\s*\|\|\s*transfer\.id_player/.test(update),
         "updateTransfer falls back to the stored id_player"
     );
+
+    // The destination team is no longer `content.id_team_to || transfer.id_team_to`:
+    // only the receiving club may name it (team names repeat across clubs), so
+    // resolveDestinationTeam keeps the stored team whenever nothing — or nothing
+    // trustworthy — is requested. The fallback lives in that helper now.
+    const flow = read(BACKEND, "src", "Helpers", "transferFlow.mjs");
     assert(
-        /content\.id_team_to\s*\|\|\s*transfer\.id_team_to/.test(update),
+        /resolveDestinationTeam\(\s*\{\s*storedTeamId\s*:\s*transfer\.id_team_to/.test(update) &&
+            /requestedTeamId\s*:\s*content\.id_team_to/.test(update) &&
+            /id_team_to\s*:\s*idTeamTo/.test(update) &&
+            /if\s*\(\s*!requestedTeamId\s*\)\s*return\s+storedTeamId/.test(flow),
         "updateTransfer falls back to the stored id_team_to"
     );
+
+    // On the request road the player moves — and the lending team hears the
+    // answer — only at the road's end (requestOutcomes.mjs): finalizeTransfer on
+    // the final approval, abandonTransfer on a rejection. A request with no road
+    // still rejects in updateTransfer itself, so reject is guarded on both paths.
+    const outcomes = read(BACKEND, "src", "Helpers", "requestOutcomes.mjs");
+    const finalize = sliceFn(outcomes, "finalizeTransfer");
+    const abandon = sliceFn(outcomes, "abandonTransfer");
     assert(
-        /CreateNotificationTeam\(\s*"loan"\s*,\s*"accepted"\s*,\s*transfer\.id_team_from/.test(update),
-        "updateTransfer notifies the lending team on accept"
+        /CreateNotificationTeam\(\s*"loan"\s*,\s*"accepted"\s*,\s*transfer\.id_team_from/.test(finalize) &&
+            /finalize\s*:\s*finalizeTransfer/.test(outcomes),
+        "the road's final approval notifies the lending team on accept"
+    );
+    assert(
+        /CreateNotificationTeam\(\s*"loan"\s*,\s*"rejected"\s*,\s*transfer\.id_team_from/.test(abandon) &&
+            /abandon\s*:\s*abandonTransfer/.test(outcomes),
+        "the road's rejection notifies the lending team on reject"
     );
     assert(
         /CreateNotificationTeam\(\s*"loan"\s*,\s*"rejected"\s*,\s*transfer\.id_team_from/.test(update),
-        "updateTransfer notifies the lending team on reject"
+        "updateTransfer notifies the lending team on reject (request with no road)"
     );
 }
 
@@ -163,7 +207,9 @@ console.log(`${c.cyan}▶ Team app — discoverability${c.reset}`);
 
     const nav = read(TEAM, "components", "Layout", "HorizontalNavbar.tsx");
     assert(/path:\s*['"]\/players_loan['"]/.test(nav), "HorizontalNavbar links to /players_loan");
-    assert(/إعارة اللاعبين/.test(nav), "nav shows the loan label");
+    // Loans now sit under the «الطلبات» section, labelled 'الإعارات'.
+    assert(/path:\s*['"]\/players_loan['"]\s*,\s*label:\s*['"]الإعارات['"]/.test(nav),
+        "nav shows the loan label");
 
     // The player card the user actually manages players from must offer the loan
     // action, wired to the onLoanPlayer handler the page passes down.

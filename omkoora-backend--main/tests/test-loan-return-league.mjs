@@ -90,7 +90,11 @@ console.log(`${c.cyan}▶ BackToOldTeamTransfer resolver${c.reset}`);
     assert(/DB\.transaction\(/.test(fn), "wraps the whole return in a DB transaction");
     assert(/id_team\s*:\s*transfer\.id_team_from/.test(fn),
         "restores the player to id_team_from (the original team)");
-    assert(/removeReceivingTeamParticipations\(\s*transfer\.id_player\s*,\s*transfer\.id_team_to/.test(fn),
+    // The return also covers technical staff, so the member id is `subjectId`
+    // (the player's id for a player) and staff get their own cleanup variant.
+    assert(/subjectId\s*=\s*isTech\s*\?\s*transfer\.id_technical_apparatus\s*:\s*transfer\.id_player/.test(fn) &&
+        /removeReceivingTeamParticipations\(\s*subjectId\s*,\s*transfer\.id_team_to/.test(fn) &&
+        /removeReceivingTeamParticipationsTechnical\(\s*subjectId\s*,\s*transfer\.id_team_to/.test(fn),
         "clears the league squad for the RECEIVING team (id_team_to)");
     assert(/Transfer\.destroy\(\s*\{\s*where:\s*\{\s*id\s*\}\s*,\s*transaction/.test(fn),
         "soft-deletes the transfer inside the same transaction");
@@ -108,19 +112,35 @@ console.log(`${c.cyan}▶ Loan auto-return cron cleanup${c.reset}`);
         "still returns the player to id_team_from (original team) — unchanged");
     assert(!/id_team\s*:\s*(loan|transfer)\.id_team_to/.test(src),
         "does NOT send the player to id_team_to (guards the old cron bug)");
-    assert(/removeReceivingTeamParticipations\(\s*loan\.id_player\s*,\s*loan\.id_team_to/.test(src),
+    // Same shape as the resolver: `subjectId` is the player's id for a player.
+    assert(/subjectId\s*=\s*isTech\s*\?\s*loan\.id_technical_apparatus\s*:\s*loan\.id_player/.test(src) &&
+        /removeReceivingTeamParticipations\(\s*subjectId\s*,\s*loan\.id_team_to/.test(src) &&
+        /removeReceivingTeamParticipationsTechnical\(\s*subjectId\s*,\s*loan\.id_team_to/.test(src),
         "clears the league squad for the RECEIVING team (loan.id_team_to)");
 }
 
 // ── Latent bug: paranoid-aware "latest transfer" subquery ────────────────────
-console.log(`${c.cyan}▶ Players club-transfer/loan lists ignore soft-deleted transfers${c.reset}`);
+console.log(`${c.cyan}▶ Players club lists and soft-deleted (returned) transfers${c.reset}`);
 {
     const src = read(BACKEND, "src", "Graphql", "Resolvers", "Players.mjs");
     assert(src !== "", "Players.mjs exists");
     const subqueries = src.match(/SELECT transfers\.id FROM transfers[\s\S]*?LIMIT 0, 1/g) || [];
-    assert(subqueries.length >= 2, "both club-transfer and club-loan lists use the latest-transfer subquery");
-    assert(subqueries.every((q) => /transfers\.deletedAt IS NULL/.test(q)),
+    assert(/SELECT transfers\.id FROM transfers/.test(sliceFn(src, "allPlayersClubTransferred")),
+        "the club-transfer list uses the latest-transfer subquery");
+    assert(subqueries.length > 0 && subqueries.every((q) => /transfers\.deletedAt IS NULL/.test(q)),
         "every latest-transfer subquery excludes soft-deleted (returned) transfers");
+
+    // The club-loan list left the latest-transfer subquery on purpose (8cc1d6a):
+    // it is the club's full loan record, finished loans included — loanCleanup
+    // soft-deletes every loan once date_end passes, so hiding deleted rows left
+    // the page blank. It keys on the loan rows themselves instead. What keeps a
+    // returned loan out of the league/print squads is lastLoan staying paranoid.
+    const loaned = sliceFn(src, "allPlayersClubLoaned");
+    assert(/transition_type IN \('loan', 'returning'\)/.test(loaned) &&
+        !/SELECT transfers\.id FROM transfers/.test(loaned),
+        "the club-loan list keys on the loan rows, keeping finished loans (by design)");
+    assert(sliceFn(src, "lastLoan") !== "" && !/paranoid/.test(sliceFn(src, "lastLoan")),
+        "lastLoan stays paranoid, so league/print squads count live loans only");
 }
 
 // ── Backfill script ──────────────────────────────────────────────────────────
