@@ -6,7 +6,7 @@ import {
     requestTypeLabel, isRequestType, allowsResubmit,
     canAdvance, legacyStatus, legacyStatusFor,
     availableActions, suggestedFee, openingStage, stageLabelFor, outcomeOf, legacyDecisionMove,
-    unsettledCounterFees, eventLabelFor, drivesFlow,
+    unsettledCounterFees, eventLabelFor, flowLabelFor, drivesFlow,
     DRAFT, SUBMITTED, REJECTED_INITIAL, CLUB_PROCESSING,
     AWAITING_PAYMENT, PAID_REVIEW, APPROVED, REJECTED_FINAL, CANCELLED,
 } from "../src/Helpers/requestFlow.mjs";
@@ -235,6 +235,23 @@ check("وفتح الطلب نفسه يبقى «مقدم»",
     eventLabelFor({ stage: SUBMITTED, actor: "team", note: null }), stageLabel(SUBMITTED));
 check("والطلب الذي قدّمه النادي نفسه لا يُنسب إلى الفريق",
     eventLabelFor({ stage: SUBMITTED, actor: "club", note: null }), "مقدم من النادي");
+
+// والقائمة تقرأ المسمّى نفسه — وُجد حيّاً: إعارة النادي كانت تُعرض «مقدم من الفريق».
+const opened = (actor, extra = []) => ({
+    stage: SUBMITTED,
+    events: [...extra, { id: 1, stage: SUBMITTED, actor, note: null, createdAt: "2026-11-01T10:00:00.000Z" }],
+});
+check("طلبٌ فتحه النادي يُعرض في القائمة «مقدم من النادي»", flowLabelFor(opened("club")), "مقدم من النادي");
+check("وطلب الفريق يبقى «مقدم من الفريق»", flowLabelFor(opened("team")), stageLabel(SUBMITTED));
+check("وموافقة المُرسِل اللاحقة لا تنسب طلب الفريق إلى النادي",
+    flowLabelFor(opened("team", [{ id: 2, stage: SUBMITTED, actor: "club",
+        note: "وافق النادي المُرسِل بلا رسوم", createdAt: "2026-11-01T11:00:00Z" }])), stageLabel(SUBMITTED));
+check("ورسوم النادي المسمّاة في الثانية نفسها لا تُبدّل حدثه الأول",
+    flowLabelFor(opened("club", [{ id: 2, stage: SUBMITTED, actor: "club",
+        note: "وافق النادي المُرسِل وطالب فريقه برسومه: 12 ر.ع", createdAt: "2026-11-01T10:00:00.004Z" }])), "مقدم من النادي");
+check("وبعد المراجعة يتبع المرحلة", flowLabelFor({ ...opened("club"), stage: CLUB_PROCESSING }), stageLabel(CLUB_PROCESSING));
+check("والإعفاء يبقى مسمّاه", flowLabelFor({ stage: PAID_REVIEW, fee_waived: true, events: [] }),
+    stageLabelFor(PAID_REVIEW, { fee_waived: true }));
 
 // إيصال المُرسِل لا يحرّك مرحلة السداد — وُجد حيّاً: كان يقول «تم السداد»
 // والفريق المستقبِل لم يدفع.

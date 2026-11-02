@@ -9,7 +9,7 @@ import sequelize from 'sequelize';
 import { callerClubId, callerTeamId } from "../../Helpers/clubScope.mjs";
 import { advanceFlow, flowFor, suggestedAmountFor } from "../../Helpers/requestFlowRunner.mjs";
 import {
-    STAGES, stageInfo, stageLabelFor, eventLabelFor, isDone, requestTypeLabel, availableActions, requestTypeInfo, suggestedFee,
+    STAGES, stageInfo, flowLabelFor, eventLabelFor, isDone, requestTypeLabel, availableActions, requestTypeInfo, suggestedFee,
     SUBMITTED, CLUB_PROCESSING, CANCELLED,
 } from "../../Helpers/requestFlow.mjs";
 import { pendingApprover } from "../../Helpers/transferFlow.mjs";
@@ -195,7 +195,7 @@ const withLabels = (flow, { side = null, transfer = null, idClub = null, suggest
         side,
         suggestedAmount,
         request_label: requestTypeLabel(plain.request_type),
-        label: stageLabelFor(plain.stage, plain),
+        label: flowLabelFor(plain),
         also: info.also || null,
         actor: info.actor || null,
         done: isDone(plain.stage),

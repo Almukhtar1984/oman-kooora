@@ -532,3 +532,16 @@ export const eventLabelFor = (event, flow = null) => {
     }
     return stageLabelFor(event?.stage, flow);
 };
+
+/**
+ * مسمّى الطلب في القائمة. الطلب الذي فتحه النادي نفسه — إعارة لاعبه إلى نادٍ
+ * آخر — يبقى «مقدماً من النادي» حتى يراجعه النادي الآخر، كما يُسمّى حدثه الأول
+ * في الخط. والحدث الأول أقدمها — الوقت محفوظ بالجزء من الألف من الثانية.
+ */
+export const flowLabelFor = (flow) => {
+    if (flow?.stage === SUBMITTED && flow?.events?.length) {
+        const opening = [...flow.events].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
+        if (opening?.stage === SUBMITTED && opening?.actor === "club") return eventLabelFor(opening, flow);
+    }
+    return stageLabelFor(flow?.stage, flow);
+};
