@@ -122,7 +122,7 @@ export const InboxTable = ({ loading, list, search, setOpenCommentModal, setOpen
                     ? <Badge color="violet">عاجل</Badge>
                     : <Badge color="red">عاجل جدا</Badge>
         ), width: '120px'},
-        {name: 'المرسل', selector: (item: any) => item?.club_sender?.name, width: '120px'},
+        {name: 'المرسل', selector: (item: any) => item?.club_sender?.name || item?.team_sender?.name, width: '120px'},
         {name: 'الموضوع', selector: (item: any) => item?.subject, width: '120px'},
         {name: 'تاريخ الارسال', selector: (item: any) => item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : '-', width: '200px'},
     ];
@@ -135,7 +135,7 @@ export const InboxTable = ({ loading, list, search, setOpenCommentModal, setOpen
           
               <div style={{ width: '100%',marginTop:"10px" }}>
                 <Text weight={500} size="sm">
-                  المرسل: {item?.team_sender?.name || 'غير متوفر'}
+                  المرسل: {item?.club_sender?.name || item?.team_sender?.name || 'غير متوفر'}
                 </Text>
                 <Group position="apart" noWrap mt={4}>
                   <Text size="xs" color="dimmed">

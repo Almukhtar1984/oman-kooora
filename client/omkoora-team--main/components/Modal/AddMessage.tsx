@@ -13,7 +13,7 @@ import {
     Divider,
     Stack,
     Text,
-    Select, Alert,
+    Select,
 } from "@mantine/core";
 import {Check, Paperclip, Trash, X, Robot} from "tabler-icons-react";
 import React, {useEffect, useMemo, useRef, useState} from "react";
@@ -68,21 +68,28 @@ const PRIORITIES = [
     {label: "عاجل جدا", value: "very_urgent"}
 ];
 
+// The club is a receiver in its own right, not "no team picked": an empty
+// recipient field read as mandatory to the client — «الفريق يريد يرسل للنادي،
+// يقول لازم إجباري». It is now the first, preselected entry of the list.
+const CLUB = "club";
+
 const initialValues = {
     subject: "",
     priority: null as string | null,
-    id_team_receiver: null as string | null,
+    id_team_receiver: CLUB as string | null,
 };
 
 export const AddMessage = ({data, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
     const idClub = userData?.person?.member?.team?.club?.id;
+    const clubName = userData?.person?.member?.team?.club?.name;
     const idTeam = userData?.person?.member?.team?.id;
     const {getInputProps, reset, onSubmit, setFieldValue} = useForm({
         initialValues,
         validate: {
             subject: (value) => (value?.trim() ? null : "الموضوع مطلوب"),
             priority: (value) => (value ? null : "اختر الاولوية"),
+            id_team_receiver: (value) => (value ? null : "اختر المرسل اليه"),
         },
     });
     const [attachments, setAttachments] = useState<File[]>([]);
@@ -106,13 +113,17 @@ export const AddMessage = ({data, ...props}: Props) => {
     // Read the list straight from the query result: a per-call onCompleted is
     // skipped when Apollo answers from cache, which left the dropdown empty
     // (and an empty Mantine Select never opens).
-    const teams = useMemo(
-        () => (dataAllTeams?.allTeam || []).map((item: any) => ({
-            label: item.name,
-            value: item.id,
-            disabled: item.id === idTeam,
-        })),
-        [dataAllTeams, idTeam]
+    const receivers = useMemo(
+        () => [
+            {label: clubName ? `النادي — ${clubName}` : "النادي", value: CLUB, group: "النادي"},
+            ...(dataAllTeams?.allTeam || []).map((item: any) => ({
+                label: item.name,
+                value: item.id,
+                disabled: item.id === idTeam,
+                group: "فرق النادي",
+            })),
+        ],
+        [dataAllTeams, idTeam, clubName]
     );
 
     const editor = useEditor({
@@ -142,7 +153,8 @@ export const AddMessage = ({data, ...props}: Props) => {
                     priority: priority as string,
                     attachment: attachments,
                     id_club_sender: "",
-                    id_team_receiver,
+                    // No receiving team = the team's own club.
+                    id_team_receiver: id_team_receiver === CLUB ? null : id_team_receiver,
                     id_team_sender: idTeam
                 }
             },
@@ -229,10 +241,6 @@ export const AddMessage = ({data, ...props}: Props) => {
                 </Overlay>
                 : null
             }
-
-            <Alert color={"yellow"} >
-                إذا لم تختر فريقاً سيتم إرسال الرسالة إلى النادي
-            </Alert>
 
             <Box sx={() => ({padding: 20})}>
                 <form onSubmit={onSubmit(onFormSubmit)} id="submit_form">
@@ -346,10 +354,12 @@ export const AddMessage = ({data, ...props}: Props) => {
                         <Col xs={12} sm={6}>
                             <Select
                                 {...selectProps}
+                                clearable={false}
+                                withAsterisk
                                 searchable
-                                label="الفريق المرسل اليه"
-                                placeholder="اختر الفريق المرسل اليه"
-                                data={teams}
+                                label="المرسل اليه"
+                                placeholder="اختر المرسل اليه"
+                                data={receivers}
                                 nothingFound={loadingTeams ? "جاري تحميل الفرق..." : "لا توجد فرق أخرى في النادي"}
                                 {...getInputProps("id_team_receiver")}
                             />

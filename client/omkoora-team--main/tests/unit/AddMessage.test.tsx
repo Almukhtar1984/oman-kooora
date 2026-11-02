@@ -4,6 +4,10 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+// The submit tests type Arabic text key by key and drive two dropdowns; on a
+// busy machine they take 5–6 s, just over vitest's default — not a hang.
+vi.setConfig({ testTimeout: 15_000 });
+
 // ---- mocks ---------------------------------------------------------------
 
 const h = vi.hoisted(() => ({
@@ -16,7 +20,8 @@ const h = vi.hoisted(() => ({
     userData: undefined as any,
 }));
 
-const TEAM_MANAGER = { person: { member: { team: { id: "team-own", club: { id: "club-1" } } } } };
+const TEAM_MANAGER = { person: { member: { team: { id: "team-own", club: { id: "club-1", name: "نادي السيب" } } } } };
+const CLUB_OPTION = "النادي — نادي السيب";
 
 vi.mock("../../graphql", () => ({
     AllMessagesSender: { kind: "Document", definitions: [] },
@@ -76,7 +81,7 @@ const renderModal = async (props: Partial<React.ComponentProps<typeof AddMessage
 
 const subjectInput = () => screen.getByPlaceholderText("الموضوع") as HTMLInputElement;
 const priorityInput = () => screen.getByPlaceholderText("اختر نوع الاولوية") as HTMLInputElement;
-const teamInput = () => screen.getByPlaceholderText("اختر الفريق المرسل اليه") as HTMLInputElement;
+const teamInput = () => screen.getByPlaceholderText("اختر المرسل اليه") as HTMLInputElement;
 const submitButton = () => screen.getByRole("button", { name: /تأكيد/ });
 
 // Option queries pass `hidden: true`: the dropdown lives in a portal that
@@ -124,12 +129,19 @@ describe("AddMessage (team) — dropdowns", () => {
         );
     });
 
-    it("opens the team dropdown with the club's teams even when the query answers from cache", async () => {
+    it("opens the receiver dropdown with the club first, then its teams, even when the query answers from cache", async () => {
         await renderModal();
         userEvent.click(teamInput());
 
         const options = await screen.findAllByRole("option", { hidden: true });
-        expect(options.map((o) => o.textContent)).toEqual(["فريقي", "فريق الناشئين", "الفريق الأول"]);
+        expect(options.map((o) => o.textContent)).toEqual([CLUB_OPTION, "فريقي", "فريق الناشئين", "الفريق الأول"]);
+    });
+
+    it("preselects the club, so the field never reads as an empty mandatory choice", async () => {
+        await renderModal();
+        expect(teamInput().value).toBe(CLUB_OPTION);
+        // Nothing to clear it back to empty with.
+        expect(teamInput().parentElement!.querySelector("button")).toBeNull();
     });
 
     it("does not let a team message itself", async () => {
@@ -140,23 +152,24 @@ describe("AddMessage (team) — dropdowns", () => {
         expect(own).toHaveAttribute("data-disabled", "true");
         fireEvent.mouseDown(own);
         await new Promise((r) => setTimeout(r, 20));
-        expect(teamInput().value).toBe("");
+        expect(teamInput().value).toBe(CLUB_OPTION);
     });
 
-    it("still opens the team dropdown (with an explanation) when the club has no teams", async () => {
+    it("still offers the club when it has no other teams", async () => {
         h.teamsResult = { data: { allTeam: [] }, loading: false };
         await renderModal();
         userEvent.click(teamInput());
 
-        expect(await screen.findByText("لا توجد فرق أخرى في النادي")).toBeInTheDocument();
+        const options = await screen.findAllByRole("option", { hidden: true });
+        expect(options.map((o) => o.textContent)).toEqual([CLUB_OPTION]);
     });
 
-    it("tells the user the teams are still loading instead of showing a dead dropdown", async () => {
+    it("lets the team write to its club while the teams are still loading", async () => {
         h.teamsResult = { data: undefined, loading: true };
         await renderModal();
         userEvent.click(teamInput());
 
-        expect(await screen.findByText("جاري تحميل الفرق...")).toBeInTheDocument();
+        expect(await screen.findByRole("option", { name: CLUB_OPTION, hidden: true })).toBeInTheDocument();
     });
 
     it("opens the priority dropdown and selects a value", async () => {
@@ -176,16 +189,11 @@ describe("AddMessage (team) — dropdowns", () => {
         expect(container.contains(option)).toBe(false);
     });
 
-    it("clears the selected team with the × button", async () => {
+    it("switches back from a team to the club", async () => {
         await renderModal();
         await openAndPick(teamInput(), "الفريق الأول");
-        expect(teamInput().value).toBe("الفريق الأول");
-
-        const clear = teamInput().parentElement!.querySelector("button") as HTMLButtonElement;
-        expect(clear).toBeTruthy();
-
-        fireEvent.click(clear);
-        await waitFor(() => expect(teamInput().value).toBe(""));
+        await openAndPick(teamInput(), CLUB_OPTION);
+        expect(teamInput().value).toBe(CLUB_OPTION);
     });
 });
 
@@ -199,10 +207,9 @@ describe("AddMessage (team) — validation & submit", () => {
         expect(h.createMessage).not.toHaveBeenCalled();
     });
 
-    it("sends to the club when no team is picked", async () => {
+    it("sends to the club by default", async () => {
         h.createMessage.mockImplementation((opts: any) => opts.onCompleted());
         await renderModal();
-        expect(screen.getByText("إذا لم تختر فريقاً سيتم إرسال الرسالة إلى النادي")).toBeInTheDocument();
 
         userEvent.type(subjectInput(), "إلى النادي");
         await openAndPick(priorityInput(), "عادي");
@@ -301,7 +308,7 @@ describe("AddMessage (team) — validation & submit", () => {
 
         await waitFor(() => expect(subjectInput().value).toBe(""));
         expect(priorityInput().value).toBe("");
-        expect(teamInput().value).toBe("");
+        expect(teamInput().value).toBe(CLUB_OPTION);
         expect(screen.queryByText("old.png")).not.toBeInTheDocument();
         expect((document.querySelector(".ProseMirror") as HTMLElement).textContent).toBe("");
     });

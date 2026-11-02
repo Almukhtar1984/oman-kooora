@@ -123,7 +123,19 @@ export const resolvers = {
                     }
                 })
 
-                return message
+                // وما أرسله إليه فريقٌ آخر. لوحة الفريق تعرض فرق ناديه للاختيار، لكن
+                // الاستعلام أعلاه لا يرى إلا ما أرسله النادي — فكانت رسالة الفريق إلى
+                // الفريق تُكتب ولا تصل إلى أي صندوق.
+                const fromTeams = await Message.findAll({
+                    where: {
+                        id_team_receiver: idTeam,
+                        id_team_sender: {[Op.ne]: null}
+                    }
+                })
+
+                const seen = new Set(message.map((item) => item.id))
+                return [...message, ...fromTeams.filter((item) => !seen.has(item.id))]
+                    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
             } catch (error) {
                 logger.error(`Message.allMessageTeamReceiver: ${error?.message || error}`)
                 throw new ApolloError(error)
@@ -214,15 +226,38 @@ export const resolvers = {
             try {
                 const logo = await content.logo;
                 const attachment = await content.attachment;
+                const idClubSender = content.id_club_sender !== "" ? content.id_club_sender : null
 
-                let message = await Message.create({
-                    subject:            content.subject,
-                    content:            content.content,
-                    priority:           content.priority,
-                    id_club_sender:     content.id_club_sender !== "" ? content.id_club_sender : null,
-                    id_team_sender:     content.id_team_sender !== "" ? content.id_team_sender : null,
-                    id_team_receiver:   content.id_team_receiver !== "" ? content.id_team_receiver : null,
-                })
+                // بلا فريقٍ مستقبِل تصل رسالة النادي إلى جميع فرقه، ورسالة الفريق إلى
+                // ناديه. وحين يختار النادي عدة فرق — «تحدد فريق… لو جيت تختار فريق آخر
+                // يلتغي» (العميل) — تُكتب لكل فريقٍ رسالته في صندوقه، ولا يُقبل منها إلا
+                // فريقٌ من فرق النادي المُرسِل.
+                let receivers = [content.id_team_receiver !== "" ? content.id_team_receiver : null]
+                const picked = [...new Set((content.id_teams_receiver || []).filter(Boolean))]
+                if (picked.length) {
+                    const own = idClubSender
+                        ? await Team.findAll({ where: { id: picked, id_club: idClubSender }, attributes: ["id"] })
+                        : []
+                    if (!own.length) {
+                        throw new ApolloError("اختر فريقاً واحداً على الأقل من فرق ناديك", "MESSAGE_TEAMS_REQUIRED")
+                    }
+                    receivers = own.map((team) => team.id)
+                }
+
+                const messages = []
+                for (const id_team_receiver of receivers) {
+                    messages.push(await Message.create({
+                        subject:            content.subject,
+                        content:            content.content,
+                        priority:           content.priority,
+                        id_club_sender:     idClubSender,
+                        id_team_sender:     content.id_team_sender !== "" ? content.id_team_sender : null,
+                        id_team_receiver,
+                    }))
+                }
+                const message = messages[0]
+                // الشعار والمرفقات تُرفع مرةً واحدة وتُربط بكل الرسائل.
+                const ids = messages.map((item) => item.id)
 
                 if (message && logo) {
                     const listType = ["JPEG", "JPG", "PNG"]
@@ -241,7 +276,7 @@ export const resolvers = {
                     const stream = createReadStream();
                     await stream.pipe( createWriteStream(pathName) );
 
-                    await Message.update({logo: imgUniqName}, { where: { id: message.id } })
+                    await Message.update({logo: imgUniqName}, { where: { id: ids } })
                 }
 
                 if (message && attachment && attachment.length > 0) {
@@ -262,12 +297,14 @@ export const resolvers = {
                         const stream = createReadStream();
                         await stream.pipe( createWriteStream(pathName) );
 
-                        await Attachment.create({content: imgUniqName, id_message: message.id})
+                        await Attachment.bulkCreate(ids.map((id_message) => ({content: imgUniqName, id_message})))
                     }
                 }
 
                 return message
             } catch (error) {
+                // Keep our own refusals (and their codes) readable by the client.
+                if (error instanceof ApolloError) throw error
                 console.log(error)
                 // logger.error(`Message.createMessage: ${error?.message || error}`)
                 throw new ApolloError(error)

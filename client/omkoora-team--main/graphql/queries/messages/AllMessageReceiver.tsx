@@ -19,6 +19,7 @@ export const AllMessageReceiver = gql`
             }
             team_sender {
                 id
+                name
             }
             team_receiver {
                 id

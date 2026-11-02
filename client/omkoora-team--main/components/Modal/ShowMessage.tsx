@@ -90,7 +90,9 @@ export const ShowMessage = (props: Props) => {
             fields: [
                 {label: "التاريخ", value: msg?.createdAt ? String(msg.createdAt).slice(0, 10) : null},
                 {label: "الجهة المرسلة", value: sender || null},
-                {label: "الجهة المستقبلة", value: msg?.team_receiver?.name || null},
+                {label: "الجهة المستقبلة", value: msg?.team_receiver?.name
+                    // No receiving team: a club message went to all its teams, a team message to its club.
+                    || (msg?.club_sender ? "جميع فرق النادي" : msg?.team_sender ? "النادي" : null)},
             ],
             bodyHtml: content || msg?.content || null,
             images: attachments.filter(isImage),

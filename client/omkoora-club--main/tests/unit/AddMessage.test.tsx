@@ -4,6 +4,10 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+// The submit tests type Arabic text key by key and drive two dropdowns; on a
+// busy machine they take 5–6 s, just over vitest's default — not a hang.
+vi.setConfig({ testTimeout: 15_000 });
+
 // ---- mocks ---------------------------------------------------------------
 
 const h = vi.hoisted(() => ({
@@ -75,8 +79,15 @@ const renderModal = async (props: Partial<React.ComponentProps<typeof AddMessage
 
 const subjectInput = () => screen.getByPlaceholderText("الموضوع") as HTMLInputElement;
 const priorityInput = () => screen.getByPlaceholderText("اختر نوع الاولوية") as HTMLInputElement;
-const teamInput = () => screen.getByPlaceholderText("اختر الفريق المرسل اليه") as HTMLInputElement;
 const submitButton = () => screen.getByRole("button", { name: /تأكيد/ });
+
+// "All teams" is the default; the team list only appears for «فرق محددة».
+const chooseSomeTeams = () => fireEvent.click(screen.getByLabelText("فرق محددة"));
+// A MultiSelect drops its placeholder once something is picked, so find its
+// search input by class, and read the picks from their chips.
+const teamsInput = () => document.querySelector(".mantine-MultiSelect-searchInput") as HTMLInputElement;
+const chosenTeams = () =>
+    Array.from(document.querySelectorAll(".mantine-MultiSelect-value")).map((el) => el.textContent);
 
 // Option queries pass `hidden: true`: the dropdown lives in a portal that
 // Mantine's modal focus trap marks aria-hidden, which only affects the
@@ -86,6 +97,13 @@ const openAndPick = async (input: HTMLInputElement, label: string) => {
     // Mantine v6 picks an item on mousedown, not click.
     fireEvent.mouseDown(await screen.findByRole("option", { name: label, hidden: true }));
     await waitFor(() => expect(input.value).toBe(label));
+};
+
+const pickTeam = async (label: string) => {
+    // The list stays open after a pick, and a click on the input would close it.
+    if (!screen.queryByRole("option", { name: label, hidden: true })) userEvent.click(teamsInput());
+    fireEvent.mouseDown(await screen.findByRole("option", { name: label, hidden: true }));
+    await waitFor(() => expect(chosenTeams()).toContain(label));
 };
 
 const setEditorHtml = async (html: string) => {
@@ -123,9 +141,17 @@ describe("AddMessage (club) — dropdowns", () => {
         );
     });
 
+    it("writes to all of the club's teams by default, with no team to pick", async () => {
+        await renderModal();
+        expect(screen.getByLabelText("جميع الفرق")).toBeChecked();
+        expect(screen.getByText("تصل الرسالة إلى كل فرق النادي (2)")).toBeInTheDocument();
+        expect(teamsInput()).toBeNull();
+    });
+
     it("opens the team dropdown with the club's teams even when the query answers from cache", async () => {
         await renderModal();
-        userEvent.click(teamInput());
+        chooseSomeTeams();
+        userEvent.click(teamsInput());
 
         const options = await screen.findAllByRole("option", { hidden: true });
         expect(options.map((o) => o.textContent)).toEqual(["فريق الناشئين", "الفريق الأول"]);
@@ -134,7 +160,8 @@ describe("AddMessage (club) — dropdowns", () => {
     it("still opens the team dropdown (with an explanation) when the club has no teams", async () => {
         h.teamsResult = { data: { allTeam: [] }, loading: false };
         await renderModal();
-        userEvent.click(teamInput());
+        chooseSomeTeams();
+        userEvent.click(teamsInput());
 
         expect(await screen.findByText("لا توجد فرق لهذا النادي")).toBeInTheDocument();
     });
@@ -142,7 +169,8 @@ describe("AddMessage (club) — dropdowns", () => {
     it("tells the user the teams are still loading instead of showing a dead dropdown", async () => {
         h.teamsResult = { data: undefined, loading: true };
         await renderModal();
-        userEvent.click(teamInput());
+        chooseSomeTeams();
+        userEvent.click(teamsInput());
 
         expect(await screen.findByText("جاري تحميل الفرق...")).toBeInTheDocument();
     });
@@ -155,7 +183,8 @@ describe("AddMessage (club) — dropdowns", () => {
 
     it("renders the dropdown in a portal so the modal body does not clip it", async () => {
         const { container } = await renderModal();
-        userEvent.click(teamInput());
+        chooseSomeTeams();
+        userEvent.click(teamsInput());
         const option = await screen.findByRole("option", { name: "الفريق الأول", hidden: true });
 
         const modalContent = document.querySelector(".mantine-Modal-content") as HTMLElement;
@@ -164,16 +193,14 @@ describe("AddMessage (club) — dropdowns", () => {
         expect(container.contains(option)).toBe(false);
     });
 
-    it("clears the selected team with the × button", async () => {
+    // «تحدد فريق… لو جيت تختار فريق آخر يلتغي الفريق اللي اخترته» (the client).
+    it("keeps the first team when a second one is picked", async () => {
         await renderModal();
-        await openAndPick(teamInput(), "الفريق الأول");
-        expect(teamInput().value).toBe("الفريق الأول");
+        chooseSomeTeams();
+        await pickTeam("الفريق الأول");
+        await pickTeam("فريق الناشئين");
 
-        const clear = teamInput().parentElement!.querySelector("button") as HTMLButtonElement;
-        expect(clear).toBeTruthy();
-
-        fireEvent.click(clear);
-        await waitFor(() => expect(teamInput().value).toBe(""));
+        expect(chosenTeams()).toEqual(["الفريق الأول", "فريق الناشئين"]);
     });
 });
 
@@ -184,7 +211,60 @@ describe("AddMessage (club) — validation & submit", () => {
 
         expect(await screen.findByText("الموضوع مطلوب")).toBeInTheDocument();
         expect(screen.getByText("اختر الاولوية")).toBeInTheDocument();
-        expect(screen.getByText("اختر الفريق المرسل اليه")).toBeInTheDocument();
+        // Writing to all teams needs no pick.
+        expect(screen.queryByText("اختر فريقاً واحداً على الأقل")).not.toBeInTheDocument();
+        expect(h.createMessage).not.toHaveBeenCalled();
+    });
+
+    it("asks for at least one team once «فرق محددة» is chosen", async () => {
+        await renderModal();
+        userEvent.type(subjectInput(), "موضوع");
+        await openAndPick(priorityInput(), "عادي");
+        chooseSomeTeams();
+        fireEvent.click(submitButton());
+
+        expect(await screen.findByText("اختر فريقاً واحداً على الأقل")).toBeInTheDocument();
+        expect(h.createMessage).not.toHaveBeenCalled();
+    });
+
+    it("sends one request for several teams", async () => {
+        h.createMessage.mockImplementation((opts: any) => opts.onCompleted());
+        await renderModal();
+        userEvent.type(subjectInput(), "تعميم");
+        await openAndPick(priorityInput(), "عادي");
+        chooseSomeTeams();
+        await pickTeam("الفريق الأول");
+        await pickTeam("فريق الناشئين");
+
+        fireEvent.click(submitButton());
+
+        await waitFor(() => expect(h.createMessage).toHaveBeenCalledTimes(1));
+        expect(h.createMessage.mock.calls[0][0].variables.content).toMatchObject({
+            id_club_sender: "club-1",
+            id_team_receiver: null,
+            id_teams_receiver: ["team-2", "team-1"],
+        });
+    });
+
+    it("will not send to «all teams» of a club that has none", async () => {
+        h.teamsResult = { data: { allTeam: [] }, loading: false };
+        await renderModal();
+        userEvent.type(subjectInput(), "موضوع");
+        await openAndPick(priorityInput(), "عادي");
+        fireEvent.click(submitButton());
+
+        expect(await screen.findByText("لا توجد فرق في ناديك لتصلها الرسالة")).toBeInTheDocument();
+        expect(h.createMessage).not.toHaveBeenCalled();
+    });
+
+    it("will not send without a club — the message would reach no one", async () => {
+        h.userData = { person: {} };
+        await renderModal();
+        userEvent.type(subjectInput(), "موضوع");
+        await openAndPick(priorityInput(), "عادي");
+        fireEvent.click(submitButton());
+
+        await waitFor(() => expect(h.notyfError).toHaveBeenCalledWith("تعذّر تحديد ناديك — سجّل الدخول مرة أخرى"));
         expect(h.createMessage).not.toHaveBeenCalled();
     });
 
@@ -203,7 +283,6 @@ describe("AddMessage (club) — validation & submit", () => {
         userEvent.type(subjectInput(), "  اجتماع  ");
         await setEditorHtml("<p>نص الرسالة</p>");
         await openAndPick(priorityInput(), "عاجل جدا");
-        await openAndPick(teamInput(), "الفريق الأول");
         const pdf = new File(["%PDF"], "report.pdf", { type: "application/pdf" });
         await dropFiles([pdf]);
 
@@ -217,7 +296,8 @@ describe("AddMessage (club) — validation & submit", () => {
             priority: "very_urgent",
             attachment: [pdf],
             id_club_sender: "club-1",
-            id_team_receiver: "team-2",
+            // No receiving team: the message reaches every team of the club.
+            id_team_receiver: null,
             id_team_sender: "",
         });
         expect(refetchQueries).toHaveLength(1);
@@ -230,7 +310,6 @@ describe("AddMessage (club) — validation & submit", () => {
         await renderModal();
         userEvent.type(subjectInput(), "موضوع");
         await openAndPick(priorityInput(), "عادي");
-        await openAndPick(teamInput(), "فريق الناشئين");
 
         fireEvent.click(submitButton());
         await waitFor(() => expect(h.createMessage).toHaveBeenCalledTimes(1));
@@ -244,7 +323,6 @@ describe("AddMessage (club) — validation & submit", () => {
         const { onClose } = await renderModal();
         userEvent.type(subjectInput(), "موضوع");
         await openAndPick(priorityInput(), "عادي");
-        await openAndPick(teamInput(), "فريق الناشئين");
 
         fireEvent.click(submitButton());
 
@@ -259,7 +337,8 @@ describe("AddMessage (club) — validation & submit", () => {
         userEvent.type(subjectInput(), "موضوع قديم");
         await setEditorHtml("<p>نص قديم</p>");
         await openAndPick(priorityInput(), "عاجل");
-        await openAndPick(teamInput(), "الفريق الأول");
+        chooseSomeTeams();
+        await pickTeam("الفريق الأول");
         await dropFiles([new File(["x"], "old.png", { type: "image/png" })]);
         expect(screen.getByText("old.png")).toBeInTheDocument();
 
@@ -271,7 +350,8 @@ describe("AddMessage (club) — validation & submit", () => {
 
         await waitFor(() => expect(subjectInput().value).toBe(""));
         expect(priorityInput().value).toBe("");
-        expect(teamInput().value).toBe("");
+        expect(screen.getByLabelText("جميع الفرق")).toBeChecked();
+        expect(teamsInput()).toBeNull();
         expect(screen.queryByText("old.png")).not.toBeInTheDocument();
         expect((document.querySelector(".ProseMirror") as HTMLElement).textContent).toBe("");
     });
