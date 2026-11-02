@@ -141,6 +141,21 @@ console.log(`${c.cyan}▶ Transfer resolver (create / update)${c.reset}`);
         /CreateNotificationTeam\(\s*"loan"\s*,\s*"rejected"\s*,\s*transfer\.id_team_from/.test(update),
         "updateTransfer notifies the lending team on reject (request with no road)"
     );
+
+    // Cancelling a still-pending loan from the loans page used to soft-delete
+    // the transfer and leave its road open: the player stayed waiting_club and
+    // the unpaid charge stayed on the team. The road is closed first now.
+    const back = sliceFn(src, "BackToOldTeamTransfer", 4000);
+    const withdrawAt = back.indexOf("withdrawFlow(");
+    assert(
+        withdrawAt !== -1 && withdrawAt < back.indexOf("DB.transaction("),
+        "BackToOldTeamTransfer closes a pending loan's road before removing it"
+    );
+    const del = sliceFn(src, "deleteTransfer");
+    assert(
+        del.indexOf("withdrawFlow(") !== -1 && del.indexOf("withdrawFlow(") < del.indexOf("Transfer.destroy("),
+        "deleteTransfer closes the road before removing the transfer"
+    );
 }
 
 // ── Backend: auto-return cron ────────────────────────────────────────────────

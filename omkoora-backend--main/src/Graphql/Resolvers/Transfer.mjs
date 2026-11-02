@@ -14,7 +14,7 @@ import {CreateNotificationTeam, CreateNotificationClub} from "../../Helpers/inde
 import {removeReceivingTeamParticipations, removeReceivingTeamParticipationsTechnical} from "../../Helpers/LoanReturn.mjs";
 import { initialTransferStatus, transferTransition, resolveDestinationTeam } from "../../Helpers/transferFlow.mjs";
 import { callerClubId, clubOfTeam } from "../../Helpers/clubScope.mjs";
-import { openFlow, flowFor, advanceFlow } from "../../Helpers/requestFlowRunner.mjs";
+import { openFlow, flowFor, advanceFlow, withdrawFlow } from "../../Helpers/requestFlowRunner.mjs";
 import { openingStage, isDone, CLUB_PROCESSING, REJECTED_FINAL } from "../../Helpers/requestFlow.mjs";
 
 const CLUB_ADMIN_ROLE = "2";
@@ -398,6 +398,11 @@ export const resolvers = {
 
         deleteTransfer: async (obj, {id}, context, info) =>  {
             try {
+                await withdrawFlow({
+                    entity_type: "transfer", entity_id: id,
+                    by: (await callerClubId(context)) ? "club" : "team",
+                    id_user: context?.user?.id || null,
+                })
                 const team = await Transfer.destroy({ where: { id } })
 
                 return {
@@ -419,6 +424,15 @@ export const resolvers = {
                 if (!transfer) {
                     throw new ApolloError(`Transfer with ID ${id} not found`);
                 }
+
+                // A loan still on the road is a request being withdrawn: close its
+                // road first, so the player is active again and its unpaid
+                // charges are withdrawn — not left as a debt on the team.
+                await withdrawFlow({
+                    entity_type: "transfer", entity_id: transfer.id,
+                    by: (await callerClubId(context)) ? "club" : "team",
+                    id_user: context?.user?.id || null,
+                });
 
                 // Return the loan atomically: restore the player's team, drop
                 // his league enrolment(s) with the RECEIVING team, then

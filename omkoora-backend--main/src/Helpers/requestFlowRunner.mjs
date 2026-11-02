@@ -19,7 +19,7 @@ import { CreateDirectNotification } from "./Notification.mjs";
 import { normalizeAmount, PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED } from "./clubFees.mjs";
 import {
     canAdvance, suggestedFee, legacyStatusFor, legacyDecisionMove, outcomeOf, stageLabelFor,
-    requestTypeInfo, requestTypeLabel, drivesFlow,
+    requestTypeInfo, requestTypeLabel, drivesFlow, isDone,
     SUBMITTED, REJECTED_INITIAL, CLUB_PROCESSING, AWAITING_PAYMENT, PAID_REVIEW,
     APPROVED, REJECTED_FINAL, CANCELLED,
 } from "./requestFlow.mjs";
@@ -339,6 +339,18 @@ export const onReceiptSubmitted = async (payment, { id_user = null } = {}) => {
     if (!flow || flow.stage !== AWAITING_PAYMENT || !drivesFlow(payment, flow)) return null;
     // الإيصال هو ما يملك هذا الانتقال — ومن هنا وحده يُمنح.
     return advanceFlow({ flow, to: PAID_REVIEW, by: "team", id_user, viaReceipt: true });
+};
+
+/**
+ * طلبٌ أُلغي من صفحته القديمة — «إلغاء» في الإعارات والانتقالات — يُغلق خطّه
+ * «ملغى» على الطريق نفسه: يعود اللاعب فاعلاً، وتُسحب مطالباته غير المسدّدة.
+ * كان السجلّ يُحذف والخطّ قائماً، فيبقى اللاعب «بانتظار النادي» والرسوم ديناً.
+ * وخطٌّ انتهى لا يُمسّ: إعارةٌ اعتُمدت ثم أُعيد لاعبها ليست طلباً أُلغي.
+ */
+export const withdrawFlow = async ({ entity_type, entity_id, by, id_user = null }) => {
+    const flow = await flowFor(entity_type, entity_id, { withEvents: false });
+    if (!flow || isDone(flow.stage)) return null;
+    return advanceFlow({ flow, to: CANCELLED, by, id_user, note: "أُلغي من صفحة الإعارات والانتقالات" });
 };
 
 /** النادي ردّ الإيصال، فيعود الطلب إلى السداد لا إلى طريق مسدود. */
