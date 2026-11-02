@@ -10,6 +10,8 @@
  *      the LENDING team.
  *   3. When the loan period ends the player returns to the ORIGINAL team
  *      (id_team_from) — the cron previously used id_team_to, the wrong team.
+ *   4. Only a party to the transfer may cancel, return, delete or re-date it —
+ *      these mutations used to trust any logged-in caller holding the UUID.
  *
  * Pure text checks: no DB, no network. Run with:
  *   node tests/test-loan-flow.mjs
@@ -155,6 +157,67 @@ console.log(`${c.cyan}▶ Transfer resolver (create / update)${c.reset}`);
     assert(
         del.indexOf("withdrawFlow(") !== -1 && del.indexOf("withdrawFlow(") < del.indexOf("Transfer.destroy("),
         "deleteTransfer closes the road before removing the transfer"
+    );
+}
+
+// ── Backend: who may touch a transfer ────────────────────────────────────────
+console.log(`${c.cyan}▶ Transfer resolver (ownership)${c.reset}`);
+{
+    const src = read(BACKEND, "src", "Graphql", "Resolvers", "Transfer.mjs");
+
+    // The rule itself: super-admin passes; a team only on its own team's
+    // transfer; a club on its own club's, read from the stored id_club_* and from
+    // both teams' clubs (older rows never had id_club_* filled); everyone else
+    // is refused with a code the client can read.
+    const party = sliceFn(src, "assertTransferParty");
+    assert(party !== "", "Transfer.mjs defines assertTransferParty");
+    assert(
+        /role\s*===\s*SUPER_ADMIN_ROLE\s*\)\s*return/.test(party) && /SUPER_ADMIN_ROLE\s*=\s*"1"/.test(src),
+        "the super-admin may act on any transfer"
+    );
+    assert(
+        /callerTeamId\(\s*context\s*\)/.test(party) &&
+            /\[\s*transfer\.id_team_from\s*,\s*transfer\.id_team_to\s*\]\.includes\(\s*myTeam\s*\)/.test(party),
+        "a team may act only when it is id_team_from or id_team_to"
+    );
+    assert(
+        /callerClubId\(\s*context\s*\)/.test(party) &&
+            /clubOfTeam\(\s*transfer\.id_team_from\s*\)/.test(party) &&
+            /clubOfTeam\(\s*transfer\.id_team_to\s*\)/.test(party) &&
+            /transfer\.id_club_from/.test(party) && /transfer\.id_club_to/.test(party),
+        "a club may act when it is the from- or to-club, resolved through the teams too"
+    );
+    assert(
+        /throw\s+new\s+ApolloError\(\s*"[^"]+"\s*,\s*"TRANSFER_NOT_YOURS"\s*\)/.test(party),
+        "anyone else is refused with TRANSFER_NOT_YOURS"
+    );
+
+    // Each mutation checks the caller on the row it loaded, before the first
+    // write — and keeps the refusal's code instead of re-wrapping it.
+    const guards = [
+        ["BackToOldTeamTransfer", ["withdrawFlow(", "DB.transaction("]],
+        ["deleteTransfer", ["withdrawFlow(", "Transfer.destroy("]],
+        ["updateLoan", ["Transfer.update("]],
+    ];
+    for (const [name, writes] of guards) {
+        const fn = sliceFn(src, name);
+        const loadAt = fn.indexOf("Transfer.findByPk(");
+        const checkAt = fn.indexOf("assertTransferParty(context, transfer)");
+        assert(
+            loadAt !== -1 && checkAt > loadAt && writes.every((w) => fn.indexOf(w) > checkAt),
+            `${name} checks the caller is a party before ${writes.join(" / ")}`
+        );
+        assert(
+            /error\s+instanceof\s+ApolloError\s*\)\s*throw\s+error/.test(fn),
+            `${name} rethrows TRANSFER_NOT_YOURS with its code`
+        );
+    }
+
+    // Ended loans are soft-deleted by loanCleanup, and the loans page still
+    // cancels them — the ownership check must not bring back a paranoid read.
+    assert(
+        /Transfer\.findByPk\(\s*id\s*,\s*\{\s*paranoid\s*:\s*false\s*\}\s*\)/.test(sliceFn(src, "BackToOldTeamTransfer")),
+        "BackToOldTeamTransfer still reads ended (soft-deleted) loans"
     );
 }
 

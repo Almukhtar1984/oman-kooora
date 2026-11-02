@@ -13,11 +13,13 @@ import DB from '../../Config/DBContact.mjs';
 import {CreateNotificationTeam, CreateNotificationClub} from "../../Helpers/index.mjs";
 import {removeReceivingTeamParticipations, removeReceivingTeamParticipationsTechnical} from "../../Helpers/LoanReturn.mjs";
 import { initialTransferStatus, transferTransition, resolveDestinationTeam } from "../../Helpers/transferFlow.mjs";
-import { callerClubId, clubOfTeam } from "../../Helpers/clubScope.mjs";
+import { callerClubId, callerTeamId, clubOfTeam } from "../../Helpers/clubScope.mjs";
 import { openFlow, flowFor, advanceFlow, withdrawFlow } from "../../Helpers/requestFlowRunner.mjs";
 import { openingStage, isDone, CLUB_PROCESSING, REJECTED_FINAL } from "../../Helpers/requestFlow.mjs";
 
+const SUPER_ADMIN_ROLE = "1";
 const CLUB_ADMIN_ROLE = "2";
+const TEAM_ADMIN_ROLE = "3";
 
 // The club id a team belongs to (null if unknown). Used to route a move through
 // the from-club then the to-club.
@@ -25,6 +27,41 @@ const clubIdOfTeam = async (idTeam) => {
     if (!idTeam) return null;
     const t = await Team.findByPk(idTeam, { attributes: ["id", "id_club"] });
     return t?.id_club || null;
+};
+
+/**
+ * Refuse a cancel / return / delete / re-date from anyone outside the transfer.
+ *
+ * Only an id reaches these mutations, so whoever holds a transfer's UUID could
+ * otherwise send another club's loaned player home. The super-admin may act on
+ * any transfer; a club on one its club sends or receives; a team on one its
+ * team sends or receives. Nobody else — a league admin, a player's account.
+ *
+ * A club's side is read from the stored id_club_* and from the teams' clubs,
+ * the same match the club's loans page lists by (allPlayersClubLoaned), so every
+ * row a club sees it can still act on — older rows never had id_club_* filled.
+ *
+ * @throws {ApolloError} TRANSFER_NOT_YOURS
+ */
+const assertTransferParty = async (context, transfer) => {
+    const role = context?.user?.role;
+    if (role === SUPER_ADMIN_ROLE) return;
+
+    if (role === TEAM_ADMIN_ROLE) {
+        const myTeam = await callerTeamId(context);
+        if (myTeam && [transfer.id_team_from, transfer.id_team_to].includes(myTeam)) return;
+    } else if (role === CLUB_ADMIN_ROLE) {
+        const mine = await callerClubId(context);
+        if (mine) {
+            const [clubFrom, clubTo] = await Promise.all([
+                clubOfTeam(transfer.id_team_from),
+                clubOfTeam(transfer.id_team_to),
+            ]);
+            if ([transfer.id_club_from, transfer.id_club_to, clubFrom, clubTo].includes(mine)) return;
+        }
+    }
+
+    throw new ApolloError("هذا الانتقال أو الإعارة لا يخصّ ناديك أو فريقك", "TRANSFER_NOT_YOURS");
 };
 
 
@@ -398,6 +435,12 @@ export const resolvers = {
 
         deleteTransfer: async (obj, {id}, context, info) =>  {
             try {
+                const transfer = await Transfer.findByPk(id)
+                if (!transfer) {
+                    return { status: false }
+                }
+                await assertTransferParty(context, transfer)
+
                 await withdrawFlow({
                     entity_type: "transfer", entity_id: id,
                     by: (await callerClubId(context)) ? "club" : "team",
@@ -409,6 +452,7 @@ export const resolvers = {
                     status: team === 1
                 }
             } catch (error) {
+                if (error instanceof ApolloError) throw error
                 // logger.error(`Transfer.deleteTransfer: ${error?.message || error}`)
                 throw new ApolloError(error)
             }
@@ -424,6 +468,7 @@ export const resolvers = {
                 if (!transfer) {
                     throw new ApolloError(`Transfer with ID ${id} not found`);
                 }
+                await assertTransferParty(context, transfer);
 
                 // A loan still on the road is a request being withdrawn: close its
                 // road first, so the player is active again and its unpaid
@@ -481,11 +526,19 @@ export const resolvers = {
                 };
             } catch (error) {
                 logger.error(`Error in BackToOldTeamTransfer resolver: ${error.message}`);
+                // Keep a refusal's code (TRANSFER_NOT_YOURS) readable by the client.
+                if (error instanceof ApolloError) throw error;
                 throw new ApolloError(error.message || 'An error occurred while processing the request');
             }
         },
         updateLoan: async (obj, { id, date_start, date_end }, context, info) => {
             try {
+                const transfer = await Transfer.findByPk(id);
+                if (!transfer) {
+                    return { status: false };
+                }
+                await assertTransferParty(context, transfer);
+
                 const [updated] = await Transfer.update(
                     { date_start, date_end }, // Fields to update
                     { where: { id } } // Update condition
@@ -495,6 +548,7 @@ export const resolvers = {
                     status: updated === 1 // Check if exactly one record was updated
                 };
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
                 // Log error or handle it as needed
                 throw new ApolloError(error.message || "Failed to update loan");
             }
