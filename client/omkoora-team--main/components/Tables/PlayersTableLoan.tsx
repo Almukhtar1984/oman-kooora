@@ -8,6 +8,7 @@ import {ActionIcon, Badge, Group, Menu, Pagination} from '@mantine/core';
 import {DotsVertical, Check, X, Calendar, ArrowBack} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
+import {dateCell, gridTemplate, TRANSFER_SEARCH_KEYS} from "../../lib/helpers/tableGrid";
 
 const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
@@ -26,24 +27,6 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
         nodes: []
     });
 
-    const theme = useTheme({
-        ...mantineTheme,
-        HeaderRow: `
-            .th {
-                text-align: right;
-                border-bottom: 1px solid #dee2e6;
-            }
-        `,
-        BaseCell: `
-            padding: 10px 10px;
-            text-align: right;
-        `,
-        Table: `
-            --data-table-library_grid-template-columns:  80px 150px 15% 15% 10% 12% 12% 10% 20% 12% 10% 10% 10% 12% 10% 25% ;
-            min-height: 250px;
-        `,
-    });
-
     const pagination = usePagination(allMembers, {
         state: {
             page: 0,
@@ -57,7 +40,7 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
     }, [list]);
 
     useEffect(() => {
-        const filterAllMembers = searchSortedData(list,['name'], search)
+        const filterAllMembers = searchSortedData(list, TRANSFER_SEARCH_KEYS, search)
         setAllMembers({nodes: [...filterAllMembers]})
     }, [search]);
 
@@ -83,8 +66,22 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
         typeof setOpenReturningModal === "function" && setOpenReturningModal(true)
     }
 
+    const member = (item: any) => item?.player || item?.technicalApparatus;
+
+    const teamWithClub = (team: any) =>
+        team?.name ? (team?.club?.name ? `${team.name} — ${team.club.name}` : team.name) : '';
+
+    // «مستمر/منتهي» describes a loan that took effect — a pending or refused
+    // request has no running loan, and a loan without an end date has no end.
+    const loanState = (item: any) => {
+        if (item?.status !== "accepted" || dateCell(item?.date_end) === "—") return "—";
+        return new Date(item.date_end) > new Date()
+            ? <Badge fw={500} color="green">مستمر</Badge>
+            : <Badge fw={500} color="red">منتهي</Badge>;
+    };
+
     const COLUMNS = [
-        {label: 'الخيارات', renderCell: (item) => (
+        {label: 'الخيارات', width: '80px', renderCell: (item) => (
                 <Group>
                     <Menu shadow="md" width={200} position={"bottom"}>
                         <Menu.Target>
@@ -115,7 +112,7 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
                 </Group>
             )
         },
-        {label: 'حالة الطلب', renderCell: (item) => (
+        {label: 'حالة الطلب', width: '180px', renderCell: (item) => (
             item?.status == "accepted" ? <Badge fw={500} color="teal">مقبول</Badge>
                 : item?.status == "rejected" ? <Badge fw={500} color="red">مرفوض</Badge>
                     : item?.status == "waiting_club_from" ? <Badge fw={500} color="yellow">بانتظار نادي اللاعب</Badge>
@@ -123,33 +120,45 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
                         : item?.status == "waiting_payment" ? <Badge fw={500} color="orange">بانتظار الرسوم والاعتماد</Badge>
                             : <Badge fw={500} color="yellow">قيد الانتظار</Badge>
         )},
-        {label: 'إسم الفريق القديم', renderCell: (item) => `${item?.team_from?.name}`  },
-        {label: 'إسم الفريق الجديد', renderCell: (item) => `${item?.team_to?.name}`  },
-        {label: '', renderCell: (item) => (
+        {label: 'إسم الفريق القديم', width: '15%', renderCell: (item) => teamWithClub(item?.team_from) || '—' },
+        {label: 'إسم الفريق الجديد', width: '15%', renderCell: (item) => teamWithClub(item?.team_to) || item?.club_to?.name || '—' },
+        {label: '', width: '80px', renderCell: (item) => (
             item?.team_to?.id === idTeam ? <Badge fw={500} color="teal">قادم</Badge>
                 : item?.team_from?.id === idTeam ? <Badge fw={500} color="red">طالع</Badge>
                     : null
         )},
-        {label: 'تاريح بداية الإعارة', renderCell: (item) => item?.date_start !== "1970-01-01" ? `${item?.date_start}` : null  },
-        {label: 'تاريح نهاية الإعارة', renderCell: (item) => item?.date_end !== "1970-01-01" ? `${item?.date_end}` : null  },
-        {label: 'حالة الإعارة', renderCell: (item) => (
-            item?.date_end === "1970-01-01"
-                ? null
-                : new Date(item?.date_end) > new Date()
-                    ? <Badge fw={500} color="green">مستمر</Badge>
-                    : <Badge fw={500} color="red">منتهي</Badge>
-        )},
+        {label: 'تاريخ بداية الإعارة', width: '130px', renderCell: (item) => dateCell(item?.date_start) },
+        {label: 'تاريخ نهاية الإعارة', width: '130px', renderCell: (item) => dateCell(item?.date_end) },
+        {label: 'حالة الإعارة', width: '110px', renderCell: (item) => loanState(item) },
 
-        {label: 'الاسم الكامل', renderCell: (item) => { const s = item?.player || item?.technicalApparatus; return `${s?.person?.first_name ?? ''} ${s?.person?.second_name ?? ''} ${s?.person?.third_name ?? ''} ${s?.person?.tribe ?? ''}`; } },
-        {label: 'النوع', renderCell: (item) => item?.technicalApparatus ? 'جهاز فني' : 'لاعب' },
-        {label: 'رقم الهاتف', renderCell: (item) => (item?.player || item?.technicalApparatus)?.person?.phone },
-        {label: 'رقم البطاقه', renderCell: (item) => (item?.player || item?.technicalApparatus)?.person?.card_number },
-        {label: 'تاريخ الميلاد', renderCell: (item) => (item?.player || item?.technicalApparatus)?.person?.date_birth },
-        {label: 'النشاط', renderCell: (item) => item?.activity ?? item?.technicalApparatus?.classification },
-        {label: 'مركز لاعب', renderCell: (item) => item?.player_center },
-        {label: 'العمل', renderCell: (item) => item?.job },
-        {label: 'الملاحظة / سبب الرفض', renderCell: (item) => item?.note },
+        {label: 'الاسم الكامل', width: '20%', renderCell: (item) => { const s = member(item); return `${s?.person?.first_name ?? ''} ${s?.person?.second_name ?? ''} ${s?.person?.third_name ?? ''} ${s?.person?.tribe ?? ''}`; } },
+        {label: 'النوع', width: '90px', renderCell: (item) => item?.technicalApparatus ? 'جهاز فني' : 'لاعب' },
+        {label: 'رقم الهاتف', width: '12%', renderCell: (item) => member(item)?.person?.phone },
+        {label: 'رقم البطاقه', width: '12%', renderCell: (item) => member(item)?.person?.card_number },
+        {label: 'تاريخ الميلاد', width: '12%', renderCell: (item) => member(item)?.person?.date_birth },
+        // These live on the player (or the staff member), not on the loan.
+        {label: 'النشاط', width: '10%', renderCell: (item) => item?.player?.activity ?? item?.technicalApparatus?.classification },
+        {label: 'مركز لاعب', width: '10%', renderCell: (item) => item?.player?.player_center },
+        {label: 'العمل', width: '10%', renderCell: (item) => item?.player?.job ?? item?.technicalApparatus?.occupation },
     ];
+
+    const theme = useTheme({
+        ...mantineTheme,
+        HeaderRow: `
+            .th {
+                text-align: right;
+                border-bottom: 1px solid #dee2e6;
+            }
+        `,
+        BaseCell: `
+            padding: 10px 10px;
+            text-align: right;
+        `,
+        Table: `
+            --data-table-library_grid-template-columns: ${gridTemplate(COLUMNS)};
+            min-height: 250px;
+        `,
+    });
 
     return (
         <>
