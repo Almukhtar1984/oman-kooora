@@ -87,7 +87,9 @@ export const BulkActionToolbar = ({
                     )}
                 </Group>
 
-                <Group spacing="xs" noWrap>
+                {/* Wraps like the selection group beside it: three or four buttons do
+                    not fit a phone on one line, and the page used to scroll sideways. */}
+                <Group spacing="xs" sx={{ flexWrap: "wrap", rowGap: 8 }}>
                     {hasSelection && (
                         <Button
                             size="xs"

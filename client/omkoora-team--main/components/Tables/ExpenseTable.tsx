@@ -3,7 +3,7 @@ import {ActionIcon, Group, Menu, Stack, Text} from '@mantine/core';
 import {DotsVertical, Check, X, File,SortAscending, SortDescending} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
-import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
@@ -134,7 +134,7 @@ export const ExpenseTable = ({ loading, list, search, setOpenEditModal, setOpenD
                 : null
         ), width: '120px'},
         {name: 'السبب / الملاحظة', selector: (item: any) => item?.note },
-        {name: 'تاريخ الانشاء', selector: (item: any) => dayjs(item?.createdAt).format("YYYY-MM-DD"), width: '150px' },
+        {name: 'تاريخ الانشاء', selector: (item: any) => formatDay(item?.createdAt), width: '150px' },
     ];
 
     const MOBILE_COLUMNS = [
@@ -162,7 +162,7 @@ export const ExpenseTable = ({ loading, list, search, setOpenEditModal, setOpenD
             </Text>
         ), width: '80px'},
     
-        {name: 'التاريخ', selector: (item: any) => dayjs(item?.createdAt).format("YYYY-MM-DD"), width: '110px'},
+        {name: 'التاريخ', selector: (item: any) => formatDay(item?.createdAt), width: '110px'},
         {name: 'المرفق', selector: (item: any) => (
             item.attachment && item.attachment !== "" ?
                 <Group position={"center"} spacing={2}>

@@ -8,7 +8,7 @@ import {ActionIcon, Badge, Group, Menu, Pagination, Text} from '@mantine/core';
 import {DotsVertical, Check, X, Id, CalendarStats} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
-import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 
 const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
@@ -97,7 +97,7 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
 
         {label: 'السبب / الملاحظة', renderCell: (item) => item?.note },
 
-        {label: 'تاريخ الانشاء', renderCell: (item) => dayjs(item?.createdAt).format("YYYY-MM-DD") },
+        {label: 'تاريخ الانشاء', renderCell: (item) => formatDay(item?.createdAt) },
     ];
 
     return (

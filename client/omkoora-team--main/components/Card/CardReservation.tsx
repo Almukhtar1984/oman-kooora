@@ -3,6 +3,7 @@ import { ActionIcon, Avatar, Box, BoxProps, Flex, MantineTheme, Menu, Text, Stac
 import { DotsVertical, Edit, Trash, Check } from "tabler-icons-react";
 import React, { useState } from "react";
 import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 import { useUpdateReservationStatus, useDeleteReservation ,reservationsByTeam} from "../../graphql/index";
 
 type Props = {
@@ -99,7 +100,7 @@ const CardReservation = ({ data, onDeleteModal, hasPermission,refetchReservation
                         <Flex gap="10px" h="100%" align={"center"}>
                             <Flex direction={"column"} gap="0">
                                 <Text size={"md"} color={"gray.6"}>
-                                    {` يوم ${dayjs(data?.date).format("YYYY-MM-DD")}`}
+                                    {` يوم ${formatDay(data?.date)}`}
                                 </Text>
                                 <Text size={"sm"} color={"gray.5"}>
                                     {dayjs(data?.createdAt).locale("ar").fromNow()}

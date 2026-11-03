@@ -67,3 +67,15 @@ export const ageInYears = (birth: unknown, now: Date = new Date()): number | nul
     if (beforeBirthday) years--;
     return years;
 };
+
+/**
+ * A stored date as YYYY-MM-DD, or a dash. `dayjs(null).format()` printed
+ * "Invalid Date", and `dayjs(undefined)` silently printed TODAY for a date that
+ * was never set — a membership "ending" the day you look at it.
+ */
+export const formatDay = (value: unknown, fallback = "—"): string => {
+    const date = parseDate(value);
+    if (!date) return fallback;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};

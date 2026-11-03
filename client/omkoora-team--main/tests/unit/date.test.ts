@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageInYears, parseDate } from "../../lib/helpers/date";
+import { ageInYears, formatDay, parseDate } from "../../lib/helpers/date";
 
 const ymd = (d: Date | null) =>
     d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : null;
@@ -48,5 +48,21 @@ describe("ageInYears", () => {
     it("is null for an unusable date instead of throwing", () => {
         expect(ageInYears("Invalid Date", now)).toBeNull();
         expect(ageInYears(new Date("nope"), now)).toBeNull();
+    });
+});
+
+describe("formatDay", () => {
+    it("prints a stored date as YYYY-MM-DD, whatever format it was stored in", () => {
+        expect(formatDay("2026-07-01")).toBe("2026-07-01");
+        expect(formatDay("2026-07-01T10:00:00.000Z")).toBe("2026-07-01");
+        expect(formatDay("01/07/2026")).toBe("2026-07-01");
+    });
+
+    it("prints a dash — not «Invalid Date», and not today — when there is no date", () => {
+        expect(formatDay(null)).toBe("—");
+        expect(formatDay(undefined)).toBe("—");
+        expect(formatDay("")).toBe("—");
+        expect(formatDay("Invalid Date")).toBe("—");
+        expect(formatDay(null, "غير متوفر")).toBe("غير متوفر");
     });
 });

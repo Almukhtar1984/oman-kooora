@@ -132,8 +132,9 @@ export default function Releases() {
                     <Stack spacing="sm">
                         {rows.map((row: any) => (
                             <Paper key={row.id} p="md" radius="md" withBorder>
-                                <Group position="apart" align="flex-start" noWrap>
-                                    <Box sx={{ flex: 1 }}>
+                                {/* As on the payments page: the buttons drop under the details on a phone. */}
+                                <Group position="apart" align="flex-start" spacing="sm">
+                                    <Box sx={{ flex: 1, minWidth: 240 }}>
                                         <Group spacing={8} mb={4}>
                                             <Text weight={600} color="gray.8">{fullName(row?.player?.person) || "—"}</Text>
                                             <Badge color={STATUS_COLOR[row.status] || "gray"} variant="light">

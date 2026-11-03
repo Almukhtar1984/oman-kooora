@@ -256,6 +256,9 @@ export const AddParticipatingPlayers = ({data, ...props}: Props) => {
     };
 
     useEffect(() => {
+        // The count needs a league: fired on every page mount with none selected,
+        // the server refused it ("$idLeague of required type ID! was not provided").
+        if (!props.opened || !data?.id) return;
         countData({
             variables: { idTeam: userData?.person?.member?.team.id, idLeague: data?.id },
             onCompleted: (datacountExternalPlayers) => {

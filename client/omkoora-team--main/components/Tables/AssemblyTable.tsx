@@ -6,6 +6,7 @@ import {searchSortedData} from "../../lib/helpers/sort";
 import {openPrint} from "../../lib/helpers/openPrint";
 import {getImageUrl} from "../../lib/helpers/image";
 import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 import { useMediaQuery } from "@mantine/hooks";
 import DataTable, {TableStyles} from 'react-data-table-component';
 import { IconDatabaseOff } from '@tabler/icons-react';
@@ -132,7 +133,7 @@ export const AssemblyTable = ({ loading, list, search, setOpenEditModal, setOpen
             </Group>
         ), width: '80px'},
         {name: 'الاسم الكامل', selector: (item: any) => `${item?.first_name} ${item?.second_name} ${item?.third_name} ${item?.tribe}`, width: '200px'  },
-        {name: 'تاريخ الميلاد', selector: (item: any) => dayjs(item?.date_birth).format("YYYY-MM-DD"), width: '120px' },
+        {name: 'تاريخ الميلاد', selector: (item: any) => formatDay(item?.date_birth), width: '120px' },
         {name: 'الرقم المدني', selector: (item: any) => item?.card_number, width: '120px' },
         {name: 'رقم الهاتف', selector: (item: any) => item?.phone, width: '120px' },
         {name: 'العضوية', selector: (item: any) => item?.type, width: '120px' },
@@ -155,7 +156,7 @@ export const AssemblyTable = ({ loading, list, search, setOpenEditModal, setOpen
             </ActionIcon>
         </Group>
           ),
-          selector: (item: any) => dayjs(item?.subscription_date).format("YYYY-MM-DD"),
+          selector: (item: any) => formatDay(item?.subscription_date),
           
           width: '200px'
       },

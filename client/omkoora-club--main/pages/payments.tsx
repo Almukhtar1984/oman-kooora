@@ -182,8 +182,10 @@ export default function Payments() {
                     <Stack spacing="sm">
                         {rows.map((row: any) => (
                             <Paper key={row.id} p="md" radius="md" withBorder>
-                                <Group position="apart" align="flex-start" noWrap>
-                                    <Box sx={{ flex: 1 }}>
+                                {/* The buttons drop under the details when there is no room beside them
+                                    — on a phone they used to be pushed out past the card's edge. */}
+                                <Group position="apart" align="flex-start" spacing="sm">
+                                    <Box sx={{ flex: 1, minWidth: 240 }}>
                                         <Group spacing={8} mb={4}>
                                             <Text weight={600} color="gray.8">{row.label || row.fee_type}</Text>
                                             {row.subject && (

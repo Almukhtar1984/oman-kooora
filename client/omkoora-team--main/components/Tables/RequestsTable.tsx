@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {ActionIcon, Badge, Group, Menu, Stack, Text} from '@mantine/core';
 import {Check, DotsVertical, X} from "tabler-icons-react";
-import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
 
@@ -124,7 +124,7 @@ export const RequestsTable = ({ loading, list, search, setOpenEditModal, setOpen
         ), width: '120px'},
         {name: 'الطلب', selector: (item: any) => `${item?.content}`, width: '300px'  },
         {name: 'الملاحظة / سبب الرفض', selector: (item: any) => item?.note, width: '300px' },
-        {name: 'تاريخ الطلب', selector: (item: any) => dayjs(item?.createdAt).format("YYYY-MM-DD"), width: '120px' },
+        {name: 'تاريخ الطلب', selector: (item: any) => formatDay(item?.createdAt), width: '120px' },
     ];
 
     return (

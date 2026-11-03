@@ -2,7 +2,7 @@ import * as React from 'react';
 import { CompactTable } from '@table-library/react-table-library/compact';
 import {ActionIcon, Badge, Group, Menu, Pagination, Stack, Text} from '@mantine/core';
 import {Check, DotsVertical, EditCircle, FileCertificate, Paperclip, Trash, X,InfoCircle,TransferOut,ArrowsLeftRight} from "tabler-icons-react";
-import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
 
@@ -146,8 +146,8 @@ export const TechnicalsTable = ({ loading, list, search, setOpenEditModal, setOp
         {name: 'تاريخ الميلاد', selector: (item: any) => item?.person?.date_birth, width: '120px' },
         {name: 'الوظيفه', selector: (item: any) => item?.occupation, width: '120px' },
         {name: 'التصنيف', selector: (item: any) => item?.classification, width: '120px' },
-        {name: 'تاريخ العقد', selector: (item: any) => dayjs(item?.membership_date).format("YYYY-MM-DD"), width: '120px' },
-        {name: 'تاريخ نهاية العقد', selector: (item: any) => dayjs(item?.membership_date_end).format("YYYY-MM-DD"), width: '150px' },
+        {name: 'تاريخ العقد', selector: (item: any) => formatDay(item?.membership_date), width: '120px' },
+        {name: 'تاريخ نهاية العقد', selector: (item: any) => formatDay(item?.membership_date_end), width: '150px' },
         {name: 'حالة الدفع', selector: (item: any) => item?.paid ? "مدفوع" : "لم يتم الدفع", width: '150px' },
         {name: 'تنزيل الملف', selector: (item: any) => (
             item.testimony_experience && item.testimony_experience !== "" ?
@@ -229,7 +229,7 @@ export const TechnicalsTable = ({ loading, list, search, setOpenEditModal, setOp
                   الدور: {item?.role === "1" ? "مدير" : "مشرف"}
                 </Text>
                 <Text size="xs" mt="xs" color="dimmed">
-                  تاريخ نهاية العضوية: {dayjs(item?.membership_date_end).format("YYYY-MM-DD") || 'غير متوفر'}
+                  تاريخ نهاية العضوية: {formatDay(item?.membership_date_end, 'غير متوفر')}
                 </Text>
                 <Text size="xs" mt="xs" color="dimmed">
                   الصلاحيات: {item?.role === "1" ? "كامل الصلاحيات" : "صلاحيات مخصصة"}

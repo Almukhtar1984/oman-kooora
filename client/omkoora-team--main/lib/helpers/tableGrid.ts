@@ -4,6 +4,9 @@
 // one step further — the loans and transfers pages rendered exactly that once a
 // column was added. Each column now carries its own width and the grid is read
 // from the columns, so the two cannot drift apart again.
+//
+// Widths are fixed pixels, not percentages: a percentage of a phone's width
+// left a team name three letters wide. The table scrolls sideways instead.
 
 export type GridColumn = { width?: string };
 

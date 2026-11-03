@@ -3,6 +3,7 @@ import {IconDotsVertical, IconEdit, IconPlus, IconTrash,IconInfoCircle } from "@
 import Modal, { Props as ModalProps } from "./Modal";
 import useStore from "../../store/useStore";
 import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 import { useEffect } from "react";
 import {isWithinTimeWindow} from "../../lib/helpers/Time"
 
@@ -70,7 +71,7 @@ export const ShowMatch = ({data, setSelectedData, setOpenAddMatchResultModal,  s
                                             <Group style={{justifyContent: 'space-around'}}align="center">
                                                 <Stack spacing={5}>
                                                     <Text dir={"rtl"} ta={"center"} size={"14px"} color={theme.colors.gray[7]}>
-                                                        {dayjs(item?.date).format("YYYY-MM-DD")}
+                                                        {formatDay(item?.date)}
                                                     </Text>
                                                     <Text dir={"rtl"} ta={"center"} size={"13px"} color={theme.colors.gray[7]}>
                                                         {dayjs(item?.date).format("HH:mm")}

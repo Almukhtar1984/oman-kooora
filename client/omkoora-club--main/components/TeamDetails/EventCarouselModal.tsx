@@ -1,7 +1,7 @@
 import { Modal, Stack, Box, Group, Title, Badge, Text, Image } from "@mantine/core";
 import { Carousel } from '@mantine/carousel';
 import { CalendarEvent } from "tabler-icons-react";
-import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 import React from "react";
 
 interface EventCarouselModalProps {
@@ -44,7 +44,7 @@ export const EventCarouselModal = ({ opened, onClose, event }: EventCarouselModa
                 <Box>
                     <Group position="apart" mb="xs">
                         <Title order={4} color="#1E3A8A">{event?.name}</Title>
-                        <Badge size="lg" variant="dot">{dayjs(event?.date).format("YYYY-MM-DD")}</Badge>
+                        <Badge size="lg" variant="dot">{formatDay(event?.date)}</Badge>
                     </Group>
                     <Text color="dimmed" size="sm">{event?.description}</Text>
                 </Box>

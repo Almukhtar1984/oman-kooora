@@ -14,7 +14,7 @@ import {
   import React from "react";
   import Modal, { Props as ModalProps } from "./Modal";
   import { FileCertificate } from "tabler-icons-react";
-  import dayjs from "dayjs";
+  import { formatDay } from "../../lib/helpers/date";
   
   type Props = {
     item: any; // Replace 'any' with the appropriate type if available
@@ -106,7 +106,7 @@ import {
             <Col span={6}>
               <Text>
                 <strong>تاريخ الميلاد:</strong>{" "}
-                {dayjs(item?.person?.date_birth).format("YYYY-MM-DD") ||
+                {formatDay(item?.person?.date_birth) ||
                   "غير متوفر"}
               </Text>
             </Col>

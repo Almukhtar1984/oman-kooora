@@ -66,8 +66,8 @@ export const PlayersTableTransfer = ({ list, search, idTeam }: Props) => {
         {label: 'حالة الانتقال', width: '180px', renderCell: (item) => transferStageBadge(item?.status) },
         // The club, not just the team: several clubs have a team of the same
         // name, so two rows reading "فريق الاتحاد" can be two different teams.
-        {label: 'إسم الفريق القديم', width: '15%', renderCell: (item) => teamWithClub(item?.team_from) || '—' },
-        {label: 'إسم الفريق الجديد', width: '15%', renderCell: (item) => teamWithClub(item?.team_to) || item?.club_to?.name || '—' },
+        {label: 'إسم الفريق القديم', width: '220px', renderCell: (item) => teamWithClub(item?.team_from) || '—' },
+        {label: 'إسم الفريق الجديد', width: '220px', renderCell: (item) => teamWithClub(item?.team_to) || item?.club_to?.name || '—' },
         // Repeated rows for one player are its history; the date tells them apart.
         {label: 'تاريخ الانتقال', width: '120px', renderCell: (item) => dateCell(item?.date_start) },
 
@@ -77,15 +77,15 @@ export const PlayersTableTransfer = ({ list, search, idTeam }: Props) => {
                     : null
         )},
 
-        {label: 'الاسم الكامل', width: '20%', renderCell: (item) => { const s = member(item); return `${s?.person?.first_name ?? ''} ${s?.person?.second_name ?? ''} ${s?.person?.third_name ?? ''} ${s?.person?.tribe ?? ''}`; } },
+        {label: 'الاسم الكامل', width: '240px', renderCell: (item) => { const s = member(item); return `${s?.person?.first_name ?? ''} ${s?.person?.second_name ?? ''} ${s?.person?.third_name ?? ''} ${s?.person?.tribe ?? ''}`; } },
         {label: 'النوع', width: '90px', renderCell: (item) => item?.technicalApparatus ? 'جهاز فني' : 'لاعب' },
-        {label: 'رقم الهاتف', width: '12%', renderCell: (item) => member(item)?.person?.phone },
-        {label: 'رقم البطاقه', width: '12%', renderCell: (item) => member(item)?.person?.card_number },
-        {label: 'تاريخ الميلاد', width: '12%', renderCell: (item) => member(item)?.person?.date_birth },
+        {label: 'رقم الهاتف', width: '130px', renderCell: (item) => member(item)?.person?.phone },
+        {label: 'رقم البطاقه', width: '130px', renderCell: (item) => member(item)?.person?.card_number },
+        {label: 'تاريخ الميلاد', width: '130px', renderCell: (item) => member(item)?.person?.date_birth },
         // These live on the player (or the staff member), not on the transfer.
-        {label: 'النشاط', width: '10%', renderCell: (item) => item?.player?.activity ?? item?.technicalApparatus?.classification },
-        {label: 'مركز لاعب', width: '10%', renderCell: (item) => item?.player?.player_center },
-        {label: 'العمل', width: '10%', renderCell: (item) => item?.player?.job ?? item?.technicalApparatus?.occupation },
+        {label: 'النشاط', width: '120px', renderCell: (item) => item?.player?.activity ?? item?.technicalApparatus?.classification },
+        {label: 'مركز لاعب', width: '120px', renderCell: (item) => item?.player?.player_center },
+        {label: 'العمل', width: '120px', renderCell: (item) => item?.player?.job ?? item?.technicalApparatus?.occupation },
     ];
 
     const theme = useTheme({

@@ -18,7 +18,7 @@ import {
     X,
     InfoCircle
 } from "tabler-icons-react";
-import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
 import {Body, Cell, Header, HeaderCell, HeaderRow, Row, Table} from "@table-library/react-table-library/table";
@@ -154,7 +154,7 @@ export const ClubManagementTable = ({ loading, list, setOpenEditModal, setOpenDe
                   الدور: {item?.role === "1" ? "مدير" : "مشرف"}
                 </Text>
                 <Text size="xs" mt="xs" color="dimmed">
-                  تاريخ نهاية العضوية: {dayjs(item?.membership_date_end).format("YYYY-MM-DD") || 'غير متوفر'}
+                  تاريخ نهاية العضوية: {formatDay(item?.membership_date_end, 'غير متوفر')}
                 </Text>
                 <Text size="xs" mt="xs" color="dimmed">
                   الصلاحيات: {item?.role === "1" ? "كامل الصلاحيات" : "صلاحيات مخصصة"}
@@ -270,8 +270,8 @@ export const ClubManagementTable = ({ loading, list, setOpenEditModal, setOpenDe
                                     <Cell>{item?.person?.phone}</Cell>
                                     <Cell>{item?.person?.card_number}</Cell>
                                     <Cell>{item?.person?.date_birth}</Cell>
-                                    <Cell>{dayjs(item?.membership_date).format("YYYY-MM-DD")}</Cell>
-                                    <Cell>{dayjs(item?.membership_date_end).format("YYYY-MM-DD")}</Cell>
+                                    <Cell>{formatDay(item?.membership_date)}</Cell>
+                                    <Cell>{formatDay(item?.membership_date_end)}</Cell>
                                     <Cell>{item?.role === "1" ? "كامل الصلاحيات" : "صلاحيات مخصصة"}</Cell>
                                 </Row>
                             ))}

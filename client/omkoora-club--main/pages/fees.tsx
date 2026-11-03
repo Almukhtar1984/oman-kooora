@@ -90,8 +90,11 @@ export default function Fees() {
                             const draft = draftOf(fee);
                             return (
                                 <Paper key={fee.fee_type} p="md" radius="md" withBorder>
-                                    <Group position="apart" noWrap align="center">
-                                        <Box sx={{ flex: 1 }}>
+                                    {/* The price and switch drop under the title on a phone — kept on
+                                        one line they squeezed the title to a word a line and pushed the
+                                        switch out past the card. */}
+                                    <Group position="apart" align="center" spacing="sm">
+                                        <Box sx={{ flex: 1, minWidth: 200 }}>
                                             <Text weight={600} color="gray.8">{fee.label}</Text>
                                             <Text size="xs" color="gray.6">
                                                 {draft.active

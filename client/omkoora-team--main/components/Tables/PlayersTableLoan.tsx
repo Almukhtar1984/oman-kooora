@@ -120,8 +120,8 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
                         : item?.status == "waiting_payment" ? <Badge fw={500} color="orange">بانتظار الرسوم والاعتماد</Badge>
                             : <Badge fw={500} color="yellow">قيد الانتظار</Badge>
         )},
-        {label: 'إسم الفريق القديم', width: '15%', renderCell: (item) => teamWithClub(item?.team_from) || '—' },
-        {label: 'إسم الفريق الجديد', width: '15%', renderCell: (item) => teamWithClub(item?.team_to) || item?.club_to?.name || '—' },
+        {label: 'إسم الفريق القديم', width: '220px', renderCell: (item) => teamWithClub(item?.team_from) || '—' },
+        {label: 'إسم الفريق الجديد', width: '220px', renderCell: (item) => teamWithClub(item?.team_to) || item?.club_to?.name || '—' },
         {label: '', width: '80px', renderCell: (item) => (
             item?.team_to?.id === idTeam ? <Badge fw={500} color="teal">قادم</Badge>
                 : item?.team_from?.id === idTeam ? <Badge fw={500} color="red">طالع</Badge>
@@ -131,15 +131,15 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
         {label: 'تاريخ نهاية الإعارة', width: '130px', renderCell: (item) => dateCell(item?.date_end) },
         {label: 'حالة الإعارة', width: '110px', renderCell: (item) => loanState(item) },
 
-        {label: 'الاسم الكامل', width: '20%', renderCell: (item) => { const s = member(item); return `${s?.person?.first_name ?? ''} ${s?.person?.second_name ?? ''} ${s?.person?.third_name ?? ''} ${s?.person?.tribe ?? ''}`; } },
+        {label: 'الاسم الكامل', width: '240px', renderCell: (item) => { const s = member(item); return `${s?.person?.first_name ?? ''} ${s?.person?.second_name ?? ''} ${s?.person?.third_name ?? ''} ${s?.person?.tribe ?? ''}`; } },
         {label: 'النوع', width: '90px', renderCell: (item) => item?.technicalApparatus ? 'جهاز فني' : 'لاعب' },
-        {label: 'رقم الهاتف', width: '12%', renderCell: (item) => member(item)?.person?.phone },
-        {label: 'رقم البطاقه', width: '12%', renderCell: (item) => member(item)?.person?.card_number },
-        {label: 'تاريخ الميلاد', width: '12%', renderCell: (item) => member(item)?.person?.date_birth },
+        {label: 'رقم الهاتف', width: '130px', renderCell: (item) => member(item)?.person?.phone },
+        {label: 'رقم البطاقه', width: '130px', renderCell: (item) => member(item)?.person?.card_number },
+        {label: 'تاريخ الميلاد', width: '130px', renderCell: (item) => member(item)?.person?.date_birth },
         // These live on the player (or the staff member), not on the loan.
-        {label: 'النشاط', width: '10%', renderCell: (item) => item?.player?.activity ?? item?.technicalApparatus?.classification },
-        {label: 'مركز لاعب', width: '10%', renderCell: (item) => item?.player?.player_center },
-        {label: 'العمل', width: '10%', renderCell: (item) => item?.player?.job ?? item?.technicalApparatus?.occupation },
+        {label: 'النشاط', width: '120px', renderCell: (item) => item?.player?.activity ?? item?.technicalApparatus?.classification },
+        {label: 'مركز لاعب', width: '120px', renderCell: (item) => item?.player?.player_center },
+        {label: 'العمل', width: '120px', renderCell: (item) => item?.player?.job ?? item?.technicalApparatus?.occupation },
     ];
 
     const theme = useTheme({

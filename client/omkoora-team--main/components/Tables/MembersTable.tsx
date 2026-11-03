@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import {ActionIcon, Badge, Group, Menu, Stack, Text} from '@mantine/core';
 import {Check, DotsVertical, EditCircle, Trash, X,InfoCircle} from "tabler-icons-react";
-import dayjs from "dayjs";
+import { formatDay } from "../../lib/helpers/date";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
 import { useMediaQuery } from "@mantine/hooks";
@@ -114,8 +114,8 @@ export const MembersTable = ({ loading, list, search, setOpenEditModal, setNewSt
         {name: 'تاريخ الميلاد', selector: (item: any) => item?.person?.date_birth, width: '120px' },
         {name: 'الوظيفه', selector: (item: any) => item?.occupation, width: '120px' },
         {name: 'التصنيف', selector: (item: any) => item?.classification, width: '100px' },
-        {name: 'تاريخ العضويه', selector: (item: any) => dayjs(item?.membership_date).format("YYYY-MM-DD"), width: '120px' },
-        {name: 'تاريخ نهاية العضويه', selector: (item: any) => dayjs(item?.membership_date_end).format("YYYY-MM-DD"), width: '150px' },
+        {name: 'تاريخ العضويه', selector: (item: any) => formatDay(item?.membership_date), width: '120px' },
+        {name: 'تاريخ نهاية العضويه', selector: (item: any) => formatDay(item?.membership_date_end), width: '150px' },
         {name: 'حالة الدفع', selector: (item: any) => item?.paid ? "مدفوع" : "لم يتم الدفع", width: '120px' },
         {name: 'الحالة', selector: (item: any) => (
             item?.status == "accepted"
