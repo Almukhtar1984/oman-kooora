@@ -15,7 +15,10 @@ export const typeDefs = gql`
         allPlayersAcceptedExternal(limit: Int, offset: Int): PlayerPage!
         allPlayersClubTransferred(idClub: ID): [Player!] @auth(requires: user)
         allPlayersClubLoaned(idClub: ID): [Player!] @auth(requires: user)
-        statPlayer(id: ID!): StatPlayer @auth(requires: user) # New query to get StatPlayer
+        # Detailed player stats. "Must be logged in" — but a portal token (the
+        # mobile app member) counts too, so it is NOT @auth(requires: user)
+        # (which rejects portal tokens). The resolver enforces the login gate.
+        statPlayer(id: ID!): StatPlayer
     }
 
     extend type Mutation {

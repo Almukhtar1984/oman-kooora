@@ -309,7 +309,16 @@ export const resolvers = {
             }
         },
         
-        statPlayer: async (_, { id }) => {
+        statPlayer: async (_, { id }, context) => {
+            // Detailed stats are for signed-in members only, but the login can be
+            // a portal token (the mobile app) OR a dashboard account — the data
+            // is the same for any viewer; this is purely a "must be logged in"
+            // gate. A portal token never satisfies @auth(requires: user), which
+            // is why this is checked here instead of on the schema field.
+            if (!context?.portalPerson && !(context?.isAuth && context?.user)) {
+                throw new ApolloError("يلزم تسجيل الدخول", "AUTH_REQUIRED");
+            }
+
             // Fetch the player by ID
             const player = await Players.findByPk(id, {
                 include: [

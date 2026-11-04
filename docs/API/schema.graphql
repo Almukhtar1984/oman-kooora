@@ -246,7 +246,9 @@ extend type Query {
 extend type Mutation {
   saveAiSettings(content: aiSettingsInput!): statusUpdate @auth(requires: user)
   testAiConnection(provider: String!, apiKey: String): AiTestResult @auth(requires: user)
+  disconnectAiProvider(provider: String!): statusUpdate @auth(requires: user)
   generateMatchNews(id_match: ID!, publish: Boolean, id_team: ID, id_club: ID): Blog @auth(requires: user)
+  draftMatchNews(id_match: ID!): AiNewsDraft @auth(requires: user)
   draftNews(content: aiNewsDraftInput!): AiNewsDraft @auth(requires: user)
   draftMessage(content: aiMessageDraftInput!): AiMessageDraft @auth(requires: user)
 }
@@ -511,6 +513,58 @@ type UploadAssemblySheetResult {
   message: String
 }
 
+# ===================== ClubFees =====================
+extend type Query {
+  clubFees: [ClubFee!] @auth(requires: user)
+  requestPayments(status: String, idTeam: ID): [RequestPayment!] @auth(requires: user)
+}
+
+extend type Mutation {
+  saveClubFee(fee_type: String!, amount: Float, active: Boolean): ClubFee! @auth(requires: user)
+  createRequestPayment(content: contentRequestPayment!): RequestPayment! @auth(requires: user)
+  submitPaymentReceipt(id: ID!, reference_number: String!, receipt: Upload, amount: Float): statusUpdate @auth(requires: user)
+  submitPaymentsReceipt(ids: [ID!]!, reference_number: String!, receipt: Upload, amount: Float): statusUpdate @auth(requires: user)
+  decidePayment(id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
+}
+
+input contentRequestPayment {
+  fee_type: String!
+  id_team: ID!
+  amount: Float
+  entity_type: String
+  entity_id: ID
+  note: String
+}
+
+type ClubFee {
+  id: ID
+  fee_type: String
+  label: String
+  amount: Float
+  active: Boolean
+}
+
+type RequestPayment {
+  id: ID
+  fee_type: String
+  label: String
+  amount: Float
+  entity_type: String
+  entity_id: ID
+  subject: String
+  subject_card: String
+  status: String
+  reference_number: String
+  receipt: String @imgUrl
+  note: String
+  decision_note: String
+  paid_at: Date @date(format: "yyyy-MM-dd")
+  decided_at: Date @date(format: "yyyy-MM-dd")
+  createdAt: Date @date(format: "yyyy-MM-dd")
+  team: Team
+  club: Club
+}
+
 # ===================== ClubManagement =====================
 extend type Query {
   clubManagement(id: ID): ClubManagement @auth(requires: user)
@@ -638,6 +692,8 @@ type ExpenseSummary {
   profits: Float
   expenses: Float
   net: Float
+  memberAccounts: Float
+  balance: Float
 }
 
 # ===================== Form =====================
@@ -1211,6 +1267,41 @@ input contentUserAdminMember {
   email_verify: String
 }
 
+# ===================== Membership =====================
+extend type Query {
+  clubMembership(kind: String, status: String, search: String, page: Int, limit: Int): MembershipPage @auth(requires: user)
+}
+
+type MembershipPage {
+  total: Int
+  page: Int
+  limit: Int
+  counts: [MembershipCount!]!
+  rows: [MembershipRow!]!
+}
+
+type MembershipCount {
+  kind: String
+  label: String
+  count: Int
+}
+
+type MembershipRow {
+  id: ID
+  kind: String
+  label: String
+  status: String
+  full_name: String
+  card_number: String
+  phone: String
+  personal_picture: String @imgUrl
+  membership_number: String
+  membership_date: String
+  team_id: ID
+  team_name: String
+  createdAt: String
+}
+
 # ===================== Message =====================
 extend type Query {
   message(id: ID): Message @auth(requires: user)
@@ -1257,6 +1348,7 @@ input contentMessage {
   id_team_sender: ID
   id_team_receiver: ID
   id_club_receiver: ID
+  id_teams_receiver: [ID]
 }
 
 type Attachment {
@@ -1284,6 +1376,24 @@ input contentComment {
   id_message: ID
   id_team: ID
   id_club: ID
+}
+
+# ===================== PendingRequests =====================
+extend type Query {
+  clubPendingRequests: PendingRequests @auth(requires: user)
+  teamPendingRequests: PendingRequests @auth(requires: user)
+}
+
+type PendingRequests {
+  total: Int
+  groups: [PendingRequestGroup!]!
+}
+
+type PendingRequestGroup {
+  key: String
+  label: String
+  href: String
+  count: Int
 }
 
 # ===================== Permission =====================
@@ -1343,6 +1453,37 @@ input contentPermission {
   id_user: ID
 }
 
+# ===================== PlayerRelease =====================
+extend type Query {
+  allPlayerReleases(idClub: ID, idTeam: ID, status: String): [PlayerRelease!] @auth(requires: user)
+  playerRelease(id: ID!): PlayerRelease @auth(requires: user)
+}
+
+extend type Mutation {
+  createPlayerRelease(content: contentPlayerRelease!): PlayerRelease! @auth(requires: user)
+  decidePlayerRelease(id: ID!, status: String!, note: String): statusUpdate @auth(requires: user)
+}
+
+input contentPlayerRelease {
+  id_player: ID!
+  reason: String
+  letter: Upload
+}
+
+type PlayerRelease {
+  id: ID
+  reason: String
+  letter: String @imgUrl
+  status: String
+  note: String
+  requested_at: Date @date(format: "yyyy-MM-dd")
+  decided_at: Date @date(format: "yyyy-MM-dd")
+  player: Player
+  team: Team
+  club: Club
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm:ss")
+}
+
 # ===================== Players =====================
 extend type Query {
   player(id: ID): Player
@@ -1356,7 +1497,7 @@ extend type Query {
   allPlayersAcceptedExternal(limit: Int, offset: Int): PlayerPage!
   allPlayersClubTransferred(idClub: ID): [Player!] @auth(requires: user)
   allPlayersClubLoaned(idClub: ID): [Player!] @auth(requires: user)
-  statPlayer(id: ID!): StatPlayer @auth(requires: user)
+  statPlayer(id: ID!): StatPlayer
 }
 
 extend type Mutation {
@@ -1371,7 +1512,7 @@ extend type Mutation {
   deleteAttachmentPlayer(id: ID!): statusDelete @auth(requires: user)
   convertPlayerToTechnical(idPlayer: ID!, classification: String!, membership_date: String!, membership_date_end: String!): TechnicalApparatus!
   convertTechnicalToPlayer(idTechnical: ID!, activity: String!, player_center: String!, class: String!): Player! @auth(requires: user)
-  associatePlayer(id_player: ID!, id_team: ID!): statusUpdate
+  associatePlayer(id_player: ID!, id_team: ID!): statusUpdate @auth(requires: user)
 }
 
 type Player {
@@ -1500,6 +1641,77 @@ input contentRequestExternal {
   status: String
   note: String
   id_person: ID
+}
+
+# ===================== RequestFlow =====================
+extend type Query {
+  requestFlow(entity_type: String!, entity_id: ID!): RequestFlow @auth(requires: user)
+  myRequestFlows(stage: String, request_type: String): [RequestFlow!] @auth(requires: user)
+  requestFlowStages: [RequestFlowStage!] @auth(requires: user)
+}
+
+extend type Mutation {
+  advanceRequestFlow(id: ID!, to: String!, reason: String, amount: Float): RequestFlowResult @auth(requires: user)
+}
+
+type RequestFlowStage {
+  stage: String
+  label: String
+  also: String
+  actor: String
+  done: Boolean
+}
+
+type RequestFlowEvent {
+  id: ID
+  stage: String
+  label: String
+  note: String
+  actor: String
+  createdAt: Date @date(format: "yyyy-MM-dd HH:mm")
+}
+
+type RequestFlow {
+  id: ID
+  request_type: String
+  request_label: String
+  subject: String
+  entity_type: String
+  entity_id: ID
+  stage: String
+  label: String
+  also: String
+  actor: String
+  done: Boolean
+  reason: String
+  fee_waived: Boolean
+  side: String
+  suggestedAmount: Float
+  createdAt: Date @date(format: "yyyy-MM-dd")
+  team: Team
+  club: Club
+  payment: RequestPayment
+  otherPayments: [RequestPayment!]
+  events: [RequestFlowEvent!]
+  actions: [RequestFlowAction!]
+}
+
+type RequestFlowAction {
+  to: String
+  label: String
+  kind: String
+  needsReason: Boolean
+  needsAmount: Boolean
+  needsTeam: Boolean
+  feeOptional: Boolean
+  suggestedAmount: Float
+}
+
+type RequestFlowResult {
+  ok: Boolean
+  code: String
+  message: String
+  flow: RequestFlow
 }
 
 # ===================== Stadium =====================
@@ -1908,6 +2120,8 @@ input contentTransfer {
   id_technical_apparatus: ID
   id_club_to: ID
   id_club_from: ID
+  note: String
+  fee: Float
 }
 
 # ===================== User =====================
