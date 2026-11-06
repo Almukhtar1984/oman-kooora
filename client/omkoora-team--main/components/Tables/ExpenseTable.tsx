@@ -94,7 +94,7 @@ export const ExpenseTable = ({ loading, list, search, setOpenEditModal, setOpenD
     const COLUMNS = [
         {name: 'الخيارات', selector: (item: any) => (
             <Group>
-                <Menu shadow="md" width={200} position={"bottom"}>
+                <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                     <Menu.Target>
                         <ActionIcon color="gray" variant="light" >
                             <DotsVertical size={18} />
@@ -139,7 +139,7 @@ export const ExpenseTable = ({ loading, list, search, setOpenEditModal, setOpenD
 
     const MOBILE_COLUMNS = [
         {name: '', selector: (item: any) => (
-            <Menu shadow="md" width={120} position={"bottom"}>
+            <Menu withinPortal shadow="md" width={120} position={"bottom"}>
                 <Menu.Target>
                     <ActionIcon color="gray" variant="light">
                         <DotsVertical size={12} />

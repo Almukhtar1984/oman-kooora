@@ -10,6 +10,9 @@ import {IconDatabaseOff} from "@tabler/icons-react";
 import {DataEmpty, DataLoading} from "../components/Loading/DataState";
 import {AllPlayers, useAllPlayers, useAllTeams, useChangeStatusPlayersBulk} from "../graphql";
 import useStore from "../store/useStore";
+import {focusOn, isUndecided} from "../lib/helpers/pendingFocus";
+import {usePendingFocus} from "../lib/helpers/usePendingFocus";
+import {PendingFocusBar} from "../components/RequestTrack/PendingFocusBar";
 import {PlayerCard1} from "../components/Card/PlayerCard";
 import {BulkActionToolbar, BulkStatusConfirmModal, SelectableCardWrapper} from "../components/BulkSelection";
 import {Notyf} from "notyf";
@@ -73,6 +76,8 @@ export default function Players() {
     const [permissions, setPermissions] = useState([]);
     const [ageCheck, setAgeCheck] = useState<string>("");
     const [age2Check, setAge2Check] = useState<string | null>("<");
+    const focus = usePendingFocus("players");
+    const [onlyPending, setOnlyPending] = useState(false);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [teamFilter, setTeamFilter] = useState<string | null>(null);
     const [classFilter, setClassFilter] = useState<string | null>(null);
@@ -168,9 +173,12 @@ export default function Players() {
             filtered = filtered.filter((item: any) => item?.class === classFilter);
         }
 
+        filtered = focusOn(filtered, focus.ids);
+        if (onlyPending) filtered = filtered.filter(isUndecided);
+
         setAllPlayersSorting([...filtered])
         setPage(1);
-    }, [allPlayers, ageCheck, age2Check, statusFilter, teamFilter, classFilter]);
+    }, [allPlayers, ageCheck, age2Check, statusFilter, teamFilter, classFilter, focus.ids, onlyPending]);
 
     const totalPages = Math.ceil(allPlayersSorting.length / itemsPerPage);
     const paginatedPlayers = allPlayersSorting.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -210,8 +218,9 @@ export default function Players() {
             .map((it: any) => it.id),
         [allPlayersSorting]
     );
-    const handleSelectAllPending = () => setSelectedIds(pendingIds);
-    const handleClearSelection = () => setSelectedIds([]);
+    // What gets selected comes into view: the pending ones may sit pages away.
+    const handleSelectAllPending = () => { setSelectedIds(pendingIds); setOnlyPending(true); };
+    const handleClearSelection = () => { setSelectedIds([]); setOnlyPending(false); };
 
     const handleConfirmBulk = (note: string) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
@@ -357,6 +366,13 @@ export default function Players() {
                     </Group>
                 </Box>
 
+                {(focus.active || onlyPending) && (
+                    <PendingFocusBar
+                        count={allPlayersSorting.filter(isUndecided).length}
+                        onClear={() => { focus.clear(); setOnlyPending(false); }}
+                    />
+                )}
+
                 <BulkActionToolbar
                     totalOnPage={pageIds.length}
                     selectedCount={selectedIds.length}
@@ -418,7 +434,7 @@ export default function Players() {
                                 <Pagination total={totalPages} value={page} onChange={setPage} />
                             </Group>
                         </>
-                    ) : loading || !called ? (
+                    ) : loading || !called || focus.loading ? (
                         <DataLoading variant="cards" />
                     ) : (
                         <DataEmpty label="لا توجد بيانات ليتم عرضها" />

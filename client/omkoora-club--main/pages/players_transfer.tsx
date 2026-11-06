@@ -11,6 +11,9 @@ import useStore from "../store/useStore";
 import {MemberCard} from "../components/Card/MemberCard";
 import {IconDatabaseOff} from "@tabler/icons-react";
 import {DataEmpty, DataLoading} from "../components/Loading/DataState";
+import {focusOn} from "../lib/helpers/pendingFocus";
+import {usePendingFocus} from "../lib/helpers/usePendingFocus";
+import {PendingFocusBar} from "../components/RequestTrack/PendingFocusBar";
 import {ChangeStatusPlayersModal, UpdatePlayersTransferModal, UpdatePlayerModal, DeleteConfirmationModal} from "../components/Modal";
 import { Notyf } from "notyf";
 import { RequestTrackDrawer } from "../components/RequestTrack";
@@ -22,6 +25,7 @@ export default function PlayersTransfer() {
     const [openAddModal, setOpenAddModal] = useState<boolean>(false);
     const [openEditModal, setOpenEditModal] = useState<boolean>(false);
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
+    const focus = usePendingFocus("transfers");
     const [searchValue, setSearchValue] = useState<string>("");
     const [selectedData, setSelectedData] = useState<any>(null);
     const [newStatus, setNewStatus] = useState("");
@@ -80,7 +84,7 @@ export default function PlayersTransfer() {
 
     useEffect(() => {
         if (allPlayers.length >= 0) {
-            const filterAllPlayers = sortedData(allPlayers)
+            const filterAllPlayers = focusOn(sortedData(allPlayers), focus.ids, (row: any) => row?.lastTransfer?.id)
 
             setAllPlayersSorting([...filterAllPlayers])
         }
@@ -97,7 +101,7 @@ export default function PlayersTransfer() {
         })
 
         setPlayersWaiting(filter.length)
-    }, [allPlayers])
+    }, [allPlayers, focus.ids])
 
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });
@@ -178,6 +182,8 @@ export default function PlayersTransfer() {
                     : null
                 }
 
+                {focus.active && <Box mt={"20px"}><PendingFocusBar count={allPlayersSorting.length} onClear={focus.clear} /></Box>}
+
                 <Box mb={20} mt={"20px"}>
                     <Group position={"left"}>
                         <TextInput value={searchValue} icon={<Search color={theme.colors.gray[4]} size={16} />} placeholder="بحث" onChange={handleSearchChange}/>
@@ -216,7 +222,7 @@ export default function PlayersTransfer() {
                             </Group>
                         </>
                     ) : (
-                        loading || !called ? <DataLoading variant="cards" /> : <DataEmpty label="لا توجد بيانات ليتم عرضها" />
+                        loading || !called || focus.loading ? <DataLoading variant="cards" /> : <DataEmpty label="لا توجد بيانات ليتم عرضها" />
                     )}
                 </Box>
             </Container>

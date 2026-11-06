@@ -129,7 +129,7 @@ export const MembersTable = ({ loading, list, search, setOpenEditModal, setNewSt
         ), width: '120px'},
         {name: 'الخيارات', selector: (item: any) => (
             <Group>
-                <Menu shadow="md" width={200} position={"bottom"}>
+                <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                     <Menu.Target>
                         <ActionIcon color="gray" variant="light" >
                             <DotsVertical size={18} />
@@ -181,7 +181,7 @@ export const MembersTable = ({ loading, list, search, setOpenEditModal, setNewSt
           name: '',
           selector: (item: any) => (
             <Group>
-            <Menu shadow="md" width={200} position={"bottom"}>
+            <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                 <Menu.Target>
                     <ActionIcon color="gray" variant="light" >
                         <DotsVertical size={18} />

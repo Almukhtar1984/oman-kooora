@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionIcon, Badge, Checkbox, Group, Menu, Pagination, Stack, Text, Grid, Col, Box } from '@mantine/core';
 import { Filter } from "tabler-icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { IconDatabaseOff } from '@tabler/icons-react';
 import { MemberCard } from '../Card/MemberCard';
@@ -66,7 +66,14 @@ export const TechnicalsTable = ({ loading, list, search, setOpenEditModal, setOp
 
     // Pagination logic
     const totalPages = Math.ceil(allMembers.nodes.length / itemsPerPage);
-    const paginatedNodes = allMembers.nodes.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    // Memoised: the effect below reports this list to the page, whose state change
+    // renders this table again. A fresh array on every render made that an endless
+    // loop — the page ate the CPU and stopped answering clicks while it was open
+    // («نضغط عليه ما شي»), and stayed mounted behind the tabs of /members.
+    const paginatedNodes = useMemo(
+        () => allMembers.nodes.slice((page - 1) * itemsPerPage, page * itemsPerPage),
+        [allMembers, page],
+    );
 
     useEffect(() => {
         if (onPageItemsChange) {

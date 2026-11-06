@@ -4,6 +4,7 @@ import {
 } from "@mantine/core";
 import { Coin, Route } from "tabler-icons-react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Notyf } from "notyf";
 
@@ -48,6 +49,7 @@ const count = (n: number) => `${n} ${n === 1 ? "طلب" : "طلبات"}`;
 
 export default function Tracking() {
     const [filter, setFilter] = useState("mine");
+    const router = useRouter();
     const [type, setType] = useState<string | null>(null);
     const [target, setTarget] = useState<any>(null);
     const [picked, setPicked] = useState<string[]>([]);
@@ -57,6 +59,11 @@ export default function Tracking() {
 
     const [getFlows, { data, loading }] = useMyRequestFlows();
     const [advance] = useAdvanceRequestFlow();
+
+    // «الطلبات» تفتح على نوع طلبها.
+    useEffect(() => {
+        if (typeof router.query.type === "string") setType(router.query.type);
+    }, [router.query.type]);
 
     const variables = type ? { request_type: type } : {};
     const refresh = () => getFlows({ variables, fetchPolicy: "network-only" });

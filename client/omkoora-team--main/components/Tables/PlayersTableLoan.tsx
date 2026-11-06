@@ -83,7 +83,7 @@ export const PlayersTableLoan = ({ list, search, setOpenEditModal, setSelectedRo
     const COLUMNS = [
         {label: 'الخيارات', width: '80px', renderCell: (item) => (
                 <Group>
-                    <Menu shadow="md" width={200} position={"bottom"}>
+                    <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                         <Menu.Target>
                             <ActionIcon disabled={item?.status !== "waiting" && item?.status !== "accepted"} color="gray" variant="light" >
                                 <DotsVertical size={18} />

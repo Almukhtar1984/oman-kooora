@@ -243,7 +243,7 @@ export const MeetingTable = ({ loading, list, search, setSelectedRow, setOpenDel
           name: '',
           selector: (item) => (
             <Group>
-              <Menu shadow="md" width={200} position="bottom">
+              <Menu withinPortal shadow="md" width={200} position="bottom">
                 <Menu.Target>
                   <ActionIcon color="gray" variant="light">
                     <DotsVertical size={18} />
@@ -317,7 +317,7 @@ export const MeetingTable = ({ loading, list, search, setSelectedRow, setOpenDel
                                 <Row key={item.id} item={item}>
                                     <Cell>
                                         {<Group>
-                                            <Menu shadow="md" width={200} position={"bottom"}>
+                                            <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                                                 <Menu.Target>
                                                     <ActionIcon color="gray" variant="light" >
                                                         <DotsVertical size={18} />

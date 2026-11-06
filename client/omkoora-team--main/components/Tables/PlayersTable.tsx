@@ -216,7 +216,7 @@ export const PlayersTable = ({ loading, list, search, setOpenEditModal, setOpenV
                                 <HeaderCell>
                                     <Group position={"apart"} noWrap={true}>
                                         <Text>تاريخ الميلاد</Text>
-                                        <Menu position={"bottom-end"} width={200} closeOnItemClick={false}>
+                                        <Menu withinPortal position={"bottom-end"} width={200} closeOnItemClick={false}>
                                             <Menu.Target>
                                                 <ActionIcon>
                                                     <Filter size={18} />
@@ -250,7 +250,7 @@ export const PlayersTable = ({ loading, list, search, setOpenEditModal, setOpenV
                                 <HeaderCell>
                                 <Group position={"apart"} noWrap={true}>
                                         <Text> موافقة ولي الامر</Text>
-                                        <Menu position={"bottom-end"} width={200} closeOnItemClick={false}>
+                                        <Menu withinPortal position={"bottom-end"} width={200} closeOnItemClick={false}>
                                             <Menu.Target>
                                                 <ActionIcon>
                                                     <Filter size={18} />
@@ -282,7 +282,7 @@ export const PlayersTable = ({ loading, list, search, setOpenEditModal, setOpenV
                                 <HeaderCell>الحالة</HeaderCell>
                                 <HeaderCell>
                                     <Group position={"apart"} noWrap={true} sx={{gap:"0px",justifyContent:"flex-start"}}>
-                                    <Menu position={"bottom-end"} width={200} closeOnItemClick={false}>
+                                    <Menu withinPortal position={"bottom-end"} width={200} closeOnItemClick={false}>
                                             <Menu.Target>
                                                 <ActionIcon>
                                                     <Filter size={18} />
@@ -423,7 +423,7 @@ export const PlayersTable = ({ loading, list, search, setOpenEditModal, setOpenV
 
                                     <Cell>
                                         <Group>
-                                            <Menu shadow="md" width={200} position={"bottom"} offset={0}>
+                                            <Menu withinPortal shadow="md" width={200} position={"bottom"} offset={0}>
                                                 <Menu.Target>
                                                     <ActionIcon color="gray" variant="light" >
                                                         <DotsVertical size={18} />

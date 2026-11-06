@@ -7,6 +7,8 @@ export const typeDefs = gql`
 
     extend type Query {
         clubPendingRequests: PendingRequests @auth(requires: user)
+        # سجلات مجموعةٍ من العدّاد — ما تفتح عليه الصفحة حين يأتيها النادي من «الطلبات».
+        clubPendingIds(key: String!): [ID!]! @auth(requires: user)
         # وما ينتظر الفريق نفسه: رسومٌ يسدّدها، وطلبٌ أعاده النادي، وطلبات لاعبيه.
         teamPendingRequests: PendingRequests @auth(requires: user)
     }

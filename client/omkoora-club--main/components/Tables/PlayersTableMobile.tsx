@@ -516,7 +516,7 @@ export const PlayersTableMobile = ({ loading, list, search, setOpenEditModal, se
         >
       <Group position={"apart"} noWrap={true}>
                     <Text>الحالة</Text>
-                    <Menu position={"bottom-end"} width={200} closeOnItemClick={false}>
+                    <Menu withinPortal position={"bottom-end"} width={200} closeOnItemClick={false}>
                         <Menu.Target>
                             <ActionIcon>
                                 <Filter size={18} color={valueCheck.length > 0 ? "cyan" : "#4b5563"} />
@@ -553,7 +553,7 @@ export const PlayersTableMobile = ({ loading, list, search, setOpenEditModal, se
 
       <Group position={"apart"} noWrap={true}>
                 <Text>الفئة العمرية</Text>
-                <Menu position={"bottom-end"} width={200} closeOnItemClick={false}>
+                <Menu withinPortal position={"bottom-end"} width={200} closeOnItemClick={false}>
                     <Menu.Target>
                         <ActionIcon>
                             <Filter size={18} color={valueClasseCheck.length > 0 ? "cyan" : "#4b5563"} />
@@ -574,7 +574,7 @@ export const PlayersTableMobile = ({ loading, list, search, setOpenEditModal, se
 
       <Group position={"apart"} noWrap={true}>
                 <Text>تاريخ الميلاد</Text>
-                <Menu position={"bottom-end"} width={200} closeOnItemClick={false}>
+                <Menu withinPortal position={"bottom-end"} width={200} closeOnItemClick={false}>
                     <Menu.Target>
                         <ActionIcon>
                             <Filter size={18} color={dateCheck.length > 0 ? "cyan" : "#4b5563"} />

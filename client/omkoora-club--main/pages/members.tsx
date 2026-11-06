@@ -9,6 +9,10 @@ import {openPrint} from "../lib/helpers/openPrint";
 import { useMediaQuery } from "react-responsive";
 import {AllMembers, useAllMembers, useAllTeams, useChangeStatusMembersBulk} from "../graphql";
 import useStore from "../store/useStore";
+import { useRouter } from "next/router";
+import {focusOn, isUndecided} from "../lib/helpers/pendingFocus";
+import {usePendingFocus} from "../lib/helpers/usePendingFocus";
+import {PendingFocusBar} from "../components/RequestTrack/PendingFocusBar";
 import {MembersTable} from "../components/Tables";
 import {ChangeStatusMembersModal, DeleteMembersModal, UpdateMemberModal, ChangeClassificationModal} from "../components/Modal";
 import {BulkActionToolbar, BulkStatusConfirmModal} from "../components/BulkSelection";
@@ -29,6 +33,8 @@ function MembersContent() {
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
     const [openChangeStatusModal, setOpenChangeStatusModal] = useState<boolean>(false);
     const [openChangeClassificationModal, setOpenChangeClassificationModal] = useState<boolean>(false);
+    const focus = usePendingFocus("members");
+    const [onlyPending, setOnlyPending] = useState(false);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [teamFilter, setTeamFilter] = useState<string | null>(null);
 
@@ -72,10 +78,15 @@ function MembersContent() {
             .map((it: any) => it.id),
         [allMembersSorting]
     );
+    // What gets selected comes into view: the pending ones may sit pages away.
     const handleSelectAllPending = () => {
         setSelectedIds(pendingIds);
+        setOnlyPending(true);
     };
-    const handleClearSelection = () => setSelectedIds([]);
+    const handleClearSelection = () => {
+        setSelectedIds([]);
+        setOnlyPending(false);
+    };
 
     const handleConfirmBulk = (note: string) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
@@ -136,11 +147,14 @@ function MembersContent() {
             filtered = filtered.filter((item: any) => item?.team?.name === teamFilter);
         }
 
+        filtered = focusOn(filtered, focus.ids);
+        if (onlyPending) filtered = filtered.filter(isUndecided);
+
         setAllMembersSorting([...filtered])
 
         const filter = allMembers.filter((item: any) => item?.status === "waiting")
         setMembersWaiting(filter.length)
-    }, [allMembers, statusFilter, teamFilter]);
+    }, [allMembers, statusFilter, teamFilter, focus.ids, onlyPending]);
 
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });
@@ -267,6 +281,13 @@ function MembersContent() {
                     </Group>
                 </Box>
 
+                {(focus.active || onlyPending) && (
+                    <PendingFocusBar
+                        count={allMembersSorting.filter(isUndecided).length}
+                        onClear={() => { focus.clear(); setOnlyPending(false); }}
+                    />
+                )}
+
                 <BulkActionToolbar
                     totalOnPage={pageIds.length}
                     selectedCount={selectedIds.length}
@@ -282,7 +303,7 @@ function MembersContent() {
                 />
 
                 <MembersTable
-                    loading={loading || !called}
+                    loading={loading || !called || focus.loading}
                     list={allMembersSorting}
                     search={searchValue}
                     setOpenChangeStatusModal={setOpenChangeStatusModal}
@@ -330,6 +351,8 @@ function MembersContent() {
     );
 }
 
+const TABS = ["players", "technicals", "members", "managers", "assembly"];
+
 export default function Members() {
     const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
@@ -339,8 +362,12 @@ export default function Members() {
     // Track the active tab and only mount each panel's component the
     // first time it's opened. Once mounted it stays — Apollo's cache
     // makes subsequent visits instant without refetching.
-    const [activeTab, setActiveTab] = useState<string | null>("players");
-    const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set(["players"]));
+    const router = useRouter();
+    // «الطلبات» تفتح على تبويب الطلب: مجلس الإدارة كان يفتح على اللاعبين.
+    const askedTab = typeof router.query.tab === "string" ? router.query.tab : null;
+    const firstTab = askedTab && TABS.includes(askedTab) ? askedTab : "players";
+    const [activeTab, setActiveTab] = useState<string | null>(firstTab);
+    const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set([firstTab]));
 
     const handleTabChange = (value: string | null) => {
         setActiveTab(value);
@@ -353,6 +380,11 @@ export default function Members() {
             });
         }
     };
+
+    // On a hard reload the query only arrives after the first render.
+    useEffect(() => {
+        if (askedTab && TABS.includes(askedTab)) handleTabChange(askedTab);
+    }, [askedTab]);
 
     return (
         <Container size="xl" pt="md">

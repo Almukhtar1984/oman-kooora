@@ -8,6 +8,9 @@ import {searchSortedData, sortedData} from "../lib/helpers/sort";
 import {openPrint} from "../lib/helpers/openPrint";
 import {AllTechnicals, useAllTeams, useAllTechnicals, useChangeStatusTechnicalApparatusBulk, useChangeClassificationTechnicalApparatusBulk} from "../graphql";
 import useStore from "../store/useStore";
+import {focusOn, isUndecided} from "../lib/helpers/pendingFocus";
+import {usePendingFocus} from "../lib/helpers/usePendingFocus";
+import {PendingFocusBar} from "../components/RequestTrack/PendingFocusBar";
 import {TechnicalsTable} from "../components/Tables";
 import {ChangeStatusTechnicalsModal, DeleteTechnicalModal, UpdateTechnicalModal, ChangeClassificationModal, AddAttachmentTechnicalModal, ShowAttachmentsTechnical} from "../components/Modal";
 import { Select } from "@mantine/core";
@@ -26,6 +29,8 @@ export default function TechnicalApparatus() {
     const [openAddAttachmentModal, setOpenAddAttachmentModal] = useState<boolean>(false);
     const [openShowAttachmentsModal, setOpenShowAttachmentsModal] = useState<boolean>(false);
     const [selectedTechnical, setSelectedTechnical] = useState<any>(null);
+    const focus = usePendingFocus("technicals");
+    const [onlyPending, setOnlyPending] = useState(false);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [teamFilter, setTeamFilter] = useState<string | null>(null);
 
@@ -71,8 +76,9 @@ export default function TechnicalApparatus() {
             .map((it: any) => it.id),
         [allTechnicalsSorting]
     );
-    const handleSelectAllPending = () => setSelectedIds(pendingIds);
-    const handleClearSelection = () => setSelectedIds([]);
+    // What gets selected comes into view: the pending ones may sit pages away.
+    const handleSelectAllPending = () => { setSelectedIds(pendingIds); setOnlyPending(true); };
+    const handleClearSelection = () => { setSelectedIds([]); setOnlyPending(false); };
 
     const handleConfirmBulk = (note: string) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
@@ -153,11 +159,14 @@ export default function TechnicalApparatus() {
             filtered = filtered.filter((item: any) => item?.team?.name === teamFilter);
         }
 
+        filtered = focusOn(filtered, focus.ids);
+        if (onlyPending) filtered = filtered.filter(isUndecided);
+
         setAllTechnicalsSorting([...filtered])
 
         const filter = allTechnicals.filter((item: any) => item?.status === "waiting")
         setTechnicalsWaiting(filter.length)
-    }, [allTechnicals, statusFilter, teamFilter]);
+    }, [allTechnicals, statusFilter, teamFilter, focus.ids, onlyPending]);
 
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });
@@ -206,8 +215,6 @@ export default function TechnicalApparatus() {
             </Box>
         );
     }
-
-    console.log({openDeleteModal});
 
     return (
         <Box>
@@ -286,6 +293,13 @@ export default function TechnicalApparatus() {
                     </Group>
                 </Box>
 
+                {(focus.active || onlyPending) && (
+                    <PendingFocusBar
+                        count={allTechnicalsSorting.filter(isUndecided).length}
+                        onClear={() => { focus.clear(); setOnlyPending(false); }}
+                    />
+                )}
+
                 <BulkActionToolbar
                     totalOnPage={pageIds.length}
                     selectedCount={selectedIds.length}
@@ -302,7 +316,7 @@ export default function TechnicalApparatus() {
                 />
 
                 <TechnicalsTable
-                    loading={loading || !called}
+                    loading={loading || !called || focus.loading}
                     list={allTechnicalsSorting}
                     search={searchValue}
                     setOpenChangeStatusModal={setOpenChangeStatusModal}

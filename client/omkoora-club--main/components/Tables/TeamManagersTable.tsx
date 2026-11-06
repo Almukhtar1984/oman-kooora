@@ -112,7 +112,7 @@ export const TeamManagersTable = ({list, onEdit, onResetPassword, hasPermission}
                                         </Stack>
                                     </Group>
                                     {(hasPermission("7") || hasPermission("3")) ? (
-                                        <Menu withArrow shadow="md" position="bottom-end">
+                                        <Menu withinPortal withArrow shadow="md" position="bottom-end">
                                             <Menu.Target>
                                                 <ActionIcon variant="subtle">
                                                     <DotsVertical size={16} />

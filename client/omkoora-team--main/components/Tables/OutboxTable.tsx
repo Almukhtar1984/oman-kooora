@@ -102,7 +102,7 @@ export const OutboxTable = ({ loading, list, search, setOpenEditModal, setOpenCh
     const COLUMNS = [
         {name: 'الخيارات', selector: (item: any) => (
             <Group>
-                <Menu shadow="md" width={200} position={"bottom"}>
+                <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                     <Menu.Target>
                         <ActionIcon color="gray" variant="light" >
                             <DotsVertical size={18} />
@@ -178,7 +178,7 @@ export const OutboxTable = ({ loading, list, search, setOpenEditModal, setOpenCh
           name: '',
           selector: (item) => (
             <Group>
-              <Menu shadow="md" width={200} position="bottom">
+              <Menu withinPortal shadow="md" width={200} position="bottom">
                 <Menu.Target>
                   <ActionIcon color="gray" variant="light">
                     <DotsVertical size={18} />

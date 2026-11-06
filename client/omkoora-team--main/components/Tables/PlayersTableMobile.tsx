@@ -347,7 +347,7 @@ export const PlayersTableMobile = ({ loading, list, search, setOpenEditModal, se
           name: '',
           selector: (item: any) => (
             <Group>
-              <Menu shadow="md" width={200} position="bottom">
+              <Menu withinPortal shadow="md" width={200} position="bottom">
                 <Menu.Target>
                   <ActionIcon color="gray" variant="light">
                     <DotsVertical size={18} />
@@ -435,7 +435,7 @@ export const PlayersTableMobile = ({ loading, list, search, setOpenEditModal, se
         >
       <Group position={"apart"} noWrap={true}>
                     <Text>الحالة</Text>
-                    <Menu position={"bottom-end"} width={200} closeOnItemClick={false}>
+                    <Menu withinPortal position={"bottom-end"} width={200} closeOnItemClick={false}>
                         <Menu.Target>
                             <ActionIcon>
                                 <Filter size={18} color={valueCheck.length > 0 ? "cyan" : "#4b5563"} />
@@ -472,7 +472,7 @@ export const PlayersTableMobile = ({ loading, list, search, setOpenEditModal, se
 
       <Group position={"apart"} noWrap={true}>
                 <Text>الفئة العمرية</Text>
-                <Menu position={"bottom-end"} width={200} closeOnItemClick={false}>
+                <Menu withinPortal position={"bottom-end"} width={200} closeOnItemClick={false}>
                     <Menu.Target>
                         <ActionIcon>
                             <Filter size={18} color={valueClasseCheck.length > 0 ? "cyan" : "#4b5563"} />

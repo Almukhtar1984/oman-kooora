@@ -27,6 +27,11 @@ const STAGES = [
     { stage: "approved", label: "معتمد نهائياً", also: null, actor: null, done: true },
 ];
 
+const routerQuery = vi.hoisted(() => ({ current: {} as Record<string, string> }));
+vi.mock("next/router", () => ({
+    useRouter: () => ({ query: routerQuery.current, pathname: "/tracking", replace: vi.fn() }),
+}));
+
 vi.mock("../../graphql", () => ({
     useMyRequestFlows: () => [h.getFlows, h.flowsResult],
     useRequestFlow: () => [h.getFlow, h.flowResult],
@@ -122,6 +127,7 @@ const pick = async (input: HTMLElement, label: string) => {
 };
 
 beforeEach(() => {
+    routerQuery.current = {};
     vi.clearAllMocks();
     h.flowsResult = { data: { myRequestFlows: [flow(), atTeam] }, loading: false };
     h.flowResult = { data: { requestFlow: flow({
@@ -130,6 +136,15 @@ beforeEach(() => {
 });
 
 describe("لوحة مسار الطلبات (النادي)", () => {
+    it("ومن «الطلبات» تفتح على نوع طلبها", async () => {
+        routerQuery.current = { type: "team_registration" };
+        renderPage();
+        await waitFor(() => {
+            const asked = h.getFlows.mock.calls.map((call: any) => call[0].variables);
+            expect(asked).toContainEqual({ request_type: "team_registration" });
+        });
+    });
+
     it("تفتح على ما ينتظر قرار النادي", async () => {
         renderPage();
 

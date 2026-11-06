@@ -185,7 +185,7 @@ export const PlayersTableLoan = ({ loading, idClub, list, search, setOpenEditMod
     const COLUMNS = [
         {label: 'الخيارات', renderCell: (item) => (
             <Group>
-                <Menu shadow="md" width={200} position={"bottom"}>
+                <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                     <Menu.Target>
                         <ActionIcon  color="gray" variant="light" >
                             <DotsVertical size={18} />
@@ -354,7 +354,7 @@ export const PlayersTableLoan = ({ loading, idClub, list, search, setOpenEditMod
             name: '',
             selector: (item) => (
                 <Group >
-                    <Menu shadow="md" width={200} position={"bottom"}>
+                    <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                     <Menu.Target>
                         <ActionIcon color="gray" variant="light" >
                             <DotsVertical size={18} />

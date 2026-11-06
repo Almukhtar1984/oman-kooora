@@ -4,6 +4,9 @@ import {Lock, Plus, Search, Robot} from "tabler-icons-react";
 import Head from "next/head";
 import React, { useEffect } from "react";
 import { useState } from "react";
+import {focusOn} from "../lib/helpers/pendingFocus";
+import {usePendingFocus} from "../lib/helpers/usePendingFocus";
+import {PendingFocusBar} from "../components/RequestTrack/PendingFocusBar";
 import {searchSortedData, sortedData} from "../lib/helpers/sort";
 import {
     AddBlog,
@@ -32,6 +35,7 @@ export default function Blog() {
     const [openChangeStatusModal, setOpenChangeStatusModal] = useState<boolean>(false);
 
 
+    const focus = usePendingFocus("news");
     const [searchValue, setSearchValue] = useState<string>("");
     const [selectedData, setSelectedData] = useState<any>(null);
     const [newStatus, setNewStatus] = useState("");
@@ -67,11 +71,11 @@ export default function Blog() {
 
     useEffect(() => {
         if (allBlogs.length >= 0) {
-            const filterAllBlogs = sortedData(allBlogs)
+            const filterAllBlogs = focusOn(sortedData(allBlogs), focus.ids)
 
             setAllBlogsSorting([...filterAllBlogs])
         }
-    }, [allBlogs])
+    }, [allBlogs, focus.ids])
 
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });
@@ -118,6 +122,8 @@ export default function Blog() {
                 <title>طموح</title>
             </Head>
             <Container size={"xl"}>
+                {focus.active && <Box mt={"20px"}><PendingFocusBar count={allBlogsSorting.length} onClear={focus.clear} /></Box>}
+
                 <Box mb={30} mt={"20px"}>
                     <Group position={"apart"}>
                         <TextInput value={searchValue} icon={<Search color={theme.colors.gray[4]} size={16} />} placeholder="بحث" onChange={handleSearchChange}/>

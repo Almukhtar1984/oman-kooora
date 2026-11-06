@@ -178,7 +178,7 @@ export const TechnicalsTable = ({ loading, list, search, setOpenEditModal, setOp
         ), width: '120px'},
         {name: 'الخيارات', selector: (item: any) => (
             <Group>
-                <Menu shadow="md" width={200} position={"bottom"}>
+                <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                     <Menu.Target>
                         <ActionIcon color="gray" variant="light" >
                             <DotsVertical size={18} />
@@ -243,7 +243,7 @@ export const TechnicalsTable = ({ loading, list, search, setOpenEditModal, setOp
           name: '',
           selector: (item) => (
             <Group style={{ padding: "10px 0" }}>
-              <Menu shadow="md" width={200} position="bottom">
+              <Menu withinPortal shadow="md" width={200} position="bottom">
                 <Menu.Target>
                   <ActionIcon color="gray" variant="light">
                     <DotsVertical size={18} />

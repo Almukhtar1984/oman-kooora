@@ -1,10 +1,11 @@
 import { useTheme } from "@emotion/react";
-import {Alert, Box, Button, Container, Group, MantineTheme, Menu, Stack, TextInput, Title} from "@mantine/core";
+import {Alert, Box, Button, Container, Group, MantineTheme, Menu, Paper, Stack, Text, TextInput, Title} from "@mantine/core";
 import {Lock, Plus, Search,} from "tabler-icons-react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import React, { useEffect } from "react";
 import { useState } from "react";
-import {searchSortedData, sortedData} from "../lib/helpers/sort";
+import {sortedData} from "../lib/helpers/sort";
 import {useAllRequests} from "../graphql";
 import useStore from "../store/useStore";
 import {RequestsTable} from "../components/Tables";
@@ -12,6 +13,9 @@ import {UpdateRequestStatusModal} from "../components/Modal";
 
 export default function Requests() {
     const userData = useStore((state: any) => state.userData);
+    const router = useRouter();
+    // «بانتظارك» تفتح على ما ينتظر ردّ الفريق، لا على كل طلبات لاعبيه.
+    const onlyWaiting = router.query.pending === "1";
     // states
     const theme = useTheme() as MantineTheme;
     const [openAddModal, setOpenAddModal] = useState<boolean>(false);
@@ -56,6 +60,7 @@ export default function Requests() {
     useEffect(() => {
         if (allRequests.length >= 0) {
             const filterAllRequests = sortedData(allRequests)
+                .filter((item: any) => !onlyWaiting || item?.status === "waiting")
 
             setAllRequestsSorting([...filterAllRequests])
         }
@@ -63,7 +68,7 @@ export default function Requests() {
         const filter = allRequests.filter((item: any) => item?.status === "waiting")
 
         setRequestsWaiting(filter.length)
-    }, [allRequests])
+    }, [allRequests, onlyWaiting])
 
     useEffect(() => {
         useStore.setState({ isLayoutDisabled: false });
@@ -72,9 +77,6 @@ export default function Requests() {
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { value } = event.currentTarget;
         setSearchValue(value);
-
-        const filterAllRequests = searchSortedData(allRequests,['name'], value)
-        setAllRequestsSorting([...filterAllRequests])
     };
 
     const hasPermission = (permission: string) => {
@@ -112,6 +114,15 @@ export default function Requests() {
                     ? <Alert color={"red"} variant="light" style={{border: "1px solid red"}}>يوجد {requestsWaiting} شكاوى قيد الاتظار يرجى تاكيدها او رفضها</Alert>
                     : null
                 }
+
+                {onlyWaiting && (
+                    <Paper withBorder radius="md" p="xs" px="md" mt="md" sx={(t) => ({ background: t.colors.yellow[0] })}>
+                        <Group position="apart" spacing="xs">
+                            <Text size="sm" weight={600} color="gray.8">تعرض الطلبات التي تنتظر ردّك فقط ({requestsWaiting})</Text>
+                            <Button size="xs" variant="subtle" onClick={() => router.replace("/requests", undefined, { shallow: true })}>عرض الكل</Button>
+                        </Group>
+                    </Paper>
+                )}
 
                 <Box mb={20} mt={"20px"}>
                     <Group position={"apart"}>

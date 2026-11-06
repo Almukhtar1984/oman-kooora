@@ -136,7 +136,7 @@ export const PlayersTableTransfer = ({ loading, idClub, list, search, setOpenEdi
     const COLUMNS = [
         {label: 'الخيارات', renderCell: (item) => (
             <Group>
-                <Menu shadow="md" width={200} position={"bottom"}>
+                <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                     <Menu.Target>
                         <ActionIcon disabled={item?.lastTransfer?.status !== "waiting"} color="gray" variant="light" >
                             <DotsVertical size={18} />
@@ -289,7 +289,7 @@ export const PlayersTableTransfer = ({ loading, idClub, list, search, setOpenEdi
             name: '',
             selector: (item) => (
                 <Group >
-                    <Menu shadow="md" width={200} position={"bottom"}>
+                    <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                         <Menu.Target>
                             <ActionIcon
                                 disabled={item?.lastTransfer?.status !== "waiting"}

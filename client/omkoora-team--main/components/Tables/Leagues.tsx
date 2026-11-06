@@ -134,7 +134,7 @@ export const LeaguesTabel = ({data, setSelectedData, setOpenShowGroupsModal, set
                             : null
                         }
 
-                        <Menu shadow="md" width={180}>
+                        <Menu withinPortal shadow="md" width={180}>
                             <Menu.Target>
                                 <ActionIcon variant={"light"} color={"dark"}>
                                     <IconDotsVertical size="1.125rem" />

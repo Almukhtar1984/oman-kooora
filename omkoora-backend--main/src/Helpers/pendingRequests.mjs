@@ -12,16 +12,20 @@
 //
 // Pure shaping only — no DB, no IO. The resolver counts, this names and orders.
 
+// الوجهة تفتح على الطلب نفسه لا على الصفحة كلها: «يوديك مباشرة إلى طلب تسجيل
+// اللاعب… لا تعرف أين مكان الطلب، لازم تدور واحد واحد» (العميل، 2026-11-05).
+// `?pending=` تحمل مفتاح المجموعة، والصفحة تسأل clubPendingIds عمّا عدّه العدّاد.
+// الإخلاء والمدفوعات تفتحان أصلاً على ما ينتظر النادي.
 export const REQUEST_TYPES = [
-    { key: "players",    label: "تسجيل لاعبين",        href: "/players" },
-    { key: "technicals", label: "تسجيل جهاز فني",      href: "/technicalApparatus" },
-    { key: "members",    label: "تسجيل مجلس إدارة",    href: "/members" },
-    { key: "transfers",  label: "انتقالات اللاعبين",   href: "/players_transfer" },
-    { key: "loans",      label: "إعارات اللاعبين",     href: "/players_loan" },
+    { key: "players",    label: "تسجيل لاعبين",        href: "/players?pending=players" },
+    { key: "technicals", label: "تسجيل جهاز فني",      href: "/technicalApparatus?pending=technicals" },
+    { key: "members",    label: "تسجيل مجلس إدارة",    href: "/members?tab=members&pending=members" },
+    { key: "transfers",  label: "انتقالات اللاعبين",   href: "/players_transfer?pending=transfers" },
+    { key: "loans",      label: "إعارات اللاعبين",     href: "/players_loan?pending=loans" },
     { key: "releases",   label: "طلبات إخلاء الطرف",   href: "/releases" },
-    { key: "teams",      label: "تسجيل فرق",           href: "/tracking" },
+    { key: "teams",      label: "تسجيل فرق",           href: "/tracking?type=team_registration" },
     { key: "payments",   label: "إيصالات بانتظار الاعتماد", href: "/payments" },
-    { key: "news",       label: "أخبار بانتظار الاعتماد", href: "/blog" },
+    { key: "news",       label: "أخبار بانتظار الاعتماد", href: "/blog?pending=news" },
 ];
 
 // وما ينتظر الفريق نفسه — الوجه الآخر للعدّاد. الفريق لا يقرّر في طلبات
@@ -30,7 +34,7 @@ export const REQUEST_TYPES = [
 export const TEAM_REQUEST_TYPES = [
     { key: "payments",       label: "رسوم بانتظار السداد",          href: "/payments" },
     { key: "returned",       label: "طلبات أعادها النادي للتعديل",  href: "/tracking" },
-    { key: "playerRequests", label: "طلبات اللاعبين بانتظار ردّك",  href: "/requests" },
+    { key: "playerRequests", label: "طلبات اللاعبين بانتظار ردّك",  href: "/requests?pending=1" },
 ];
 
 const summarize = (types, counts = {}) => {

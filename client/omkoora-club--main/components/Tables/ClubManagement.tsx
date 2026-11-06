@@ -168,7 +168,7 @@ export const ClubManagementTable = ({ loading, list, setOpenEditModal, setOpenDe
           name: '',
           selector: (item) => (
             <Group style={{ padding: "10px 0" }}>
-              <Menu shadow="md" width={200} position="bottom">
+              <Menu withinPortal shadow="md" width={200} position="bottom">
                 <Menu.Target>
                   <ActionIcon color="gray" variant="light">
                     <DotsVertical size={18} />
@@ -245,7 +245,7 @@ export const ClubManagementTable = ({ loading, list, setOpenEditModal, setOpenDe
                                 <Row key={item.id} item={item}>
                                     <Cell>
                                         <Group>
-                                            <Menu shadow="md" width={200} position={"bottom"}>
+                                            <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                                                 <Menu.Target>
                                                     <ActionIcon color="gray" variant="light" >
                                                         <DotsVertical size={18} />

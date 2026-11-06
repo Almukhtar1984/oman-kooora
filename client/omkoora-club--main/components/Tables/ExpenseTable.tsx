@@ -79,7 +79,7 @@ export const ExpenseTable = ({ list, search, setOpenEditModal, setOpenDeleteModa
     const COLUMNS = [
         {label: 'الخيارات', renderCell: (item) => (
             <Group>
-                <Menu shadow="md" width={200} position={"bottom"}>
+                <Menu withinPortal shadow="md" width={200} position={"bottom"}>
                     <Menu.Target>
                         <ActionIcon color="gray" variant="light" >
                             <DotsVertical size={18} />
