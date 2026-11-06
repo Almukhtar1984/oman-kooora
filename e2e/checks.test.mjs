@@ -5,7 +5,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
-import { auditPage } from "./checks.mjs";
+import { auditOpenMenu, auditPage } from "./checks.mjs";
 
 let browser, page;
 before(async () => {
@@ -95,6 +95,19 @@ test("a button pushed out past its card is caught — the payments card on a pho
     assert.ok(kinds(findings).includes("escapes-card"), JSON.stringify(findings));
 });
 
+test("and it is caught under the app's RTL class names too", async () => {
+    const findings = await audit(
+        `<div class="mantine-rtl-Paper-root" style="width:300px;border:1px solid #ccc;margin:40px">
+            <div style="display:flex;flex-wrap:nowrap;gap:8px">
+                <div style="flex:1;min-width:200px">بيان طويل للطلب</div>
+                <button style="white-space:nowrap">اعتماد الإيصال</button>
+                <button style="white-space:nowrap">رفض</button>
+            </div>
+         </div>`,
+    );
+    assert.ok(kinds(findings).includes("escapes-card"), JSON.stringify(findings));
+});
+
 test("a card whose buttons wrap under the text is fine", async () => {
     const findings = await audit(
         `<div class="mantine-Paper-root" style="width:300px;border:1px solid #ccc;margin:40px">
@@ -127,4 +140,35 @@ test("but a broken window is still caught", async () => {
          </div>`,
     );
     assert.ok(kinds(findings).includes("covered"), JSON.stringify(findings));
+});
+
+const openMenu = async (body) => {
+    await page.setContent(`<html dir="rtl"><body style="margin:40px">${body}</body></html>`);
+    return page.locator("#target").evaluate(auditOpenMenu);
+};
+const menuKinds = (findings) => findings.map((f) => f.kind);
+
+test("a menu that opened with its items showing is fine", async () => {
+    const findings = await openMenu(
+        `<button id="target" aria-haspopup="menu" aria-controls="m">⋮</button>
+         <div id="m" role="menu" style="position:absolute;top:80px;background:#fff"><button role="menuitem">قبول</button></div>`,
+    );
+    assert.deepEqual(findings, []);
+});
+
+test("a menu cut off by its table cell is caught — the team's «طلبات اللاعبين»", async () => {
+    const findings = await openMenu(
+        `<div style="overflow:hidden;width:60px;height:40px">
+            <button id="target" aria-haspopup="menu" aria-controls="m">⋮</button>
+            <div id="m" role="menu" style="position:relative;top:60px"><button role="menuitem">قبول</button></div>
+         </div>`,
+    );
+    assert.deepEqual(menuKinds(findings), ["menu-clipped"]);
+});
+
+test("a menu that opens empty is caught", async () => {
+    const findings = await openMenu(
+        `<button id="target" aria-haspopup="menu" aria-controls="m">⋮</button><div id="m" role="menu"></div>`,
+    );
+    assert.deepEqual(menuKinds(findings), ["menu-empty"]);
 });

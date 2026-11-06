@@ -5,6 +5,7 @@
   "description": "Automated design audit of the club and team dashboards against a LOCAL stack.",
   "scripts": {
     "audit": "node design-audit.mjs",
+    "journeys": "node --test --test-concurrency=1 journeys.mjs",
     "test": "node --test checks.test.mjs"
   },
   "devDependencies": {

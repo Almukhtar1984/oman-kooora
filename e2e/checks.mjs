@@ -14,10 +14,20 @@
 //   overlap       — two pieces of text or controls drawn on top of each other.
 //   escapes-card  — a control or badge sticking out past the side of its card
 //                   (the payments card on a phone pushed «رفض» over its edge).
+//   busy-loop     — (design-audit.mjs) a page that keeps the CPU busy while idle:
+//                   an endless re-render left the technical staff page unable to
+//                   answer clicks (2026-11-05).
+//   menu-clipped / menu-empty — (auditOpenMenu) a ⋮ menu that opens to nothing: its
+//                   dropdown cut off by a table cell, or holding no item at all
+//                   (the team's «طلبات اللاعبين», 2026-11-05).
 
 export function auditPage() {
     const findings = [];
     const add = (kind, detail) => findings.push({ kind, detail });
+    // Mantine's class under the app's RTL cache is mantine-rtl-Paper-root, and
+    // mantine-Paper-root without it: match the part both share. A plain
+    // ".mantine-Paper-root" here matched nothing on the real pages.
+    const M = (part) => `[class*="-${part}"]`;
 
     const isVisible = (el) => {
         const r = el.getBoundingClientRect();
@@ -122,7 +132,7 @@ export function auditPage() {
     // ── covered controls and overlapping text ─────────────────────────────────
     // With a window or drawer open, the page behind it is meant to be covered:
     // judge only the topmost open layer.
-    const layers = [...document.querySelectorAll("[role=dialog], .mantine-Modal-content, .mantine-Drawer-content")]
+    const layers = [...document.querySelectorAll(`[role=dialog], ${M("Modal-content")}, ${M("Drawer-content")}`)]
         .filter(isVisible);
     const scope = layers.length ? layers[layers.length - 1] : document.body;
     const CONTROLS = "button, a[href], input:not([type=hidden]), select, textarea, [role=tab], [role=button], [role=checkbox]";
@@ -145,9 +155,9 @@ export function auditPage() {
     covered.slice(0, 6).forEach((detail) => add("covered", detail));
 
     const escapes = [];
-    scope.querySelectorAll(`${CONTROLS}, .mantine-Badge-root`).forEach((el) => {
+    scope.querySelectorAll(`${CONTROLS}, ${M("Badge-root")}`).forEach((el) => {
         if (!isVisible(el)) return;
-        const card = el.parentElement && el.parentElement.closest(".mantine-Paper-root, .mantine-Card-root");
+        const card = el.parentElement && el.parentElement.closest(`${M("Paper-root")}, ${M("Card-root")}`);
         if (!card) return;
         const scroller = inScroller(el);
         if (scroller && card.contains(scroller)) return;   // a scrolling strip inside the card
@@ -156,7 +166,7 @@ export function auditPage() {
     });
     escapes.slice(0, 6).forEach((detail) => add("escapes-card", detail));
 
-    const TEXTY = "button, a[href], [role=tab], label, h1, h2, h3, h4, h5, .mantine-Badge-root, .mantine-Text-root, .mantine-Title-root, .th, .td";
+    const TEXTY = `button, a[href], [role=tab], label, h1, h2, h3, h4, h5, ${M("Badge-root")}, ${M("Text-root")}, ${M("Title-root")}, .th, .td`;
     const items = [...scope.querySelectorAll(TEXTY)]
         .filter((el) => isVisible(el) && (el.innerText || "").trim())
         .filter((el) => !el.querySelector(TEXTY))   // leaves only: a cell holding a badge is judged by the badge
@@ -180,4 +190,22 @@ export function auditPage() {
     overlaps.forEach((detail) => add("overlap", detail));
 
     return findings;
+}
+
+// Called on a menu button after it was clicked: did a usable menu really open?
+export function auditOpenMenu(target) {
+    const describe = (target.getAttribute("aria-label") || target.innerText || "⋮").trim().slice(0, 30) || "⋮";
+    const id = target.getAttribute("aria-controls");
+    const menu = id ? document.getElementById(id) : null;
+    if (!menu) return [{ kind: "menu-clipped", detail: `القائمة «${describe}» لم تفتح` }];
+
+    const items = [...menu.querySelectorAll("[role=menuitem]")];
+    if (!items.length) return [{ kind: "menu-empty", detail: `القائمة «${describe}» فارغة` }];
+
+    const first = items[0].getBoundingClientRect();
+    const hit = document.elementFromPoint(first.left + first.width / 2, first.top + first.height / 2);
+    if (first.width < 1 || first.height < 1 || !hit || !items[0].contains(hit)) {
+        return [{ kind: "menu-clipped", detail: `القائمة «${describe}» مقصوصة: عناصرها لا تُرى` }];
+    }
+    return [];
 }

@@ -20,24 +20,11 @@ import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { auditPage } from "./checks.mjs";
+import { auditOpenMenu, auditPage } from "./checks.mjs";
+import { APPS, login } from "./support.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, "output");
-
-const API_URL = process.env.API_URL || "http://localhost:7001";
-const APPS = {
-    club: {
-        url: process.env.CLUB_URL || "http://localhost:3050",
-        email: process.env.CLUB_EMAIL || "clubadmin@tomoh.local",
-        password: process.env.CLUB_PASSWORD || "Club@1234",
-    },
-    team: {
-        url: process.env.TEAM_URL || "http://localhost:3053",
-        email: process.env.TEAM_EMAIL || "demo@tomoh.local",
-        password: process.env.TEAM_PASSWORD || "Demo@1234",
-    },
-};
 
 const VIEWPORTS = {
     desktop: { width: 1440, height: 900 },
@@ -94,31 +81,36 @@ const clickText = async (page, text) => {
 };
 
 // A finding of these kinds fails the run; the rest are reported only.
-const FAILING = new Set(["leaked-value", "table-grid", "page-overflow", "covered", "overlap", "escapes-card", "page-error", "auth"]);
+const FAILING = new Set([
+    "leaked-value", "table-grid", "page-overflow", "covered", "overlap", "escapes-card",
+    "busy-loop", "menu-clipped", "menu-empty", "page-error", "auth",
+]);
 
-const assertLocal = (raw) => {
-    const { hostname } = new URL(raw);
-    if (!["localhost", "127.0.0.1", "[::1]"].includes(hostname) && !hostname.endsWith(".localhost")) {
-        console.error(`✗ ${raw}: the audit runs against a local stack only.`);
-        process.exit(2);
-    }
+// Share of the time the page's main thread stays busy while nobody touches it.
+const BUSY_LIMIT = 0.5;
+const busyShare = async (cdp, page, ms = 1500) => {
+    const taskTime = async () => {
+        const { metrics } = await cdp.send("Performance.getMetrics");
+        return metrics.find((m) => m.name === "TaskDuration")?.value || 0;
+    };
+    const before = await taskTime();
+    await page.waitForTimeout(ms);
+    return ((await taskTime()) - before) / (ms / 1000);
 };
-[API_URL, ...Object.values(APPS).map((app) => app.url)].forEach(assertLocal);
 
-const login = async (app) => {
-    const res = await fetch(`${API_URL}/graphql`, {
-        method: "POST",
-        // The app's own Origin, so the token carries that app's audience.
-        headers: { "content-type": "application/json", Origin: app.url },
-        body: JSON.stringify({
-            query: "mutation($c: loginInfo){ authenticateUser(content: $c){ token } }",
-            variables: { c: { email: app.email, password: app.password } },
-        }),
-    });
-    const body = await res.json();
-    const token = body?.data?.authenticateUser?.token;
-    if (!token) throw new Error(`login ${app.email}: ${JSON.stringify(body?.errors?.[0]?.message || body)}`);
-    return token;
+// The page's own ⋮ menus: open the last one on the page (the first is the
+// account menu in the header) and see that something usable appeared.
+const auditLastMenu = async (page) => {
+    const targets = page.locator('[aria-haspopup="menu"]:not([disabled])').filter({ visible: true });
+    const count = await targets.count();
+    if (count < 2) return [];
+    const target = targets.nth(count - 1);
+    await target.click({ timeout: 10000 });
+    await page.waitForTimeout(400);
+    const findings = await target.evaluate(auditOpenMenu);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(200);
+    return findings;
 };
 
 const only = (process.env.ONLY || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -129,7 +121,7 @@ const settle = async (page) => {
     await page.waitForLoadState("networkidle", { timeout: 45000 }).catch(() => {});
     // Wait out loaders (Mantine dots/oval) the page shows while its data arrives.
     await page.waitForFunction(
-        () => ![...document.querySelectorAll(".mantine-Loader-root, [class*=Loader]")]
+        () => ![...document.querySelectorAll("[class*=Loader]")]
             .some((el) => el.getBoundingClientRect().width > 0),
         null, { timeout: 30000 },
     ).catch(() => {});
@@ -158,6 +150,8 @@ const main = async () => {
             const context = await browser.newContext({ viewport: VIEWPORTS[vp], locale: "ar" });
             await context.addInitScript((t) => localStorage.setItem("omkoora.auth.token", t), token);
             const page = await context.newPage();
+            const cdp = await context.newCDPSession(page);
+            await cdp.send("Performance.enable");
 
             let current = [];
             const record = ({ appKey: a, path: p, vp: v, recent: r, shot: s, started: t }) => {
@@ -191,6 +185,12 @@ const main = async () => {
                     current.push({ kind: "auth", detail: "redirected to /login" });
                 } else {
                     current.push(...await page.evaluate(auditPage));
+                    const busy = await busyShare(cdp, page);
+                    if (busy > BUSY_LIMIT) {
+                        current.push({ kind: "busy-loop", detail: `الصفحة مشغولة ${Math.round(busy * 100)}% من الوقت وهي ساكنة` });
+                    }
+                    current.push(...await auditLastMenu(page).catch((error) =>
+                        [{ kind: "menu-clipped", detail: `تعذّر فتح القائمة: ${String(error.message).slice(0, 80)}` }]));
                 }
                 const shot = shotName(appKey, path, vp);
                 await page.screenshot({ path: join(OUT, shot), fullPage: true }).catch(() => {});
