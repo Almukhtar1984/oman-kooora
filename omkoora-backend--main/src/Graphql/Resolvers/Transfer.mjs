@@ -84,7 +84,7 @@ const chargeSendingFee = async ({ transfer, fee, flow, id_user }) => {
 
     if (amount && transfer.id_club_from && transfer.id_team_from) {
         await RequestPayment.create({
-            fee_type: isLoan ? "loan" : "transfer",
+            fee_type: isLoan ? "loan_external" : "transfer_external",
             amount,
             entity_type: "transfer",
             entity_id: transfer.id,

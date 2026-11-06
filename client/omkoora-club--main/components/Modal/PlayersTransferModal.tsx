@@ -230,7 +230,7 @@ export const PlayersTransferModal = ({data, opened, ...props}: Props) => {
                         }
                         {type && (
                             <Col span={12}>
-                                <SendingFeeInput feeType="transfer" active={opened && type} value={fee} onChange={setFee} />
+                                <SendingFeeInput feeType="transfer_external" active={opened && type} value={fee} onChange={setFee} />
                             </Col>
                         )}
                     </Grid>

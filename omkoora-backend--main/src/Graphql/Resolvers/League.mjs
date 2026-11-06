@@ -12,6 +12,7 @@ import { hashPassword, alreadyExistUser } from '../../Helpers/index.mjs';
 import { computeYellowCardAlerts } from '../../Helpers/YellowCards.mjs';
 import { buildLineup, fullName } from '../../Helpers/MatchLineup.mjs';
 import { assertTeamInCallerClub } from '../../Helpers/clubScope.mjs';
+import { raiseCompetitionFee, withdrawCompetitionFee } from '../../Helpers/competitionFee.mjs';
 import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from '../../Helpers/memberLock.mjs';
 import { randomBytes } from 'crypto';
 
@@ -1875,6 +1876,7 @@ export const resolvers = {
                 assertNotMatchOfficial(context)
                 await assertParticipatingTeamsLeagueNotEnded(id)
                 const league = await ParticipatingTeams.destroy({ where: { id } })
+                if (league === 1) await withdrawCompetitionFee(id)
 
                 return {
                     status: league === 1
@@ -2407,6 +2409,7 @@ export const resolvers = {
                     { status: 'accepted' },
                     { where: { id } }
                 );
+                if (result[0] >= 1) await raiseCompetitionFee(id, { id_user: context?.user?.id || null });
 
                 return {
                     status: result[0] >= 1
@@ -2424,6 +2427,7 @@ export const resolvers = {
                     { status: 'rejected' },
                     { where: { id } }
                 );
+                if (result[0] >= 1) await withdrawCompetitionFee(id);
 
                 return {
                     status: result[0] >= 1

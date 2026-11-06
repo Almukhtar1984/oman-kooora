@@ -16,19 +16,81 @@
 //
 // Pure decisions only — no DB, no IO.
 
+// قائمة الأسعار. «في تسجيل اللاعب حالتين: فوق 18 سنة وتحت 18 سنة… إعارة اللاعب
+// الداخلي وإعارة اللاعب الخارجي، مبلغ مختلف» (العميل، 2026-11-05).
+//
+// label اسمها في قائمة الأسعار، و bill اسمها في المطالبة حيث يختلف: المطالبات
+// القديمة بنوع «إعارة» لم تكن تفرّق بين داخلية وخارجية، فتبقى «إعارة لاعب» ولا
+// تُنسب إلى ما لم تكنه.
 export const FEE_TYPES = [
-    { type: "player_registration", label: "تسجيل لاعب" },
-    { type: "transfer",            label: "انتقال لاعب" },
-    { type: "loan",                label: "إعارة لاعب" },
-    { type: "team_registration",   label: "تسجيل فريق" },
-    { type: "player_release",      label: "استقالة لاعب" },
+    { type: "player_registration",         label: "تسجيل لاعب — فوق 18 سنة", bill: "تسجيل لاعب" },
+    { type: "player_registration_under18", label: "تسجيل لاعب — تحت 18 سنة", bill: "تسجيل لاعب تحت 18 سنة" },
+    { type: "transfer",                    label: "انتقال لاعب — داخلي",     bill: "انتقال لاعب" },
+    { type: "transfer_external",           label: "انتقال لاعب — خارجي",     bill: "انتقال لاعب خارجي" },
+    { type: "loan",                        label: "إعارة لاعب — داخلية",     bill: "إعارة لاعب" },
+    { type: "loan_external",               label: "إعارة لاعب — خارجية",     bill: "إعارة لاعب خارجية" },
+    { type: "team_registration",           label: "تسجيل فريق" },
+    { type: "player_release",              label: "استقالة لاعب" },
+    { type: "competition_registration",    label: "تسجيل في المسابقات" },
 ];
 
 const FEE_KEYS = FEE_TYPES.map((f) => f.type);
 
-export const feeLabel = (type) => FEE_TYPES.find((f) => f.type === type)?.label || "";
+const feeOf = (type) => FEE_TYPES.find((f) => f.type === type);
+
+/** اسم الرسوم في المطالبة والإشعار والإيصال. */
+export const feeLabel = (type) => feeOf(type)?.bill || feeOf(type)?.label || "";
+
+/** اسمها في قائمة أسعار النادي. */
+export const priceLabel = (type) => feeOf(type)?.label || "";
 
 export const isFeeType = (type) => FEE_KEYS.includes(type);
+
+const toAsciiDigits = (text) => text
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+
+/**
+ * العمر بالسنوات يوم الطلب، أو null حين لا يُقرأ التاريخ.
+ *
+ * تاريخ الميلاد حقلٌ نصّي: تكتبه النماذج YYYY-MM-DD، وفي الصفوف القديمة والمستوردة
+ * DD/MM/YYYY وأرقام عربية.
+ */
+export const ageOn = (birth, now = new Date()) => {
+    if (birth === null || birth === undefined || birth === "") return null;
+    const text = toAsciiDigits(birth instanceof Date ? birth.toISOString() : String(birth)).trim();
+    let parts = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:$|[T\s])/);
+    let [year, month, day] = parts ? [+parts[1], +parts[2], +parts[3]] : [];
+    if (!parts) {
+        parts = text.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+        if (!parts) return null;
+        [day, month, year] = +parts[2] > 12 ? [+parts[2], +parts[1], +parts[3]] : [+parts[1], +parts[2], +parts[3]];
+    }
+    if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+    const before = now.getMonth() + 1 < month || (now.getMonth() + 1 === month && now.getDate() < day);
+    return now.getFullYear() - year - (before ? 1 : 0);
+};
+
+/** انتقالٌ أو إعارة تخرج من النادي إلى نادٍ آخر؟ */
+export const isExternalMove = (transfer) => Boolean(transfer) && (
+    transfer.type === "external"
+    || Boolean(transfer.id_club_from && transfer.id_club_to && transfer.id_club_from !== transfer.id_club_to)
+);
+
+/**
+ * أيّ سعر يخصّ هذا الطلب بعينه. وعمرٌ لا يُقرأ يبقى على السعر العام: المبلغ اقتراح
+ * يراه النادي قبل أن يطالب، ولا يُفترض أن اللاعب قاصر.
+ */
+export const feeTypeFor = (requestType, { birth = null, external = false, now = new Date() } = {}) => {
+    if (requestType === "player_registration") {
+        const age = ageOn(birth, now);
+        return age !== null && age < 18 ? "player_registration_under18" : "player_registration";
+    }
+    if (requestType === "transfer" || requestType === "loan") {
+        return external ? `${requestType}_external` : requestType;
+    }
+    return requestType;
+};
 
 export const PAYMENT_WAITING = "waiting";       // صدر الطلب وينتظر دفع الفريق
 export const PAYMENT_SUBMITTED = "submitted";   // الفريق دفع ورفع الإيصال

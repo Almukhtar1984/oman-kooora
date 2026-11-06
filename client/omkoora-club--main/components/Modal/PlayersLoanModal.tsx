@@ -239,7 +239,7 @@ export const PlayersLoanModal = ({data, opened, ...props}: Props) => {
                         </Col>
                         {type && (
                             <Col span={12}>
-                                <SendingFeeInput feeType="loan" active={opened && type} value={fee} onChange={setFee} />
+                                <SendingFeeInput feeType="loan_external" active={opened && type} value={fee} onChange={setFee} />
                             </Col>
                         )}
                     </Grid>

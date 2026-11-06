@@ -13,7 +13,7 @@ import {
     SUBMITTED, CLUB_PROCESSING, CANCELLED,
 } from "../../Helpers/requestFlow.mjs";
 import { pendingApprover } from "../../Helpers/transferFlow.mjs";
-import { feeLabel } from "../../Helpers/clubFees.mjs";
+import { feeLabel, feeTypeFor } from "../../Helpers/clubFees.mjs";
 
 const { Op } = sequelize;
 
@@ -163,13 +163,14 @@ const enrich = async (flows, context) => {
         const transfer = plain.entity_type === "transfer" ? transfers.get(plain.entity_id) || null : undefined;
         const side = await sideOf(caller, plain, transfer);
         const suggestedAmount = side === "club" && plain.stage === CLUB_PROCESSING
-            ? await suggestedAmountFor(plain)
+            ? await suggestedAmountFor(plain, { transfer })
             : null;
         // سعر النادي المُرسِل لهذا النوع — يقترح رسومه حين يوافق في السلسلة.
         const sendingFee = side === "chain"
             ? suggestedFee({
                 type: plain.request_type,
-                fee: myFees.find((fee) => fee.fee_type === requestTypeInfo(plain.request_type)?.fee),
+                // والسلسلة لا تكون إلا بين ناديين: سعره الخارجي.
+                fee: myFees.find((fee) => fee.fee_type === feeTypeFor(plain.request_type, { external: true })),
             })
             : null;
         return withLabels({

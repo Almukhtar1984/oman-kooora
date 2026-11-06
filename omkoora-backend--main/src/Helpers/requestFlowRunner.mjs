@@ -13,10 +13,12 @@
 import logger from "../Config/logger.mjs";
 import sequelize from "sequelize";
 import {
-    ClubFee, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Transfer,
+    ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Transfer,
 } from "../Models/index.mjs";
 import { CreateDirectNotification } from "./Notification.mjs";
-import { normalizeAmount, PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED } from "./clubFees.mjs";
+import {
+    feeTypeFor, isExternalMove, normalizeAmount, PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED,
+} from "./clubFees.mjs";
 import {
     canAdvance, suggestedFee, legacyStatusFor, legacyDecisionMove, outcomeOf, stageLabelFor,
     requestTypeInfo, requestTypeLabel, drivesFlow, isDone,
@@ -120,10 +122,26 @@ const mirrorLegacy = async (flow) => {
     }
 };
 
+/** نوع الرسوم الذي يخصّ هذا الطلب: عمر لاعبه، وداخلية الإعارة أو خارجيتها. */
+const feeTypeOf = async (flow, { transfer } = {}) => {
+    if (flow.entity_type === "player") {
+        const player = await Players.findByPk(flow.entity_id, {
+            attributes: ["id"],
+            include: [{ model: Person, as: "person", attributes: ["date_birth"] }],
+        });
+        return feeTypeFor(flow.request_type, { birth: player?.person?.date_birth });
+    }
+    if (flow.entity_type === "transfer") {
+        const row = transfer || await Transfer.findByPk(flow.entity_id, { paranoid: false });
+        return feeTypeFor(flow.request_type, { external: isExternalMove(row) });
+    }
+    return feeTypeFor(flow.request_type);
+};
+
 /** المبلغ الذي يقترحه سعر النادي لهذا الطلب، أو null إن لم يسعّره. */
-export const suggestedAmountFor = async (flow) => {
-    const feeType = requestTypeInfo(flow?.request_type)?.fee;
-    if (!feeType || !flow?.id_club) return null;
+export const suggestedAmountFor = async (flow, { transfer } = {}) => {
+    if (!requestTypeInfo(flow?.request_type)?.fee || !flow?.id_club) return null;
+    const feeType = await feeTypeOf(flow, { transfer });
     const fee = await ClubFee.findOne({ where: { id_club: flow.id_club, fee_type: feeType } });
     return suggestedFee({ type: flow.request_type, fee });
 };
@@ -136,7 +154,7 @@ export const suggestedAmountFor = async (flow) => {
  * موظف. الآن الدفعة تعرف طلبها، والطلب يعرف دفعته.
  */
 const raiseFee = async (flow, { amount, id_user = null } = {}) => {
-    const feeType = requestTypeInfo(flow.request_type)?.fee;
+    const feeType = await feeTypeOf(flow);
     const payment = await RequestPayment.create({
         fee_type: feeType,
         amount: normalizeAmount(amount),

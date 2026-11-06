@@ -10,7 +10,7 @@ import { callerClubId, callerTeamId, clubOfTeam } from "../../Helpers/clubScope.
 import { onReceiptSubmitted, onReceiptRejected } from "../../Helpers/requestFlowRunner.mjs";
 import { CreateDirectNotification } from "../../Helpers/index.mjs";
 import {
-    FEE_TYPES, feeLabel, isFeeType, normalizeAmount,
+    FEE_TYPES, feeLabel, priceLabel, isFeeType, normalizeAmount,
     canSubmitReceipt, canSubmitBatchReceipt, paymentDecision,
     PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED,
 } from "../../Helpers/clubFees.mjs";
@@ -137,7 +137,7 @@ export const resolvers = {
                 return {
                     id: fee.id,
                     fee_type,
-                    label: feeLabel(fee_type),
+                    label: priceLabel(fee_type),
                     amount: Number(fee.amount),
                     active: Boolean(fee.active),
                 };

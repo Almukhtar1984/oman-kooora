@@ -2,7 +2,7 @@
 // والإيصال صورة مع رقمه المرجعي.
 
 import {
-    FEE_TYPES, feeLabel, isFeeType, normalizeAmount,
+    FEE_TYPES, feeLabel, priceLabel, isFeeType, normalizeAmount, ageOn, feeTypeFor, isExternalMove,
     canSubmitReceipt, canSubmitBatchReceipt, paymentDecision,
     PAYMENT_WAITING, PAYMENT_SUBMITTED, PAYMENT_ACCEPTED, PAYMENT_REJECTED, PAYMENT_STATUSES,
 } from "../src/Helpers/clubFees.mjs";
@@ -15,10 +15,41 @@ const check = (label, got, want) => {
 };
 
 // الأربعة الأولى من رسالته الأولى، والاستقالة لحقت بها حين عدّها نوعَ طلب رابعاً.
-check("أنواع الرسوم الخمسة", FEE_TYPES.map((f) => f.type),
-    ["player_registration", "transfer", "loan", "team_registration", "player_release"]);
+check("أنواع الرسوم", FEE_TYPES.map((f) => f.type),
+    ["player_registration", "player_registration_under18", "transfer", "transfer_external", "loan", "loan_external", "team_registration", "player_release", "competition_registration"]);
 check("ولكل نوع اسم عربي", feeLabel("transfer"), "انتقال لاعب");
 check("نوع مجهول يُرفض", isFeeType("donation"), false);
+
+// قائمة الأسعار: «فوق 18 وتحت 18… إعارة داخلي وخارجي… تسجيل مسابقات» (العميل).
+check("السعر يُسمّى في القائمة بحالته", priceLabel("loan_external"), "إعارة لاعب — خارجية");
+check("والمطالبة القديمة لا تُنسب إلى ما لم تكنه", feeLabel("loan"), "إعارة لاعب");
+check("والمطالبة الجديدة تقول حالتها", feeLabel("player_registration_under18"), "تسجيل لاعب تحت 18 سنة");
+check("وما لا حالة له اسمه واحد", [priceLabel("team_registration"), feeLabel("team_registration")], ["تسجيل فريق", "تسجيل فريق"]);
+
+const today = new Date(2026, 10, 5);   // 5 نوفمبر 2026
+check("العمر من التاريخ المخزَّن", ageOn("2010-01-15", today), 16);
+check("ومن DD/MM/YYYY في الصفوف القديمة", ageOn("15/01/2010", today), 16);
+check("ومن الأرقام العربية", ageOn("٢٠١٠-٠١-١٥", today), 16);
+check("ولا يُحسب العام قبل يوم الميلاد", ageOn("2008-11-06", today), 17);
+check("ويُحسب في يومه", ageOn("2008-11-05", today), 18);
+check("والتاريخ الذي لا يُقرأ لا عمر له", [ageOn("", today), ageOn(null, today), ageOn("غير معروف", today)], [null, null, null]);
+
+const reg = (birth) => feeTypeFor("player_registration", { birth, now: today });
+check("تحت 18 سنة له سعره", reg("2008-11-06"), "player_registration_under18");
+check("ومن بلغها فوقها", reg("2008-11-05"), "player_registration");
+check("وعمرٌ لا يُقرأ لا يُفترض قاصراً", reg(null), "player_registration");
+check("الإعارة الداخلية", feeTypeFor("loan"), "loan");
+check("والخارجية", feeTypeFor("loan", { external: true }), "loan_external");
+check("والانتقال مثلها", feeTypeFor("transfer", { external: true }), "transfer_external");
+check("وما لا ينقسم يبقى نوعه", feeTypeFor("team_registration", { external: true }), "team_registration");
+check("كل نوع يخرج من الدالة نوعٌ معروف",
+    ["player_registration", "transfer", "loan", "team_registration", "player_release"]
+        .flatMap((t) => [feeTypeFor(t), feeTypeFor(t, { external: true })]).every(isFeeType), true);
+
+check("انتقال خارجي بنوعه", isExternalMove({ type: "external" }), true);
+check("أو بين ناديين وإن لم يُسجَّل نوعه", isExternalMove({ id_club_from: "a", id_club_to: "b" }), true);
+check("وداخل النادي داخلي", isExternalMove({ type: "internal", id_club_from: "a", id_club_to: "a" }), false);
+check("ولا شيء بلا انتقال", isExternalMove(null), false);
 
 // المبالغ
 check("المبلغ يُقرّب لمنزلتين", normalizeAmount("20.456"), 20.46);

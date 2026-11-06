@@ -13,5 +13,6 @@ export const transferSide = (transfer: any, myClubId?: string | null): TransferS
     return myClubId && from === myClubId && to && to !== myClubId ? "sending" : "receiving";
 };
 
-/** نوع رسوم الطلب في قائمة أسعار النادي. */
-export const transferFeeType = (transfer: any) => (transfer?.transition_type === "loan" ? "loan" : "transfer");
+/** سعر النادي المُرسِل في قائمته: لا يكون له رسوم إلا على ما يخرج إلى نادٍ آخر. */
+export const transferFeeType = (transfer: any) =>
+    (transfer?.transition_type === "loan" ? "loan_external" : "transfer_external") as "loan_external" | "transfer_external";

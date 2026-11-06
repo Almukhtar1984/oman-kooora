@@ -9,7 +9,11 @@ export default (db, types) => {
         },
         fee_type: {
             type: types.ENUM,
-            values: ["player_registration", "transfer", "loan", "team_registration", "player_release"],
+            values: [
+                "player_registration", "player_registration_under18",
+                "transfer", "transfer_external", "loan", "loan_external",
+                "team_registration", "player_release", "competition_registration",
+            ],
             allowNull: false
         },
         amount: {

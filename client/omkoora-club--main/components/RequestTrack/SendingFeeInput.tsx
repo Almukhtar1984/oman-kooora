@@ -8,7 +8,7 @@ import { useClubFees } from "../../graphql";
 // الحقل، ويسدّدها فريقه المُرسِل قبل أن يُعتمد الطلب نهائياً.
 
 interface Props {
-    feeType: "loan" | "transfer";
+    feeType: "loan_external" | "transfer_external";
     // الحقل ظاهرٌ الآن: يُجلب السعر ويُقترح.
     active: boolean;
     value: number | "";

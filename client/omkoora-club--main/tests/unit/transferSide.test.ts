@@ -12,7 +12,7 @@ describe("موقع النادي من الانتقال", () => {
     it("والانتقال الداخلي: النادي واحد فهو المستقبِل", () =>
         expect(transferSide({ team_from: { club: { id: "A" } }, team_to: { club: { id: "A" } } }, "A")).toBe("receiving"));
     it("ونوع الرسوم من نوع الطلب", () => {
-        expect(transferFeeType(external)).toBe("loan");
-        expect(transferFeeType({ transition_type: "transition" })).toBe("transfer");
+        expect(transferFeeType(external)).toBe("loan_external");
+        expect(transferFeeType({ transition_type: "transition" })).toBe("transfer_external");
     });
 });
