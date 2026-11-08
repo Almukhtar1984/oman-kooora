@@ -91,6 +91,9 @@ export const typeDefs = gql`
         
         person:         contentPerson
         id_team:            ID
+        # The club the public registration form showed; checked against the
+        # team's club, never stored (team names repeat across clubs).
+        id_club:            ID
     }
 
     type AttachmentPlayer {

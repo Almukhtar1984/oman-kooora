@@ -82,6 +82,33 @@ export const assertTeamInCallerClub = async (context, idTeam) => {
 };
 
 /**
+ * Refuse a team that is not in the club the registrant chose.
+ *
+ * The public «تسجيل لاعب» page has no club of its own to check against: the
+ * player picks a club, then one of its teams. The form used to keep the team
+ * picked under a previous club after the club changed, still showing its name
+ * — and «فريق الشباب» exists in both الرستاق and بهلاء, so a player who chose
+ * الرستاق landed in بهلاء's team (2026-11-08). The page now sends the club it
+ * showed, and the server holds the team to it.
+ *
+ * @throws {Error} code TEAM_NOT_IN_CLUB, naming both clubs.
+ */
+export const assertTeamInChosenClub = async (idTeam, idChosenClub) => {
+    if (!idTeam || !idChosenClub) return;
+
+    const team = await Team.findByPk(idTeam, { include: [{ model: Club, as: "club", attributes: ["name"] }] });
+    if (!isForeignTeam(String(idChosenClub), team?.id_club ? String(team.id_club) : null)) return;
+
+    const chosen = await Club.findByPk(idChosenClub, { attributes: ["name"] });
+    const error = new Error(
+        `الفريق المختار (${team?.name || "غير معروف"}) تابع لـ${team?.club?.name || "نادٍ آخر"} ` +
+        `وليس لـ${chosen?.name || "النادي الذي اخترته"} — اختر الفريق من جديد من فرق النادي الذي اخترته.`
+    );
+    error.code = "TEAM_NOT_IN_CLUB";
+    throw error;
+};
+
+/**
  * فريق المستدعي حين يكون حساب فريق (دور ٣) — وإلا فلا فريق له.
  *
  * الفريق لا يدفع عن غيره ولا يحرّك طلب غيره، فهذه هي الحدّ الذي يُقاس عليه.

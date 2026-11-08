@@ -30,6 +30,7 @@ import {NavBar} from "@/component/Header";
 type Props = {} & ModalProps;
 
 const init = {
+    id_team: null as string | null,
     classes: "",
     player_center: "",
     job: "",
@@ -47,7 +48,10 @@ const init = {
 
 export default function AddPlayer (props: Props) {
     const form = useForm({
-        initialValues: init
+        initialValues: init,
+        validate: {
+            id_team: (value) => (value ? null : "حدد النادي ثم الفريق"),
+        },
     });
     const openRef = useRef<() => void>(null);
     const openRefBack = useRef<() => void>(null);
@@ -95,6 +99,15 @@ export default function AddPlayer (props: Props) {
         }
     }, [clubSelected, dataAllClubs?.allClub])
 
+    // Another club empties the team. Mantine's Select keeps a value that left its
+    // list and goes on showing its name, and «فريق الشباب» exists in more than one
+    // club — so a team picked under one club was registered under another while
+    // the form read like the right one (2026-11-08).
+    const changeClub = (value: string | null) => {
+        setClubSelected(value);
+        form.setFieldValue("id_team", null);
+    };
+
     const onSubmit = (data: any) => {
         setLoade(true)
         const {id_team, classes, player_center, job, person } = data
@@ -115,7 +128,9 @@ export default function AddPlayer (props: Props) {
                         ...person,
                         date_birth: dayjs(age).format("YYYY-MM-DD")
                     },
-                    id_team
+                    id_team,
+                    // The server holds the team to the club this form showed.
+                    id_club: clubSelected,
                 }
             },
             onCompleted: () => {
@@ -124,23 +139,32 @@ export default function AddPlayer (props: Props) {
             },
             onError: ({graphQLErrors}) => {
                 setLoade(false)
-                if (graphQLErrors?.[0]?.extensions?.code == "CARD_NUMBER_ALREADY_EXISTS") {
-                    notyf.open({message: "رقم الهوية موجود مسبقا", type:"error", duration: 10000});
-                    setAlert({status: "red", msg: "رقم الهوية موجود مسبقا", code: ""});
-                }
-
-                if (graphQLErrors?.[0]?.extensions?.code == "PHONE_NUMBER_ALREADY_EXISTS") {
-                    notyf.open({message: "رقم الهاتف موجود مسبقا", type:"error", duration: 10000});
-                    setAlert({status: "red", msg: "رقم الهاتف موجود مسبقا", code: ""});
-                }
+                const error = graphQLErrors?.[0];
+                const code = String(error?.extensions?.code || "");
+                // Every refusal is said: a silent one left the player not knowing
+                // whether he was registered at all.
+                const msg =
+                    code === "CARD_NUMBER_ALREADY_EXISTS" ? "رقم الهوية موجود مسبقا"
+                    : code === "PHONE_NUMBER_ALREADY_EXISTS" ? "رقم الهاتف موجود مسبقا"
+                    : code === "MISSING_NATIONAL_ID" ? "أرفق صورة البطاقة الشخصية (الوجه الأمامي)"
+                    : code === "MISSING_NATIONAL_BACK_ID" ? "أرفق صورة البطاقة الشخصية (الوجه الخلفي)"
+                    : code === "ADD_PLAYER_DISABLED" ? "التسجيل في هذا الفريق متوقف حالياً — راجع النادي"
+                    : code === "TEAM_NOT_IN_CLUB" && error?.message ? error.message
+                    : "تعذّر تسجيل اللاعب، حاول مرة أخرى";
+                notyf.open({message: msg, type:"error", duration: 10000});
+                setAlert({status: "red", msg, code});
             }
         })
     };
 
     const closeModal = () => {
-        props.onClose();
+        // A page, not a modal: there is no onClose to call, and calling it threw
+        // right after a successful registration.
+        props.onClose?.();
         form.reset();
+        setClubSelected(null)
         setNationalID([])
+        setNationalIDBack([])
         setParentApproval([])
         setAge(null)
         setLoade(false)
@@ -186,7 +210,7 @@ export default function AddPlayer (props: Props) {
                                     styles={{ rightSection: { pointerEvents: 'none' } }}
                                     data={allClubs}
                                     value={clubSelected}
-                                    onChange={setClubSelected}
+                                    onChange={changeClub}
 
                                     searchable={true}
                                     clearable={true}
@@ -196,7 +220,8 @@ export default function AddPlayer (props: Props) {
                             </Col>
                             <Col  xs={12} md={6}>
                                 <Select
-                                    placeholder="حدد الفريق"
+                                    placeholder={clubSelected ? "حدد الفريق" : "حدد النادي أولاً"}
+                                    disabled={!clubSelected}
                                     withAsterisk
                                     rightSection={<ChevronDown size={14} />}
                                     rightSectionWidth={30}

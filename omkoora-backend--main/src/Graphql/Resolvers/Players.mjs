@@ -11,7 +11,7 @@ import {__dirname} from "../../app.mjs";
 import {createWriteStream, promises as fsPromises } from "fs";
 import {saveUpload} from "../../Helpers/Upload.mjs";
 import {ATTACH, DUPLICATE, PHONE_TAKEN, classifyExistingPerson} from "../../Helpers/playerRegistration.mjs";
-import { assertTeamInCallerClub } from "../../Helpers/clubScope.mjs";
+import { assertTeamInCallerClub, assertTeamInChosenClub } from "../../Helpers/clubScope.mjs";
 import { addPlayerRefusal, openFlow, decideOnRoad } from "../../Helpers/requestFlowRunner.mjs";
 import { openingStage } from "../../Helpers/requestFlow.mjs";
 import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from "../../Helpers/memberLock.mjs";
@@ -567,11 +567,19 @@ export const resolvers = {
     Mutation: {
         createPlayer: async (obj, { content }, context, info) => {
             try {
+                // The club the registration form showed. Only checked, never stored:
+                // the player belongs to the club through his team.
+                const idChosenClub = content.id_club;
+                delete content.id_club;
+
                 if (content.id_team) {
                     // The team must be one of the caller's own: identical team
                     // names across clubs make a wrong pick impossible to notice.
+                    // A public registration has no club of its own, so it is held
+                    // to the club its form showed instead.
                     try {
                         await assertTeamInCallerClub(context, content.id_team);
+                        await assertTeamInChosenClub(content.id_team, idChosenClub);
                     } catch (e) {
                         if (e?.code === "TEAM_NOT_IN_CLUB") return new ApolloError(e.message, e.code);
                         throw e;

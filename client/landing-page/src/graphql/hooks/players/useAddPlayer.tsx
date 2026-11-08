@@ -23,6 +23,8 @@ interface VariableProps {
             date_birth: string;
         }
         id_team?: string;
+        // Checked by the server against the team's club; never stored.
+        id_club?: string | null;
     };
 }
 
