@@ -14,6 +14,7 @@ export const AllAssembly = gql`
             membership_number
             phone
             type
+            status
             nationalID
             nationalIDBack
             membership_date

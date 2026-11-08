@@ -6,7 +6,7 @@
 // is that nothing passes without the club's approval AND its fee.
 
 import logger from "../Config/logger.mjs";
-import { PlayerRelease, Players, RequestPayment, Team, TechnicalApparatus, Transfer } from "../Models/index.mjs";
+import { Assembly, PlayerRelease, Players, RequestPayment, Team, TechnicalApparatus, Transfer } from "../Models/index.mjs";
 import { unsettledCounterFees } from "./requestFlow.mjs";
 import { CreateNotificationTeam } from "./Notification.mjs";
 
@@ -113,7 +113,20 @@ const closeTeam = async (flow) => {
     await Team.update({ enableAddPlayer: false }, { where: { id: flow.entity_id } });
 };
 
+// العضو المعتمد: عضويته تبدأ يوم اعتماده، واشتراك سنته قائم — سدّد رسومه أو
+// أعفاه النادي. وما كتبه الفريق من تاريخٍ يبقى.
+const admitMember = async (flow) => {
+    const member = await Assembly.findByPk(flow.entity_id);
+    if (!member) return;
+    const today = new Date().toISOString().slice(0, 10);
+    await member.update({
+        membership_date: member.membership_date || today,
+        subscription_date: today,
+    });
+};
+
 const PERFORM = {
+    admit_member: admitMember,
     finalize: finalizeTransfer,
     abandon: abandonTransfer,
     release: releasePlayer,

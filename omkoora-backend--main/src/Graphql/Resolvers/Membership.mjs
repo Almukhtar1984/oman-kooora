@@ -51,7 +51,7 @@ const UNION_SQL = `
 
     UNION ALL
 
-    SELECT 'assembly', a.id, 'accepted',
+    SELECT 'assembly', a.id, COALESCE(a.status, 'accepted'),
            COALESCE(NULLIF(TRIM(a.card_number), ''), CONCAT('assembly:', a.id)),
            a.membership_number, a.membership_date,
            CONCAT_WS(' ', a.first_name, a.second_name, a.third_name, a.tribe),

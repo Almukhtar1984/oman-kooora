@@ -13,6 +13,10 @@ export const typeDefs = gql`
     extend type Mutation {
         createAssembly(content: contentAssembly!): Assembly! @auth(requires: user)
 
+        # «تسجيل عضو جديد» من حساب الفريق: يدخل العضوية بانتظار اعتماد النادي
+        # ورسوم العضوية السنوية، ثم يختار الفريق تصنيفه من بطاقته.
+        registerMember(content: contentAssembly!): Assembly! @auth(requires: user)
+
         updateAssembly (id: ID!, content: contentAssembly!): statusUpdate @auth(requires: user)
 
         deleteAssembly ( id: ID! ): statusDelete @auth(requires: user)
@@ -48,6 +52,8 @@ export const typeDefs = gql`
         membership_number:  String
         phone:              String
         type:               String
+        # اعتماد النادي: waiting_club | accepted | rejected — وفارغ لعضوٍ قديم معتمد.
+        status:             String
 
         club:               Club
         team:               Team

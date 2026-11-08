@@ -43,6 +43,7 @@ const TYPES = [
     { value: "loan", label: "إعارة لاعب" },
     { value: "player_release", label: "استقالة لاعب" },
     { value: "team_registration", label: "تسجيل فريق" },
+    { value: "member_registration", label: "تسجيل عضو جديد" },
 ];
 
 const count = (n: number) => `${n} ${n === 1 ? "طلب" : "طلبات"}`;

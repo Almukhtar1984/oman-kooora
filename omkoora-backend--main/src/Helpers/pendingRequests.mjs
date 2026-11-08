@@ -17,6 +17,8 @@
 // `?pending=` تحمل مفتاح المجموعة، والصفحة تسأل clubPendingIds عمّا عدّه العدّاد.
 // الإخلاء والمدفوعات تفتحان أصلاً على ما ينتظر النادي.
 export const REQUEST_TYPES = [
+    // «تسجيل عضو جديد» — الباب الواحد (العميل، 2026-11-08): يفتح على طلباته في «تتبع الطلبات».
+    { key: "assembly",   label: "تسجيل أعضاء جدد",     href: "/tracking?type=member_registration" },
     { key: "players",    label: "تسجيل لاعبين",        href: "/players?pending=players" },
     { key: "technicals", label: "تسجيل جهاز فني",      href: "/technicalApparatus?pending=technicals" },
     { key: "members",    label: "تسجيل مجلس إدارة",    href: "/members?tab=members&pending=members" },

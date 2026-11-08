@@ -9,6 +9,27 @@ import logger from "../../Config/logger.mjs";
 import {Club, Members, Person, Assembly, User, Team, Players, TechnicalApparatus,} from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
+import { callerTeamId } from "../../Helpers/clubScope.mjs";
+import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
+import { CreateDirectNotification } from "../../Helpers/index.mjs";
+import { normalizeCardNumber, registrationProblem } from "../../Helpers/memberRegistration.mjs";
+
+const IMAGE_TYPES = ["JPEG", "JPG", "PNG"];
+
+/** يحفظ صورةً مرفوعة ويعيد اسمها — أو يرمي حين لا تكون صورة. */
+const saveImage = async (upload) => {
+    if (!upload) return null;
+    const { createReadStream, filename } = await upload;
+    const ext = String(filename || "").split(".").pop().toUpperCase();
+    if (!IMAGE_TYPES.includes(ext)) {
+        const error = new Error("الملف المرفوع ليس صورة (JPG أو PNG)");
+        error.code = "NOT_AN_IMAGE";
+        throw error;
+    }
+    const name = `${UUID()}.${ext}`;
+    await createReadStream().pipe(createWriteStream(path.join(__dirname, `./../uploads/${name}`)));
+    return name;
+};
 
 
 dotenv.config();
@@ -129,6 +150,71 @@ export const resolvers = {
     },
 
     Mutation: {
+        // «تسجيل عضو جديد» من الفريق: يدخل العضوية بانتظار النادي، ويُفتح له طلبه
+        // على الطريق نفسه — قبولٌ ورسوم عضوية سنوية واعتماد. والتصنيف بعد ذلك.
+        registerMember: async (obj, { content }, context) => {
+            try {
+                const idTeam = await callerTeamId(context);
+                if (!idTeam) return new ApolloError("تسجيل العضو يكون من حساب الفريق", "FORBIDDEN_ROLE");
+                const team = await Team.findByPk(idTeam, { attributes: ["id", "name", "id_club"] });
+                if (!team?.id_club) return new ApolloError("الفريق غير مرتبط بنادٍ", "TEAM_WITHOUT_CLUB");
+
+                const problem = registrationProblem(content);
+                if (problem) return new ApolloError(problem, "INVALID_MEMBER");
+                const card = normalizeCardNumber(content.card_number);
+
+                const existing = await Assembly.findOne({
+                    where: { card_number: card },
+                    include: [{ model: Team, attributes: ["name"] }, { model: Club, attributes: ["name"] }],
+                });
+                if (existing) {
+                    const where = existing.team?.name || existing.club?.name || "نادٍ آخر";
+                    return new ApolloError(
+                        existing.id_team === idTeam && existing.status === "rejected"
+                            ? "سجّلته من قبل ورفضه النادي — عدّل طلبه وأعد إرساله من «الطلبات»، أو احذفه ثم سجّله"
+                            : `صاحب هذا الرقم المدني عضوٌ مسجَّل في ${where}`,
+                        "CARD_NUMBER_ALREADY_EXISTS",
+                    );
+                }
+
+                const [nationalID, nationalIDBack, personal_picture] = await Promise.all([
+                    saveImage(content.nationalID), saveImage(content.nationalIDBack), saveImage(content.personal_picture),
+                ]);
+
+                const member = await Assembly.create({
+                    first_name: content.first_name, second_name: content.second_name,
+                    third_name: content.third_name || "", tribe: content.tribe,
+                    date_birth: content.date_birth, card_number: card,
+                    phone: normalizeCardNumber(content.phone), gender: content.gender || "male",
+                    type: content.type || null,
+                    nationalID, nationalIDBack, personal_picture,
+                    status: "waiting_club",
+                    id_team: idTeam, id_club: team.id_club,
+                });
+
+                const flow = await openFlow({
+                    request_type: "member_registration", entity_type: "assembly", entity_id: member.id,
+                    id_club: team.id_club, id_team: idTeam, actor: "team", id_user: context.user?.id || null,
+                });
+                // عضوٌ بلا طلب ينتظر نادياً لن يراه أبداً: لا يُترك معلّقاً.
+                if (!flow) {
+                    await member.destroy({ force: true });
+                    return new ApolloError("تعذّر إرسال طلب التسجيل إلى النادي — لم يُسجَّل العضو، حاول مرة أخرى", "FLOW_FAILED");
+                }
+                const name = [content.first_name, content.second_name, content.tribe].filter(Boolean).join(" ");
+                void CreateDirectNotification({
+                    id_club: team.id_club,
+                    body: `طلب تسجيل عضو جديد من ${team.name}: ${name} — بانتظار مراجعتك`,
+                });
+                return member;
+            } catch (error) {
+                if (error instanceof ApolloError) throw error;
+                if (error?.code === "NOT_AN_IMAGE") return new ApolloError(error.message, error.code);
+                logger.error(`Assembly.registerMember: ${error?.message || error}`);
+                throw new ApolloError("تعذّر تسجيل العضو");
+            }
+        },
+
         createAssembly: async (obj, {content}, context, info) =>  {
             try {
                 const nationalID = await content.nationalID

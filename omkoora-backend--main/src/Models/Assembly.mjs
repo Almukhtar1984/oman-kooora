@@ -66,6 +66,14 @@ export default (db, types) => {
             type: types.STRING(50),
             allowNull: true
         },
+        // اعتماد النادي للعضوية («تسجيل عضو جديد»). NULL لمن سُجّل قبل أن يكون
+        // للعضوية اعتماد — فهو معتمد.
+        status: {
+            type: types.ENUM,
+            values: ["waiting_club", "accepted", "rejected"],
+            allowNull: true,
+            defaultValue: null
+        },
         subscription_date: {
             type: types.DATEONLY,
             allowNull: true

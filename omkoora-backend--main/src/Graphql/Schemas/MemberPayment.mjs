@@ -10,6 +10,40 @@ export const typeDefs = gql`
         playerAccountsTeam(idTeam: ID): [PlayerAccount!] @auth(requires: user)
         # A single player's own ledger — for the player portal ("مصروفاتي").
         playerPayments(idPlayer: ID): PlayerAccount @auth(requires: user)
+        # «حسابات الأعضاء» في النادي: أعضاء فرقه كلها، كل شخص مرة واحدة.
+        clubMemberAccounts(year: Int): ClubMemberAccounts @auth(requires: user)
+    }
+
+    type ClubMemberAccountPayment {
+        amount: Float
+        date:   String
+        # «حساب الفريق» أو «رسوم العضوية السنوية»
+        source: String
+        team:   String
+        note:   String
+    }
+
+    type ClubMemberAccount {
+        key:                String
+        name:               String
+        card_number:        String
+        membership_number:  String
+        teams:              [String!]
+        # عضو / لاعب / مجلس إدارة
+        kinds:              [String!]
+        paidThisYear:       Float
+        totalPaid:          Float
+        lastPaymentDate:    String
+        subscribedThisYear: Boolean
+        payments:           [ClubMemberAccountPayment!]
+    }
+
+    type ClubMemberAccounts {
+        year:          Int
+        rows:          [ClubMemberAccount!]
+        totalThisYear: Float
+        members:       Int
+        paidMembers:   Int
     }
 
     extend type Mutation {

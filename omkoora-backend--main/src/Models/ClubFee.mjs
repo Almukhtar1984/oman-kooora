@@ -13,6 +13,7 @@ export default (db, types) => {
                 "player_registration", "player_registration_under18",
                 "transfer", "transfer_external", "loan", "loan_external",
                 "team_registration", "player_release", "competition_registration",
+                "member_registration",
             ],
             allowNull: false
         },

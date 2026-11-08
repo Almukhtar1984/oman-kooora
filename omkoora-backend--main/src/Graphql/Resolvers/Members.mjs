@@ -5,7 +5,9 @@ import dotenv from 'dotenv';
 import logger from "../../Config/logger.mjs";
 import db from "../../Config/DBContact.mjs";
 
-import {Members, Person, Players, Team, User, TechnicalApparatus, Permission} from '../../Models/index.mjs';
+import {Assembly, Members, Person, Players, Team, User, TechnicalApparatus, Permission} from '../../Models/index.mjs';
+import { callerClubId, callerTeamId, isForeignTeam } from "../../Helpers/clubScope.mjs";
+import { classifyProblem } from "../../Helpers/memberRegistration.mjs";
 import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from "../../Helpers/memberLock.mjs";
 import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
 import {CreateNotificationTeam} from "../../Helpers/index.mjs"
@@ -25,6 +27,83 @@ const assertNotLocked = async (context, find, id) => {
     if (isLockedForCaller(role, row.status)) {
         throw new ApolloError(LOCKED_MESSAGE, LOCKED_CODE);
     }
+};
+
+/**
+ * يصنّف عضواً من العضوية: لاعب، جهاز فني، أو مجلس إدارة (العميل، 2026-11-08).
+ *
+ * اعتمد النادي العضوية — ورسومها — فالتصنيف بعدها تنظيمٌ داخلي للفريق يُعتمد
+ * مباشرة («النادي ما يهمه لاعب أو جهاز فني»). وسجلّ العضوية يبقى كما هو.
+ */
+const classifyAssemblyMember = async ({ id, toType, content, context }) => {
+    const assembly = await Assembly.findByPk(id);
+    if (!assembly) throw new ApolloError("العضو غير موجود", "RECORD_NOT_FOUND");
+
+    // الفريق يصنّف أعضاءه هو، والنادي أعضاء فرقه.
+    const myTeam = await callerTeamId(context);
+    if (myTeam && myTeam !== assembly.id_team) {
+        throw new ApolloError("هذا العضو ليس في فريقك", "FORBIDDEN");
+    }
+    if (!myTeam && isForeignTeam(await callerClubId(context), assembly.id_club)) {
+        throw new ApolloError("هذا العضو لا يتبع ناديك", "TEAM_NOT_IN_CLUB");
+    }
+
+    const card = String(assembly.card_number || "").trim();
+    const person = card ? await Person.findOne({ where: { card_number: card } }) : null;
+    const [player, technical, member] = person ? await Promise.all([
+        Players.findOne({ where: { id_person: person.id }, include: [{ model: Team, attributes: ["name"] }] }),
+        TechnicalApparatus.findOne({ where: { id_person: person.id, id_team: assembly.id_team } }),
+        Members.findOne({ where: { id_person: person.id, id_team: assembly.id_team } }),
+    ]) : [null, null, null];
+
+    const problem = classifyProblem(assembly, toType, {
+        player: player ? { sameTeam: player.id_team === assembly.id_team, teamName: player.team?.name } : null,
+        technical: Boolean(technical),
+        member: Boolean(member),
+    });
+    if (problem) throw new ApolloError(problem, "CLASSIFY_REFUSED");
+
+    const fit = (value) => String(value || "").trim().slice(0, 20);
+    const today = new Date().toISOString().slice(0, 10);
+
+    return db.transaction(async (t) => {
+        const who = person || await Person.create({
+            first_name: fit(assembly.first_name), second_name: fit(assembly.second_name),
+            third_name: fit(assembly.third_name), tribe: fit(assembly.tribe),
+            phone: String(assembly.phone || "").slice(0, 15),
+            card_number: card || null,
+            date_birth: assembly.date_birth ? String(assembly.date_birth).slice(0, 10) : "",
+            personal_picture: assembly.personal_picture || null,
+        }, { transaction: t });
+
+        const common = { id_person: who.id, id_team: assembly.id_team, status: "accepted" };
+        if (toType === "player") {
+            return Players.create({
+                ...common,
+                activity: content.activity || "", player_center: content.player_center || "",
+                job: content.job || "", class: content.class || "firstDegree", type: "internal",
+                nationalID: assembly.nationalID || null, nationalIDBack: assembly.nationalIDBack || null,
+            }, { transaction: t });
+        }
+        if (toType === "technical") {
+            return TechnicalApparatus.create({
+                ...common,
+                classification: content.classification || "technical",
+                occupation: content.occupation || content.job || "",
+                membership_date: content.membership_date || today,
+                membership_date_end: content.membership_date_end || null,
+                testimony_experience: "",
+            }, { transaction: t });
+        }
+        return Members.create({
+            ...common,
+            classification: content.classification || "member",
+            occupation: content.occupation || content.job || "",
+            membership_date: content.membership_date || today,
+            membership_date_end: content.membership_date_end || null,
+            paid: false,
+        }, { transaction: t });
+    });
 };
 
 export const resolvers = {
@@ -395,6 +474,10 @@ export const resolvers = {
 
         changeMemberClassification: async (obj, args, context, info) => {
             const { id, fromType, toType, ...content } = args;
+
+            // عضوٌ اعتمد النادي عضويته يُصنَّف — ويبقى في العضوية: العضوية هي
+            // الأساس والتصنيف صفةٌ عليها، فلا يُحسب الشخص مرتين.
+            if (fromType === "assembly") return classifyAssemblyMember({ id, toType, content, context });
 
             if (fromType === toType) {
                 throw new ApolloError("From and to types are identical", "INVALID_TYPE_CHANGE");

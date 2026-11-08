@@ -32,6 +32,8 @@ export const FEE_TYPES = [
     { type: "team_registration",           label: "تسجيل فريق" },
     { type: "player_release",              label: "استقالة لاعب" },
     { type: "competition_registration",    label: "تسجيل في المسابقات" },
+    // «هذا العضو يدفع سنوياً للنادي» (العميل، 2026-11-08) — يُطلب مع «تسجيل عضو جديد».
+    { type: "member_registration",         label: "رسوم العضوية السنوية",   bill: "رسوم العضوية" },
 ];
 
 const FEE_KEYS = FEE_TYPES.map((f) => f.type);

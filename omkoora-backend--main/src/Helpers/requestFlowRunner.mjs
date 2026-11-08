@@ -13,7 +13,7 @@
 import logger from "../Config/logger.mjs";
 import sequelize from "sequelize";
 import {
-    ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Transfer,
+    Assembly, ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Transfer,
 } from "../Models/index.mjs";
 import { CreateDirectNotification } from "./Notification.mjs";
 import {
@@ -34,6 +34,7 @@ const ENTITY_MODELS = {
     player:         Players,
     transfer:       Transfer,
     player_release: PlayerRelease,
+    assembly:       Assembly,
 };
 
 /**
@@ -197,7 +198,9 @@ const announce = async (flow, { payment = null } = {}) => {
             // والفريق المعتمد تسجيله يُقال له ما انفتح له، في الإشعار نفسه.
             return toTeam(flow.request_type === "team_registration"
                 ? "اعتُمد تسجيل فريقك — إضافة اللاعبين مفتوحة الآن"
-                : `اعتُمد طلب ${what} نهائياً`);
+                : flow.request_type === "member_registration"
+                    ? "اعتُمدت عضوية عضوٍ جديد — اختر تصنيفه (لاعب، جهاز فني، مجلس إدارة) من بطاقته في «العضوية»"
+                    : `اعتُمد طلب ${what} نهائياً`);
         case REJECTED_FINAL:
             return toTeam(`رُفض طلب ${what} نهائياً${reason}`);
         case CANCELLED:

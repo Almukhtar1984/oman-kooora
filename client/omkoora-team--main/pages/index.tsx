@@ -17,7 +17,7 @@ import {
 } from "../graphql";
 import {
     Users, UserCheck, Clock, Phone, Shield, Activity,
-    ArrowLeft, Id, CalendarStats, Plus, LayoutDashboard, CalendarEvent, Check, X,
+    ArrowLeft, Id, CalendarStats, Plus, LayoutDashboard, CalendarEvent, Check, X, UserPlus,
     AlertCircle, CalendarTime, ShieldCheck, Article, BallFootball 
 } from "tabler-icons-react";
 import { GiAbstract042 } from "react-icons/gi";
@@ -27,6 +27,7 @@ import { EventList } from "../components/TeamDetails/EventList";
 import { EventForm } from "../components/TeamDetails/EventForm";
 import { EventCarouselModal } from "../components/TeamDetails/EventCarouselModal";
 import { MemberSection } from "../components/TeamDetails/MemberSection";
+import { RegisterMemberModal } from "../components/Modal/RegisterMemberModal";
 import {
     UpdatePlayersModal, UpdateTechnicalModal, UpdateMembersModal, UpdateAssemblyModal,
     DeletePlayersModal, DeleteTechnicalModal, DeleteMembersModal, DeleteAssemblyModal,
@@ -66,6 +67,8 @@ export default function Home() {
     // States
     const [activeTab, setActiveTab] = useState<string | null>("overview");
     const [memberTab, setMemberTab] = useState<string | null>("players");
+    // «تسجيل عضو جديد» — الباب الواحد، بجانب «الفعاليات» (العميل، 2026-11-08).
+    const [openRegisterMember, setOpenRegisterMember] = useState(false);
     const [editData, setEditData] = useState<any>(null);
     const [openShowStatDetails, setOpenShowStatDetails] = useState(false);
     const [deleteId, setDeleteId] = useState<string>("");
@@ -303,6 +306,16 @@ export default function Home() {
                         <Tabs.Tab value="overview" icon={<LayoutDashboard size={18} />}>نظرة عامة</Tabs.Tab>
                         <Tabs.Tab value="members" icon={<Users size={18} />}>الأعضاء</Tabs.Tab>
                         <Tabs.Tab value="events" icon={<CalendarEvent size={18} />}>الفعاليات</Tabs.Tab>
+                        <Button
+                            size="md"
+                            radius="md"
+                            color="yellow"
+                            leftIcon={<UserPlus size={18} />}
+                            sx={{ alignSelf: "center", color: "#1E3A8A", fontWeight: 700 }}
+                            onClick={() => setOpenRegisterMember(true)}
+                        >
+                            تسجيل عضو جديد
+                        </Button>
                     </Tabs.List>
 
                     {/* ─── Overview Tab ─── */}
@@ -533,6 +546,7 @@ export default function Home() {
                                         type="assembly"
                                         list={assemblyData?.allAssemblyTeam || []}
                                         hasPermission={makeHasPermission("assembly")}
+                                        onChangeClassification={(item) => handleChangeClassification(item, 'assembly')}
                                         onEdit={(item) => handleEdit(item, 'assembly')}
                                         onDelete={(id) => handleDelete(id, 'assembly')}
                                         onRenewSubscription={handleRenewSubscription}
@@ -601,6 +615,15 @@ export default function Home() {
             <ChangeStatusPlayersModal opened={openStatusPlayer} onClose={() => setOpenStatusPlayer(false)} id={statusId} status={statusValue} />
             <ChangeStatusTechnicalsModal opened={openStatusTechnical} onClose={() => setOpenStatusTechnical(false)} id={statusId} status={statusValue} />
             <ChangeStatusMembersModal opened={openStatusMember} onClose={() => setOpenStatusMember(false)} id={statusId} status={statusValue} />
+
+            <RegisterMemberModal
+                title="تسجيل عضو جديد"
+                size="lg"
+                idTeam={teamId}
+                opened={openRegisterMember}
+                onClose={() => setOpenRegisterMember(false)}
+                onRegistered={() => { setActiveTab("members"); setMemberTab("assembly"); }}
+            />
 
             <ChangeClassificationModal
                 opened={openChangeClass}

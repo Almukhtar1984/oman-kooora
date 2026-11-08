@@ -2,7 +2,7 @@ import { ApolloError } from 'apollo-server-express';
 
 import logger from "../../Config/logger.mjs";
 import {
-    Club, ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Team, Transfer,
+    Assembly, Club, ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Team, Transfer,
 } from '../../Models/index.mjs';
 import sequelize from 'sequelize';
 
@@ -87,11 +87,11 @@ const fullName = (person) =>
 
 const subjectsFor = async (flows) => {
     const names = new Map();
-    const ids = { player: [], transfer: [], player_release: [], team: [] };
+    const ids = { player: [], transfer: [], player_release: [], team: [], assembly: [] };
     flows.forEach((flow) => ids[flow.entity_type]?.push(flow.entity_id));
 
     const inList = (list) => ({ id: list });
-    const [players, transfers, releases, teams] = await Promise.all([
+    const [players, transfers, releases, teams, members] = await Promise.all([
         ids.player.length
             ? Players.findAll({ where: inList(ids.player), include: [PERSON] }) : [],
         ids.transfer.length
@@ -105,12 +105,19 @@ const subjectsFor = async (flows) => {
                 include: [{ model: Players, as: "player", include: [PERSON] }],
             }) : [],
         ids.team.length ? Team.findAll({ where: inList(ids.team), attributes: ["id", "name"] }) : [],
+        // عضوٌ سُجّل من «تسجيل عضو جديد»: اسمه في سجلّ العضوية نفسه.
+        ids.assembly.length
+            ? Assembly.findAll({
+                where: inList(ids.assembly), paranoid: false,
+                attributes: ["id", "first_name", "second_name", "third_name", "tribe"],
+            }) : [],
     ]);
 
     players.forEach((row) => names.set(`player:${row.id}`, fullName(row.person)));
     transfers.forEach((row) => names.set(`transfer:${row.id}`, fullName(row.player?.person)));
     releases.forEach((row) => names.set(`player_release:${row.id}`, fullName(row.player?.person)));
     teams.forEach((row) => names.set(`team:${row.id}`, row.name || null));
+    members.forEach((row) => names.set(`assembly:${row.id}`, fullName(row)));
     return names;
 };
 

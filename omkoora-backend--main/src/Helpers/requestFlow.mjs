@@ -141,6 +141,9 @@ export const REQUEST_TYPES = [
     // ورسومه. والحساب يعمل من أول يوم — كي يسدّد — لكن إضافة اللاعبين تُفتح عند
     // الاعتماد النهائي.
     { type: "team_registration",   label: "تسجيل فريق",       entity: "team",           fee: "team_registration",   resubmit: true },
+    // «تسجيل عضو جديد» — بابٌ واحد بدل ثلاثة (العميل، 2026-11-08): يدخل العضو
+    // العضوية وينتظر النادي، ورسومه رسوم العضوية السنوية. والتصنيف بعد الاعتماد.
+    { type: "member_registration", label: "تسجيل عضو جديد",   entity: "assembly",       fee: "member_registration", resubmit: true },
 ];
 
 const BY_TYPE = new Map(REQUEST_TYPES.map((t) => [t.type, t]));
@@ -377,6 +380,7 @@ const LEGACY_VALUES = {
     player:         ["waiting", "waiting_club", "accepted", "rejected", "suspended"],
     player_release: ["waiting", "accepted", "rejected"],
     transfer:       ["waiting", "waiting_club_from", "waiting_club_to", "waiting_payment", "accepted", "rejected"],
+    assembly:       ["waiting_club", "accepted", "rejected"],
 };
 
 // بعد أن يتّفق الناديان يبقى للانتقال رسومه واعتماده: waiting_payment تقول
@@ -422,6 +426,7 @@ export const legacyStatusFor = (entityType, stage) => {
  *   refuse   — الاستقالة: تُرفض ويبقى.
  *   open_team  — تسجيل الفريق: تُفتح له إضافة اللاعبين.
  *   close_team — تسجيل الفريق: تبقى مغلقة.
+ *   admit_member — تسجيل العضو: تاريخ عضويته واشتراك سنته يوم الاعتماد.
  * والتسجيل تكفيه المرآة: الاعتماد يجعل اللاعب accepted.
  */
 export const outcomeOf = (entityType, stage) => {
@@ -437,6 +442,8 @@ export const outcomeOf = (entityType, stage) => {
         if (stage === APPROVED) return "open_team";
         if (stage === REJECTED_FINAL || stage === CANCELLED) return "close_team";
     }
+    // العضو المعتمد تبدأ عضويته واشتراك سنته يوم اعتماده.
+    if (entityType === "assembly" && stage === APPROVED) return "admit_member";
     return null;
 };
 

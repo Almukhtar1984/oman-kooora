@@ -3,3 +3,4 @@ export * from "./useUpdateAssembly";
 export * from "./useDeleteAssembly";
 export * from "./useAllAssembly";
 export * from "./useAssembly";
+export * from "./useRegisterMember";

@@ -153,8 +153,14 @@ export const MemberCard = ({
     const subscriptionYear = hasSubscription ? dayjs(data.subscription_date).year() : null;
     const isAssemblyApproved = subscriptionYear !== null && dayjs().year() <= subscriptionYear;
 
+    // «تسجيل عضو جديد» من الفريق: عضويته تنتظر اعتماد النادي على الطريق.
+    const assemblyWaiting = type === 'assembly' && data?.status === 'waiting_club';
+    const assemblyRejected = type === 'assembly' && data?.status === 'rejected';
+
     const renderStatusBadge = () => {
         if (type === 'assembly') {
+            if (assemblyWaiting) return <Badge color="yellow" variant="filled" size="xs">بانتظار اعتمادك</Badge>;
+            if (assemblyRejected) return <Badge color="red" variant="filled" size="xs">مرفوضة</Badge>;
             if (!hasSubscription) return <Badge color="gray" variant="filled" size="xs">غير مشترك</Badge>;
             return !isAssemblyApproved ? <Badge color="red" variant="filled" size="xs">منتهي</Badge> : <Badge color="teal" variant="filled" size="xs">ساري</Badge>;
         }
@@ -178,7 +184,8 @@ export const MemberCard = ({
     };
 
     const statusText = type === 'assembly'
-        ? (!hasSubscription ? 'غير مشترك' : isAssemblyApproved ? 'ساري' : 'منتهي')
+        ? (assemblyWaiting ? 'بانتظار اعتمادك' : assemblyRejected ? 'مرفوضة'
+            : !hasSubscription ? 'غير مشترك' : isAssemblyApproved ? 'ساري' : 'منتهي')
         : isLoanEnded ? 'منتهية' : (STATUS_LABELS[status] || 'قيد الانتظار');
 
     // Teams: players/staff/board rows carry their own team; assembly rows are

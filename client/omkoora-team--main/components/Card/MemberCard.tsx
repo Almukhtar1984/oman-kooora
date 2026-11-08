@@ -129,8 +129,15 @@ export const MemberCard = ({
     const subscriptionYear = hasSubscription ? dayjs(data.subscription_date).year() : null;
     const isAssemblyApproved = subscriptionYear !== null && dayjs().year() <= subscriptionYear;
 
+    // «تسجيل عضو جديد»: العضوية تنتظر النادي أولاً، والتصنيف بعد اعتمادها.
+    // عضوٌ قديم بلا حالة معتمد.
+    const assemblyWaiting = type === 'assembly' && data?.status === 'waiting_club';
+    const assemblyRejected = type === 'assembly' && data?.status === 'rejected';
+
     const renderStatusBadge = () => {
         if (type === 'assembly') {
+            if (assemblyWaiting) return <Badge color="yellow" variant="filled" size="xs">بانتظار اعتماد النادي</Badge>;
+            if (assemblyRejected) return <Badge color="red" variant="filled" size="xs">رفض النادي العضوية</Badge>;
             if (!hasSubscription) return <Badge color="gray" variant="filled" size="xs">غير مشترك</Badge>;
             return !isAssemblyApproved ? <Badge color="red" variant="filled" size="xs">منتهي</Badge> : <Badge color="teal" variant="filled" size="xs">ساري</Badge>;
         }
@@ -146,7 +153,8 @@ export const MemberCard = ({
     };
 
     const statusText = type === 'assembly'
-        ? (!hasSubscription ? 'غير مشترك' : isAssemblyApproved ? 'ساري' : 'منتهي')
+        ? (assemblyWaiting ? 'بانتظار اعتماد النادي' : assemblyRejected ? 'رفض النادي العضوية'
+            : !hasSubscription ? 'غير مشترك' : isAssemblyApproved ? 'ساري' : 'منتهي')
         : (STATUS_LABELS[status] || 'قيد الانتظار');
 
     // Teams: rows carry their own team (the signed-in team when only the id
@@ -431,9 +439,14 @@ export const MemberCard = ({
                                         <Menu.Dropdown>
                                             {type === 'assembly' ? (
                                                 <>
+                                                    {assemblyWaiting ? (
+                                                        <Menu.Label>بانتظار اعتماد النادي — التصنيف بعد الاعتماد (تابعه من «الطلبات»)</Menu.Label>
+                                                    ) : !assemblyRejected && onChangeClassification ? (
+                                                        <Menu.Item icon={<ArrowsLeftRight size={14} />} onClick={() => onChangeClassification(data)}>اختيار التصنيف</Menu.Item>
+                                                    ) : null}
                                                     {hasPermission("3") && <Menu.Item icon={<EditCircle size={14} />} onClick={() => onEdit && onEdit(data)}>تعديل</Menu.Item>}
                                                     {hasPermission("4") && <Menu.Item icon={<X size={14} color="red" />} color="red" onClick={() => onDelete && onDelete(data?.id)}>حذف</Menu.Item>}
-                                                    {!isAssemblyApproved && <Menu.Item icon={<CalendarStats size={14} />} onClick={() => onRenewSubscription && onRenewSubscription(data)}>تجديد الاشتراك</Menu.Item>}
+                                                    {!isAssemblyApproved && !assemblyWaiting && !assemblyRejected && <Menu.Item icon={<CalendarStats size={14} />} onClick={() => onRenewSubscription && onRenewSubscription(data)}>تجديد الاشتراك</Menu.Item>}
                                                     {hasPermission("8") && (
                                                         <Menu.Item component="a" icon={<Printer size={14} />} href={`https://print.omkooora.com/#/${data?.id}`} target="_blank" onClick={(e) => { e.preventDefault(); openPrint(`/${data?.id}`); }}>طباعة البطاقة</Menu.Item>
                                                     )}

@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Modal, Select, Button, Group, Stack, Text, Badge, Divider, Box } from '@mantine/core';
 import { useChangeMemberClassification } from '../../graphql/hooks/members';
 import { showNotification } from '@mantine/notifications';
-import { AllPlayers, AllMembers, AllTechnicals } from '../../graphql/queries';
+import { AllPlayers, AllMembers, AllTechnicals, AllAssembly } from '../../graphql/queries';
 
 interface ChangeClassificationModalProps {
     opened: boolean;
     onClose: () => void;
     data: any;
-    fromType: 'player' | 'technical' | 'member';
+    // assembly: عضوٌ اعتمد النادي عضويته — يُصنَّف ويبقى في العضوية.
+    fromType: 'player' | 'technical' | 'member' | 'assembly';
     onSuccess: () => void;
     idTeam: string;
 }
@@ -38,12 +39,15 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
                     { query: AllPlayers, variables: { idTeam } },
                     { query: AllMembers, variables: { idTeam } },
                     { query: AllTechnicals, variables: { idTeam } },
+                    { query: AllAssembly, variables: { idTeam } },
                 ],
                 awaitRefetchQueries: true,
             });
             showNotification({
                 title: 'نجاح',
-                message: 'تم تغيير التصنيف بنجاح',
+                message: fromType === 'assembly'
+                    ? 'تم التصنيف — ويبقى عضواً في «العضوية»'
+                    : 'تم تغيير التصنيف بنجاح',
                 color: 'green',
             });
             setToType(null);
@@ -53,7 +57,7 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
             console.error(error);
             showNotification({
                 title: 'خطأ',
-                message: error?.message || 'فشل تغيير التصنيف',
+                message: error?.graphQLErrors?.[0]?.message || error?.message || 'فشل تغيير التصنيف',
                 color: 'red',
             });
         }
@@ -70,7 +74,7 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
         <Modal
             opened={opened}
             onClose={handleClose}
-            title="تغيير تصنيف العضو"
+            title={fromType === 'assembly' ? "اختيار تصنيف العضو" : "تغيير تصنيف العضو"}
             centered
             dir="rtl"
             size="sm"
@@ -87,12 +91,17 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
                     <Box>
                         <Text size="xs" color="dimmed" mb={4}>التصنيف الحالي:</Text>
                         <Badge size="lg" radius="sm" color="blue" variant="filled">
-                            {fromType === 'player' ? 'لاعب' : fromType === 'technical' ? 'جهاز فني' : 'مجلس إدارة'}
+                            {fromType === 'player' ? 'لاعب' : fromType === 'technical' ? 'جهاز فني' : fromType === 'assembly' ? 'عضو' : 'مجلس إدارة'}
                         </Badge>
                     </Box>
                 </Group>
 
-                <Divider size="xs" label="التغيير إلى" labelPosition="center" />
+                <Divider size="xs" label={fromType === 'assembly' ? "يُضاف إلى" : "التغيير إلى"} labelPosition="center" />
+                {fromType === 'assembly' ? (
+                    <Text size="xs" color="dimmed">
+                        يبقى عضواً في «العضوية» ويُضاف إلى ما تختاره معتمداً مباشرة — النادي اعتمد عضويته — ولا يُحسب مرتين.
+                    </Text>
+                ) : null}
 
                 <Select
                     label="التصنيف الجديد"

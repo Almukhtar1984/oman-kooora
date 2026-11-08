@@ -16,7 +16,7 @@ const check = (label, got, want) => {
 
 // الأربعة الأولى من رسالته الأولى، والاستقالة لحقت بها حين عدّها نوعَ طلب رابعاً.
 check("أنواع الرسوم", FEE_TYPES.map((f) => f.type),
-    ["player_registration", "player_registration_under18", "transfer", "transfer_external", "loan", "loan_external", "team_registration", "player_release", "competition_registration"]);
+    ["player_registration", "player_registration_under18", "transfer", "transfer_external", "loan", "loan_external", "team_registration", "player_release", "competition_registration", "member_registration"]);
 check("ولكل نوع اسم عربي", feeLabel("transfer"), "انتقال لاعب");
 check("نوع مجهول يُرفض", isFeeType("donation"), false);
 

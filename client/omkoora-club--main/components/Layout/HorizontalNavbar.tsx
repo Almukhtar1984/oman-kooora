@@ -194,6 +194,8 @@ const HorizontalNavbar = () => {
             children: [
                 { path: '/members', label: 'سجلات الأعضاء', show: hasPermission("members", "1") || hasPermission("technicals", "1") || hasPermission("players", "1") || hasPermission("assembly", "1") },
                 { path: '/membership', label: 'العضوية الموحّدة', show: hasPermission("assembly", "1") || hasPermission("players", "1") },
+                // «حسابات الأعضاء» — اشتراكات أعضاء فرق النادي كلها (العميل، 2026-11-08).
+                { path: '/member_accounts', label: 'حسابات الأعضاء', show: hasPermission("assembly", "1") || hasPermission("members", "1") },
             ],
         },
         // كل ما يخصّ الطلب في بندٍ واحد: «ما تحسب شعب كثيرة؟» (العميل).

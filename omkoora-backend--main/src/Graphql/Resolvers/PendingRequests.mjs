@@ -9,7 +9,7 @@ import { callerClubId, callerTeamId } from "../../Helpers/clubScope.mjs";
 import { PAYMENT_WAITING } from "../../Helpers/clubFees.mjs";
 import { liveCharges, summarizePending, summarizeTeamPending } from "../../Helpers/pendingRequests.mjs";
 import {
-    AWAITING_PAYMENT, CANCELLED, CLUB_PROCESSING, PAID_REVIEW, REJECTED_FINAL, REJECTED_INITIAL,
+    AWAITING_PAYMENT, CANCELLED, CLUB_PROCESSING, PAID_REVIEW, REJECTED_FINAL, REJECTED_INITIAL, SUBMITTED,
 } from "../../Helpers/requestFlow.mjs";
 
 const { Op } = sequelize;
@@ -67,6 +67,11 @@ const pendingScopes = async (idClub) => {
         // A receipt the team sent and the club has not looked at yet.
         payments: { model: RequestPayment, where: { id_club: idClub, status: "submitted" } },
         news: { model: Blog, where: { id_club: idClub, status: "waiting" } },
+        // عضوٌ جديد سجّله فريقٌ ينتظر النادي: يقبله مبدئياً، أو يطالب برسومه، أو يعتمده.
+        assembly: {
+            model: RequestFlow,
+            where: { id_club: idClub, request_type: "member_registration", stage: { [Op.in]: [SUBMITTED, CLUB_PROCESSING, PAID_REVIEW] } },
+        },
         // تسجيل فريقٍ ينتظر النادي: يطالب برسومه أو يعتمده.
         teams: {
             model: RequestFlow,

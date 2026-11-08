@@ -31,13 +31,13 @@ check("المنتهية ثلاث: اعتماد ورفض نهائي وإلغاء"
     STAGES.filter((s) => s.done).map((s) => s.stage), [APPROVED, REJECTED_FINAL, CANCELLED]);
 
 // ——— أنواع الطلبات: الأربعة التي عدّها، وتسجيل الفريق الذي أضافه في الاجتماع ———
-check("الأنواع الخمسة", REQUEST_TYPES.map((t) => t.type),
-    ["player_registration", "transfer", "loan", "player_release", "team_registration"]);
+check("الأنواع الستة — وآخرها «تسجيل عضو جديد»", REQUEST_TYPES.map((t) => t.type),
+    ["player_registration", "transfer", "loan", "player_release", "team_registration", "member_registration"]);
 check("ولكل نوع اسمه", requestTypeLabel("player_release"), "استقالة لاعب");
 check("نوع مجهول يُرفض", isRequestType("friendly_match"), false);
 check("ولكل نوع رسومه",
     REQUEST_TYPES.map((t) => t.fee),
-    ["player_registration", "transfer", "loan", "player_release", "team_registration"]);
+    ["player_registration", "transfer", "loan", "player_release", "team_registration", "member_registration"]);
 
 // ——— الطريق الطبيعي كاملاً ———
 check("المسودة تُقدَّم", canAdvance(at(DRAFT), { to: SUBMITTED, by: "team" }).ok, true);
@@ -80,8 +80,8 @@ check("ورفض نهائي بلا سبب مرفوض كذلك",
 // ——— إعادة الإرسال بعد الرفض المبدئي ———
 check("المرفوض مبدئياً يُعدَّل ويُرسل ثانية",
     canAdvance(at(REJECTED_INITIAL), { to: SUBMITTED, by: "team", type: "player_registration" }).ok, true);
-check("والخمسة تقبلها حتى يحدّد المالك أيّها لا يقبل",
-    REQUEST_TYPES.map((t) => allowsResubmit(t.type)), [true, true, true, true, true]);
+check("والستة تقبلها حتى يحدّد المالك أيّها لا يقبل",
+    REQUEST_TYPES.map((t) => allowsResubmit(t.type)), [true, true, true, true, true, true]);
 check("والمنع — حين يُحدَّد — يردّ بسببه",
     canAdvance(at(REJECTED_INITIAL), { to: SUBMITTED, by: "team", type: "unknown_type" }).code,
     "RESUBMIT_NOT_ALLOWED");
