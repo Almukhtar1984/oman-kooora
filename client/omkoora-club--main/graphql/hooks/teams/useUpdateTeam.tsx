@@ -13,6 +13,8 @@ interface VariableProps {
         manager_name:   string;
         activities:     string;
         code:           string;
+        registration_start?: string | null;
+        registration_end?:   string | null;
     }
 }
 

@@ -31,6 +31,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
 import { getImageUrl } from "../../lib/helpers/image";
+import { dayOf, isRegistrationOver, teamAccountState } from "../../lib/helpers/teamRegistration";
 
 type Props = {
     data?: any;
@@ -64,6 +65,10 @@ const CardTeam = ({
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
     const theme = useTheme() as MantineTheme;
     const router = useRouter();
+    // مدة التسجيل: بعد آخر يوم يتوقف الحساب، ويعود بتاريخ نهاية جديد.
+    const accountState = teamAccountState(data);
+    const registrationOver = isRegistrationOver(data?.registration_end);
+    const periodEnd = dayOf(data?.registration_end);
 
     const admin = data?.admin;
     const adminName = admin
@@ -155,11 +160,11 @@ const CardTeam = ({
                         ) : null}
                         {hasPermission("5") ? (
                             <Menu.Item
-                                icon={data?.account_status ? <Lock size={14} /> : <LockOpen size={14} />}
+                                icon={data?.account_status && !registrationOver ? <Lock size={14} /> : <LockOpen size={14} />}
                                 color="gray.6"
                                 onClick={() => onChangeStatusModal(() => data)}
                             >
-                                {data?.account_status ? "توقيف الفريق" : "تفعيل الفريق"}
+                                {registrationOver ? "تجديد التسجيل وتفعيله" : data?.account_status ? "توقيف الفريق" : "تفعيل الفريق"}
                             </Menu.Item>
                         ) : null}
 
@@ -281,10 +286,10 @@ const CardTeam = ({
                 <Badge
                     radius="sm"
                     size="sm"
-                    color={data?.account_status ? "green" : "red"}
+                    color={accountState.color}
                     variant="light"
                 >
-                    {data?.account_status ? "مفعل" : "متوقف"}
+                    {accountState.label}
                 </Badge>
                 <Badge
                     radius="sm"
@@ -297,6 +302,16 @@ const CardTeam = ({
             </Group>
 
             <Box px="md" pb="xs">
+                {periodEnd ? (
+                    <Text size="xs" color="gray.6">
+                        مدة التسجيل: {dayOf(data?.registration_start) ? <>من <bdi dir="ltr">{dayOf(data?.registration_start)}</bdi> </> : null}إلى <bdi dir="ltr">{periodEnd}</bdi>
+                    </Text>
+                ) : null}
+                {accountState.note ? (
+                    <Text size="xs" color={registrationOver ? "red.7" : "orange.7"} fw={500}>
+                        {accountState.note}
+                    </Text>
+                ) : null}
                 <Text size="xs" color="gray.5">
                     {dayjs(data?.createdAt).locale("ar").fromNow()}
                 </Text>

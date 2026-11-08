@@ -110,6 +110,16 @@ export default function Login() {
                         code: ""
                     });
                 }
+
+                // الفريق أوقفه ناديه، أو انتهت مدة تسجيله: الخادم يقول السبب ومن يرفعه.
+                const code = error?.graphQLErrors?.[0]?.extensions?.code;
+                if (code == "TEAM_SUSPENDED" || code == "TEAM_REGISTRATION_ENDED") {
+                    setAlert({
+                        status: "red",
+                        msg: error?.graphQLErrors?.[0]?.message || "حساب الفريق موقوف — راجع النادي",
+                        code: ""
+                    });
+                }
             }
         })
     };

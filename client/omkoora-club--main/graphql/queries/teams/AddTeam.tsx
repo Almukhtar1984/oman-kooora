@@ -10,6 +10,8 @@ export const AddTeam = gql`
             manager_name
             activities
             account_status
+            registration_start
+            registration_end
             code
             createdAt
             updatedAt

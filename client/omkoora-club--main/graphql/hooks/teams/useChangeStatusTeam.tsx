@@ -6,6 +6,8 @@ interface VariableProps {
     id?:          string;
     content: {
         account_status: boolean;
+        registration_start?: string | null;
+        registration_end?: string | null;
     }
 }
 

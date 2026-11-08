@@ -20,6 +20,8 @@ import React, {useState} from "react";
 import { useForm, Controller } from "react-hook-form";
 import TextInput from "../Input/TextInput";
 import ActivitiesSelect from "../Input/ActivitiesSelect";
+import RegistrationPeriodInputs from "../Input/RegistrationPeriodInputs";
+import {dayOf, fromApiDay, periodError, toApiDay} from "../../lib/helpers/teamRegistration";
 import Modal, { Props as ModalProps } from "./Modal";
 import {AllTeams, useUpdateAssembly, useUpdateTeam} from "../../graphql";
 import {IconChevronDown} from "@tabler/icons-react";
@@ -36,6 +38,10 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
     const [value, setValue] = useState<File | null>();
     const [category, setCategory] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    // مدة التسجيل: تمديدها هنا لا يفعّل فريقاً متوقفاً — التفعيل من «تفعيل الفريق».
+    const [periodStart, setPeriodStart] = useState<Date | null>(null);
+    const [periodEnd, setPeriodEnd] = useState<Date | null>(null);
+    const [periodErr, setPeriodErr] = useState<string | null>(null);
 
     const [updateTeam] = useUpdateTeam();
 
@@ -49,6 +55,9 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
             });
 
             setCategory(data?.category.toString())
+            setPeriodStart(fromApiDay(data?.registration_start))
+            setPeriodEnd(fromApiDay(data?.registration_end))
+            setPeriodErr(null)
         }
     }, [opened]);
 
@@ -61,6 +70,17 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
     // edit the manager's person record via "تعديل بيانات المدير".
     const onSubmit = ({name, phone,  activities, code}: any) => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
+
+        // A team created before periods existed may stay without one; a date
+        // already past may stay as it was, but not be chosen anew.
+        const unchangedEnd = toApiDay(periodEnd) === dayOf(data?.registration_end);
+        const problem = periodError(periodStart, periodEnd, {
+            required: Boolean(data?.registration_end),
+            allowPastEnd: unchangedEnd,
+        });
+        setPeriodErr(problem);
+        if (problem) return;
+
         setLoading(true)
 
         const content: any = {
@@ -69,6 +89,8 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
             phone,
             activities,
             code,
+            registration_start: toApiDay(periodStart),
+            registration_end: toApiDay(periodEnd),
         };
 
         if (value) {
@@ -89,7 +111,8 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
         .catch(reason => {
             console.log(reason)
             setLoading(false)
-            notyf.error("تعذر التعديل")
+            const error = reason?.graphQLErrors?.[0];
+            notyf.error(error?.extensions?.code === "BAD_REGISTRATION_PERIOD" ? error.message : "تعذر التعديل")
         })
     };
 
@@ -210,6 +233,16 @@ export const EditTeamModal = ({ data, ...props }: Props) => {
                             />
                         </Col>
                     </Grid>
+
+                    <Text size="sm" fw={600} mt="lg" mb="xs">مدة التسجيل</Text>
+                    <RegistrationPeriodInputs
+                        start={periodStart}
+                        end={periodEnd}
+                        onStartChange={setPeriodStart}
+                        onEndChange={(v) => { setPeriodEnd(v); setPeriodErr(null); }}
+                        endError={periodErr}
+                        endRequired={Boolean(data?.registration_end)}
+                    />
                     <Text size="xs" color="dimmed" mt="md">
                         ملاحظة: لتعديل بيانات مدير الفريق (الاسم، الإيميل، كلمة المرور)، استعمل خيار &laquo;تعديل بيانات المدير&raquo; من قائمة الفريق.
                     </Text>

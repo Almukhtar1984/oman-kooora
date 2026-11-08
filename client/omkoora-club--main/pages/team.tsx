@@ -20,6 +20,7 @@ import dayjs from "dayjs";
 import {useAllAssembly, useAllTeams} from "../graphql";
 import useStore from "../store/useStore";
 import {ChangeStatusTeamModal} from "../components/Modal/ChangeStatusTeamModal";
+import {isRegistrationOver} from "../lib/helpers/teamRegistration";
 import { getImageUrl } from "../lib/helpers/image";
 
 export default function Home() {
@@ -225,7 +226,7 @@ export default function Home() {
             <EditTeamModal title="تعديل فريق" opened={openEditModal} data={selectedData} onClose={() => setOpenEditModal(false)}/>
             <DeleteTeamModal title="حذف فريق" opened={openDeleteModal} data={selectedData?.id} onClose={() => setOpenDeleteModal(false)}/>
             <ChangeStatusTeamModal
-                title={selectedData?.account_status ? "توقيف فريق" : "تفعيل فريق"}
+                title={isRegistrationOver(selectedData?.registration_end) ? "تجديد تسجيل فريق" : selectedData?.account_status ? "توقيف فريق" : "تفعيل فريق"}
                 opened={openChangeStatusModal}
                 data={selectedData}
                 onClose={() => setOpenChangeStatusModal(false)}

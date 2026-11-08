@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { Person, User } from '../Models/index.mjs';
 import dotenv from 'dotenv'
 import {serializeUser} from "../Helpers/index.mjs";
+import { suspensionForUser } from "../Helpers/teamAccess.mjs";
 import { getAppKeyFromOrigin } from "../Config/runtime.mjs";
 dotenv.config();
 
@@ -74,6 +75,15 @@ export const AuthMiddleware = async (req, res, next) => {
     }
 
     const user = serializeUser(authUser)
+
+    // A suspended team — stopped by its club, or past its registration end —
+    // loses its session too, not only the next sign-in: an access token lives
+    // for days. The app then fails to refresh and returns to the login page,
+    // which says why.
+    if (await suspensionForUser(user)) {
+        req.isAuth = false;
+        return next();
+    }
 
     req.isAuth = true;
     req.user = user;

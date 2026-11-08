@@ -45,6 +45,9 @@ export const typeDefs = gql`
         activities:     String
         account_status: Boolean
         code:           String
+        # مدة التسجيل (YYYY-MM-DD). بعد آخر يوم يتوقف الحساب حتى يجدّده النادي.
+        registration_start: String
+        registration_end:   String
 
         club:           Club
         admin:          User
@@ -66,6 +69,8 @@ export const typeDefs = gql`
         account_status: Boolean
         code:           String
         id_club:        ID
+        registration_start: String
+        registration_end:   String
     }
 
     type StatisticsTeam {

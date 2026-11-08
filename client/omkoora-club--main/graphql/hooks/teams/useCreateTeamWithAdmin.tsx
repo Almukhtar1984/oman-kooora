@@ -11,6 +11,9 @@ interface VariableProps {
         activities: string;
         code: string;
         id_club: string;
+        // مدة التسجيل (YYYY-MM-DD)
+        registration_start?: string | null;
+        registration_end?: string | null;
     };
     manager: {
         email: string;

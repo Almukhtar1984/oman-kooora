@@ -31,6 +31,15 @@ export default (db, types) => {
             allowNull: false,
             defaultValue: true
         },
+        // مدة التسجيل: بعد آخر يوم يتوقف حساب الفريق (Helpers/teamRegistration.mjs).
+        registration_start: {
+            type: types.DATEONLY,
+            allowNull: true
+        },
+        registration_end: {
+            type: types.DATEONLY,
+            allowNull: true
+        },
         code: {
             type: types.STRING(100),
             allowNull: false

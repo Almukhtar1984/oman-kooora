@@ -16,6 +16,9 @@ import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 import {CreateNotificationTeam} from "../../Helpers/index.mjs"
+import { activationProblem, dayOf, normalizePeriod, periodProblem } from "../../Helpers/teamRegistration.mjs";
+import { forgetTeamAccess } from "../../Helpers/teamAccess.mjs";
+import { callerClubId, isForeignTeam } from "../../Helpers/clubScope.mjs";
 
 dotenv.config();
 
@@ -253,6 +256,11 @@ export const resolvers = {
     Mutation: {
         createTeam: async (obj, {content}, context, info) =>  {
             try {
+                const period = { start: content.registration_start, end: content.registration_end };
+                const badPeriod = periodProblem(period);
+                if (badPeriod) return new ApolloError(badPeriod, "BAD_REGISTRATION_PERIOD");
+                normalizePeriod(content);
+
                 await assertTeamNameFree(content.id_club, content.name);
 
                 const byClub = context?.user?.role === CLUB_ADMIN_ROLE;
@@ -264,6 +272,8 @@ export const resolvers = {
                     activities:    canonicalActivities(content.activities),
                     code:    content.code,
                     id_club: content.id_club,
+                    registration_start: content.registration_start ?? null,
+                    registration_end:   content.registration_end ?? null,
                     // يُسجَّل لاعبوه بعد اعتماد تسجيله.
                     ...(byClub ? { enableAddPlayer: false } : {}),
                 })
@@ -314,6 +324,11 @@ export const resolvers = {
             if (user.role !== "1" && user.role !== "2") {
                 return new ApolloError("Only super-admin or club admin can create teams", "FORBIDDEN_ROLE");
             }
+
+            // مدة التسجيل: بعد آخر يوم يتوقف حساب الفريق حتى يجدّده النادي.
+            const badPeriod = periodProblem({ start: team?.registration_start, end: team?.registration_end });
+            if (badPeriod) return new ApolloError(badPeriod, "BAD_REGISTRATION_PERIOD");
+            normalizePeriod(team);
 
             // Pre-check duplicates outside the transaction so the user gets
             // a clear, recoverable error before we touch anything.
@@ -411,18 +426,37 @@ export const resolvers = {
         },
 
         updateTeam: async (obj, {id, content}, context, info) =>  {
-            if ("enableAddPlayer" in content) {
-                CreateNotificationTeam("teamUpdateAdd",content?.enableAddPlayer,id,"")
-            }
-            if ("account_status" in content) {
-                CreateNotificationTeam("teamUpdateStatus",content?.account_status,id,"")
-            }
-            
             try {
+                const current = await Team.findByPk(id);
                 if ("name" in content) {
-                    const current = await Team.findByPk(id);
                     if (current) await assertTeamNameFree(current.id_club, content.name, id);
                 }
+
+                // Stopping, activating and the registration period are the
+                // club's: a team that could set them would renew itself.
+                const touchesAccount = ["account_status", "registration_start", "registration_end"]
+                    .some((key) => key in content);
+                if (touchesAccount) {
+                    if (context?.user?.role === "3") {
+                        return new ApolloError("النادي وحده يوقف الفريق ويفعّله ويحدّد مدة تسجيله", "FORBIDDEN_ROLE");
+                    }
+                    if (isForeignTeam(await callerClubId(context), current?.id_club)) {
+                        return new ApolloError("هذا الفريق لا يتبع ناديك", "TEAM_NOT_IN_CLUB");
+                    }
+                }
+
+                if ("registration_start" in content || "registration_end" in content) {
+                    const start = "registration_start" in content ? content.registration_start : current?.registration_start;
+                    const end = "registration_end" in content ? content.registration_end : current?.registration_end;
+                    // The same past end date sent back with an edit of another field is not a new choice.
+                    const unchangedEnd = dayOf(end) === dayOf(current?.registration_end);
+                    const badPeriod = periodProblem({ start, end }, undefined, { allowPastEnd: unchangedEnd });
+                    if (badPeriod) return new ApolloError(badPeriod, "BAD_REGISTRATION_PERIOD");
+                    normalizePeriod(content);
+                }
+
+                const notActivatable = activationProblem(current, content);
+                if (notActivatable) return new ApolloError(notActivatable, "TEAM_REGISTRATION_ENDED");
 
                 let logo = null
                 if ("logo" in content) {
@@ -435,6 +469,15 @@ export const resolvers = {
                 if ("activities" in content) content.activities = canonicalActivities(content.activities)
 
                 let result = await Team.update({...content}, { where: { id } })
+                forgetTeamAccess();
+
+                // Told only once the change is really made.
+                if ("enableAddPlayer" in content) {
+                    CreateNotificationTeam("teamUpdateAdd",content?.enableAddPlayer,id,"")
+                }
+                if ("account_status" in content) {
+                    CreateNotificationTeam("teamUpdateStatus",content?.account_status,id,"")
+                }
 
 
                 if (logo && logo !== null && logo !== undefined) {

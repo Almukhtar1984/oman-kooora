@@ -9,6 +9,8 @@ import {Notyf} from "notyf";
 
 import TextInput from "../Input/TextInput";
 import ActivitiesSelect from "../Input/ActivitiesSelect";
+import RegistrationPeriodInputs from "../Input/RegistrationPeriodInputs";
+import {omanToday, periodError, toApiDay} from "../../lib/helpers/teamRegistration";
 import Modal, {Props as ModalProps} from "./Modal";
 import {AllTeams, useCreateTeamWithAdmin} from "./../../graphql";
 import useStore from "../../store/useStore";
@@ -38,6 +40,9 @@ const init = () => ({
     phone: "",
     activities: "",
     code: "",
+    // مدة التسجيل: تبدأ اليوم افتراضياً، ونهايتها يختارها النادي.
+    registration_start: dayjs(omanToday()).toDate() as Date | null,
+    registration_end: null as Date | null,
     manager: {
         first_name: "",
         second_name: "",
@@ -60,6 +65,7 @@ export const AddTeamModal = (props: Props) => {
             phone: (v) => (!v ? "مطلوب" : null),
             activities: (v) => (!v ? "مطلوب" : null),
             code: (v) => (!v ? "مطلوب" : null),
+            registration_end: (v, values) => periodError(values.registration_start, v),
             manager: {
                 first_name: (v) => (!v ? "مطلوب" : null),
                 second_name: (v) => (!v ? "مطلوب" : null),
@@ -103,7 +109,7 @@ export const AddTeamModal = (props: Props) => {
         // want to ignore subsequent clicks until the first round-trip lands.
         if (loading || mutationLoading) return;
 
-        const {name, phone, activities, code, manager} = data;
+        const {name, phone, activities, code, manager, registration_start, registration_end} = data;
         const manager_name = `${manager.first_name} ${manager.tribe}`.trim();
 
         setLoading(true);
@@ -119,6 +125,8 @@ export const AddTeamModal = (props: Props) => {
                         code,
                         manager_name,
                         id_club: userData?.person?.clubManagement?.club?.id,
+                        registration_start: toApiDay(registration_start),
+                        registration_end: toApiDay(registration_end),
                     },
                     manager: {
                         email: manager.email,
@@ -161,6 +169,8 @@ export const AddTeamModal = (props: Props) => {
                 notyf.error("نوع ملف الشعار غير مدعوم");
             } else if (code === "FORBIDDEN_ROLE") {
                 notyf.error("ليس لديك صلاحية لإضافة فريق");
+            } else if (code === "BAD_REGISTRATION_PERIOD") {
+                notyf.error(serverMessage || "مدة التسجيل غير صالحة");
             } else if (code === "SequelizeUniqueConstraintError" || /unique/i.test(serverMessage || "")) {
                 notyf.error("بيانات مكررة في قاعدة البيانات (هاتف / بطاقة / إيميل)");
             } else {
@@ -298,6 +308,15 @@ export const AddTeamModal = (props: Props) => {
                             />
                         </Col>
                     </Grid>
+
+                    <Divider label="مدة التسجيل" labelPosition="center" my="md" />
+                    <RegistrationPeriodInputs
+                        start={form.values.registration_start}
+                        end={form.values.registration_end}
+                        onStartChange={(v) => form.setFieldValue("registration_start", v)}
+                        onEndChange={(v) => form.setFieldValue("registration_end", v)}
+                        endError={form.errors.registration_end}
+                    />
 
                     <Divider label="معلومات المدير" labelPosition="center" my="lg" />
                     <Grid gutter={20}>

@@ -20,6 +20,7 @@ import {
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 import { format as formatDate } from 'date-fns'
+import { suspensionForUser } from "../../Helpers/teamAccess.mjs";
 
 dotenv.config();
 
@@ -183,6 +184,11 @@ export const resolvers = {
                     return null;
                 }
 
+                // A suspended team gets no new access token: the session ends.
+                if (await suspensionForUser(isExist)) {
+                    return null;
+                }
+
                 let token = await AuthToken({id: isExist.id}, undefined, appKey);
 
                 context.res.cookie(refreshCookieName(appKey), refreshToken, refreshCookieOptions);
@@ -339,6 +345,13 @@ export const resolvers = {
 
                 if (!user.activation) {
                     return new ApolloError("Account is not active", "ACCOUNT_NOT_ACTIVE");
+                }
+
+                // A team stopped by its club, or past its registration end, does
+                // not sign in — and is told why, and who can lift it.
+                const suspension = await suspensionForUser(user);
+                if (suspension) {
+                    return new ApolloError(suspension.message, suspension.code);
                 }
 
                 // Issue access + refresh tokens scoped to the calling frontend.
