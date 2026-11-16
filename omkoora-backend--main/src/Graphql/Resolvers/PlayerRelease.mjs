@@ -6,7 +6,7 @@ import { v4 as UUID } from 'uuid';
 import logger from "../../Config/logger.mjs";
 import { __dirname } from "../../app.mjs";
 import { Club, Players, PlayerRelease, Team } from '../../Models/index.mjs';
-import { callerClubId, clubOfTeam } from "../../Helpers/clubScope.mjs";
+import { callerClubId, callerTeamId, clubOfTeam } from "../../Helpers/clubScope.mjs";
 import {
     RELEASE_WAITING, RELEASE_ACCEPTED, canRequestRelease, releaseDecision,
 } from "../../Helpers/playerRelease.mjs";
@@ -84,6 +84,11 @@ export const resolvers = {
                 const mine = await callerClubId(context);
                 if (player && mine && idClub && mine !== idClub) {
                     throw new ApolloError("هذا اللاعب لا يتبع ناديك", "FORBIDDEN_PLAYER");
+                }
+                // والفريق يطلب استقالة لاعبيه هو، لا لاعبي فريقٍ آخر في ناديه.
+                const myTeam = await callerTeamId(context);
+                if (player && myTeam && player.id_team !== myTeam) {
+                    throw new ApolloError("هذا اللاعب ليس في فريقك", "FORBIDDEN_PLAYER");
                 }
 
                 const open = player

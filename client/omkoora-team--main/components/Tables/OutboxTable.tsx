@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import {ActionIcon, Badge, Button, Checkbox, Group, Menu, Pagination, Stack, Text} from '@mantine/core';
+import { CommentsBadge } from "../Messages/CommentsBadge";
 import {DotsVertical, ExternalLink, Message} from "tabler-icons-react";
 import {useEffect, useState} from "react";
 import {searchSortedData} from "../../lib/helpers/sort";
@@ -8,7 +9,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import dayjs from "dayjs";
 import { IconDatabaseOff } from '@tabler/icons-react';
 
-import DataTable, {TableStyles} from 'react-data-table-component';
+import DataTable, {TableColumn, TableStyles} from 'react-data-table-component';
 import { DataLoading, DataEmpty } from "../Loading/DataState";
 const customStyles: TableStyles = {
     table: {
@@ -99,7 +100,7 @@ export const OutboxTable = ({ loading, list, search, setOpenEditModal, setOpenCh
         typeof openDrawer === "function" && openDrawer()
     }
 
-    const COLUMNS = [
+    const COLUMNS: TableColumn<any>[] = [
         {name: 'الخيارات', selector: (item: any) => (
             <Group>
                 <Menu withinPortal shadow="md" width={200} position={"bottom"}>
@@ -130,7 +131,11 @@ export const OutboxTable = ({ loading, list, search, setOpenEditModal, setOpenCh
                     ? <Badge color="violet">عاجل</Badge>
                     : <Badge color="red">عاجل جدا</Badge>
         ), width: '120px'},
-        {name: 'الموضوع', selector: (item: any) => item?.subject, width: '120px'},
+        {name: 'الموضوع', selector: (item: any) => item?.subject, width: '200px'},
+        // على الرسالة تعليقات؟ في القائمة نفسها، تفتحها بضغطة (اجتماع 2026-11-16).
+        {name: 'التعليقات', cell: (item: any) => (
+            <CommentsBadge count={item?.comment?.length} onClick={hasPermission("3") ? () => openModelComment(item?.id) : undefined} />
+        ), width: '130px'},
         {name: 'تاريخ الارسال', selector: (item: any) => item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : '-', width: '200px'},
     ];
 
@@ -148,6 +153,7 @@ export const OutboxTable = ({ loading, list, search, setOpenEditModal, setOpenCh
                   <Text size="xs" color="dimmed">
                     الموضوع: {item?.subject || 'غير متوفر'}
                   </Text>
+                  <CommentsBadge count={item?.comment?.length} onClick={hasPermission("3") ? () => openModelComment(item?.id) : undefined} />
                   <Text size="xs" color="dimmed">
                     {item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : 'غير متوفر'}
                   </Text>

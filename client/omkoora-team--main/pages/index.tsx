@@ -28,6 +28,7 @@ import { EventForm } from "../components/TeamDetails/EventForm";
 import { EventCarouselModal } from "../components/TeamDetails/EventCarouselModal";
 import { MemberSection } from "../components/TeamDetails/MemberSection";
 import { RegisterMemberModal } from "../components/Modal/RegisterMemberModal";
+import { RequestReleaseModal } from "../components/Modal/RequestReleaseModal";
 import {
     UpdatePlayersModal, UpdateTechnicalModal, UpdateMembersModal, UpdateAssemblyModal,
     DeletePlayersModal, DeleteTechnicalModal, DeleteMembersModal, DeleteAssemblyModal,
@@ -69,6 +70,8 @@ export default function Home() {
     const [memberTab, setMemberTab] = useState<string | null>("players");
     // «تسجيل عضو جديد» — الباب الواحد، بجانب «الفعاليات» (العميل، 2026-11-08).
     const [openRegisterMember, setOpenRegisterMember] = useState(false);
+    // طلب استقالة لاعب (اجتماع 2026-11-16).
+    const [releasePlayer, setReleasePlayer] = useState<any>(null);
     const [editData, setEditData] = useState<any>(null);
     const [openShowStatDetails, setOpenShowStatDetails] = useState(false);
     const [deleteId, setDeleteId] = useState<string>("");
@@ -487,6 +490,7 @@ export default function Home() {
                                         onStatPlayer={handleStatPlayer}
                                         onTransferPlayer={handleTransferPlayer}
                                         onLoanPlayer={handleLoanPlayer}
+                                        onRequestRelease={(item) => setReleasePlayer(item)}
                                         onFreePlayer={handleFreePlayer}
                                         onConvertToTechnical={handleConvertToTechnical}
                                         onAddImage={handleAddImage}
@@ -615,6 +619,15 @@ export default function Home() {
             <ChangeStatusPlayersModal opened={openStatusPlayer} onClose={() => setOpenStatusPlayer(false)} id={statusId} status={statusValue} />
             <ChangeStatusTechnicalsModal opened={openStatusTechnical} onClose={() => setOpenStatusTechnical(false)} id={statusId} status={statusValue} />
             <ChangeStatusMembersModal opened={openStatusMember} onClose={() => setOpenStatusMember(false)} id={statusId} status={statusValue} />
+
+            <RequestReleaseModal
+                title="طلب استقالة لاعب"
+                size="lg"
+                idTeam={teamId}
+                data={releasePlayer}
+                opened={Boolean(releasePlayer)}
+                onClose={() => setReleasePlayer(null)}
+            />
 
             <RegisterMemberModal
                 title="تسجيل عضو جديد"

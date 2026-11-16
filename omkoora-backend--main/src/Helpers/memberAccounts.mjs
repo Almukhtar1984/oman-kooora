@@ -31,6 +31,10 @@ const keyOf = (row) => {
 
 const round = (n) => Math.round(Number(n || 0) * 100) / 100;
 
+/** رسوم العضوية حقّ النادي؛ وما يسجّله الفريق في حساباته حقّ الفريق. */
+export const CLUB_SOURCE = "رسوم العضوية السنوية";
+export const partyOf = (source) => (source === CLUB_SOURCE ? "club" : "team");
+
 /**
  * @param {object} input
  * @param {Array} input.members   أعضاء العضوية: {id, name, card_number, membership_number, team, subscription_date}
@@ -71,10 +75,12 @@ export const buildMemberAccounts = ({ members = [], payments = [], year }) => {
         if (payment.kind) row.kinds.add(payment.kind);
         if (payment.team) row.teams.add(payment.team);
         if (!row.name) row.name = payment.name || "";
+        const source = payment.source || "حساب الفريق";
         row.payments.push({
             amount: round(payment.amount),
             date: dayOf(payment.date),
-            source: payment.source || "حساب الفريق",
+            source,
+            party: partyOf(source),
             team: payment.team || null,
             note: payment.note || null,
         });
@@ -84,6 +90,7 @@ export const buildMemberAccounts = ({ members = [], payments = [], year }) => {
         const sorted = [...row.payments].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
         const thisYear = sorted.filter((p) => yearOf(p.date) === year);
         const paidThisYear = round(thisYear.reduce((sum, p) => sum + p.amount, 0));
+        const sumOf = (party) => round(thisYear.filter((p) => p.party === party).reduce((sum, p) => sum + p.amount, 0));
         return {
             key: row.key,
             name: row.name,
@@ -92,6 +99,9 @@ export const buildMemberAccounts = ({ members = [], payments = [], year }) => {
             teams: [...row.teams],
             kinds: [...row.kinds],
             paidThisYear,
+            // «نفصلهم: الفريق وحده… حق النادي وحده» (اجتماع 2026-11-16).
+            paidToTeamThisYear: sumOf("team"),
+            paidToClubThisYear: sumOf("club"),
             totalPaid: round(sorted.reduce((sum, p) => sum + p.amount, 0)),
             lastPaymentDate: sorted[0]?.date || null,
             // سدّد سنته: دفع فيها، أو اشتراكه في العضوية مسجَّلٌ لها.
@@ -100,10 +110,35 @@ export const buildMemberAccounts = ({ members = [], payments = [], year }) => {
         };
     }).sort((a, b) => a.name.localeCompare(b.name, "ar"));
 
+    // كل فريق وحده: أعضاؤه، ومن سدّد منهم، وما دُفع لحساب الفريق وما دُفع للنادي
+    // في السنة — من دفعات ذلك الفريق نفسه، لا من كل دفعات أعضائه.
+    const byTeam = new Map();
+    const teamOf = (name) => {
+        if (!byTeam.has(name)) byTeam.set(name, { team: name, members: 0, paidMembers: 0, teamThisYear: 0, clubThisYear: 0 });
+        return byTeam.get(name);
+    };
+    // والعضو المسجّل في النادي مباشرة — بلا فريق — له سطره هو أيضاً («حق النادي وحده»):
+    // اسم فريقه فارغ، والواجهة تسمّيه.
+    list.forEach((row) => (row.teams.length ? row.teams : [""]).forEach((name) => {
+        const entry = teamOf(name);
+        entry.members += 1;
+        if (row.subscribedThisYear) entry.paidMembers += 1;
+        row.payments.filter((p) => (p.team || "") === name && yearOf(p.date) === year).forEach((p) => {
+            if (p.party === "club") entry.clubThisYear += p.amount;
+            else entry.teamThisYear += p.amount;
+        });
+    }));
+    const teams = [...byTeam.values()]
+        .map((t) => ({ ...t, teamThisYear: round(t.teamThisYear), clubThisYear: round(t.clubThisYear) }))
+        .sort((a, b) => (a.team === "" ? -1 : b.team === "" ? 1 : a.team.localeCompare(b.team, "ar")));
+
     return {
         year,
         rows: list,
+        teams,
         totalThisYear: round(list.reduce((sum, row) => sum + row.paidThisYear, 0)),
+        teamThisYear: round(list.reduce((sum, row) => sum + row.paidToTeamThisYear, 0)),
+        clubThisYear: round(list.reduce((sum, row) => sum + row.paidToClubThisYear, 0)),
         members: list.length,
         paidMembers: list.filter((row) => row.subscribedThisYear).length,
     };

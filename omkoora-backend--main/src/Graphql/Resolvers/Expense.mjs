@@ -216,42 +216,8 @@ export const resolvers = {
         },
 
 
-        createComment: async (obj, {content}, context, info) =>  {
-            try {
-                let comment = await Comment.create(content)
-
-                return comment
-            } catch (error) {
-                console.log(error)
-                // logger.error(`Expense.createComment: ${error?.message || error}`)
-                throw new ApolloError(error)
-            }
-        },
-
-        updateComment: async (obj, {id, content}, context, info) =>  {
-            try {
-                let result = await Comment.update({...content}, { where: { id } })
-
-                return {
-                    status: result[0] === 1
-                }
-            } catch (error) {
-                logger.error(`Expense.updateComment: ${error?.message || error}`)
-                throw new ApolloError(error)
-            }
-        },
-
-        deleteComment: async (obj, {id}, context, info) =>  {
-            try {
-                const comment = await Comment.destroy({ where: { id } })
-
-                return {
-                    status: comment === 1
-                }
-            } catch (error) {
-                logger.error(`Expense.deleteComment: ${error?.message || error}`)
-                throw new ApolloError(error)
-            }
-        },
+        // createComment / updateComment / deleteComment كانت منسوخةً هنا من الرسائل بلا
+        // مخطّط لها، فتُدمج بعد الرسائل وتطغى عليها: التعليق يُحفظ بلا مستنداته ولا
+        // تحقّقه ولا إشعاره (اجتماع 2026-11-16). مكانها Message.mjs وحده.
     }
 }

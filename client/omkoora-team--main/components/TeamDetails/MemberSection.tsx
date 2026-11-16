@@ -25,6 +25,7 @@ interface MemberSectionProps {
     onAddSanction?: (data: any) => void;
     onUpdateSanction?: (data: any) => void;
     onChangeClassification?: (data: any) => void;
+    onRequestRelease?: (data: any) => void;
     onShowDetails?: (data: any) => void;
     onRenewSubscription?: (data: any) => void;
     onAddImage?: (id: string | any) => void;

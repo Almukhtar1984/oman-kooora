@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import {useMessage} from "../../graphql";
 import {RichTextBox} from "../RichTextEditor";
 import { getImageUrl } from "../../lib/helpers/image";
+import { AttachmentLinks } from "../Messages/AttachmentLinks";
 
 type Props = {
     data?: any;
@@ -80,6 +81,13 @@ export function CommentDrawer({ data, setOpenCommentModal, ...props }: Props) {
                         <RichTextBox content={content} />
                     </Col>
 
+                    {/* مرفقات الرسالة هنا أيضاً — كان الفريق يفتح التعليقات فلا يراها فيقول
+                        «ما في مرفق» وهو موجود (اجتماع العميل، 2026-11-16). */}
+                    <Col span={12}>
+                        <Text component={"label"} mb={6} display="block">مرفقات الرسالة :</Text>
+                        <AttachmentLinks items={dataMessage?.message?.attachment} empty="لا توجد مرفقات في هذه الرسالة" />
+                    </Col>
+
 
                     <Col span={12}>
                         <Group position={"apart"}>
@@ -89,6 +97,9 @@ export function CommentDrawer({ data, setOpenCommentModal, ...props }: Props) {
                             </Button>
                         </Group>
                         <Stack mt={20}>
+                            {comments.length === 0 ? (
+                                <Text size="sm" color="dimmed">لا توجد تعليقات على هذه الرسالة بعد.</Text>
+                            ) : null}
                             {comments.map((item: any) => (
                                 <Box key={item?.id} bg={"#eee"} p={20}>
                                     <Stack spacing={6}>
@@ -110,9 +121,10 @@ export function CommentDrawer({ data, setOpenCommentModal, ...props }: Props) {
                                             </Text>
                                         </Group>
 
-                                        <Stack spacing={0}>
-                                            <Text size={"sm"}>{item?.content}</Text>
-                                            {item?.note ? <Text size={"xs"} c={"gray.6"}>{item.note}</Text> : null}
+                                        <Stack spacing={4}>
+                                            <Text size={"sm"} fw={600}>{item?.content}</Text>
+                                            {item?.note ? <Text size={"sm"} c={"gray.7"} sx={{ whiteSpace: "pre-wrap" }}>{item.note}</Text> : null}
+                                            <AttachmentLinks items={item?.attachment} label="مستند التعليق" />
                                         </Stack>
                                     </Stack>
                                 </Box>

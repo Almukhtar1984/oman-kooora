@@ -18,6 +18,14 @@ export function RichTextBox({ content }: Props) {
         content
     });
 
+    // المحتوى يصل من الخادم بعد أن يُنشأ المحرّر، و«content» في useEditor يُقرأ مرة
+    // واحدة: فكان صندوق «المحتوى» في التعليقات فارغاً (اجتماع العميل، 2026-11-16).
+    useEffect(() => {
+        if (editor && !editor.isDestroyed && editor.getHTML() !== (content || "")) {
+            editor.commands.setContent(content || "", false);
+        }
+    }, [editor, content]);
+
     return (
         <RichTextEditor editor={editor} mih={120} >
             <RichTextEditor.Content />

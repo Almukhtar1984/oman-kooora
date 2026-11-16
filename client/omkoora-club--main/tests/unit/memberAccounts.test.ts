@@ -47,3 +47,17 @@ describe("teamsOf and the Excel sheet", () => {
         expect(first["رقم العضوية"]).toBe("M-7");
     });
 });
+
+describe("team and club money kept apart (meeting 2026-11-16)", () => {
+    it("writes what went to the team and what went to the club in their own columns", () => {
+        const [first] = accountsSheet([row({ key: "x", name: "س", paidToTeamThisYear: 5, paidToClubThisYear: 20, paidThisYear: 25 })], 2026);
+        expect([first["للفريق في 2026 (ر.ع)"], first["للنادي في 2026 (ر.ع)"], first["المدفوع في 2026 (ر.ع)"]]).toEqual([5, 20, 25]);
+    });
+});
+
+describe("members registered at the club directly", () => {
+    it("have their own row and filter", () => {
+        const direct = row({ key: "d", name: "عضو مباشر", teams: [] });
+        expect(filterAccounts([...rows, direct], { team: "" }).map((r) => r.key)).toEqual(["d"]);
+    });
+});

@@ -1,6 +1,6 @@
 import {
-    Badge, Box, Button, Collapse, Container, Grid, Group, Paper, SegmentedControl, Select,
-    Stack, Text, TextInput, Title,
+    Badge, Box, Button, Collapse, Container, Grid, Group, Paper, ScrollArea, SegmentedControl, Select,
+    Stack, Table, Text, TextInput, Title, UnstyledButton,
 } from "@mantine/core";
 import { ChevronDown, ChevronUp, FileSpreadsheet, Search, Wallet } from "tabler-icons-react";
 import Head from "next/head";
@@ -10,7 +10,7 @@ import * as XLSX from "xlsx";
 import { useClubMemberAccounts } from "../graphql";
 import DataState from "../components/Loading/DataState";
 import {
-    AccountFilter, MemberAccount, accountsSheet, filterAccounts, teamsOf,
+    AccountFilter, MemberAccount, TeamAccounts, accountsSheet, filterAccounts, teamLabel, teamsOf,
 } from "../lib/helpers/memberAccounts";
 
 // «حسابات الأعضاء» في النادي.
@@ -43,8 +43,12 @@ const AccountRow = ({ row }: { row: MemberAccount }) => {
                         {row.subscribedThisYear ? "سدّد هذه السنة" : "لم يسدّد هذه السنة"}
                     </Badge>
                     <Box>
-                        <Text size="xs" color="gray.6">هذه السنة</Text>
-                        <Text weight={700}>{money(row.paidThisYear)}</Text>
+                        <Text size="xs" color="gray.6">للفريق هذه السنة</Text>
+                        <Text weight={700}>{money(row.paidToTeamThisYear ?? 0)}</Text>
+                    </Box>
+                    <Box>
+                        <Text size="xs" color="gray.6">للنادي هذه السنة</Text>
+                        <Text weight={700}>{money(row.paidToClubThisYear ?? 0)}</Text>
                     </Box>
                     <Box>
                         <Text size="xs" color="gray.6">الإجمالي</Text>
@@ -67,7 +71,10 @@ const AccountRow = ({ row }: { row: MemberAccount }) => {
                         <Group key={i} position="apart" px="xs" py={4}
                             sx={(t) => ({ borderTop: `1px solid ${t.colors.gray[2]}`, flexWrap: "wrap" })}>
                             <Text size="sm">
-                                <bdi dir="ltr">{p.date || "—"}</bdi> · {p.source}{p.team ? ` · ${p.team}` : ""}{p.note ? ` · ${p.note}` : ""}
+                                <Badge size="xs" variant="light" color={p.party === "club" ? "grape" : "blue"} mr={6}>
+                                {p.party === "club" ? "للنادي" : "للفريق"}
+                            </Badge>
+                            <bdi dir="ltr">{p.date || "—"}</bdi> · {p.source}{p.team ? ` · ${p.team}` : ""}{p.note ? ` · ${p.note}` : ""}
                             </Text>
                             <Text size="sm" weight={600}>{money(p.amount)}</Text>
                         </Group>
@@ -91,7 +98,11 @@ export default function MemberAccounts() {
     }, [year, load]);
 
     const result = data?.clubMemberAccounts;
+    const ready = Boolean(result) || !loading;
     const rows: MemberAccount[] = result?.rows || [];
+    const teamTable: TeamAccounts[] = result?.teams || [];
+    // حتى تصل الأرقام تظهر «…» لا «0» — صفرٌ يُقرأ خبراً (اجتماع 2026-11-16).
+    const shownValue = (value: string) => (ready ? value : "…");
     const teams = useMemo(() => teamsOf(rows), [rows]);
     const filtered = useMemo(() => filterAccounts(rows, filter), [rows, filter]);
     const years = Array.from({ length: 5 }, (_, i) => String(thisYear - i));
@@ -124,19 +135,60 @@ export default function MemberAccounts() {
 
                 <Grid gutter="sm" mb="md">
                     {[
-                        { label: `المحصّل في ${year}`, value: money(result?.totalThisYear || 0) },
+                        { label: `حسابات الفرق في ${year}`, value: money(result?.teamThisYear || 0) },
+                        { label: `رسوم النادي في ${year}`, value: money(result?.clubThisYear || 0) },
                         { label: "الأعضاء", value: String(result?.members || 0) },
-                        { label: `سدّدوا ${year}`, value: String(result?.paidMembers || 0) },
-                        { label: `لم يسدّدوا ${year}`, value: String(Math.max(0, (result?.members || 0) - (result?.paidMembers || 0))) },
+                        { label: `سدّدوا ${year}`, value: `${result?.paidMembers || 0} من ${result?.members || 0}` },
                     ].map((card) => (
                         <Grid.Col key={card.label} span={6} sm={3}>
                             <Paper p="md" radius="md" withBorder>
                                 <Text size="xs" color="gray.6">{card.label}</Text>
-                                <Text size="lg" weight={800} color="gray.8">{card.value}</Text>
+                                <Text size="lg" weight={800} color="gray.8">{shownValue(card.value)}</Text>
                             </Paper>
                         </Grid.Col>
                     ))}
                 </Grid>
+
+                {/* كل فريق وحده — «نفصلهم: الفريق وحده… هذا وحده، هذا وحده، حق النادي وحده».
+                    اضغط فريقاً لتظهر حسابات أعضائه وحدها. */}
+                {teamTable.length ? (
+                    <Paper withBorder radius="md" mb="md">
+                        <ScrollArea>
+                            <Table highlightOnHover verticalSpacing="xs" fontSize="sm" sx={{ minWidth: 560 }}>
+                                <thead>
+                                    <tr>
+                                        <th>الفريق</th>
+                                        <th>الأعضاء</th>
+                                        <th>سدّدوا {year}</th>
+                                        <th>حساب الفريق {year}</th>
+                                        <th>رسوم النادي {year}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {teamTable.map((t) => {
+                                        const active = filter.team === t.team && filter.team !== null;
+                                        return (
+                                            <tr key={t.team} style={{ background: active ? "#EEF2FF" : undefined }}>
+                                                <td>
+                                                    <UnstyledButton
+                                                        onClick={() => { setFilter((f) => ({ ...f, team: active ? null : t.team })); setShown(PAGE); }}
+                                                        sx={{ fontWeight: active ? 700 : 500, color: "#1E3A8A" }}
+                                                    >
+                                                        {teamLabel(t.team)}
+                                                    </UnstyledButton>
+                                                </td>
+                                                <td>{t.members}</td>
+                                                <td>{t.paidMembers}</td>
+                                                <td>{money(t.teamThisYear)}</td>
+                                                <td>{money(t.clubThisYear)}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </Table>
+                        </ScrollArea>
+                    </Paper>
+                ) : null}
 
                 <Group spacing="sm" mb="md" sx={{ flexWrap: "wrap" }}>
                     <TextInput

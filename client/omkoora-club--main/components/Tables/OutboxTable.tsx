@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { CommentsBadge } from "../Messages/CommentsBadge";
 
 import { useTheme } from '@table-library/react-table-library/theme';
 import {DEFAULT_OPTIONS, getTheme,} from '@table-library/react-table-library/mantine';
@@ -232,6 +233,7 @@ export const OutboxTable = ({ loading, list, search, setOpenEditModal, setOpenCh
                   <Text size="xs" color="dimmed">
                     الموضوع: {item?.subject || 'غير متوفر'}
                   </Text>
+                  <CommentsBadge count={item?.comment?.length} onClick={hasPermission("3") ? () => openModelComment(item?.id) : undefined} />
                   <Text size="xs" color="dimmed">
                     {item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : 'غير متوفر'}
                   </Text>
@@ -366,7 +368,12 @@ export const OutboxTable = ({ loading, list, search, setOpenEditModal, setOpenCh
                                             : "الى الجميع"
                                         }
                                     </Cell>
-                                    <Cell>{item?.subject}</Cell>
+                                    <Cell>
+                                        <Group spacing={6}>
+                                            <span>{item?.subject}</span>
+                                            <CommentsBadge count={item?.comment?.length} onClick={hasPermission("3") ? () => openModelComment(item?.id) : undefined} />
+                                        </Group>
+                                    </Cell>
                                     <Cell>
                                         {item?.createdAt ? dayjs(item.createdAt).format("YYYY-MM-DD HH:mm") : '-'}
                                     </Cell>

@@ -21,3 +21,4 @@ export * from "./ai";
 export * from "./payments";
 
 export * from "./requestFlow";
+export * from "./releases";

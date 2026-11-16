@@ -10,8 +10,10 @@ export default (db, types) => {
             type: types.STRING(255),
             allowNull: false
         },
+        // MEDIUMTEXT: المحرّر يكتب HTML، والخطاب العادي تجاوز 500 حرف فرُفضت
+        // الرسالة (اجتماع 2026-11-16).
         content: {
-            type: types.STRING(500),
+            type: types.TEXT('medium'),
             allowNull: false
         },
         priority: {

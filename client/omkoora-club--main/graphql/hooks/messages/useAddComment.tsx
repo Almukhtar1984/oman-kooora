@@ -6,8 +6,10 @@ interface VariableProps {
     content: {
         content:         string;
         note?:           string;
+        // مستندات التعليق (اجتماع 2026-11-16).
+        attachment?:     File[];
         id_message:      string;
-        id_club:         string;
+        id_club?:        string;
     };
 }
 

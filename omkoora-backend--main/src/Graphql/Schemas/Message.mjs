@@ -75,6 +75,8 @@ export const typeDefs = gql`
         id:               ID
         content:          String
         note:               String
+        # مستندات التعليق (اجتماع 2026-11-16).
+        attachment:       [Attachment]
         team:       Team
         club:      Club
 
@@ -86,6 +88,7 @@ export const typeDefs = gql`
     input contentComment {
         content:    String
         note:       String
+        attachment: [Upload]
         id_message: ID
         id_team:    ID
         id_club:    ID

@@ -19,6 +19,8 @@ export const typeDefs = gql`
         date:   String
         # «حساب الفريق» أو «رسوم العضوية السنوية»
         source: String
+        # team (حساب الفريق) | club (رسوم النادي)
+        party:  String
         team:   String
         note:   String
     }
@@ -32,16 +34,31 @@ export const typeDefs = gql`
         # عضو / لاعب / مجلس إدارة
         kinds:              [String!]
         paidThisYear:       Float
+        # «نفصلهم: الفريق وحده… حق النادي وحده».
+        paidToTeamThisYear: Float
+        paidToClubThisYear: Float
         totalPaid:          Float
         lastPaymentDate:    String
         subscribedThisYear: Boolean
         payments:           [ClubMemberAccountPayment!]
     }
 
+    type ClubMemberAccountTeam {
+        team:          String
+        members:       Int
+        paidMembers:   Int
+        teamThisYear:  Float
+        clubThisYear:  Float
+    }
+
     type ClubMemberAccounts {
         year:          Int
         rows:          [ClubMemberAccount!]
+        # كل فريق وحده.
+        teams:         [ClubMemberAccountTeam!]
         totalThisYear: Float
+        teamThisYear:  Float
+        clubThisYear:  Float
         members:       Int
         paidMembers:   Int
     }

@@ -272,6 +272,10 @@ Message.belongsTo(Team, { foreignKey: { name: 'id_team_receiver' }, onDelete: 'C
 Message.hasOne(Attachment, { foreignKey: { name: 'id_message' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Attachment.belongsTo(Message, { foreignKey: { name: 'id_message' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
+// Comment 1 * Attachment — مستندات التعليق (اجتماع 2026-11-16)
+Comment.hasMany(Attachment, { foreignKey: { name: 'id_comment' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+Attachment.belongsTo(Comment, { foreignKey: { name: 'id_comment' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
+
 // Message 1 * Comment
 Message.hasOne(Comment, { foreignKey: { name: 'id_message' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Comment.belongsTo(Message, { foreignKey: { name: 'id_message' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });

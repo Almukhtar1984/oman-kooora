@@ -6,8 +6,17 @@ export const ClubMemberAccounts = gql`
         clubMemberAccounts(year: $year) {
             year
             totalThisYear
+            teamThisYear
+            clubThisYear
             members
             paidMembers
+            teams {
+                team
+                members
+                paidMembers
+                teamThisYear
+                clubThisYear
+            }
             rows {
                 key
                 name
@@ -16,6 +25,8 @@ export const ClubMemberAccounts = gql`
                 teams
                 kinds
                 paidThisYear
+                paidToTeamThisYear
+                paidToClubThisYear
                 totalPaid
                 lastPaymentDate
                 subscribedThisYear
@@ -23,6 +34,7 @@ export const ClubMemberAccounts = gql`
                     amount
                     date
                     source
+                    party
                     team
                     note
                 }

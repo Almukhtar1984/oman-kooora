@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Card, Avatar, Text, Group, Badge, Stack, Divider, Menu, ActionIcon, Flex, Box, Tooltip, Modal, Grid, Col, MantineTheme } from '@mantine/core';
 import {
     DotsVertical, EditCircle, Trash, Id, Paperclip, Upload, ChartDots,
-    XboxX, History, Printer, Check, X, CalendarStats, Phone, Mail, MapPin, Target, LayoutDashboard, Briefcase, Medal, FileCertificate, Eye, ArrowsLeftRight, LockOpen
+    XboxX, History, Printer, Check, X, CalendarStats, Phone, Mail, MapPin, Target, LayoutDashboard, Briefcase, Medal, FileCertificate, Eye, ArrowsLeftRight, LockOpen,
+    TransferOut, DoorExit
 } from 'tabler-icons-react';
 import { GiPlayerNext } from 'react-icons/gi';
 import dayjs from 'dayjs';
@@ -30,6 +31,8 @@ interface MemberCardProps {
     onUpdateSanction?: (data: any) => void;
     onRenewSubscription?: (data: any) => void;
     onChangeClassification?: (data: any) => void;
+    // طلب استقالة اللاعب — إلى النادي على طريق الطلبات (اجتماع 2026-11-16).
+    onRequestRelease?: (data: any) => void;
     onAddImage?: (id: string | any) => void;
     onConvertToTechnical?: (id: string) => void;
     onFreePlayer?: (id: string) => void;
@@ -103,7 +106,7 @@ export const MemberCard = ({
     onEdit, onDelete, onChangeStatus, onVerifyIdentity, onShowAttachments,
     onAddAttachment, onStatPlayer, onTransferPlayer, onLoanPlayer,
     onOpenTransferHistory, onAddSanction, onUpdateSanction, onRenewSubscription,
-    onChangeClassification, onAddImage, onConvertToTechnical, onFreePlayer, onShowDetails
+    onChangeClassification, onAddImage, onConvertToTechnical, onFreePlayer, onShowDetails, onRequestRelease
 }: MemberCardProps) => {
     const [detailsOpen, setDetailsOpen] = useState(false);
     const theme = useTheme() as MantineTheme;
@@ -460,6 +463,9 @@ export const MemberCard = ({
                                                     {hasPermission("1") && <Menu.Item icon={<ChartDots size={14} />} onClick={() => onStatPlayer && onStatPlayer(data?.id)}>احصائيات اللاعب</Menu.Item>}
                                                     {hasPermission("3") && <Menu.Item icon={<ArrowsLeftRight size={14} />} onClick={() => onChangeClassification && onChangeClassification(data)}>تغيير التصنيف</Menu.Item>}
                                                     {hasPermission("2") && <Menu.Item icon={<GiPlayerNext size={14} />} onClick={() => onLoanPlayer && onLoanPlayer(data)}>إعارة اللاعب</Menu.Item>}
+                                                    {/* «موجود إعارات… بس ما في مكان انتقالات أو استقالات» (اجتماع 2026-11-16). */}
+                                                    {hasPermission("2") && onTransferPlayer && <Menu.Item icon={<TransferOut size={14} />} onClick={() => onTransferPlayer(data)}>انتقال اللاعب</Menu.Item>}
+                                                    {hasPermission("2") && onRequestRelease && <Menu.Item icon={<DoorExit size={14} />} color="red" onClick={() => onRequestRelease(data)}>طلب استقالة اللاعب</Menu.Item>}
                                                 </>
                                             ) : type === 'player' ? (
                                                 <>

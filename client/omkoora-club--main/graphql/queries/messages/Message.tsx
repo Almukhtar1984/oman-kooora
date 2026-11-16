@@ -19,6 +19,10 @@ export const Message = gql`
                 content
                 note
                 createdAt
+                attachment {
+                    id
+                    content
+                }
                 team {
                     id
                     logo

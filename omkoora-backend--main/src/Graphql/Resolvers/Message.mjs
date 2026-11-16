@@ -9,6 +9,21 @@ import logger from "../../Config/logger.mjs";
 import {Club, Team, Message, Attachment, Comment} from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
+import { callerClubId, callerTeamId } from "../../Helpers/clubScope.mjs";
+import { CreateDirectNotification } from "../../Helpers/index.mjs";
+import {
+    attachmentProblem, commentNotice, commentProblem, commentRecipient, extensionOf,
+} from "../../Helpers/messageComments.mjs";
+
+/** يحفظ مستنداً مرفوعاً ويعيد اسمه — بعد التحقق من نوعه. */
+const saveDocument = async (upload) => {
+    const { createReadStream, filename } = await upload;
+    const problem = attachmentProblem(filename);
+    if (problem) throw new ApolloError(problem, "INVALID_ATTACHMENT");
+    const name = `${UUID()}.${extensionOf(filename)}`;
+    await createReadStream().pipe(createWriteStream(path.join(__dirname, `./../uploads/${name}`)));
+    return name;
+};
 
 
 dotenv.config();
@@ -202,6 +217,15 @@ export const resolvers = {
         },
     },
     Comment: {
+        // مستندات التعليق — «أريد أرفق مستندات في التعليق».
+        attachment: async ({id}) => {
+            try {
+                return await Attachment.findAll({ where: { id_comment: id } })
+            } catch (error) {
+                logger.error(`Comment.attachment: ${error?.message || error}`)
+                return []
+            }
+        },
         team: async ({id_team}, {id}, context, info) =>  {
             try {
                 return await Team.findByPk(id_team)
@@ -289,7 +313,8 @@ export const resolvers = {
 
                         const isImage = listType.indexOf(imgType) !== -1
 
-                        if(!isImage) { return new ApolloError("This file is not image") }
+                        // يُقال للفريق أي ملف رُفض ولماذا — لا «حدث خطأ» بلا سبب.
+                        if(!isImage) { return new ApolloError(attachmentProblem(filename) || "نوع الملف غير مقبول", "INVALID_ATTACHMENT") }
 
                         const imgUniqName = `${UUID()}.${imgType}`;
                         const pathName = path.join(__dirname,   `./../uploads/${imgUniqName}`);
@@ -368,13 +393,44 @@ export const resolvers = {
 
         createComment: async (obj, {content}, context, info) =>  {
             try {
-                let comment = await Comment.create(content)
+                const problem = commentProblem(content)
+                if (problem) return new ApolloError(problem, "INVALID_COMMENT")
 
+                const message = await Message.findByPk(content.id_message)
+                if (!message) return new ApolloError("الرسالة غير موجودة", "MESSAGE_NOT_FOUND")
+
+                // من يعلّق يُعرف من حسابه، لا مما ترسله الواجهة.
+                const [byTeam, byClubAccount] = await Promise.all([callerTeamId(context), callerClubId(context)])
+                const byClub = byTeam ? null : byClubAccount
+                const files = await Promise.all((await content.attachment || []).map(saveDocument))
+
+                const comment = await Comment.create({
+                    content: String(content.content).trim(),
+                    note: content.note || null,
+                    id_message: message.id,
+                    id_team: byTeam || (byClub ? null : content.id_team || null),
+                    id_club: byClub || (byTeam ? null : content.id_club || null),
+                })
+                if (files.length) {
+                    await Attachment.bulkCreate(files.map((name) => ({ content: name, id_comment: comment.id })))
+                }
+
+                // الطرف الآخر يُخبَر — كي لا يبقى التعليق مخفياً خلف قائمة الخيارات.
+                // ورسالة الفريق إلى ناديه لا تحمل معرّف النادي (تصله عبر فريقه): نادي
+                // الفريق المعلِّق هو الطرف الآخر.
+                const to = commentRecipient(message, { byClub, byTeam })
+                    || (byTeam && byClubAccount ? { id_club: byClubAccount } : null)
+                if (to) {
+                    void CreateDirectNotification({
+                        ...to,
+                        body: commentNotice({ subject: message.subject, content: comment.content, files: files.length }),
+                    })
+                }
                 return comment
             } catch (error) {
-                console.log(error)
-                // logger.error(`Message.createComment: ${error?.message || error}`)
-                throw new ApolloError(error)
+                if (error instanceof ApolloError) throw error
+                logger.error(`Message.createComment: ${error?.message || error}`)
+                throw new ApolloError("تعذّر حفظ التعليق")
             }
         },
 

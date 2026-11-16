@@ -11,7 +11,7 @@ export default (db, types) => {
             allowNull: false
         },
         note: {
-            type: types.STRING(500),
+            type: types.TEXT,
             allowNull: true
         }
     },{

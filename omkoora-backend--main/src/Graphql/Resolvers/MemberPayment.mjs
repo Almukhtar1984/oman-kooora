@@ -15,7 +15,7 @@ export const resolvers = {
         clubMemberAccounts: async (obj, { year }, context) => {
             try {
                 const idClub = await callerClubId(context);
-                if (!idClub) return { year, rows: [], totalThisYear: 0, members: 0, paidMembers: 0 };
+                if (!idClub) return { year, rows: [], teams: [], totalThisYear: 0, teamThisYear: 0, clubThisYear: 0, members: 0, paidMembers: 0 };
                 const theYear = Number(year) || new Date().getFullYear();
 
                 const teams = await Team.findAll({ where: { id_club: idClub }, attributes: ["id", "name"] });

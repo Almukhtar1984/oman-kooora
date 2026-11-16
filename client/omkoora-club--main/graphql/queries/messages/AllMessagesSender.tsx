@@ -12,6 +12,10 @@ export const AllMessagesSender = gql`
                 id
                 content
             }
+            # عدد التعليقات يظهر في القائمة، كي لا يبقى التعليق مخفياً خلف الخيارات.
+            comment {
+                id
+            }
 
             club_sender {
                 id
