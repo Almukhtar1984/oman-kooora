@@ -95,6 +95,19 @@ export const RequestFlowTrack = gql`
                 amount
                 status
             }
+            file {
+                photo
+                fields {
+                    label
+                    value
+                }
+                documents {
+                    label
+                    file
+                    kind
+                }
+                missing
+            }
             actions {
                 to
                 label

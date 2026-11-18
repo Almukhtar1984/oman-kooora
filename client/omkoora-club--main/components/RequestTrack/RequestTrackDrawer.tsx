@@ -8,6 +8,7 @@ import React, { useEffect, useState } from "react";
 import { useAdvanceRequestFlow, useRequestFlow, useRequestFlowStages } from "../../graphql";
 import { remainingRoad, SIDE_PANEL_KINDS, turnText } from "../../lib/helpers/requestFlow";
 import { SidePanel } from "./SidePanel";
+import { RequestFile } from "./RequestFile";
 
 // تتبّع الطلب — الخط الذي يُقرأ، لا الشارة التي تمحو ما قبلها.
 //
@@ -114,6 +115,9 @@ export function RequestTrackDrawer({ opened, onClose, target, onActed, onError }
 
     const remaining = remainingRoad(flow);
     const turn = turnText(flow);
+    const missing: string[] = flow?.file?.missing || [];
+    // القبول المبدئي يُتّخذ والملف أمام النادي — وما لم يُرفق يُذكَّر به عند الزر.
+    const accepting = actions.some((action: any) => action.to === "club_processing");
 
     return (
         <Drawer
@@ -152,6 +156,8 @@ export function RequestTrackDrawer({ opened, onClose, target, onActed, onError }
                         )}
                         {turn && <Text size="xs" color="gray.7" mt={6}>{turn}</Text>}
                     </Paper>
+
+                    <RequestFile file={flow.file} />
 
                     <SidePanel flow={flow} onActed={acted} onError={(message) => onError?.(message)} />
 
@@ -207,6 +213,12 @@ export function RequestTrackDrawer({ opened, onClose, target, onActed, onError }
                     {actions.length > 0 && (
                         <>
                             <Divider label="الإجراء" labelPosition="center" />
+                            {accepting && missing.length > 0 && !pending && (
+                                <Text size="xs" color="orange.8">
+                                    لم يُرفق: {missing.join("، ")}. إن كان لازماً فاختر «رفض مبدئي» واكتبه سبباً —
+                                    يعود الطلب إلى الفريق ليستكمله ثم يعيد إرساله.
+                                </Text>
+                            )}
                             {pending ? (
                                 <Stack spacing="xs">
                                     <Textarea

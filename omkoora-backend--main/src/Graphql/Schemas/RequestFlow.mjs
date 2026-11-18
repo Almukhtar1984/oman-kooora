@@ -69,6 +69,31 @@ export const typeDefs = gql`
         events:        [RequestFlowEvent!]
         # ما يجوز لهذا المستدعي فعله الآن — فلا ترسم الواجهة زراً يُرفض ضغطه.
         actions:       [RequestFlowAction!]
+        # ملف الطلب: بياناته ومستنداته وما لم يُرفق، يراه النادي قبل القبول المبدئي.
+        # يُجلب للطلب الذي يُفتح وحده، لا للقائمة.
+        file:          RequestFile
+    }
+
+    type RequestFile {
+        # الصورة الشخصية، أو شعار الفريق.
+        photo:     String
+        fields:    [RequestFileField!]
+        documents: [RequestFileDocument!]
+        # ما يُنتظر في هذا النوع من الطلبات ولم يُرفق.
+        missing:   [String!]
+    }
+
+    type RequestFileField {
+        label: String
+        value: String
+    }
+
+    type RequestFileDocument {
+        label: String
+        # اسم الملف في /images.
+        file:  String
+        # image | file
+        kind:  String
     }
 
     type RequestFlowAction {

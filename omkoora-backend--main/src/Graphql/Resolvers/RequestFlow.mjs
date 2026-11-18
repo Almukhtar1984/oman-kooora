@@ -2,7 +2,8 @@ import { ApolloError } from 'apollo-server-express';
 
 import logger from "../../Config/logger.mjs";
 import {
-    Assembly, Club, ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment, Team, Transfer,
+    Assembly, AttachmentPerson, Club, ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment,
+    Team, Transfer,
 } from '../../Models/index.mjs';
 import sequelize from 'sequelize';
 
@@ -14,6 +15,7 @@ import {
 } from "../../Helpers/requestFlow.mjs";
 import { pendingApprover } from "../../Helpers/transferFlow.mjs";
 import { feeLabel, feeTypeFor } from "../../Helpers/clubFees.mjs";
+import { memberFile, playerFile, releaseFile, teamFile, transferFile } from "../../Helpers/requestFile.mjs";
 
 const { Op } = sequelize;
 
@@ -233,6 +235,58 @@ const actionsFor = (flow, side, transfer, idClub, sendingFee = null) => {
     return list;
 };
 
+// ملف الطلب — ما يُبنى منه في requestFile.mjs.
+//
+// الشخص كاملاً هنا (صورته ورقمه وتاريخ ميلاده)، لا اسمه وحده كما في القائمة.
+const PERSON_FILE = {
+    model: Person, as: "person",
+    attributes: ["first_name", "second_name", "third_name", "tribe", "card_number", "date_birth", "phone",
+        "personal_picture", "card_image"],
+};
+const TEAM_NAME = { model: Team, attributes: ["id", "name"], required: false };
+
+const namesOf = async (Model, ids) => {
+    const list = ids.filter(Boolean);
+    if (!list.length) return {};
+    const rows = await Model.findAll({ where: { id: list }, attributes: ["id", "name"], paranoid: false });
+    return Object.fromEntries(rows.map((row) => [row.id, row.name]));
+};
+
+const fileOf = async ({ entity_type, entity_id }) => {
+    if (entity_type === "assembly") {
+        const row = await Assembly.findByPk(entity_id, { paranoid: false, include: [TEAM_NAME] });
+        return row ? memberFile(row.get({ plain: true })) : null;
+    }
+    if (entity_type === "player") {
+        const row = await Players.findByPk(entity_id, { include: [PERSON_FILE, TEAM_NAME] });
+        if (!row) return null;
+        const extras = await AttachmentPerson.findAll({ where: { id_player: row.id }, attributes: ["content"] });
+        return playerFile(row.get({ plain: true }), { extras: extras.map((item) => item.content) });
+    }
+    if (entity_type === "transfer") {
+        const row = await Transfer.findByPk(entity_id, {
+            include: [{ model: Players, as: "player", include: [PERSON_FILE] }],
+        });
+        if (!row) return null;
+        const [teams, clubs] = await Promise.all([
+            namesOf(Team, [row.id_team_from, row.id_team_to]),
+            namesOf(Club, [row.id_club_from, row.id_club_to]),
+        ]);
+        return transferFile(row.get({ plain: true }), { teams, clubs });
+    }
+    if (entity_type === "player_release") {
+        const row = await PlayerRelease.findByPk(entity_id, {
+            include: [{ model: Players, as: "player", include: [PERSON_FILE] }, TEAM_NAME],
+        });
+        return row ? releaseFile(row.get({ plain: true })) : null;
+    }
+    if (entity_type === "team") {
+        const row = await Team.findByPk(entity_id);
+        return row ? teamFile(row.get({ plain: true })) : null;
+    }
+    return null;
+};
+
 const FLOW_INCLUDE = [
     { model: RequestFlowEvent, as: "events", required: false },
     { model: Team, required: false },
@@ -240,6 +294,19 @@ const FLOW_INCLUDE = [
 ];
 
 export const resolvers = {
+    RequestFlow: {
+        // لا يصل هنا إلا مسارٌ أجاز requestFlow أو myRequestFlows أن يراه المستدعي.
+        // وتعذُّر الملف لا يُسقط الدرج: يبقى الخط والأزرار.
+        file: async (flow) => {
+            try {
+                return await fileOf(flow);
+            } catch (error) {
+                logger.error(`RequestFlow.file: ${error?.message || error}`);
+                return null;
+            }
+        },
+    },
+
     Query: {
         requestFlowStages: async () => STAGES.map((stage) => ({
             stage: stage.stage,

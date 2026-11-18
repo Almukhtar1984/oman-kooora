@@ -195,6 +195,52 @@ describe("لوحة مسار الطلبات (النادي)", () => {
         });
     });
 
+    // فيديو العميل 2026-11-18: «أنا لما أفتح المسار… من دون ما أشوف الملف بتاعه».
+    it("ويعرض ملف الطلب قبل القبول المبدئي، وما لم يُرفق منه", async () => {
+        h.flowResult = { data: { requestFlow: flow({
+            request_type: "member_registration", request_label: "تسجيل عضو جديد",
+            entity_type: "assembly", entity_id: "member-1", subject: "يونس عبدالله الهنائي",
+            events: [],
+            file: {
+                photo: null,
+                fields: [
+                    { label: "الرقم المدني", value: "12345678" },
+                    { label: "رقم الهاتف", value: "+96899112233" },
+                ],
+                documents: [{ label: "البطاقة المدنية — الوجه الأمامي", file: "front.jpg", kind: "image" }],
+                missing: ["البطاقة المدنية — الوجه الخلفي", "الصورة الشخصية"],
+            },
+        }) }, loading: false };
+        renderPage();
+        await openTrack();
+
+        expect(await screen.findByText("ملف الطلب")).toBeInTheDocument();
+        expect(screen.getByText("12345678")).toBeInTheDocument();
+        expect(screen.getByText("+96899112233")).toBeInTheDocument();
+        // المستند يُفتح بحجمه من الخادم.
+        const front = screen.getByText("البطاقة المدنية — الوجه الأمامي").closest("a");
+        expect(front?.getAttribute("href")).toMatch(/\/images\/front\.jpg$/);
+        expect(front?.getAttribute("target")).toBe("_blank");
+        // وما لم يُرفق مسمّى — في الملف، وعند زرّ القبول.
+        expect(screen.getByText("لم يُرفق مع الطلب")).toBeInTheDocument();
+        expect(screen.getByText(/لم يُرفق: البطاقة المدنية — الوجه الخلفي، الصورة الشخصية/)).toBeInTheDocument();
+        // والقرار للنادي: الزرّ باقٍ.
+        expect(screen.getByRole("button", { name: "قبول مبدئي" })).toBeInTheDocument();
+    });
+
+    it("والملف المكتمل لا يُنبَّه عليه", async () => {
+        h.flowResult = { data: { requestFlow: flow({
+            events: [],
+            file: { photo: "p.png", fields: [{ label: "الاسم", value: "سالم" }], documents: [], missing: [] },
+        }) }, loading: false };
+        renderPage();
+        await openTrack();
+
+        expect(await screen.findByText("ملف الطلب")).toBeInTheDocument();
+        expect(screen.queryByText("لم يُرفق مع الطلب")).not.toBeInTheDocument();
+        expect(screen.queryByText(/لم يُرفق:/)).not.toBeInTheDocument();
+    });
+
     it("والقبول المبدئي يمرّ بضغطة، ويُحدِّث اللوحة بعده", async () => {
         h.advance.mockImplementation((opts: any) => opts.onCompleted({
             advanceRequestFlow: { ok: true, code: null, message: "الطلب الآن: مقبول مبدئياً" },
