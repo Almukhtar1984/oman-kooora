@@ -12,6 +12,7 @@ import { getImageUrl } from '../../lib/helpers/image';
 import { openPrint } from '../../lib/helpers/openPrint';
 import useStore from '../../store/useStore';
 import { ageInYears } from "../../lib/helpers/date";
+import { roleLabel } from "../../lib/helpers/classificationDetails";
 
 interface MemberCardProps {
     data: any;
@@ -179,8 +180,8 @@ export const MemberCard = ({
     const roleText = (() => {
         switch (type) {
             case 'player': return data?.player_center || 'لاعب';
-            case 'technical': return data?.classification || data?.occupation || 'جهاز فني';
-            case 'member': return data?.classification || data?.occupation || 'عضو مجلس إدارة';
+            case 'technical': return roleLabel(data?.classification) || data?.occupation || 'جهاز فني';
+            case 'member': return roleLabel(data?.classification) || data?.occupation || 'عضو مجلس إدارة';
             case 'assembly': {
                 const roles = Array.from(new Set(affiliations.map((a: any) => ROLE_LABELS[a.role]).filter(Boolean)));
                 return [data?.type || 'عضو', ...roles].join(' • ');
@@ -234,7 +235,7 @@ export const MemberCard = ({
             { label: 'ملاحظات', value: data?.note || '-' },
         ] : []),
         ...(type === 'technical' ? [
-            { label: 'التصنيف', value: data?.classification || '-' },
+            { label: 'التصنيف', value: roleLabel(data?.classification) || '-' },
             { label: 'الوظيفة', value: data?.occupation || '-' },
             { label: 'الفريق', value: teamsText },
             { label: 'النادي', value: clubName },
@@ -244,7 +245,7 @@ export const MemberCard = ({
             { label: 'ملاحظات', value: data?.note || '-' },
         ] : []),
         ...(type === 'member' ? [
-            { label: 'المنصب', value: data?.classification || '-' },
+            { label: 'المنصب', value: roleLabel(data?.classification) || '-' },
             { label: 'الوظيفة', value: data?.occupation || '-' },
             { label: 'الفريق', value: teamsText },
             { label: 'النادي', value: clubName },
@@ -423,7 +424,7 @@ export const MemberCard = ({
                             <Box sx={{ position: 'absolute', top: 8, left: 8, right: 8, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <Group spacing={4}>
                                     {renderStatusBadge()}
-                                    {data?.classification && <Badge color="gray" variant="outline" size="xs">{data.classification}</Badge>}
+                                    {data?.classification && <Badge color="gray" variant="outline" size="xs">{roleLabel(data.classification)}</Badge>}
                                 </Group>
                                 <Group spacing={4} onClick={(e) => e.stopPropagation()}>
                                     <Tooltip label="عرض التفاصيل">

@@ -1,7 +1,7 @@
 import {
     Avatar, Badge, Box, Card, Col, Container, Divider, Flex, Grid, Group,
     Loader, MantineTheme, Pagination, RingProgress, SimpleGrid, Skeleton, Stack, Tabs, Text, Title, Tooltip,
-    TextInput, Textarea, Button, Modal, ActionIcon, Menu, Select, FileInput, Image, useMantineTheme
+    TextInput, Textarea, Button, Modal, ActionIcon, Menu, Select, FileInput, Image, useMantineTheme, Anchor
 } from "@mantine/core";
 import { useTheme } from "@emotion/react";
 import Head from "next/head";
@@ -34,7 +34,6 @@ import {
     DeletePlayersModal, DeleteTechnicalModal, DeleteMembersModal, DeleteAssemblyModal,
     ChangeStatusPlayersModal, ChangeStatusTechnicalsModal, ChangeStatusMembersModal,
     ChangeClassificationModal,
-    AddPlayersModal, AddTechnicalModal, AddMembersModal,
     SearchAssemblyModal,
     VerifyIdentityModal, ShowAttachments, AddAttachmentPlayerModal, DeleteAttachmentPlayerModal,
     AddAttachmentTechnicalModal, ShowAttachmentsTechnical,
@@ -44,6 +43,19 @@ import {
 import { getImageUrl } from "../lib/helpers/image";
 
 dayjs.extend(relativeTime);
+
+// اللاعب والجهاز الفني ومجلس الإدارة يدخلون من باب واحد: «تسجيل عضو جديد»،
+// يعتمد النادي العضوية، ثم «اختيار التصنيف» في «العضوية». أزرار الإضافة
+// المباشرة أُخفيت — «الأندية ما يحبون هذا… يتشتتوا» (العميل، 2026-11-19).
+const AddThroughMembership = ({ onRegister }: { onRegister: () => void }) => (
+    <Group position="right" mb="md" spacing={6}>
+        <Text size="sm" color="dimmed">
+            الإضافة من{" "}
+            <Anchor component="button" type="button" size="sm" weight={600} onClick={onRegister}>«تسجيل عضو جديد»</Anchor>
+            ، ثم «اختيار التصنيف» في «العضوية» بعد أن يعتمد النادي العضوية.
+        </Text>
+    </Group>
+);
 
 export default function Home() {
     const theme = useMantineTheme();
@@ -94,9 +106,6 @@ export default function Home() {
     const [openChangeClass, setOpenChangeClass] = useState(false);
     const [fromType, setFromType] = useState<any>(null);
 
-    const [openAddPlayer, setOpenAddPlayer] = useState(false);
-    const [openAddTechnical, setOpenAddTechnical] = useState(false);
-    const [openAddMember, setOpenAddMember] = useState(false);
     const [openSearchModal, setOpenSearchModal] = useState(false);
     const [searchTarget, setSearchTarget] = useState<'player' | 'technical' | 'member' | null>(null);
 
@@ -468,14 +477,7 @@ export default function Home() {
 
                             <Tabs.Panel value="players">
                                 <Box py="lg">
-                                    <Group position="right" mb="md">
-                                        <Button 
-                                            size="sm" 
-                                            color="blue" 
-                                            leftIcon={<Plus size={18} />}
-                                            onClick={() => { setEditData(null); setOpenAddPlayer(true); }}
-                                        >إضافة لاعب</Button>
-                                    </Group>
+                                    <AddThroughMembership onRegister={() => setOpenRegisterMember(true)} />
                                     <MemberSection
                                         type="player"
                                         list={playersData?.allPlayers || []}
@@ -500,14 +502,7 @@ export default function Home() {
                             </Tabs.Panel>
                             <Tabs.Panel value="technicals">
                                 <Box py="lg">
-                                    <Group position="right" mb="md">
-                                        <Button 
-                                            size="sm" 
-                                            color="blue" 
-                                            leftIcon={<Plus size={18} />}
-                                            onClick={() => { setEditData(null); setOpenAddTechnical(true); }}
-                                        >إضافة عضو فني</Button>
-                                    </Group>
+                                    <AddThroughMembership onRegister={() => setOpenRegisterMember(true)} />
                                     <MemberSection
                                         type="technical"
                                         list={techData?.allTechnicalApparatus || []}
@@ -524,14 +519,7 @@ export default function Home() {
                             </Tabs.Panel>
                             <Tabs.Panel value="board">
                                 <Box py="lg">
-                                    <Group position="right" mb="md">
-                                        <Button 
-                                            size="sm" 
-                                            color="blue" 
-                                            leftIcon={<Plus size={18} />}
-                                            onClick={() => { setEditData(null); setOpenAddMember(true); }}
-                                        >إضافة عضو مجلس إدارة</Button>
-                                    </Group>
+                                    <AddThroughMembership onRegister={() => setOpenRegisterMember(true)} />
                                     <MemberSection
                                         type="member"
                                         list={membersData?.allMembers || []}
@@ -655,9 +643,6 @@ export default function Home() {
                 onClose={() => setOpenSearchModal(false)}
             />
 
-            <AddPlayersModal title="إضافة لاعب" data={editData} opened={openAddPlayer} onClose={() => setOpenAddPlayer(false)} />
-            <AddTechnicalModal title="إضافة عضو فني" data={editData} opened={openAddTechnical} onClose={() => setOpenAddTechnical(false)} />
-            <AddMembersModal title="إضافة عضو مجلس إدارة" data={editData} opened={openAddMember} onClose={() => setOpenAddMember(false)} />
 
             <VerifyIdentityModal
                 title="تحقق من هوية لاعب"

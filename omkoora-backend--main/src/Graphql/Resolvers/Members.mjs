@@ -8,6 +8,7 @@ import db from "../../Config/DBContact.mjs";
 import {Assembly, Members, Person, Players, Team, User, TechnicalApparatus, Permission} from '../../Models/index.mjs';
 import { callerClubId, callerTeamId, isForeignTeam } from "../../Helpers/clubScope.mjs";
 import { classifyProblem } from "../../Helpers/memberRegistration.mjs";
+import { classificationDetails, classificationDetailsProblem } from "../../Helpers/classificationDetails.mjs";
 import { isLockedForCaller, LOCKED_MESSAGE, LOCKED_CODE } from "../../Helpers/memberLock.mjs";
 import {alreadyExistUser, hashPassword} from "../../Helpers/index.mjs";
 import {CreateNotificationTeam} from "../../Helpers/index.mjs"
@@ -62,6 +63,10 @@ const classifyAssemblyMember = async ({ id, toType, content, context }) => {
         member: Boolean(member),
     });
     if (problem) throw new ApolloError(problem, "CLASSIFY_REFUSED");
+    // المركز والفئة العمرية، أو الصفة، أو المنصب — لا تصنيف بلا تفاصيله.
+    const missing = classificationDetailsProblem(toType, content);
+    if (missing) throw new ApolloError(missing, "DETAILS_REQUIRED");
+    const details = classificationDetails(toType, content);
 
     const fit = (value) => String(value || "").trim().slice(0, 20);
     const today = new Date().toISOString().slice(0, 10);
@@ -80,15 +85,15 @@ const classifyAssemblyMember = async ({ id, toType, content, context }) => {
         if (toType === "player") {
             return Players.create({
                 ...common,
-                activity: content.activity || "", player_center: content.player_center || "",
-                job: content.job || "", class: content.class || "firstDegree", type: "internal",
+                activity: content.activity || "", player_center: details.player_center,
+                job: content.job || "", class: details.class, type: "internal",
                 nationalID: assembly.nationalID || null, nationalIDBack: assembly.nationalIDBack || null,
             }, { transaction: t });
         }
         if (toType === "technical") {
             return TechnicalApparatus.create({
                 ...common,
-                classification: content.classification || "technical",
+                classification: details.classification,
                 occupation: content.occupation || content.job || "",
                 membership_date: content.membership_date || today,
                 membership_date_end: content.membership_date_end || null,
@@ -97,7 +102,7 @@ const classifyAssemblyMember = async ({ id, toType, content, context }) => {
         }
         return Members.create({
             ...common,
-            classification: content.classification || "member",
+            classification: details.classification,
             occupation: content.occupation || content.job || "",
             membership_date: content.membership_date || today,
             membership_date_end: content.membership_date_end || null,
@@ -482,6 +487,9 @@ export const resolvers = {
             if (fromType === toType) {
                 throw new ApolloError("From and to types are identical", "INVALID_TYPE_CHANGE");
             }
+            const missing = classificationDetailsProblem(toType, content);
+            if (missing) throw new ApolloError(missing, "DETAILS_REQUIRED");
+            const details = classificationDetails(toType, content);
 
             const t = await db.transaction();
             try {
@@ -511,14 +519,14 @@ export const resolvers = {
                     newRecord = await Players.create({
                         ...commonData,
                         activity: content.activity || "",
-                        player_center: content.player_center || "",
+                        player_center: details.player_center,
                         job: content.job || currentRecord.occupation || currentRecord.job || "",
-                        class: content.class && content.class !== "" ? content.class : "firstDegree",
+                        class: details.class,
                     }, { transaction: t });
                 } else if (toType === "technical") {
                     newRecord = await TechnicalApparatus.create({
                         ...commonData,
-                        classification: content.classification || "technical",
+                        classification: details.classification,
                         membership_date: content.membership_date || new Date(),
                         membership_date_end: content.membership_date_end,
                         occupation: content.occupation || content.job || currentRecord.occupation || currentRecord.job || "",
@@ -527,7 +535,7 @@ export const resolvers = {
                 } else if (toType === "member") {
                     newRecord = await Members.create({
                         ...commonData,
-                        classification: content.classification || "member",
+                        classification: details.classification,
                         occupation: content.occupation || content.job || currentRecord.occupation || currentRecord.job || "",
                         membership_date: content.membership_date || new Date(),
                         membership_date_end: content.membership_date_end,

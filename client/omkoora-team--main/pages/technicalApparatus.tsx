@@ -132,20 +132,7 @@ export default function TechnicalApparatus() {
                     <Group position={"apart"}>
                         <TextInput value={searchValue} icon={<Search color={theme.colors.gray[4]} size={16} />} placeholder="بحث" onChange={handleSearchChange}/>
 
-                        {hasPermission("2")
-                            ? <Button
-                                rightIcon={<Plus size={16} strokeWidth="3" />}
-                                sx={{ fontWeight: 500 }}
-                                onClick={() => {
-                                    setSelectedData(null);
-                                    setOpenAddModal(true);
-                                }}
-                                color={"primary"}
-                            >
-                                إضافة عضو جهاز فني
-                            </Button>
-                            : null
-                        }
+                        {/* الإضافة من «تسجيل عضو جديد» ثم «اختيار التصنيف» في العضوية (العميل، 2026-11-19). */}
                     </Group>
                 </Box>
 

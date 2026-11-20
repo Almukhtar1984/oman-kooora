@@ -192,17 +192,7 @@ export default function Players() {
                                 </Button>
                                 : null
                             }
-                            {hasPermission("2") && enableAddPlayer
-                                ? <Button
-                                            rightIcon={<Plus size={16} strokeWidth="3" />}
-                                            sx={{ fontWeight: 500 }}
-                                    onClick={() => setOpenAddModal(true)}
-                                    color={"primary"}
-                                >
-                                    إضافة لاعب
-                                </Button>
-                                :null
-                            }
+                            {/* الإضافة من «تسجيل عضو جديد» ثم «اختيار التصنيف» في العضوية (العميل، 2026-11-19). */}
                         </Group>
                     </Group>
                 </Box>

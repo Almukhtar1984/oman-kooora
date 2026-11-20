@@ -28,6 +28,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { IconDatabaseOff } from '@tabler/icons-react';
 import {ClubMangModel} from "../Modal/index"
 import { DataLoading, DataEmpty } from "../Loading/DataState";
+import { roleLabel } from "../../lib/helpers/classificationDetails";
 const mantineTheme = getTheme(DEFAULT_OPTIONS);
 
 interface Props {
@@ -264,7 +265,7 @@ export const TeamManagementTable = ({ loading, list, setOpenEditModal, setOpenDe
                                         </Group>
                                     </Cell>
                                     <Cell>{`${item?.person?.first_name} ${item?.person?.second_name} ${item?.person?.third_name} ${item?.person?.tribe}`}</Cell>
-                                    <Cell>{ item?.classification }</Cell>
+                                    <Cell>{ roleLabel(item?.classification) }</Cell>
                                     <Cell>{item?.person?.phone}</Cell>
                                     <Cell>{item?.person?.card_number}</Cell>
                                     <Cell>{item?.person?.date_birth}</Cell>

@@ -3,6 +3,10 @@ import { Modal, Select, Button, Group, Stack, Text, Badge, Divider, Box } from '
 import { useChangeMemberClassification } from '../../graphql/hooks/members';
 import { showNotification } from '@mantine/notifications';
 import { AllPlayers, AllMembers, AllTechnicals, AllAssembly } from '../../graphql/queries';
+import {
+    BOARD_POSITIONS, ClassificationDetails, PLAYER_CENTERS, PLAYER_CLASSES, TECHNICAL_CLASSIFICATIONS,
+    detailsFor, detailsMissing,
+} from '../../lib/helpers/classificationDetails';
 
 interface ChangeClassificationModalProps {
     opened: boolean;
@@ -16,11 +20,25 @@ interface ChangeClassificationModalProps {
 
 export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onSuccess, idTeam }: ChangeClassificationModalProps) => {
     const [toType, setToType] = useState<string | null>(null);
+    // ما بعد النوع: المركز والفئة العمرية، أو الصفة، أو المنصب.
+    const [details, setDetails] = useState<ClassificationDetails>({});
     const [changeClassification, { loading }] = useChangeMemberClassification();
+    const missing = detailsMissing(toType, details);
+
+    const chooseType = (value: string | null) => {
+        setToType(value);
+        setDetails({});
+    };
+    const setDetail = (key: keyof ClassificationDetails) => (value: string | null) =>
+        setDetails((current) => ({ ...current, [key]: value }));
 
     const handleSubmit = async () => {
         if (!toType) {
             showNotification({ title: 'خطأ', message: 'اختر التصنيف الجديد', color: 'red' });
+            return;
+        }
+        if (missing.length > 0) {
+            showNotification({ title: 'خطأ', message: `اختر ${missing.join(' و')}`, color: 'red' });
             return;
         }
         if (!data?.id) {
@@ -34,6 +52,7 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
                     id: data.id,
                     fromType,
                     toType,
+                    ...detailsFor(toType, details),
                 },
                 refetchQueries: [
                     { query: AllPlayers, variables: { idTeam } },
@@ -50,7 +69,7 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
                     : 'تم تغيير التصنيف بنجاح',
                 color: 'green',
             });
-            setToType(null);
+            chooseType(null);
             onSuccess();
             onClose();
         } catch (error: any) {
@@ -64,7 +83,7 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
     };
 
     const handleClose = () => {
-        setToType(null);
+        chooseType(null);
         onClose();
     };
 
@@ -113,12 +132,57 @@ export const ChangeClassificationModal = ({ opened, onClose, data, fromType, onS
                         { value: 'member', label: 'مجلس الإدارة', disabled: fromType === 'member' },
                     ]}
                     value={toType}
-                    onChange={setToType}
+                    onChange={chooseType}
                 />
+
+                {toType === 'player' ? (
+                    <>
+                        <Select
+                            label="الفئة العمرية"
+                            placeholder="اختر الفئة العمرية"
+                            withAsterisk
+                            withinPortal
+                            data={PLAYER_CLASSES}
+                            value={details.class ?? null}
+                            onChange={setDetail('class')}
+                        />
+                        <Select
+                            label="مركز اللاعب"
+                            placeholder="اختر المركز الذي يلعب فيه"
+                            withAsterisk
+                            withinPortal
+                            data={PLAYER_CENTERS}
+                            value={details.player_center ?? null}
+                            onChange={setDetail('player_center')}
+                        />
+                    </>
+                ) : null}
+                {toType === 'technical' ? (
+                    <Select
+                        label="الصفة في الجهاز الفني"
+                        placeholder="مدرب، مساعد مدرب…"
+                        withAsterisk
+                        withinPortal
+                        data={TECHNICAL_CLASSIFICATIONS}
+                        value={details.classification ?? null}
+                        onChange={setDetail('classification')}
+                    />
+                ) : null}
+                {toType === 'member' ? (
+                    <Select
+                        label="المنصب في مجلس الإدارة"
+                        placeholder="رئيس، نائب رئيس، أمين الصندوق…"
+                        withAsterisk
+                        withinPortal
+                        data={BOARD_POSITIONS}
+                        value={details.classification ?? null}
+                        onChange={setDetail('classification')}
+                    />
+                ) : null}
 
                 <Group position="right" mt="xl">
                     <Button variant="subtle" onClick={handleClose} color="gray">إلغاء</Button>
-                    <Button onClick={handleSubmit} loading={loading} disabled={!toType} color="blue">تأكيد التغيير</Button>
+                    <Button onClick={handleSubmit} loading={loading} disabled={!toType || missing.length > 0} color="blue">تأكيد التغيير</Button>
                 </Group>
             </Stack>
         </Modal>

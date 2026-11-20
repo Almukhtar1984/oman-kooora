@@ -12,6 +12,7 @@ import { IconDatabaseOff } from '@tabler/icons-react';
 import { useMediaQuery } from "@mantine/hooks";
 import { Modal } from "@mantine/core";
 import { DataLoading, DataEmpty } from "../Loading/DataState";
+import { roleLabel } from "../../lib/helpers/classificationDetails";
 const customStyles: TableStyles = {
     table: {
         style: {
@@ -145,7 +146,7 @@ export const TechnicalsTable = ({ loading, list, search, setOpenEditModal, setOp
         {name: 'الرقم المدني', selector: (item: any) => item?.person?.card_number, width: '120px' },
         {name: 'تاريخ الميلاد', selector: (item: any) => item?.person?.date_birth, width: '120px' },
         {name: 'الوظيفه', selector: (item: any) => item?.occupation, width: '120px' },
-        {name: 'التصنيف', selector: (item: any) => item?.classification, width: '120px' },
+        {name: 'التصنيف', selector: (item: any) => roleLabel(item?.classification), width: '120px' },
         {name: 'تاريخ العقد', selector: (item: any) => formatDay(item?.membership_date), width: '120px' },
         {name: 'تاريخ نهاية العقد', selector: (item: any) => formatDay(item?.membership_date_end), width: '150px' },
         {name: 'حالة الدفع', selector: (item: any) => item?.paid ? "مدفوع" : "لم يتم الدفع", width: '150px' },
