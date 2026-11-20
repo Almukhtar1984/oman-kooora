@@ -1,4 +1,5 @@
 import {Box, Button, Col, FileInput, Grid, Group, Loader, Overlay, Select, Stack, Text,} from "@mantine/core";
+import { Notyf } from "notyf";
 import {Calendar, Check, ChevronDown, Paperclip, X} from "tabler-icons-react";
 import React, {useEffect, useRef, useState} from "react";
 import { useForm } from "@mantine/form";
@@ -91,9 +92,11 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
             onCompleted: () => {
                 closeModal();
             },
-            onError: (error) => {
-                console.log(error)
+            onError: (error: any) => {
                 setLoading(false)
+                // ما يردّه الخادم يُعرض كما هو: «هذا العضو ليس في فريقك»، أو ملفٌ لا يُقبل نوعه.
+                new Notyf({ position: { x: "right", y: "bottom" } })
+                    .error({ message: error?.graphQLErrors?.[0]?.message || "تعذّر تحديث بيانات العضو", duration: 8000 })
             }
         })
     };

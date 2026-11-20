@@ -45,9 +45,8 @@ export const RenewAssemblyModal = ({ data, ...props }: Props) => {
             closeModal();
             notyf.success("تم تجديد الاشتراك بنجاح")
         })
-        .catch(reason => {
-            console.log(reason)
-            notyf.error("حدث خطأ أثناء تجديد الاشتراك")
+        .catch((reason: any) => {
+            notyf.error({ message: reason?.graphQLErrors?.[0]?.message || "حدث خطأ أثناء تجديد الاشتراك", duration: 8000 })
         })
     };
 

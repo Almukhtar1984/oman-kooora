@@ -86,11 +86,10 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                 notyf.success("تم تحديث بيانات العضو بنجاح")
                 props.onSuccess?.();
             },
-            onError: (error) => {
+            onError: (error: any) => {
                 const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
-                console.log(error)
                 setLoading(false)
-                notyf.error("حدث خطأ أثناء تحديث بيانات العضو")
+                notyf.error({ message: error?.graphQLErrors?.[0]?.message || "حدث خطأ أثناء تحديث بيانات العضو", duration: 8000 })
             }
         })
     };

@@ -9,7 +9,10 @@ import logger from "../../Config/logger.mjs";
 import {Club, Members, Person, Assembly, Attachment, User, Team, Players, TechnicalApparatus,} from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
-import { callerTeamId } from "../../Helpers/clubScope.mjs";
+import { callerClubId, callerTeamId, clubOfTeam } from "../../Helpers/clubScope.mjs";
+import {
+    clubBulkProblem, memberAccessProblem, memberCreateProblem, ownershipFieldsFor,
+} from "../../Helpers/memberAccess.mjs";
 import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
 import { CreateDirectNotification } from "../../Helpers/index.mjs";
 import {
@@ -43,6 +46,25 @@ const saveDocument = async (upload) => {
     const name = `${UUID()}.${extensionOf(filename)}`;
     await createReadStream().pipe(createWriteStream(path.join(__dirname, `./../uploads/${name}`)));
     return name;
+};
+
+/** المستدعي كما تقيسه قواعد العضوية: دوره، وناديه، وفريقه. */
+const callerOf = async (context) => {
+    const [idClub, idTeam] = await Promise.all([callerClubId(context), callerTeamId(context)]);
+    return { role: context?.user?.role ?? null, idClub, idTeam };
+};
+
+/** سجلّ العضو كما تقيسه قواعد العضوية — ومن سجّله فريقٌ بلا id_club فناديه نادي فريقه. */
+const memberOf = async (id) => {
+    const row = id ? await Assembly.findByPk(id, { attributes: ["id", "id_club", "id_team"] }) : null;
+    if (!row) return null;
+    return { id_club: row.id_club, id_team: row.id_team, teamClub: row.id_club ? null : await clubOfTeam(row.id_team) };
+};
+
+/** يردّ ما لا يجوز لهذا المستدعي في هذا العضو — أو null. */
+const refuseMember = async (caller, id) => {
+    const problem = memberAccessProblem(caller, await memberOf(id));
+    return problem ? new ApolloError(problem.message, problem.code) : null;
 };
 
 /** المرفقات الأخرى للعضو — في جدول المرفقات. */
@@ -252,6 +274,16 @@ export const resolvers = {
 
         createAssembly: async (obj, {content}, context, info) =>  {
             try {
+                const caller = await callerOf(context);
+                const refused = memberCreateProblem(caller, {
+                    id_club: content.id_club, id_team: content.id_team,
+                    teamClub: content.id_team ? await clubOfTeam(content.id_team) : null,
+                });
+                if (refused) return new ApolloError(refused.message, refused.code);
+                // النادي يسجّل في ناديه، والفريق في فريقه — حين لا يسمّي الطلب غيره.
+                if (caller.role === "2" && !content.id_club && !content.id_team) content.id_club = caller.idClub;
+                if (caller.role === "3" && !content.id_team) content.id_team = caller.idTeam;
+
                 const nationalID = await content.nationalID
                 const nationalIDBack = await content.nationalIDBack
                 const personal_picture = await content.personal_picture
@@ -267,6 +299,10 @@ export const resolvers = {
                 }
 
                 let data = {...content}
+                // الاستمارتان والمرفقات لـ«تسجيل عضو جديد» وحده؛ لا تُكتب هنا ملفاتٍ مرفوعة.
+                delete data.membership_form
+                delete data.guardian_form
+                delete data.attachments
 
                 if (nationalID) {
                     console.log("nationalID:",nationalID)
@@ -335,6 +371,10 @@ export const resolvers = {
 
         updateAssembly: async (obj, {id, content}, context, info) =>  {
             try {
+                const caller = await callerOf(context);
+                const refused = await refuseMember(caller, id);
+                if (refused) return refused;
+
                 // الصورة تُستبدل بصورةٍ تُرفع، ولا تُمحى بغيابها — وكذلك الاستمارتان.
                 const [nationalID, nationalIDBack, personal_picture, membership_form, guardian_form] = await Promise.all([
                     saveImage(content.nationalID), saveImage(content.nationalIDBack), saveImage(content.personal_picture),
@@ -346,7 +386,8 @@ export const resolvers = {
                 );
                 const extras = await saveExtras(content.attachments, id);
 
-                const [count] = await Assembly.update({ ...assemblyUpdateFields(content), ...files }, { where: { id } });
+                const fields = ownershipFieldsFor(caller, assemblyUpdateFields(content));
+                const [count] = await Assembly.update({ ...fields, ...files }, { where: { id } });
                 return {
                     status: count === 1 || extras.length > 0,
                 };
@@ -360,6 +401,9 @@ export const resolvers = {
 
         deleteAssembly: async (obj, {id}, context, info) =>  {
             try {
+                const refused = await refuseMember(await callerOf(context), id);
+                if (refused) return refused;
+
                 const team = await Assembly.destroy({ where: { id } })
 
                 return {
@@ -376,6 +420,9 @@ export const resolvers = {
         // every existing person at once. Idempotent by card number.
         addClubPeopleToAssembly: async (obj, {idClub}, context, info) =>  {
             try {
+                const refused = clubBulkProblem(await callerOf(context), idClub);
+                if (refused) return new ApolloError(refused.message, refused.code);
+
                 const withClub = (type) => ({
                     include: [
                         { model: Team, as: "team", required: true, where: { id_club: idClub } },

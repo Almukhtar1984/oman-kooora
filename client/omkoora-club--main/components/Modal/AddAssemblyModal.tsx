@@ -132,6 +132,8 @@ export const AddAssemblyModal = (props: Props) => {
                 setLoading(false)
                 if (graphQLErrors?.[0]?.extensions?.code == "CARD_NUMBER_ALREADY_EXISTS") {
                     notyf.open({message: "رقم الهوية موجود مسبقا", type:"error", duration: 10000});
+                } else {
+                    notyf.open({message: graphQLErrors?.[0]?.message || "تعذّر إضافة العضو", type:"error", duration: 10000});
                 }
             }
         })

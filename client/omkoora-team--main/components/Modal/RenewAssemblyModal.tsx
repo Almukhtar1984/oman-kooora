@@ -1,4 +1,5 @@
 import {Box, Button, Group, Text, useMantineTheme} from "@mantine/core";
+import { Notyf } from "notyf";
 import { Calendar, Check, X } from "tabler-icons-react";
 import React, {useEffect, useState} from "react";
 import Modal, { Props as ModalProps } from "./Modal";
@@ -41,8 +42,9 @@ export const RenewAssemblyModal = ({ data, ...props }: Props) => {
         .then(() => {
             closeModal();
         })
-        .catch(reason => {
-            console.log(reason)
+        .catch((reason: any) => {
+            new Notyf({ position: { x: "right", y: "bottom" } })
+                .error({ message: reason?.graphQLErrors?.[0]?.message || "تعذّر تجديد الاشتراك", duration: 8000 });
         })
     };
 
