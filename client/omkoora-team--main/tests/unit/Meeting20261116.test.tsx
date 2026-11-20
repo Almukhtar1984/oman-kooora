@@ -46,6 +46,11 @@ beforeEach(() => {
     h.createRelease.mockResolvedValue({ data: { createPlayerRelease: { id: "r1", status: "waiting" } } });
 });
 
+const attachLetter = () => {
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["%PDF"], "letter.pdf", { type: "application/pdf" })] } });
+};
+
 describe("طلب استقالة لاعب من الفريق", () => {
     it("says where the request goes and how the player ends up free", () => {
         wrap(<RequestReleaseModal opened title="طلب استقالة لاعب" data={player} idTeam="team-1" onClose={() => {}} />);
@@ -59,13 +64,24 @@ describe("طلب استقالة لاعب من الفريق", () => {
         expect(h.createRelease).not.toHaveBeenCalled();
     });
 
-    it("sends the player and the reason to the club", async () => {
+    // «حتى بالنسبة للاستقالة من المشترط ترفق الاستقالة» (العميل، 2026-11-19).
+    it("asks for the resignation letter before sending", () => {
+        wrap(<RequestReleaseModal opened title="t" data={player} idTeam="team-1" onClose={() => {}} />);
+        fireEvent.change(screen.getByPlaceholderText("مثال: بناءً على طلب اللاعب"), { target: { value: "سبب" } });
+        fireEvent.click(screen.getByRole("button", { name: "إرسال طلب الاستقالة" }));
+        expect(screen.getByText("أرفق خطاب الاستقالة")).toBeInTheDocument();
+        expect(h.createRelease).not.toHaveBeenCalled();
+    });
+
+    it("sends the player, the reason and the letter to the club", async () => {
         const onClose = vi.fn();
         wrap(<RequestReleaseModal opened title="t" data={player} idTeam="team-1" onClose={onClose} />);
         fireEvent.change(screen.getByPlaceholderText("مثال: بناءً على طلب اللاعب"), { target: { value: "بناءً على طلب اللاعب" } });
+        attachLetter();
         fireEvent.click(screen.getByRole("button", { name: "إرسال طلب الاستقالة" }));
         await waitFor(() => expect(h.createRelease).toHaveBeenCalled());
         expect(h.createRelease.mock.calls[0][0].variables.content).toMatchObject({ id_player: "p1", reason: "بناءً على طلب اللاعب" });
+        expect(h.createRelease.mock.calls[0][0].variables.content.letter?.name).toBe("letter.pdf");
         await waitFor(() => expect(onClose).toHaveBeenCalled());
     });
 
@@ -73,6 +89,7 @@ describe("طلب استقالة لاعب من الفريق", () => {
         h.createRelease.mockRejectedValue({ graphQLErrors: [{ message: "يوجد طلب إخلاء طرف قيد الدراسة لهذا اللاعب" }] });
         wrap(<RequestReleaseModal opened title="t" data={player} idTeam="team-1" onClose={() => {}} />);
         fireEvent.change(screen.getByPlaceholderText("مثال: بناءً على طلب اللاعب"), { target: { value: "سبب" } });
+        attachLetter();
         fireEvent.click(screen.getByRole("button", { name: "إرسال طلب الاستقالة" }));
         await waitFor(() => expect(h.notyfError).toHaveBeenCalledWith(
             expect.objectContaining({ message: "يوجد طلب إخلاء طرف قيد الدراسة لهذا اللاعب" })));

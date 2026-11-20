@@ -53,6 +53,15 @@ export default (db, types) => {
             type: types.STRING(100),
             allowNull: true
         },
+        // «استمارة طلب العضوية، وإذا كان أقل من 18 تعهد ولي الأمر» (العميل، 2026-11-19).
+        membership_form: {
+            type: types.STRING(100),
+            allowNull: true
+        },
+        guardian_form: {
+            type: types.STRING(100),
+            allowNull: true
+        },
         membership_date: {
             type: types.DATEONLY,
             allowNull: true

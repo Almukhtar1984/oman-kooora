@@ -6,13 +6,16 @@ import { v4 as UUID } from 'uuid';
 
 import logger from "../../Config/logger.mjs";
 
-import {Club, Members, Person, Assembly, User, Team, Players, TechnicalApparatus,} from '../../Models/index.mjs';
+import {Club, Members, Person, Assembly, Attachment, User, Team, Players, TechnicalApparatus,} from '../../Models/index.mjs';
 import {createWriteStream} from "fs";
 import {__dirname} from "../../app.mjs";
 import { callerTeamId } from "../../Helpers/clubScope.mjs";
 import { openFlow } from "../../Helpers/requestFlowRunner.mjs";
 import { CreateDirectNotification } from "../../Helpers/index.mjs";
-import { normalizeCardNumber, registrationProblem } from "../../Helpers/memberRegistration.mjs";
+import {
+    assemblyUpdateFields, documentsProblem, normalizeCardNumber, registrationProblem,
+} from "../../Helpers/memberRegistration.mjs";
+import { attachmentProblem, extensionOf } from "../../Helpers/messageComments.mjs";
 
 const IMAGE_TYPES = ["JPEG", "JPG", "PNG"];
 
@@ -29,6 +32,26 @@ const saveImage = async (upload) => {
     const name = `${UUID()}.${ext}`;
     await createReadStream().pipe(createWriteStream(path.join(__dirname, `./../uploads/${name}`)));
     return name;
+};
+
+/** يحفظ مستنداً مرفوعاً (استمارة، PDF، Word، صورة) ويعيد اسمه — أو يرمي حين لا يُقبل نوعه. */
+const saveDocument = async (upload) => {
+    if (!upload) return null;
+    const { createReadStream, filename } = await upload;
+    const problem = attachmentProblem(filename);
+    if (problem) throw new ApolloError(problem, "INVALID_ATTACHMENT");
+    const name = `${UUID()}.${extensionOf(filename)}`;
+    await createReadStream().pipe(createWriteStream(path.join(__dirname, `./../uploads/${name}`)));
+    return name;
+};
+
+/** المرفقات الأخرى للعضو — في جدول المرفقات. */
+const saveExtras = async (uploads, idAssembly) => {
+    const names = await Promise.all(((await uploads) || []).filter(Boolean).map(saveDocument));
+    if (names.length) {
+        await Attachment.bulkCreate(names.map((content) => ({ content, id_assembly: idAssembly })));
+    }
+    return names;
 };
 
 
@@ -161,6 +184,14 @@ export const resolvers = {
 
                 const problem = registrationProblem(content);
                 if (problem) return new ApolloError(problem, "INVALID_MEMBER");
+                const attachments = ((await content.attachments) || []).filter(Boolean);
+                const missingDocuments = documentsProblem({
+                    date_birth: content.date_birth,
+                    membership_form: content.membership_form,
+                    guardian_form: content.guardian_form,
+                    attachments,
+                });
+                if (missingDocuments) return new ApolloError(missingDocuments, "MISSING_DOCUMENTS");
                 const card = normalizeCardNumber(content.card_number);
 
                 const existing = await Assembly.findOne({
@@ -177,8 +208,9 @@ export const resolvers = {
                     );
                 }
 
-                const [nationalID, nationalIDBack, personal_picture] = await Promise.all([
+                const [nationalID, nationalIDBack, personal_picture, membership_form, guardian_form] = await Promise.all([
                     saveImage(content.nationalID), saveImage(content.nationalIDBack), saveImage(content.personal_picture),
+                    saveDocument(content.membership_form), saveDocument(content.guardian_form),
                 ]);
 
                 const member = await Assembly.create({
@@ -187,10 +219,12 @@ export const resolvers = {
                     date_birth: content.date_birth, card_number: card,
                     phone: normalizeCardNumber(content.phone), gender: content.gender || "male",
                     type: content.type || null,
-                    nationalID, nationalIDBack, personal_picture,
+                    nationalID, nationalIDBack, personal_picture, membership_form, guardian_form,
                     status: "waiting_club",
                     id_team: idTeam, id_club: team.id_club,
                 });
+
+                await saveExtras(attachments, member.id);
 
                 const flow = await openFlow({
                     request_type: "member_registration", entity_type: "assembly", entity_id: member.id,
@@ -198,6 +232,7 @@ export const resolvers = {
                 });
                 // عضوٌ بلا طلب ينتظر نادياً لن يراه أبداً: لا يُترك معلّقاً.
                 if (!flow) {
+                    await Attachment.destroy({ where: { id_assembly: member.id }, force: true });
                     await member.destroy({ force: true });
                     return new ApolloError("تعذّر إرسال طلب التسجيل إلى النادي — لم يُسجَّل العضو، حاول مرة أخرى", "FLOW_FAILED");
                 }
@@ -300,78 +335,24 @@ export const resolvers = {
 
         updateAssembly: async (obj, {id, content}, context, info) =>  {
             try {
-                const nationalID = await content.nationalID
-                const nationalIDBack = await content.nationalIDBack
+                // الصورة تُستبدل بصورةٍ تُرفع، ولا تُمحى بغيابها — وكذلك الاستمارتان.
+                const [nationalID, nationalIDBack, personal_picture, membership_form, guardian_form] = await Promise.all([
+                    saveImage(content.nationalID), saveImage(content.nationalIDBack), saveImage(content.personal_picture),
+                    saveDocument(content.membership_form), saveDocument(content.guardian_form),
+                ]);
+                const files = Object.fromEntries(
+                    Object.entries({ nationalID, nationalIDBack, personal_picture, membership_form, guardian_form })
+                        .filter(([, name]) => Boolean(name))
+                );
+                const extras = await saveExtras(content.attachments, id);
 
-                const personal_picture = await content.personal_picture
-
-                if (nationalID || nationalIDBack || personal_picture) {
-                    let data = {...content}
-
-                    if (nationalID) {
-                        const { createReadStream, filename, mimetype, encoding } = nationalID;
-                        const listType = ["JPEG", "JPG", "PNG"]
-
-                        const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                        if(!listType.includes(fileType)) { return new ApolloError("National ID is not image") }
-
-                        let uniqName = `${UUID()}.${fileType}`;
-                        const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                        const stream = createReadStream();
-                        await stream.pipe( createWriteStream(pathName) );
-
-                        data = {...data, nationalID: uniqName}
-                    }
-
-                    if (nationalIDBack) {
-                        const { createReadStream, filename, mimetype, encoding } = nationalIDBack;
-                        const listType = ["JPEG", "JPG", "PNG"]
-
-                        const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                        if(!listType.includes(fileType)) { return new ApolloError("national ID Back is not image") }
-
-                        let uniqName = `${UUID()}.${fileType}`;
-                        const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                        const stream = createReadStream();
-                        await stream.pipe( createWriteStream(pathName) );
-
-                        data = {...data, nationalIDBack: uniqName}
-                    }
-
-                    if (personal_picture) {
-                        const { createReadStream, filename, mimetype, encoding } = personal_picture;
-                        const listType = ["JPEG", "JPG", "PNG"]
-
-                        const fileType = filename.split(".")[filename.split(".").length-1].toUpperCase()
-
-                        if(!listType.includes(fileType)) { return new ApolloError("personal_picture ID is not image") }
-
-                        let uniqName = `${UUID()}.${fileType}`;
-                        const pathName = path.join(__dirname,   `./../uploads/${uniqName}`);
-
-                        const stream = createReadStream();
-                        await stream.pipe( createWriteStream(pathName) );
-
-                        data = {...data, personal_picture: uniqName}
-                    }
-
-                    let result = await Assembly.update({...data}, { where: { id } })
-
-                    return {
-                        status: result[0] === 1
-                    }
-                } else {
-                    let result = await Assembly.update({...content}, { where: { id } })
-
-                    return {
-                        status: result[0] === 1
-                    }
-                }
+                const [count] = await Assembly.update({ ...assemblyUpdateFields(content), ...files }, { where: { id } });
+                return {
+                    status: count === 1 || extras.length > 0,
+                };
             } catch (error) {
+                if (error instanceof ApolloError) throw error;
+                if (error?.code === "NOT_AN_IMAGE") return new ApolloError(error.message, error.code);
                 logger.error(`Assembly.updateAssembly: ${error?.message || error}`)
                 throw new ApolloError(error)
             }

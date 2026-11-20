@@ -13,6 +13,11 @@ import dayjs from "dayjs";
 import { Notyf } from "notyf";
 import { parseDate } from "../../lib/helpers/date";
 
+// تاريخٌ فارغ يبقى فارغاً — لا 1970-01-01 من new Date(null).
+const dayOrNull = (value: any) => (value ? new Date(value) : null);
+// والتاريخ الفارغ لا يُرسل، فيبقى ما في السجلّ كما هو.
+const formatOrNull = (value: any) => (value && dayjs(value).isValid() ? dayjs(value).format("YYYY-MM-DD") : undefined);
+
 type Props = {
     data: any;
     onSuccess?: () => void;
@@ -43,9 +48,9 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                 card_number:    data.card_number,
                 phone:          data.phone,
                 type:           data.type,
-                membership_date: new Date(data?.membership_date),
+                membership_date: dayOrNull(data?.membership_date),
                 gender:         data.gender,
-                subscription_date:     new Date(data?.subscription_date)
+                subscription_date:     dayOrNull(data?.subscription_date)
             })
         }
     }, [data, props.opened]);
@@ -69,9 +74,9 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                     nationalIDBack: nationalIDBack?.[0] || null,
                     personal_picture: personalPicture?.[0] || null,
 
-                    membership_date: dayjs(membership_date).format("YYYY-MM-DD"),
+                    membership_date: formatOrNull(membership_date),
                     gender,
-                    subscription_date: dayjs(subscription_date).format("YYYY-MM-DD")
+                    subscription_date: formatOrNull(subscription_date)
                 }
             },
             refetchQueries: [AllAssembly],

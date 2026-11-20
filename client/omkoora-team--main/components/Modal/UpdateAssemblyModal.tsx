@@ -1,5 +1,5 @@
 import {Box, Button, Col, FileInput, Grid, Group, Loader, Overlay, Select, Stack, Text,} from "@mantine/core";
-import {Calendar, Check, ChevronDown, X} from "tabler-icons-react";
+import {Calendar, Check, ChevronDown, Paperclip, X} from "tabler-icons-react";
 import React, {useEffect, useRef, useState} from "react";
 import { useForm } from "@mantine/form";
 import TextInput from "../Input/TextInput";
@@ -11,6 +11,12 @@ import {Dropzone, IMAGE_MIME_TYPE} from "@mantine/dropzone";
 import {searchSortedData} from "../../lib/helpers/sort";
 import dayjs from "dayjs";
 import { parseDate } from "../../lib/helpers/date";
+import { DOCUMENT_TYPES, GUARDIAN_AGE, MAX_EXTRA_ATTACHMENTS, needsGuardian } from "../../lib/helpers/memberDocuments";
+
+// تاريخٌ فارغ يبقى فارغاً — لا 1970-01-01 من new Date(null).
+const dayOrNull = (value: any) => (value ? new Date(value) : null);
+// والتاريخ الفارغ لا يُرسل، فيبقى ما في السجلّ كما هو.
+const formatOrNull = (value: any) => (value && dayjs(value).isValid() ? dayjs(value).format("YYYY-MM-DD") : undefined);
 
 type Props = {
     data: any
@@ -19,10 +25,16 @@ type Props = {
 
 export const UpdateAssemblyModal = ({data, ...props}: Props) => {
     const userData = useStore((state: any) => state.userData);
-    const {getInputProps, reset, onSubmit, setValues} = useForm();
+    const {getInputProps, reset, onSubmit, setValues, values} = useForm<any>();
     const [nationalID, setNationalID] = useState<File[]>([]);
     const [nationalIDBack, setNationalIDBack] = useState<File[]>([]);
     const [personalPicture, setPersonalPicture] = useState<File[]>([]);
+    // الاستمارتان والمرفقات: الفريق يستكمل بها طلباً ردّه النادي ناقصاً (العميل، 2026-11-19).
+    const [membershipForm, setMembershipForm] = useState<File | null>(null);
+    const [guardianForm, setGuardianForm] = useState<File | null>(null);
+    const [extras, setExtras] = useState<File[]>([]);
+    const [extrasError, setExtrasError] = useState<string | null>(null);
+    const minor = needsGuardian(values?.date_birth || null);
     const [loading, setLoading] = useState(false);
     const openRef = useRef<() => void>(null);
     const openRefBack = useRef<() => void>(null);
@@ -41,14 +53,15 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                 card_number:    data.card_number,
                 phone:          data.phone,
                 type:           data.type,
-                membership_date: new Date(data?.membership_date),
+                membership_date: dayOrNull(data?.membership_date),
                 gender:         data.gender,
-                subscription_date:     new Date(data?.subscription_date)
+                subscription_date:     dayOrNull(data?.subscription_date)
             })
         }
     }, [data, props.opened]);
 
     const onFormSubmit = ({first_name, second_name, third_name, tribe, date_birth, card_number, phone, type, membership_date, gender, subscription_date}: any) => {
+        if (extras.length > MAX_EXTRA_ATTACHMENTS) { setExtrasError(`${MAX_EXTRA_ATTACHMENTS} ملفات على الأكثر`); return; }
         setLoading(true)
         updateAssembly({
             variables: {
@@ -58,7 +71,7 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                     second_name,
                     third_name,
                     tribe,
-                    date_birth: dayjs(date_birth).format("YYYY-MM-DD"),
+                    date_birth: formatOrNull(date_birth),
                     card_number,
                     phone,
                     type,
@@ -66,9 +79,12 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                     nationalID: nationalID?.[0] || null,
                     nationalIDBack: nationalIDBack?.[0] || null,
                     personal_picture: personalPicture?.[0] || null,
-                    membership_date: dayjs(membership_date).format("YYYY-MM-DD"),
+                    membership_form: membershipForm,
+                    guardian_form: guardianForm,
+                    attachments: extras,
+                    membership_date: formatOrNull(membership_date),
                     gender,
-                    subscription_date: dayjs(subscription_date).format("YYYY-MM-DD")
+                    subscription_date: formatOrNull(subscription_date)
                 }
             },
             refetchQueries: [AllAssembly],
@@ -85,6 +101,12 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
     const closeModal = () => {
         setLoading(false)
         setNationalID([])
+        setNationalIDBack([])
+        setPersonalPicture([])
+        setMembershipForm(null)
+        setGuardianForm(null)
+        setExtras([])
+        setExtrasError(null)
         props.onClose();
         reset();
     };
@@ -287,6 +309,44 @@ export const UpdateAssemblyModal = ({data, ...props}: Props) => {
                                     }}>اختار ملف / اسحب ملف الى هنا</Button>
                                 </Group>
                             </Dropzone>
+                        </Col>
+
+                        <Col span={12} sm={minor ? 6 : 12}>
+                            <FileInput
+                                label="استمارة طلب العضوية"
+                                description={data?.membership_form ? "مرفوعة — اختر ملفاً لاستبدالها" : "لم تُرفق بعد — PDF أو صورة أو Word"}
+                                clearable
+                                icon={<Paperclip size={16} />}
+                                accept={DOCUMENT_TYPES}
+                                value={membershipForm}
+                                onChange={setMembershipForm}
+                            />
+                        </Col>
+                        {minor ? (
+                            <Col span={12} sm={6}>
+                                <FileInput
+                                    label={`تعهد ولي الأمر (العضو دون ${GUARDIAN_AGE} سنة)`}
+                                    description={data?.guardian_form ? "مرفوع — اختر ملفاً لاستبداله" : "لم يُرفق بعد"}
+                                        clearable
+                                    icon={<Paperclip size={16} />}
+                                    accept={DOCUMENT_TYPES}
+                                    value={guardianForm}
+                                    onChange={setGuardianForm}
+                                />
+                            </Col>
+                        ) : null}
+                        <Col span={12}>
+                            <FileInput
+                                label="إضافة مرفقات"
+                                description={`تُضاف إلى مرفقات العضو — حتى ${MAX_EXTRA_ATTACHMENTS} ملفات في المرة`}
+                                multiple
+                                clearable
+                                icon={<Paperclip size={16} />}
+                                accept={DOCUMENT_TYPES}
+                                value={extras}
+                                onChange={(files) => { setExtras(files); setExtrasError(null); }}
+                                error={extrasError}
+                            />
                         </Col>
                     </Grid>
                 </form>

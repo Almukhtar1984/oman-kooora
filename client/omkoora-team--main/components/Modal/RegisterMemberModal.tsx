@@ -1,5 +1,5 @@
-import {Alert, Box, Button, Col, Grid, Group, Loader, Overlay, Select, Stack, Text} from "@mantine/core";
-import {Calendar, Check, ChevronDown, InfoCircle, X} from "tabler-icons-react";
+import {Alert, Box, Button, Col, FileInput, Grid, Group, Loader, Overlay, Select, Stack, Text} from "@mantine/core";
+import {Calendar, Check, ChevronDown, InfoCircle, Paperclip, X} from "tabler-icons-react";
 import React, {useRef, useState} from "react";
 import {useForm} from "@mantine/form";
 import {DateInput} from "@mantine/dates";
@@ -9,6 +9,9 @@ import {Notyf} from "notyf";
 import TextInput from "../Input/TextInput";
 import Modal, {Props as ModalProps} from "./Modal";
 import {AllAssembly, useRegisterMember} from "../../graphql";
+import {
+    DOCUMENT_TYPES, GUARDIAN_AGE, MAX_EXTRA_ATTACHMENTS, MAX_FILE_MB, needsGuardian, tooBig,
+} from "../../lib/helpers/memberDocuments";
 
 type Props = {
     idTeam?: string;
@@ -49,6 +52,11 @@ export const RegisterMemberModal = ({idTeam, onRegistered, ...props}: Props) => 
     const [nationalID, setNationalID] = useState<File[]>([]);
     const [nationalIDBack, setNationalIDBack] = useState<File[]>([]);
     const [picture, setPicture] = useState<File[]>([]);
+    const [membershipForm, setMembershipForm] = useState<File | null>(null);
+    const [guardianForm, setGuardianForm] = useState<File | null>(null);
+    const [extras, setExtras] = useState<File[]>([]);
+    const [docErrors, setDocErrors] = useState<Record<string, string | null>>({});
+    const minor = needsGuardian(form.values.date_birth);
     const openFront = useRef<() => void>(null);
     const openBack = useRef<() => void>(null);
     const openPicture = useRef<() => void>(null);
@@ -59,10 +67,29 @@ export const RegisterMemberModal = ({idTeam, onRegistered, ...props}: Props) => 
         setNationalID([]);
         setNationalIDBack([]);
         setPicture([]);
+        setMembershipForm(null);
+        setGuardianForm(null);
+        setExtras([]);
+        setDocErrors({});
         props.onClose();
     };
 
+    // الاستمارتان من شروط التسجيل: لا يصل الطلب إلى النادي ناقصاً ثم يُرفض.
+    const checkDocuments = () => {
+        const errors: Record<string, string | null> = {
+            membership_form: !membershipForm ? "أرفق استمارة طلب العضوية"
+                : tooBig(membershipForm) ? `الملف أكبر من ${MAX_FILE_MB} ميغابايت` : null,
+            guardian_form: minor && !guardianForm ? `العضو دون ${GUARDIAN_AGE} سنة — أرفق تعهد ولي الأمر`
+                : tooBig(guardianForm) ? `الملف أكبر من ${MAX_FILE_MB} ميغابايت` : null,
+            attachments: extras.length > MAX_EXTRA_ATTACHMENTS ? `${MAX_EXTRA_ATTACHMENTS} ملفات على الأكثر`
+                : extras.some(tooBig) ? `ملفٌ أكبر من ${MAX_FILE_MB} ميغابايت` : null,
+        };
+        setDocErrors(errors);
+        return Object.values(errors).every((error) => !error);
+    };
+
     const onSubmit = (values: typeof init) => {
+        if (!checkDocuments()) return;
         const notyf = new Notyf({position: {x: "right", y: "bottom"}});
         registerMember({
             variables: {
@@ -78,6 +105,10 @@ export const RegisterMemberModal = ({idTeam, onRegistered, ...props}: Props) => 
                     personal_picture: picture?.[0],
                     nationalID: nationalID?.[0],
                     nationalIDBack: nationalIDBack?.[0],
+                    membership_form: membershipForm,
+                    // التعهد لمن هو دون 18 وحده — وإن بقي من تاريخٍ عُدّل بعده لا يُرسل.
+                    guardian_form: minor ? guardianForm : null,
+                    attachments: extras,
                 },
             },
             refetchQueries: idTeam ? [{query: AllAssembly, variables: {idTeam}}] : [AllAssembly],
@@ -143,8 +174,9 @@ export const RegisterMemberModal = ({idTeam, onRegistered, ...props}: Props) => 
                 <Alert color="blue" icon={<InfoCircle size={16} />} mb="md">
                     يدخل العضو «العضوية» مباشرة ويُرسل طلبه إلى النادي مع رسوم العضوية السنوية.
                     بعد اعتماد النادي اختر تصنيفه — لاعب أو جهاز فني أو مجلس إدارة — من بطاقته.
+                    ويُرفق مع الطلب: استمارة طلب العضوية، وتعهد ولي الأمر لمن هو دون {GUARDIAN_AGE} سنة.
                 </Alert>
-                <form onSubmit={form.onSubmit(onSubmit)} id="register_member_form">
+                <form onSubmit={form.onSubmit(onSubmit, () => checkDocuments())} id="register_member_form">
                     <Grid gutter={16}>
                         <Col span={12} sm={6}>
                             <TextInput label="الاسم الأول" placeholder="الاسم الأول" withAsterisk {...form.getInputProps("first_name")} />
@@ -190,6 +222,48 @@ export const RegisterMemberModal = ({idTeam, onRegistered, ...props}: Props) => 
                         {upload("الصورة الشخصية", picture, setPicture, openPicture)}
                         {upload("البطاقة المدنية — الوجه الأمامي", nationalID, setNationalID, openFront)}
                         {upload("البطاقة المدنية — الوجه الخلفي", nationalIDBack, setNationalIDBack, openBack)}
+
+                        <Col span={12} sm={minor ? 6 : 12}>
+                            <FileInput
+                                label="استمارة طلب العضوية"
+                                description="PDF أو صورة أو Word"
+                                withAsterisk
+                                clearable
+                                icon={<Paperclip size={16} />}
+                                accept={DOCUMENT_TYPES}
+                                value={membershipForm}
+                                onChange={(file) => { setMembershipForm(file); setDocErrors((e) => ({...e, membership_form: null})); }}
+                                error={docErrors.membership_form}
+                            />
+                        </Col>
+                        {minor ? (
+                            <Col span={12} sm={6}>
+                                <FileInput
+                                    label="تعهد ولي الأمر"
+                                    description={`العضو دون ${GUARDIAN_AGE} سنة`}
+                                    withAsterisk
+                                    clearable
+                                    icon={<Paperclip size={16} />}
+                                    accept={DOCUMENT_TYPES}
+                                    value={guardianForm}
+                                    onChange={(file) => { setGuardianForm(file); setDocErrors((e) => ({...e, guardian_form: null})); }}
+                                    error={docErrors.guardian_form}
+                                />
+                            </Col>
+                        ) : null}
+                        <Col span={12}>
+                            <FileInput
+                                label="مرفقات أخرى (اختياري)"
+                                description={`حتى ${MAX_EXTRA_ATTACHMENTS} ملفات — بطاقة ولي الأمر أو أي مستند آخر`}
+                                multiple
+                                clearable
+                                icon={<Paperclip size={16} />}
+                                accept={DOCUMENT_TYPES}
+                                value={extras}
+                                onChange={(files) => { setExtras(files); setDocErrors((e) => ({...e, attachments: null})); }}
+                                error={docErrors.attachments}
+                            />
+                        </Col>
                     </Grid>
                 </form>
             </Box>

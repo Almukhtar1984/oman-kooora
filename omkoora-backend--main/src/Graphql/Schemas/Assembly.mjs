@@ -62,7 +62,10 @@ export const typeDefs = gql`
 
         nationalID:         String
         nationalIDBack:     String
-        
+        # «استمارة طلب العضوية، وإذا كان أقل من 18 تعهد ولي الأمر» (العميل، 2026-11-19).
+        membership_form:    String
+        guardian_form:      String
+
         membership_date:    Date @date(format: "yyyy-MM-dd")
         gender:             Gander
         subscription_date:  Date @date(format: "yyyy-MM-dd")
@@ -89,6 +92,10 @@ export const typeDefs = gql`
         nationalIDBack:     Upload
         oldNationalID:      String
         oldNationalIDBack:  String
+        # استمارة طلب العضوية (لكل عضو)، وتعهد ولي الأمر (لمن هو دون 18)، ومرفقات أخرى.
+        membership_form:    Upload
+        guardian_form:      Upload
+        attachments:        [Upload]
 
         membership_date:    String
         gender:             Gander

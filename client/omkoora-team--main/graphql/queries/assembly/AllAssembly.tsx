@@ -16,6 +16,8 @@ export const AllAssembly = gql`
             status
             nationalID
             nationalIDBack
+            membership_form
+            guardian_form
             membership_date
             gender
             subscription_date

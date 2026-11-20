@@ -20,15 +20,20 @@ export const RequestReleaseModal = ({ data, idTeam, ...props }: Props) => {
     const [reason, setReason] = useState("");
     const [letter, setLetter] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [letterError, setLetterError] = useState<string | null>(null);
     const [createRelease, { loading }] = useCreatePlayerRelease();
 
     useEffect(() => {
-        if (props.opened) { setReason(""); setLetter(null); setError(null); }
+        if (props.opened) { setReason(""); setLetter(null); setError(null); setLetterError(null); }
     }, [props.opened]);
 
     const onSubmit = () => {
         const notyf = new Notyf({ position: { x: "right", y: "bottom" } });
-        if (!reason.trim()) { setError("اكتب سبب الاستقالة"); return; }
+        // «حتى بالنسبة للاستقالة من المشترط ترفق الاستقالة» (العميل، 2026-11-19).
+        const noReason = !reason.trim();
+        if (noReason) setError("اكتب سبب الاستقالة");
+        if (!letter) setLetterError("أرفق خطاب الاستقالة");
+        if (noReason || !letter) return;
         createRelease({
             variables: { content: { id_player: data?.id, reason: reason.trim(), letter } },
             refetchQueries: idTeam ? [{ query: AllPlayers, variables: { idTeam } }] : [],
@@ -72,12 +77,14 @@ export const RequestReleaseModal = ({ data, idTeam, ...props }: Props) => {
                     error={error}
                 />
                 <FileInput
-                    label="خطاب الاستقالة (اختياري)"
+                    label="خطاب الاستقالة"
                     description="PDF أو Word أو صورة"
+                    withAsterisk
                     icon={<Paperclip size={16} />}
                     clearable
                     value={letter}
-                    onChange={setLetter}
+                    onChange={(file) => { setLetter(file); setLetterError(null); }}
+                    error={letterError}
                     accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
                 />
             </Stack>

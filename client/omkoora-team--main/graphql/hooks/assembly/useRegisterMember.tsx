@@ -15,6 +15,10 @@ interface VariableProps {
         personal_picture?: any;
         nationalID?:      any;
         nationalIDBack?:  any;
+        // استمارة طلب العضوية، وتعهد ولي الأمر لمن هو دون 18، ومرفقات أخرى.
+        membership_form?: File | null;
+        guardian_form?:   File | null;
+        attachments?:     File[];
     };
 }
 

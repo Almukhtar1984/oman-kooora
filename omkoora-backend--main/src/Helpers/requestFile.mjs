@@ -86,24 +86,34 @@ export const assemble = ({ photo = null, fields = [], documents = [] }) => {
     return { photo: present(photo) ? String(photo) : null, fields: shownFields, documents: shownDocuments, missing };
 };
 
-/** «تسجيل عضو جديد»: سجلّ العضوية كما أرسله الفريق. */
-export const memberFile = (member, { today = new Date() } = {}) => assemble({
-    photo: member?.personal_picture,
-    fields: [
-        ["الاسم", fullName(member), true],
-        ["الرقم المدني", member?.card_number, true],
-        ["تاريخ الميلاد", birthText(member?.date_birth, today), true],
-        ["رقم الهاتف", member?.phone, true],
-        ["الجنس", GENDER_LABEL[member?.gender] || null, false],
-        ["الفريق", member?.team?.name, false],
-        ["رقم العضوية", member?.membership_number, false],
-    ],
-    documents: [
-        ["البطاقة المدنية — الوجه الأمامي", member?.nationalID, true],
-        ["البطاقة المدنية — الوجه الخلفي", member?.nationalIDBack, true],
-        ["الصورة الشخصية", member?.personal_picture, true],
-    ],
-});
+/**
+ * «تسجيل عضو جديد»: سجلّ العضوية كما أرسله الفريق.
+ * والاستمارتان من شروط التسجيل (العميل، 2026-11-19): استمارة طلب العضوية لكل عضو،
+ * وتعهد ولي الأمر لمن هو دون 18 — وما لم يُرفق منهما يُسمّى للنادي.
+ */
+export const memberFile = (member, { extras = [], today = new Date() } = {}) => {
+    const age = ageOn(member?.date_birth, today);
+    return assemble({
+        photo: member?.personal_picture,
+        fields: [
+            ["الاسم", fullName(member), true],
+            ["الرقم المدني", member?.card_number, true],
+            ["تاريخ الميلاد", birthText(member?.date_birth, today), true],
+            ["رقم الهاتف", member?.phone, true],
+            ["الجنس", GENDER_LABEL[member?.gender] || null, false],
+            ["الفريق", member?.team?.name, false],
+            ["رقم العضوية", member?.membership_number, false],
+        ],
+        documents: [
+            ["البطاقة المدنية — الوجه الأمامي", member?.nationalID, true],
+            ["البطاقة المدنية — الوجه الخلفي", member?.nationalIDBack, true],
+            ["الصورة الشخصية", member?.personal_picture, true],
+            ["استمارة طلب العضوية", member?.membership_form, true],
+            ["تعهد ولي الأمر", member?.guardian_form, age !== null && age < 18],
+            ...extras.map((file, index) => [`مرفق ${index + 1}`, file, false]),
+        ],
+    });
+};
 
 /** «تسجيل لاعب جديد»: بياناته ومستنداته. موافقة ولي الأمر تُنتظر لمن هو دون 18. */
 export const playerFile = (player, { extras = [], today = new Date() } = {}) => {

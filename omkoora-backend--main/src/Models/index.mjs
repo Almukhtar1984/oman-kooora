@@ -276,6 +276,10 @@ Attachment.belongsTo(Message, { foreignKey: { name: 'id_message' }, onDelete: 'C
 Comment.hasMany(Attachment, { foreignKey: { name: 'id_comment' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Attachment.belongsTo(Comment, { foreignKey: { name: 'id_comment' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
 
+// Assembly 1 * Attachment — مرفقات «تسجيل عضو جديد» الأخرى (العميل، 2026-11-19)
+Assembly.hasMany(Attachment, { foreignKey: { name: 'id_assembly' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+Attachment.belongsTo(Assembly, { foreignKey: { name: 'id_assembly' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });
+
 // Message 1 * Comment
 Message.hasOne(Comment, { foreignKey: { name: 'id_message' }, onDelete: 'CASCADE', onUpdate: 'CASCADE' })
 Comment.belongsTo(Message, { foreignKey: { name: 'id_message' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'  });

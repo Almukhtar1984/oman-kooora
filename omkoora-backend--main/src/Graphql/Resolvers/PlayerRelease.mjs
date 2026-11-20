@@ -99,6 +99,11 @@ export const resolvers = {
 
                 const verdict = canRequestRelease(player, open);
                 if (!verdict.ok) throw new ApolloError(verdict.message, verdict.code);
+                // «حتى بالنسبة للاستقالة من المشترط ترفق الاستقالة» (العميل، 2026-11-19):
+                // طلب الفريق لا يصل إلى النادي بلا خطاب. والنادي حين يسجّلها بنفسه يملك قراره.
+                if (myTeam && !content.letter) {
+                    throw new ApolloError("أرفق خطاب الاستقالة — من شروط طلب الاستقالة", "LETTER_REQUIRED");
+                }
 
                 const letter = content.letter ? await storeLetter(content.letter) : null;
 

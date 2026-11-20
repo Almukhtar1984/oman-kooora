@@ -41,16 +41,27 @@ check("الجنس بالعربية", valueOf(member, "الجنس"), "ذكر");
 check("فريقه", valueOf(member, "الفريق"), "فريق النصر");
 check("الحقل الفارغ غير المطلوب لا يُعرض", valueOf(member, "رقم العضوية"), null);
 check("ما لم يُرفق يُسمّى", member.missing,
-    ["البطاقة المدنية — الوجه الأمامي", "البطاقة المدنية — الوجه الخلفي", "الصورة الشخصية"]);
+    ["البطاقة المدنية — الوجه الأمامي", "البطاقة المدنية — الوجه الخلفي", "الصورة الشخصية", "استمارة طلب العضوية"]);
 check("ولا مستندات تُعرض", member.documents, []);
 
 const complete = memberFile({
     first_name: "س", second_name: "ع", tribe: "ق", card_number: "1", date_birth: "2000-01-01", phone: "9",
-    nationalID: "f.jpg", nationalIDBack: "b.JPEG", personal_picture: "p.png",
+    nationalID: "f.jpg", nationalIDBack: "b.JPEG", personal_picture: "p.png", membership_form: "form.pdf",
 }, { today });
 check("العضو المكتمل: لا ناقص", complete.missing, []);
-check("ومستنداته الثلاثة صور", complete.documents.map((doc) => doc.kind), ["image", "image", "image"]);
+check("ومستنداته: ثلاث صور واستمارة", complete.documents.map((doc) => doc.kind), ["image", "image", "image", "file"]);
 check("وصورته في رأس الملف", complete.photo, "p.png");
+// الاستمارتان (العميل، 2026-11-19): تعهد ولي الأمر لمن هو دون 18، والمرفقات الأخرى تُعرض.
+const minorMember = memberFile({
+    first_name: "محمد", second_name: "مرزوق", tribe: "الحراصي", card_number: "1", date_birth: "2014-01-07", phone: "9",
+    nationalID: "f.jpg", nationalIDBack: "b.jpg", personal_picture: "p.png", membership_form: "form.pdf",
+}, { extras: ["guardian-card.jpg"], today });
+check("العضو دون 18 بلا تعهد ولي الأمر → ناقص", minorMember.missing, ["تعهد ولي الأمر"]);
+check("ومرفقاته الأخرى في الملف", minorMember.documents.map((doc) => doc.label).slice(-2), ["استمارة طلب العضوية", "مرفق 1"]);
+check("ومع التعهد يكتمل", memberFile({
+    first_name: "س", second_name: "ع", tribe: "ق", card_number: "1", date_birth: "2014-01-07", phone: "9",
+    nationalID: "f.jpg", nationalIDBack: "b.jpg", personal_picture: "p.png", membership_form: "form.pdf", guardian_form: "g.pdf",
+}, { today }).missing, []);
 check("بلا رقم مدني يُذكر ناقصاً", memberFile({ first_name: "س" }, { today }).missing.includes("الرقم المدني"), true);
 
 // ── تسجيل لاعب ──────────────────────────────────────────────────────────

@@ -16,6 +16,9 @@ interface VariableProps {
 
         nationalID?:         any;
         nationalIDBack?:         any;
+        membership_form?:        File | null;
+        guardian_form?:          File | null;
+        attachments?:            File[];
         personal_picture?:   any;
         membership_date?:    string;
         gender?:             string;

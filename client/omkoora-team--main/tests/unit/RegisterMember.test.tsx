@@ -54,6 +54,24 @@ const renderModal = (onRegistered = vi.fn()) => render(
 const type = (label: string, value: string) =>
     fireEvent.change(screen.getByPlaceholderText(label), { target: { value } });
 
+// حقول المستندات: الاستمارتان ملفٌ واحد لكلٍّ منهما، و«مرفقات أخرى» عدة ملفات.
+const DOC_ACCEPT = ".pdf,.jpg,.jpeg,.png,.doc,.docx";
+const docInputs = () => Array.from(document.querySelectorAll(`input[type="file"][accept="${DOC_ACCEPT}"]`)) as HTMLInputElement[];
+const pdf = (name: string) => new File(["%PDF"], name, { type: "application/pdf" });
+const attach = (input: HTMLInputElement, ...files: File[]) => fireEvent.change(input, { target: { files } });
+const formInputs = () => docInputs().filter((input) => !input.multiple);
+const extrasInput = () => docInputs().find((input) => input.multiple) as HTMLInputElement;
+
+const fillMember = (birth = "2000-03-15") => {
+    type("الاسم الأول", "سالم");
+    type("الاسم الثاني", "خالد");
+    type("القبيلة", "العبري");
+    type("الرقم المدني", "١٢٣٤٥٦٧٨");
+    type("رقم الهاتف", "٩٩١٢٣٤٥٦");
+    fireEvent.change(screen.getByLabelText("تاريخ الميلاد"), { target: { value: birth } });
+};
+const send = () => fireEvent.click(screen.getByRole("button", { name: "إرسال إلى النادي" }));
+
 beforeEach(() => {
     vi.clearAllMocks();
     h.register.mockResolvedValue({ data: { registerMember: { id: "a1", status: "waiting_club" } } });
@@ -76,13 +94,9 @@ describe("نافذة «تسجيل عضو جديد»", () => {
     it("sends the civil number and phone in Latin digits, and the birth date as a day", async () => {
         const onRegistered = vi.fn();
         renderModal(onRegistered);
-        type("الاسم الأول", "سالم");
-        type("الاسم الثاني", "خالد");
-        type("القبيلة", "العبري");
-        type("الرقم المدني", "١٢٣٤٥٦٧٨");
-        type("رقم الهاتف", "٩٩١٢٣٤٥٦");
-        fireEvent.change(screen.getByLabelText("تاريخ الميلاد"), { target: { value: "2000-03-15" } });
-        fireEvent.click(screen.getByRole("button", { name: "إرسال إلى النادي" }));
+        fillMember();
+        attach(formInputs()[0], pdf("membership.pdf"));
+        send();
 
         await waitFor(() => expect(h.register).toHaveBeenCalled());
         const content = h.register.mock.calls[0][0].variables.content;
@@ -90,7 +104,58 @@ describe("نافذة «تسجيل عضو جديد»", () => {
             first_name: "سالم", second_name: "خالد", tribe: "العبري",
             card_number: "12345678", phone: "99123456", date_birth: "2000-03-15",
         });
+        expect(content.membership_form.name).toBe("membership.pdf");
+        // البالغ لا تعهد له.
+        expect(content.guardian_form).toBeNull();
         await waitFor(() => expect(onRegistered).toHaveBeenCalled());
+    });
+
+    // «استمارة طلب العضوية، وإذا كان أقل من 18 تعهد ولي الأمر» (العميل، 2026-11-19).
+    it("sends nothing without the membership application form", async () => {
+        renderModal();
+        fillMember();
+        send();
+        expect(await screen.findByText("أرفق استمارة طلب العضوية")).toBeInTheDocument();
+        expect(h.register).not.toHaveBeenCalled();
+    });
+
+    it("asks an adult for no guardian's undertaking", () => {
+        renderModal();
+        fillMember("2000-03-15");
+        expect(screen.queryByText("تعهد ولي الأمر")).not.toBeInTheDocument();
+        expect(formInputs()).toHaveLength(1);
+    });
+
+    it("a member under 18 needs the guardian's undertaking too", async () => {
+        renderModal();
+        fillMember("2014-01-07");
+        expect(await screen.findByText("تعهد ولي الأمر")).toBeInTheDocument();
+        attach(formInputs()[0], pdf("membership.pdf"));
+        send();
+        expect(await screen.findByText(/أرفق تعهد ولي الأمر/)).toBeInTheDocument();
+        expect(h.register).not.toHaveBeenCalled();
+
+        attach(formInputs()[1], pdf("guardian.pdf"));
+        send();
+        await waitFor(() => expect(h.register).toHaveBeenCalled());
+        const content = h.register.mock.calls[0][0].variables.content;
+        expect([content.membership_form.name, content.guardian_form.name]).toEqual(["membership.pdf", "guardian.pdf"]);
+    });
+
+    it("sends any other attachments, at most five", async () => {
+        renderModal();
+        fillMember();
+        attach(formInputs()[0], pdf("membership.pdf"));
+        attach(extrasInput(), ...[1, 2, 3, 4, 5, 6].map((n) => pdf(`doc-${n}.pdf`)));
+        send();
+        expect(await screen.findByText("5 ملفات على الأكثر")).toBeInTheDocument();
+        expect(h.register).not.toHaveBeenCalled();
+
+        attach(extrasInput(), pdf("guardian-card.pdf"), pdf("certificate.pdf"));
+        send();
+        await waitFor(() => expect(h.register).toHaveBeenCalled());
+        expect(h.register.mock.calls[0][0].variables.content.attachments.map((f: File) => f.name))
+            .toEqual(["guardian-card.pdf", "certificate.pdf"]);
     });
 
     it("shows the server's reason when the club already has this person", async () => {
@@ -99,6 +164,7 @@ describe("نافذة «تسجيل عضو جديد»", () => {
         type("الاسم الأول", "سالم"); type("الاسم الثاني", "خالد"); type("القبيلة", "العبري");
         type("الرقم المدني", "12345678"); type("رقم الهاتف", "99123456");
         fireEvent.change(screen.getByLabelText("تاريخ الميلاد"), { target: { value: "2000-03-15" } });
+        attach(formInputs()[0], pdf("membership.pdf"));
         fireEvent.click(screen.getByRole("button", { name: "إرسال إلى النادي" }));
         await waitFor(() => expect(h.notyfError).toHaveBeenCalledWith(
             expect.objectContaining({ message: "صاحب هذا الرقم المدني عضوٌ مسجَّل في فريق النصر" })));

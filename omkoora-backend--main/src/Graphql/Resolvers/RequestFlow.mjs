@@ -2,7 +2,7 @@ import { ApolloError } from 'apollo-server-express';
 
 import logger from "../../Config/logger.mjs";
 import {
-    Assembly, AttachmentPerson, Club, ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment,
+    Assembly, Attachment, AttachmentPerson, Club, ClubFee, Person, PlayerRelease, Players, RequestFlow, RequestFlowEvent, RequestPayment,
     Team, Transfer,
 } from '../../Models/index.mjs';
 import sequelize from 'sequelize';
@@ -255,7 +255,11 @@ const namesOf = async (Model, ids) => {
 const fileOf = async ({ entity_type, entity_id }) => {
     if (entity_type === "assembly") {
         const row = await Assembly.findByPk(entity_id, { paranoid: false, include: [TEAM_NAME] });
-        return row ? memberFile(row.get({ plain: true })) : null;
+        if (!row) return null;
+        const extras = await Attachment.findAll({
+            where: { id_assembly: row.id }, attributes: ["content"], order: [["createdAt", "ASC"]],
+        });
+        return memberFile(row.get({ plain: true }), { extras: extras.map((item) => item.content) });
     }
     if (entity_type === "player") {
         const row = await Players.findByPk(entity_id, { include: [PERSON_FILE, TEAM_NAME] });
