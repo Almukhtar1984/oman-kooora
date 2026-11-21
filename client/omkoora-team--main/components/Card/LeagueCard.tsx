@@ -62,7 +62,7 @@ export const LeagueCard = ({
 }: Props) => {
     const [openCardOptionMenu, setOpenCardOptionMenu] = useState<boolean>(false);
     console.log("data nami:",data)
-    const team = data.participatingTeams.find((team: any) => team.team.id === idTeam);
+    const team = (data?.participatingTeams ?? []).find((t: any) => t?.team?.id === idTeam);
     console.log("idTeam",idTeam)
     return (
         <Box

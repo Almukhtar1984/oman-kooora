@@ -902,7 +902,7 @@ export const resolvers = {
                       player: playerName,
                       number,
                       count: 1,
-                      team: await Team.findByPk(team.id_team)
+                      team: await Team.findByPk(team.id_team, { paranoid: false })
                     });
                   } else {
                     redMap.get(key).count++;
@@ -915,7 +915,7 @@ export const resolvers = {
                         player: playerName,
                         number,
                         count: 1,
-                        team: await Team.findByPk(team.id_team)
+                        team: await Team.findByPk(team.id_team, { paranoid: false })
                       });
                     } else {
                       yellowMap.get(key).count++;
@@ -1103,7 +1103,7 @@ export const resolvers = {
             const type = matchMap.get(card.id_match) || "unknown";
             const key = `${card.id_player}-${card.id_team}`;
             const team = await ParticipatingTeams.findByPk(card.id_team);
-            const teamData = await Team.findByPk(team?.id_team);
+            const teamData = team?.id_team ? await Team.findByPk(team.id_team, { paranoid: false }) : null;
             const playerName = card.player;
 
             const participatingPlayer = await ParticipatingPlayers.findOne({
@@ -1297,10 +1297,13 @@ export const resolvers = {
                 throw new ApolloError(error)
             }
         },
+        // الفريق المحذوف بعد مشاركته يبقى في سجلّ الدورة باسمه: لو رجع فارغاً
+        // لسقطت صفحة «المسابقات» عند كل فريقٍ شاركه الدورة (فريق «الخليج»،
+        // نوفمبر 2026).
         team: async ({id_team}, {}, context, info) =>  {
-           
+            if (!id_team) return null;
             try {
-                return await Team.findByPk(id_team)
+                return await Team.findByPk(id_team, { paranoid: false })
             } catch (error) {
                 logger.error(`League.team: ${error?.message || error}`)
                 throw new ApolloError(error)

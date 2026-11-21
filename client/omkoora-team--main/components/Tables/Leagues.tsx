@@ -80,7 +80,7 @@ export const LeaguesTabel = ({data, setSelectedData, setOpenShowGroupsModal, set
         {
             name: 'الحالة',
             selector: (row: any) => {
-                const team = row.participatingTeams.find((team: any) => team.team.id === idTeam);
+                const team = (row.participatingTeams ?? []).find((t: any) => t?.team?.id === idTeam);
                 if (team) {
                     switch (team.status) {
                         case 'accepted':
@@ -100,7 +100,7 @@ export const LeaguesTabel = ({data, setSelectedData, setOpenShowGroupsModal, set
         },
         {
             cell: (row: any) => {
-                const team = row.participatingTeams.find((team: any) => team.team.id === idTeam);
+                const team = (row.participatingTeams ?? []).find((t: any) => t?.team?.id === idTeam);
 
                 return (
                     <Group style={{gap:'5px',flexWrap:'nowrap'}} >
@@ -203,7 +203,7 @@ export const LeaguesTabel = ({data, setSelectedData, setOpenShowGroupsModal, set
                                     : null
                                 }
 
-                                {row.participatingTeams && row.participatingTeams.length > 0 && team.status==="accepted" && dayjs(row.inscriptionExpiryDate).diff(dayjs(), "day") > 0
+                                {row.participatingTeams && row.participatingTeams.length > 0 && team?.status==="accepted" && dayjs(row.inscriptionExpiryDate).diff(dayjs(), "day") > 0
                                     ? <Menu.Item
                                         onClick={() => {
                                             setSelectedData(row);

@@ -81,7 +81,7 @@ export const AddParticipatingPlayers = ({data, ...props}: Props) => {
     useEffect(() => {
         if (data !== null && props.opened) {
             let newAllTeams: { label: string, value: string }[] = []
-            const participatingTeams = data?.participatingTeams.filter(team => team.team.id === userData?.person?.member?.team?.id);
+            const participatingTeams = (data?.participatingTeams ?? []).filter((t: any) => t?.team?.id === userData?.person?.member?.team?.id);
             for (let i = 0; i < participatingTeams.length; i++) {
                 const item = participatingTeams[i]
                 newAllTeams.push({value: item.id, label: `${item?.team?.name} - ${item?.group}`})

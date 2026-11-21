@@ -89,7 +89,7 @@ export const ShowLeague = ({ data, setSelectedData, setOpenShowParticipatingPlay
     }, [data, props.opened]);
 
     const getTeamStats = (teamId: string) => {
-        const teamStats = teamPoints.find((tp: any) => tp.team.id === teamId);
+        const teamStats = teamPoints.find((tp: any) => tp?.team?.id === teamId);
         return teamStats ? teamStats : { points: 0, matchesPlayed: 0, wins: 0, losses: 0, draws: 0 };
     };
 
@@ -142,7 +142,7 @@ export const ShowLeague = ({ data, setSelectedData, setOpenShowParticipatingPlay
                             <tbody>
                                 {group
                                     .map((teamData: any) => {
-                                        const { points, matchesPlayed, wins, losses, draws } = getTeamStats(teamData.team.id);
+                                        const { points, matchesPlayed, wins, losses, draws } = getTeamStats(teamData?.team?.id);
                                         return { ...teamData, points, matchesPlayed, wins, losses, draws };
                                     })
                                     .sort((a: any, b: any) => b.points - a.points)
@@ -250,7 +250,7 @@ export const ShowLeague = ({ data, setSelectedData, setOpenShowParticipatingPlay
                     {sortedYellowCards.map((card: any, index: number) => (
                         <tr key={index} style={{ padding: "10px 0" }}>
                         <td style={{ padding: "10px 0" }}>{card.player}</td>
-                        <td style={{ padding: "10px 0" }}>{card.team.name}</td>
+                        <td style={{ padding: "10px 0" }}>{card.team?.name}</td>
                         <td style={{ padding: "10px 0" }}>{card.number}</td>
                         <td style={{ padding: "10px 0" }}>{card.count}</td>
                         </tr>
@@ -285,7 +285,7 @@ export const ShowLeague = ({ data, setSelectedData, setOpenShowParticipatingPlay
                     {sortedRedCards .map((card: any, index: number) => (
                         <tr key={index} style={{ padding: "10px 0" }}>
                         <td style={{ padding: "10px 0" }}>{card.player}</td>
-                        <td style={{ padding: "10px 0" }}>{card.team.name}</td>
+                        <td style={{ padding: "10px 0" }}>{card.team?.name}</td>
                         <td style={{ padding: "10px 0" }}>{card.number}</td>
                         <td style={{ padding: "10px 0" }}>{card.count}</td>
                         </tr>

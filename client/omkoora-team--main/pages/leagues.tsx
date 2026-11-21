@@ -76,7 +76,7 @@ export default function Leagues() {
         }
 
         if (userData && "permission" in userData && userData.permission !== null) {
-            setPermissions(userData.permission.players.split(","));
+            setPermissions(userData.permission.players?.split(",") ?? []);
         }
     }, [userData, getAllLeagues]);
 
